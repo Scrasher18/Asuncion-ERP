@@ -1,0 +1,170 @@
+# =========================================================================================
+# PROYECTO: Sistema Empresarial ERP & E-Commerce "Repuestos Automotrices Asunción"
+# ARCHIVO: docker-compose.yml
+# DESCRIPCIÓN: Orquestación local Cloud-Ready de contenedores OCI:
+#              1. PostgreSQL 16 + PostGIS 3.4 (Inicialización automática 3FN + Seed Lima)
+#              2. MinIO Object Storage (Compatible con AWS S3 para imágenes WebP)
+#              3. MinIO Init Job (Aprovisionamiento automático del bucket público asuncion-media)
+#              4. Backend Spring Boot 3 (JWT Stateless, Hibernate Spatial, WebP, OpenAPI)
+#              5. Frontend Angular 17+ / Tailwind CSS sobre Nginx Reverse Proxy
+# =========================================================================================
+
+services:
+  # ---------------------------------------------------------------------------------------
+  # 1. BASE DE DATOS RELACIONAL & GEOESPACIAL (PostgreSQL 16 + PostGIS 3.4)
+  # ---------------------------------------------------------------------------------------
+  postgres-postgis:
+    image: postgis/postgis:16-3.4-alpine
+    container_name: asuncion-postgres-postgis
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-asuncion_erp}
+      POSTGRES_USER: ${DB_USER:-asuncion_admin}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-Asuncion2026_SecureDB!}
+      TZ: America/Lima
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - ./database/01_schema_3fn_postgis.sql:/docker-entrypoint-initdb.d/01_schema_3fn_postgis.sql:ro
+      - ./database/02_seed_asuncion.sql:/docker-entrypoint-initdb.d/02_seed_asuncion.sql:ro
+      - asuncion_postgis_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-asuncion_admin} -d ${DB_NAME:-asuncion_erp}"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 15s
+    networks:
+      - asuncion-cloud-net
+
+  # ---------------------------------------------------------------------------------------
+  # 2. ALMACENAMIENTO DE OBJETOS MULTIMEDIA DESACOPLADO (MinIO S3-Compatible)
+  # ---------------------------------------------------------------------------------------
+  minio:
+    image: minio/minio:latest
+    container_name: asuncion-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:-AsuncionMinio2026!}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - asuncion_minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 10s
+    networks:
+      - asuncion-cloud-net
+
+  # ---------------------------------------------------------------------------------------
+  # 3. JOB DE INICIALIZACIÓN DE BUCKET S3/MINIO (asuncion-media con lectura pública WebP)
+  # ---------------------------------------------------------------------------------------
+  minio-init:
+    image: minio/mc:latest
+    container_name: asuncion-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 $${S3_ACCESS_KEY:-minioadmin} $${S3_SECRET_KEY:-AsuncionMinio2026!};
+      mc mb --ignore-existing local/$${S3_BUCKET:-asuncion-media};
+      mc anonymous set download local/$${S3_BUCKET:-asuncion-media};
+      echo 'Bucket S3/MinIO asuncion-media configurado exitosamente en modo public-read.';
+      exit 0;
+      "
+    environment:
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-minioadmin}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-AsuncionMinio2026!}
+      S3_BUCKET: ${S3_BUCKET:-asuncion-media}
+    networks:
+      - asuncion-cloud-net
+
+  # ---------------------------------------------------------------------------------------
+  # 4. BACKEND EMPRESARIAL STATELESS (Java 21 + Spring Boot 3 + Hibernate Spatial)
+  # ---------------------------------------------------------------------------------------
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: asuncion/erp-backend:1.0.0
+    container_name: asuncion-backend
+    restart: unless-stopped
+    depends_on:
+      postgres-postgis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SERVER_PORT: 8080
+      DB_HOST: postgres-postgis
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-asuncion_erp}
+      DB_USER: ${DB_USER:-asuncion_admin}
+      DB_PASSWORD: ${DB_PASSWORD:-Asuncion2026_SecureDB!}
+      STORAGE_TYPE: ${STORAGE_TYPE:-s3}
+      S3_ENDPOINT: http://minio:9000
+      S3_REGION: us-east-1
+      S3_BUCKET: ${S3_BUCKET:-asuncion-media}
+      S3_PUBLIC_URL: ${S3_PUBLIC_URL:-http://localhost:9000/asuncion-media}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-minioadmin}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-AsuncionMinio2026!}
+      JWT_SECRET: ${JWT_SECRET:-AsuncionCloudErpSuperSecretHmacKey2026EnterpriseSecurityKeyForStatelessJwtTokens987654321}
+      JWT_EXPIRATION_SECONDS: ${JWT_EXPIRATION_SECONDS:-86400}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost,http://localhost:80,http://localhost:4200,http://127.0.0.1:4200}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      TZ: America/Lima
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/actuator/health || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    networks:
+      - asuncion-cloud-net
+
+  # ---------------------------------------------------------------------------------------
+  # 5. FRONTEND SPA / PWA & REVERSE PROXY (Angular + Tailwind CSS + Nginx)
+  # ---------------------------------------------------------------------------------------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: asuncion/erp-frontend:1.0.0
+    container_name: asuncion-frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "80:80"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/ >/dev/null 2>&1 || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - asuncion-cloud-net
+
+volumes:
+  asuncion_postgis_data:
+    name: asuncion_postgis_data
+  asuncion_minio_data:
+    name: asuncion_minio_data
+
+networks:
+  asuncion-cloud-net:
+    name: asuncion-cloud-net
+    driver: bridge

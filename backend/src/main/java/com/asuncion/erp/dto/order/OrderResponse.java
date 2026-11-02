@@ -1,0 +1,53 @@
+package com.asuncion.erp.dto.order;
+
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.List;
+
+public record OrderResponse(
+        Long id,
+        String orderNumber,
+        String status,
+        String deliveryType,
+        Long customerId,
+        String customerName,
+        String customerEmail,
+        String customerPhone,
+        String recipientName,
+        String recipientPhone,
+        String invoiceType,
+        String billingDocumentNumber,
+        String billingBusinessName,
+        String paymentMethod,
+        Long branchId,
+        String branchName,
+        String branchAddress,
+        Double branchLatitude,
+        Double branchLongitude,
+        String deliveryAddress,
+        String deliveryReference,
+        Double deliveryLatitude,
+        Double deliveryLongitude,
+        Double calculatedDistanceMeters,
+        BigDecimal subtotal,
+        BigDecimal igvAmount,
+        BigDecimal taxAmount,
+        BigDecimal deliveryFee,
+        BigDecimal totalAmount,
+        String notes,
+        String warehouseNotes,
+        Long salespersonId,
+        String salespersonName,
+        Long warehouseOperatorId,
+        String warehouseOperatorName,
+        Long assignedDriverId,
+        String assignedDriverName,
+        String assignedDriverPhone,
+        Instant createdAt,
+        Instant updatedAt,
+        Instant deliveredAt,
+        List<OrderItemDto> items,
+        List<OrderStatusHistoryDto> statusHistory,
+        DeliveryProofDto deliveryProof
+) {
+}

@@ -1,0 +1,131 @@
+# =========================================================================================
+# PROYECTO: Repuestos Automotrices Asunción — Manifiesto Kubernetes Frontend & Ingress
+# ARCHIVO: k8s/frontend-deployment.yaml
+# DESCRIPCIÓN: Deployment Nginx + Angular 17+ SPA/PWA, Service ClusterIP e Ingress L7 TLS
+#              con soporte para cargas multipart WebP (25 MB) y enrutamiento API REST.
+# =========================================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: asuncion-frontend
+  namespace: asuncion-prod
+  labels:
+    app.kubernetes.io/name: asuncion-frontend
+    app.kubernetes.io/component: web-spa-pwa
+    app.kubernetes.io/part-of: repuestos-asuncion-erp
+spec:
+  replicas: 2
+  revisionHistoryLimit: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: asuncion-frontend
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: asuncion-frontend
+        app.kubernetes.io/component: web-spa-pwa
+    spec:
+      containers:
+        - name: nginx-angular-spa
+          image: ghcr.io/asuncion-automotriz/erp-frontend:1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 20
+            timeoutSeconds: 3
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: asuncion-frontend-svc
+  namespace: asuncion-prod
+  labels:
+    app.kubernetes.io/name: asuncion-frontend
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: asuncion-frontend
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: asuncion-erp-ingress
+  namespace: asuncion-prod
+  labels:
+    app.kubernetes.io/name: asuncion-erp-ingress
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "25m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "90"
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - repuestosasuncion.pe
+        - erp.repuestosasuncion.pe
+      secretName: asuncion-erp-tls-cert
+  rules:
+    - host: repuestosasuncion.pe
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: asuncion-backend-svc
+                port:
+                  number: 8080
+          - path: /swagger-ui
+            pathType: Prefix
+            backend:
+              service:
+                name: asuncion-backend-svc
+                port:
+                  number: 8080
+          - path: /v3/api-docs
+            pathType: Prefix
+            backend:
+              service:
+                name: asuncion-backend-svc
+                port:
+                  number: 8080
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: asuncion-frontend-svc
+                port:
+                  number: 80

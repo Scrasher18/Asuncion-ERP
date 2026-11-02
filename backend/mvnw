@@ -1,0 +1,15 @@
+#!/bin/sh
+# Apache Maven Wrapper startup script for Unix/Linux/Docker
+set -e
+
+BASE_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+WRAPPER_JAR="$BASE_DIR/.mvn/wrapper/maven-wrapper.jar"
+WRAPPER_LAUNCHER="org.apache.maven.wrapper.MavenWrapperMain"
+
+if [ -n "$JAVA_HOME" ] && [ -x "$JAVA_HOME/bin/java" ]; then
+  JAVA_EXE="$JAVA_HOME/bin/java"
+else
+  JAVA_EXE="java"
+fi
+
+exec "$JAVA_EXE" $MAVEN_OPTS -classpath "$WRAPPER_JAR" "-Dmaven.multiModuleProjectDirectory=$BASE_DIR" "$WRAPPER_LAUNCHER" "$@"

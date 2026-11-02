@@ -1,0 +1,37 @@
+{
+  "name": "Repuestos Asunción | Autopartes y Accesorios",
+  "short_name": "Asunción",
+  "description": "Catálogo de repuestos automotrices originales y alternativos con entrega en Lima y recojo en tienda.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#F8F9FA",
+  "theme_color": "#ffffff",
+  "lang": "es-PE",
+  "icons": [
+    {
+      "src": "/icons/icon-asuncion.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Catálogo de repuestos",
+      "short_name": "Catálogo",
+      "url": "/"
+    },
+    {
+      "name": "Reparto y entregas",
+      "short_name": "Reparto",
+      "url": "/delivery"
+    },
+    {
+      "name": "Almacén y despacho",
+      "short_name": "Almacén",
+      "url": "/warehouse"
+    }
+  ]
+}

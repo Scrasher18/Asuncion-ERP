@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 115 36" width="115" height="36">
+  <rect width="115" height="36" rx="6" fill="#ED111B"/>
+  <circle cx="18" cy="18" r="8" fill="#FFFFFF"/>
+  <path d="M15 15 C15 13, 21 13, 21 16 C21 18, 15 18, 15 21 C15 23, 21 23, 21 21" stroke="#ED111B" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <text x="32" y="24" font-family="'Segoe UI', Roboto, sans-serif" font-size="13" font-weight="900" fill="#FFFFFF" letter-spacing="-0.3">Scotiabank.</text>
+</svg>

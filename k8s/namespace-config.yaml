@@ -1,0 +1,60 @@
+# =========================================================================================
+# PROYECTO: Repuestos Automotrices Asunción — Manifiesto Kubernetes (AWS EKS / GCP GKE / Azure AKS)
+# ARCHIVO: k8s/namespace-config.yaml
+# DESCRIPCIÓN: Namespace aislado de producción, ConfigMap 12-Factor y plantilla de Secretos.
+# =========================================================================================
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: asuncion-prod
+  labels:
+    app.kubernetes.io/part-of: repuestos-asuncion-erp
+    environment: production
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: asuncion-erp-config
+  namespace: asuncion-prod
+  labels:
+    app.kubernetes.io/name: asuncion-erp
+    app.kubernetes.io/component: configuration
+data:
+  SPRING_PROFILES_ACTIVE: "prod"
+  SERVER_PORT: "8080"
+  TZ: "America/Lima"
+  # Endpoint gestionado Cloud SQL / Amazon RDS / Azure Flexible Server con PostGIS 3.4
+  DB_HOST: "asuncion-postgis.cluster-db.internal"
+  DB_PORT: "5432"
+  DB_NAME: "asuncion_erp"
+  JPA_DDL_AUTO: "none"
+  APP_SEEDER_ENABLED: "false"
+  # Almacenamiento Multimedia Desacoplado (AWS S3 / GCS Interop / MinIO Cluster)
+  STORAGE_TYPE: "s3"
+  S3_ENDPOINT: "https://s3.us-east-1.amazonaws.com"
+  S3_REGION: "us-east-1"
+  S3_BUCKET: "asuncion-media-prod"
+  S3_PUBLIC_URL: "https://cdn.repuestosasuncion.pe"
+  # Seguridad CORS & JWT
+  JWT_EXPIRATION_SECONDS: "86400"
+  CORS_ALLOWED_ORIGINS: "https://repuestosasuncion.pe,https://erp.repuestosasuncion.pe"
+  GEMINI_MODEL: "gemini-2.5-flash"
+---
+# NOTA DE SEGURIDAD CLOUD: En producción, este Secret debe sincronizarse dinámicamente desde
+# AWS Secrets Manager, GCP Secret Manager o Azure Key Vault mediante External Secrets Operator.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: asuncion-erp-secrets
+  namespace: asuncion-prod
+  labels:
+    app.kubernetes.io/name: asuncion-erp
+    app.kubernetes.io/component: secrets
+type: Opaque
+stringData:
+  DB_USER: "CHANGE_ME_POSTGIS_PROD_USER"
+  DB_PASSWORD: "CHANGE_ME_POSTGIS_PROD_STRONG_PASSWORD"
+  S3_ACCESS_KEY: "CHANGE_ME_IAM_OR_S3_ACCESS_KEY"
+  S3_SECRET_KEY: "CHANGE_ME_IAM_OR_S3_SECRET_KEY"
+  JWT_SECRET: "CHANGE_ME_256_BIT_CRYPTORANDOM_HMAC_SECRET_KEY_FOR_STATELESS_JWT_AUTH"
+  GEMINI_API_KEY: "CHANGE_ME_OPTIONAL_GEMINI_API_KEY"

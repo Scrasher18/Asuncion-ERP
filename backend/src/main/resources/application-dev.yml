@@ -1,0 +1,22 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:asunciondb;DB_CLOSE_DELAY=-1;MODE=PostgreSQL
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    show-sql: false
+
+app:
+  storage:
+    type: local
+    local:
+      base-dir: ${LOCAL_STORAGE_DIR:./uploads}
+      public-url: ${LOCAL_MEDIA_PUBLIC_URL:http://localhost:8080/api/v1/media}

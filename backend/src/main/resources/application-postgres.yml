@@ -1,0 +1,30 @@
+# ==============================================================================
+# Perfil "postgres": PostgreSQL 16 + PostGIS local (pgAdmin 4) o Cloud (Supabase/Neon)
+# Mantiene almacenamiento local WebP (./uploads) para correr desde NetBeans sin Docker
+# Para activarlo, cambia en application.yml -> active: postgres
+# ==============================================================================
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/asuncion_erp}
+    driver-class-name: org.postgresql.Driver
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:admin}
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+app:
+  seeder:
+    enabled: ${APP_SEEDER_ENABLED:true}
+  storage:
+    type: local
+    local:
+      base-dir: ${LOCAL_STORAGE_DIR:./uploads}
+      public-url: ${LOCAL_MEDIA_PUBLIC_URL:http://localhost:8080/api/v1/media}

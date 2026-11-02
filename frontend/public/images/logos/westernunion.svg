@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 115 36" width="115" height="36">
+  <rect width="115" height="36" rx="6" fill="#000000"/>
+  <rect x="8" y="10" width="16" height="16" rx="2" fill="#FFDE00"/>
+  <text x="16" y="22" text-anchor="middle" font-family="'Segoe UI', Roboto, sans-serif" font-size="10" font-weight="900" fill="#000000">WU</text>
+  <text x="30" y="23" font-family="'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="900" fill="#FFDE00" letter-spacing="-0.3">WesternUnion</text>
+</svg>

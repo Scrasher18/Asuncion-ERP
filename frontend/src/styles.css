@@ -1,0 +1,65 @@
+@import 'tailwindcss';
+@import 'leaflet/dist/leaflet.css';
+
+@layer base {
+  :root {
+    --font-sans: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background-color: #f8f9fa;
+    color: #111827;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  code,
+  pre,
+  .font-mono {
+    font-family: var(--font-mono);
+  }
+}
+
+.safe-area-pb {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Subtle light-mode scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f3f4f6;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+/* ==============================================================================
+   Insignia oficial Google reCAPTCHA v3
+   Posicionada para flotar elegantemente arriba del botón "Asistente Asunción"
+   sin colisionar ni obstruir su apertura.
+   ============================================================================== */
+.grecaptcha-badge {
+  bottom: 84px !important;
+  right: 12px !important;
+  z-index: 35 !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12) !important;
+  border-radius: 8px 0 0 8px !important;
+  transition: bottom 0.3s ease, right 0.3s ease !important;
+}
+
+@media (max-width: 1023px) {
+  .grecaptcha-badge {
+    bottom: 140px !important;
+  }
+}

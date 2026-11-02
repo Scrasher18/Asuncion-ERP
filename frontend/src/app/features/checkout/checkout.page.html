@@ -1,0 +1,1018 @@
+<div class="min-h-screen bg-[#F8F9FA] pt-6 pb-24 lg:pb-14 px-4 sm:px-6 lg:px-8">
+  <div class="mx-auto max-w-7xl space-y-6">
+    <!-- Header -->
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900 tracking-tight">Finalizar compra</h1>
+        <p class="text-xs sm:text-sm text-gray-600">
+          Completa tus datos, selecciona tu dirección y procesa tu pago seguro en línea.
+        </p>
+      </div>
+      <a routerLink="/" class="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-600 hover:text-orange-600 transition">
+        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+        </svg>
+        <span>Seguir comprando</span>
+      </a>
+    </div>
+
+    @if (cart.items().length === 0) {
+      <div class="rounded-2xl border border-gray-200 bg-white p-12 text-center space-y-4 shadow-2xs">
+        <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-xl border border-gray-200 bg-gray-50 text-gray-400">
+          <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
+          </svg>
+        </div>
+        <h2 class="text-lg font-bold text-gray-900">Tu carrito está vacío</h2>
+        <p class="text-xs text-gray-500 max-w-sm mx-auto">
+          Agrega repuestos desde nuestro catálogo para continuar con tu pedido.
+        </p>
+        <a routerLink="/" class="inline-block rounded-lg bg-orange-600 px-5 py-2.5 text-xs font-semibold text-white hover:bg-orange-700 transition">
+          Explorar catálogo
+        </a>
+      </div>
+    } @else {
+      <!-- Guest Login Alert -->
+      @if (!auth.isAuthenticated()) {
+        <div class="rounded-2xl border border-amber-200 bg-amber-50/80 p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs">
+          <div class="space-y-1">
+            <h3 class="text-sm font-bold text-gray-900 flex items-center gap-2">
+              <svg class="h-4 w-4 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+              </svg>
+              <span>Acceso requerido para procesar el pedido</span>
+            </h3>
+            <p class="text-xs text-gray-600">
+              Debes iniciar sesión con tu cuenta o registrarte para emitir tu comprobante (Boleta o Factura) y activar el seguimiento GPS.
+            </p>
+          </div>
+          <div class="flex flex-wrap items-center gap-2 shrink-0">
+            <a
+              routerLink="/login"
+              [queryParams]="{ returnUrl: '/checkout' }"
+              class="min-h-[40px] inline-flex items-center rounded-xl bg-orange-600 px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-orange-700 transition"
+            >
+              Iniciar sesión
+            </a>
+            <a
+              routerLink="/login"
+              [queryParams]="{ tab: 'register', returnUrl: '/checkout' }"
+              class="min-h-[40px] inline-flex items-center rounded-xl border border-gray-200 bg-white px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition"
+            >
+              Crear cuenta
+            </a>
+          </div>
+        </div>
+      }
+
+      <!-- Out-of-Range Rejection Banner -->
+      @if (geospatialRejectionAlert()) {
+        <div class="rounded-xl border border-red-200 bg-red-50 p-4 flex items-start gap-3">
+          <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-red-100 text-red-600">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+            </svg>
+          </div>
+          <div class="space-y-1 flex-1">
+            <h3 class="text-sm font-semibold text-red-900">
+              Dirección fuera de nuestra zona de reparto
+            </h3>
+            <p class="text-xs text-red-700 leading-relaxed">
+              {{ geospatialRejectionAlert() }}
+            </p>
+            <p class="text-xs font-medium text-red-800">
+              Mueve el marcador dentro del área de cobertura en el mapa o selecciona <strong>Recojo en tienda</strong>.
+            </p>
+          </div>
+          <button
+            type="button"
+            (click)="geospatialRejectionAlert.set('')"
+            class="rounded-md p-1 text-red-500 hover:bg-red-100 hover:text-red-800"
+            aria-label="Cerrar aviso"
+          >
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      }
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <!-- Left 8 Cols: Steps 1, 2, 3 -->
+        <div class="lg:col-span-8 space-y-6">
+
+          <!-- ===================== STEP 1: COMPRADOR & COMPROBANTE ===================== -->
+          <section class="rounded-2xl border border-gray-200 bg-white p-5 sm:p-6 shadow-2xs space-y-4">
+            <div>
+              <h2 class="text-base font-bold text-gray-900">
+                1. Datos del comprador y comprobante
+              </h2>
+              <p class="text-xs text-gray-500">
+                Ingresa tu DNI o RUC para completar tus datos automáticamente.
+              </p>
+            </div>
+
+            <!-- Boleta vs Factura Switch -->
+            <div class="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                (click)="setInvoiceType('BOLETA')"
+                [class]="
+                  invoiceType() === 'BOLETA'
+                    ? 'border-orange-500 bg-orange-50 text-orange-700 font-semibold'
+                    : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50 font-medium'
+                "
+                class="min-h-[44px] rounded-xl border py-2.5 px-3 text-xs transition"
+              >
+                Boleta de venta (DNI)
+              </button>
+              <button
+                type="button"
+                (click)="setInvoiceType('FACTURA')"
+                [class]="
+                  invoiceType() === 'FACTURA'
+                    ? 'border-orange-500 bg-orange-50 text-orange-700 font-semibold'
+                    : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50 font-medium'
+                "
+                class="min-h-[44px] rounded-xl border py-2.5 px-3 text-xs transition"
+              >
+                Factura electrónica (RUC)
+              </button>
+            </div>
+
+            @if (invoiceType() === 'BOLETA') {
+              <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
+                <div class="sm:col-span-4">
+                  <label class="block text-xs font-medium text-gray-700 mb-1">
+                    DNI del comprador (8 dígitos)
+                  </label>
+                  <div class="relative">
+                    <input
+                      type="text"
+                      maxlength="8"
+                      inputmode="numeric"
+                      [(ngModel)]="customerDni"
+                      (ngModelChange)="onDniChange($event)"
+                      placeholder="Ej: 71156519"
+                      class="w-full min-h-[44px] rounded-xl border border-gray-200 bg-white pl-3.5 pr-9 py-2 font-mono text-base sm:text-sm text-gray-900 placeholder-gray-400 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
+                    />
+                    @if (isLookingUpDni()) {
+                      <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
+                        <svg class="h-4 w-4 animate-spin text-orange-600" fill="none" viewBox="0 0 24 24">
+                          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"></circle>
+                          <path class="opacity-90" fill="currentColor" d="M4 12a8 8 0 018-8v3a5 5 0 00-5 5H4z"></path>
+                        </svg>
+                      </span>
+                    }
+                  </div>
+                </div>
+
+                <div class="sm:col-span-8">
+                  <div class="flex items-center justify-between gap-2 mb-1">
+                    <label class="block text-xs font-medium text-gray-700">
+                      Nombre completo *
+                    </label>
+                    @if (dniLookup()?.found) {
+                      <span class="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+                        <svg class="h-3 w-3 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                        </svg>
+                        <span>RENIEC: {{ dniLookup()!.fullName }}</span>
+                      </span>
+                    }
+                  </div>
+                  <input
+                    type="text"
+                    [(ngModel)]="recipientName"
+                    placeholder="Nombres y apellidos de quien recibe"
+                    [class]="
+                      dniLookup()?.found
+                        ? 'border-emerald-300 bg-white'
+                        : 'border-gray-200 bg-white'
+                    "
+                    class="w-full min-h-[44px] rounded-xl border px-3.5 py-2 text-base sm:text-sm text-gray-900 placeholder-gray-400 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
+                  />
+                </div>
+              </div>
+            } @else {
+              <!-- Factura: RUC 11 dígitos -->
+              <div class="space-y-3">
+                <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
+                  <div class="sm:col-span-5">
+                    <label class="block text-xs font-medium text-gray-700 mb-1">
+                      RUC de la empresa (11 dígitos) *
+                    </label>
+                    <div class="relative">
+                      <input
+                        type="text"
+                        maxlength="11"
+                        inputmode="numeric"
+                        [(ngModel)]="customerTaxId"
+                        (ngModelChange)="onRucChange($event)"
+                        placeholder="Ej: 20608899114"
+                        class="w-full min-h-[44px] rounded-xl border border-gray-200 bg-white pl-3.5 pr-9 py-2 font-mono text-base sm:text-sm text-gray-900 placeholder-gray-400 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
+                      />
+                      @if (isLookingUpRuc()) {
+                        <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
+                          <svg class="h-4 w-4 animate-spin text-orange-600" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"></circle>
+                            <path class="opacity-90" fill="currentColor" d="M4 12a8 8 0 018-8v3a5 5 0 00-5 5H4z"></path>
+                          </svg>
+                        </span>
+                      }
+                    </div>
+                  </div>
+
+                  <div class="sm:col-span-7">
+                    <div class="flex flex-wrap items-center justify-between gap-2 mb-1">
+                      <label class="block text-xs font-medium text-gray-700">Razón social *</label>
+                      @if (rucLookup()?.found) {
+                        <span
+                          [class]="
+                            isSunatActive(rucLookup())
+                              ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                              : 'border-orange-200 bg-orange-50 text-orange-700'
+                          "
+                          class="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold"
+                        >
+                          <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                          </svg>
+                          <span>SUNAT: {{ rucLookup()!.taxStatus || 'ACTIVO' }} / {{ rucLookup()!.taxCondition || 'HABIDO' }}</span>
+                        </span>
+                      }
+                    </div>
+                    <input
+                      type="text"
+                      [(ngModel)]="customerBusinessName"
+                      placeholder="Razón social de la empresa"
+                      [class]="rucLookup()?.found ? 'border-emerald-300 bg-white' : 'border-gray-200 bg-white'"
+                      class="w-full min-h-[44px] rounded-xl border px-3.5 py-2 text-base sm:text-sm text-gray-900 placeholder-gray-400 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                @if (rucLookup()?.fiscalAddress) {
+                  <div class="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs text-gray-600">
+                    <span>
+                      <strong class="font-semibold text-gray-800">Domicilio fiscal:</strong>
+                      {{ rucLookup()!.fiscalAddress }}
+                    </span>
+                    <button
+                      type="button"
+                      (click)="useFiscalAddressForDelivery()"
+                      class="font-semibold text-orange-600 hover:text-orange-700"
+                    >
+                      Usar como dirección de entrega
+                    </button>
+                  </div>
+                }
+
+                <div>
+                  <label class="block text-xs font-medium text-gray-700 mb-1">Nombre de quien recibe *</label>
+                  <input
+                    type="text"
+                    [(ngModel)]="recipientName"
+                    placeholder="Persona encargada de recibir el pedido"
+                    class="w-full min-h-[44px] rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-base sm:text-sm text-gray-900 placeholder-gray-400 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
+                  />
+                </div>
+              </div>
+            }
+
+            <div>
+              <label class="block text-xs font-medium text-gray-700 mb-1">Teléfono celular de contacto *</label>
+              <input
+                type="tel"
+                [(ngModel)]="recipientPhone"
+                placeholder="+51 987 654 321"
+                class="w-full min-h-[44px] rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-base sm:text-sm text-gray-900 placeholder-gray-400 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
+              />
+            </div>
+          </section>
+
+          <!-- ===================== STEP 2: METODO & DIRECCION DE ENTREGA ===================== -->
+          <section class="rounded-2xl border border-gray-200 bg-white p-5 sm:p-6 shadow-2xs space-y-4">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <h2 class="text-base font-bold text-gray-900">2. Método y dirección de entrega</h2>
+              @if (branches().length > 0) {
+                <select
+                  [(ngModel)]="selectedBranchId"
+                  (ngModelChange)="onBranchSelectChange()"
+                  class="min-h-[38px] rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-base sm:text-xs font-medium text-gray-800 focus:border-orange-600 focus:outline-none"
+                >
+                  @for (b of branches(); track b.id) {
+                    <option [ngValue]="b.id">
+                      {{ b.name }} (cobertura {{ (b.coverageRadiusMeters / 1000) | number: '1.0-1' }} km)
+                    </option>
+                  }
+                </select>
+              }
+            </div>
+
+            <!-- Delivery vs Pickup Switch -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button
+                type="button"
+                (click)="setDeliveryType('DELIVERY')"
+                [class]="
+                  deliveryType() === 'DELIVERY'
+                    ? 'border-orange-500 bg-orange-50/50 ring-2 ring-orange-500/20'
+                    : 'border-gray-200 bg-white hover:border-gray-300'
+                "
+                class="rounded-xl border p-4 text-left transition"
+              >
+                <div class="flex items-center justify-between gap-2">
+                  <span class="inline-flex items-center gap-2.5 text-xs font-semibold text-gray-900">
+                    <img src="/images/icons/casa.png" alt="Envío a domicilio" width="22" height="22" loading="lazy" class="h-5.5 w-5.5 object-contain" />
+                    <span>Envío a domicilio</span>
+                  </span>
+                  <span class="rounded border border-orange-200 bg-orange-50 px-2 py-0.5 text-[10px] font-medium text-orange-700">
+                    Rápido
+                  </span>
+                </div>
+                <p class="mt-1.5 text-xs text-gray-500 leading-snug">
+                  Entrega directa en tu taller o domicilio dentro de nuestra zona de reparto en Lima.
+                </p>
+              </button>
+
+              <button
+                type="button"
+                (click)="setDeliveryType('PICKUP')"
+                [class]="
+                  deliveryType() === 'PICKUP'
+                    ? 'border-orange-500 bg-orange-50/50 ring-2 ring-orange-500/20'
+                    : 'border-gray-200 bg-white hover:border-gray-300'
+                "
+                class="rounded-xl border p-4 text-left transition"
+              >
+                <div class="flex items-center justify-between gap-2">
+                  <span class="inline-flex items-center gap-2.5 text-xs font-semibold text-gray-900">
+                    <img src="/images/icons/local.png" alt="Recojo en tienda" width="22" height="22" loading="lazy" class="h-5.5 w-5.5 object-contain" />
+                    <span>Recojo en tienda</span>
+                  </span>
+                  <span class="rounded border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700">
+                    Sin costo
+                  </span>
+                </div>
+                <p class="mt-1.5 text-xs text-gray-500 leading-snug">
+                  Retira tu pedido directamente en el mostrador de nuestra sucursal.
+                </p>
+              </button>
+            </div>
+
+            @if (deliveryType() === 'DELIVERY') {
+              <div class="space-y-3">
+                <div class="relative">
+                  <label class="block text-xs font-medium text-gray-700 mb-1">
+                    Dirección de entrega *
+                  </label>
+                  <div class="relative">
+                    <input
+                      type="text"
+                      [(ngModel)]="deliveryAddress"
+                      (ngModelChange)="onAddressInput($event)"
+                      (focus)="onAddressFocus()"
+                      (blur)="hideAddressDropdownDelayed()"
+                      placeholder="Escribe tu calle, avenida o jirón en Lima..."
+                      class="w-full min-h-[44px] rounded-xl border border-gray-200 bg-white pl-3.5 pr-9 py-2 text-base sm:text-sm text-gray-900 placeholder-gray-400 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
+                    />
+                    @if (isSearchingAddress()) {
+                      <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
+                        <svg class="h-4 w-4 animate-spin text-orange-600" fill="none" viewBox="0 0 24 24">
+                          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"></circle>
+                          <path class="opacity-90" fill="currentColor" d="M4 12a8 8 0 018-8v3a5 5 0 00-5 5H4z"></path>
+                        </svg>
+                      </span>
+                    }
+                  </div>
+
+                  @if (showAddressDropdown() && addressSuggestions().length > 0) {
+                    <div class="absolute left-0 right-0 z-30 mt-1 max-h-56 overflow-y-auto rounded-xl border border-gray-200 bg-white shadow-xl divide-y divide-gray-100">
+                      @for (sug of addressSuggestions(); track $index) {
+                        <button
+                          type="button"
+                          (mousedown)="selectAddressSuggestion(sug)"
+                          class="w-full px-3.5 py-2.5 text-left text-xs hover:bg-orange-50 transition flex items-center justify-between gap-2"
+                        >
+                          <span class="font-medium text-gray-900 truncate">{{ sug.displayName }}</span>
+                          @if (sug.district) {
+                            <span class="shrink-0 rounded bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-600 font-semibold">
+                              {{ sug.district }}
+                            </span>
+                          }
+                        </button>
+                      }
+                    </div>
+                  }
+                </div>
+
+                <div>
+                  <label class="block text-xs font-medium text-gray-700 mb-1">Referencia de entrega</label>
+                  <input
+                    type="text"
+                    [(ngModel)]="deliveryReference"
+                    placeholder="Ej: Frente al grifo Primax, portón negro, timbre 201"
+                    class="w-full min-h-[44px] rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-base sm:text-sm text-gray-900 placeholder-gray-400 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <!-- Interactive Coverage Map -->
+              <app-coverage-map
+                [branch]="selectedBranch()"
+                [initialLatitude]="deliveryLatitude()"
+                [initialLongitude]="deliveryLongitude()"
+                (locationSelected)="onMapLocationSelected($event)"
+                (coverageValidated)="onCoverageValidated($event)"
+              />
+            } @else {
+              <div class="rounded-xl border border-emerald-200 bg-emerald-50/50 p-4 text-xs text-emerald-900">
+                <strong>Tienda seleccionada para recojo:</strong> {{ selectedBranch()?.name }} —
+                {{ selectedBranch()?.address }}. Prepararemos tus repuestos para entrega inmediata en mostrador.
+              </div>
+            }
+
+            <div>
+              <label class="block text-xs font-medium text-gray-700 mb-1">
+                Indicaciones adicionales para tu pedido
+              </label>
+              <input
+                type="text"
+                [(ngModel)]="notes"
+                placeholder="Ej: Entregar en recepción del taller mecánico"
+                class="w-full min-h-[44px] rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-base sm:text-sm text-gray-900 placeholder-gray-400 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
+              />
+            </div>
+          </section>
+
+          <!-- ===================== STEP 3: PASARELA DE PAGOS & PAGOEFECTIVO ===================== -->
+          <section class="rounded-2xl border border-gray-200 bg-white p-5 sm:p-6 shadow-2xs space-y-5">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h2 class="text-base font-bold text-gray-900">
+                  3. Pasarela de pagos & método de pago
+                </h2>
+                <p class="text-xs text-gray-500">
+                  Transacciones procesadas en tiempo real con detección bancaria inteligente y seguridad PCI-DSS.
+                </p>
+              </div>
+              <div class="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2.5 py-0.5">
+                <svg class="h-3 w-3 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+                </svg>
+                <span>Conexión cifrada SSL 256-bit</span>
+              </div>
+            </div>
+
+            <!-- Payment Method Selector Tabs -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <!-- Tab 1: Tarjeta de crédito o débito (Culqi) -->
+              <button
+                type="button"
+                (click)="setPaymentMethod('TARJETA_CREDITO')"
+                [class]="
+                  paymentMethod === 'TARJETA_CREDITO'
+                    ? 'border-orange-500 bg-orange-50/60 ring-2 ring-orange-500/20'
+                    : 'border-gray-200 bg-white hover:border-gray-300'
+                "
+                class="rounded-xl border p-3.5 text-left transition relative"
+              >
+                <div class="flex items-center justify-between gap-1 mb-1">
+                  <span class="text-xs font-bold text-gray-900 flex items-center gap-1.5">
+                    <svg class="h-4 w-4 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                      <rect x="2" y="5" width="20" height="14" rx="2" />
+                      <line x1="2" y1="10" x2="22" y2="10" />
+                    </svg>
+                    <span>Tarjetas Débito / Crédito (Culqi)</span>
+                  </span>
+                  <span class="rounded bg-orange-100 text-orange-800 px-1.5 py-0.2 text-[9px] font-bold">En línea</span>
+                </div>
+                <p class="text-[11px] text-gray-500 leading-snug">
+                  BCP, BBVA, Interbank, Scotiabank. Visa, Mastercard, Amex.
+                </p>
+              </button>
+
+              <!-- Tab 2: Yape / Plin -->
+              <button
+                type="button"
+                (click)="setPaymentMethod('YAPE_PLIN')"
+                [class]="
+                  paymentMethod === 'YAPE_PLIN'
+                    ? 'border-orange-500 bg-orange-50/60 ring-2 ring-orange-500/20'
+                    : 'border-gray-200 bg-white hover:border-gray-300'
+                "
+                class="rounded-xl border p-3.5 text-left transition relative"
+              >
+                <div class="flex items-center justify-between gap-1 mb-1">
+                  <span class="text-xs font-bold text-gray-900 flex items-center gap-1.5">
+                    <svg class="h-4 w-4 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3" />
+                    </svg>
+                    <span>Yape / Plin</span>
+                  </span>
+                  <span class="rounded bg-purple-100 text-purple-800 px-1.5 py-0.2 text-[9px] font-bold">Billetera</span>
+                </div>
+                <p class="text-[11px] text-gray-500 leading-snug">
+                  Pago rápido mediante código QR o número de celular.
+                </p>
+              </button>
+            </div>
+
+            <!-- Other secondary payment methods -->
+            <div class="flex items-center gap-2 pt-1">
+              <button
+                type="button"
+                (click)="setPaymentMethod('TRANSFERENCIA_B2B')"
+                [class]="paymentMethod === 'TRANSFERENCIA_B2B' ? 'border-orange-500 bg-orange-50 font-bold text-orange-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'"
+                class="rounded-lg border px-3 py-1.5 text-xs transition"
+              >
+                Transferencia bancaria B2B
+              </button>
+              <button
+                type="button"
+                (click)="setPaymentMethod('CONTRA_ENTREGA')"
+                [class]="paymentMethod === 'CONTRA_ENTREGA' ? 'border-orange-500 bg-orange-50 font-bold text-orange-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'"
+                class="rounded-lg border px-3 py-1.5 text-xs transition"
+              >
+                Pago contra entrega
+              </button>
+            </div>
+
+            <!-- ===================== DETAIL VIEW: TARJETA DE CREDITO / DEBITO ===================== -->
+            @if (paymentMethod === 'TARJETA_CREDITO') {
+              <div class="rounded-2xl border border-gray-200 bg-gray-50/70 p-5 space-y-6">
+                <!-- CULQI OFFICIAL CHECKOUT V4 LAUNCHER -->
+                <div class="rounded-2xl border-2 border-orange-500/30 bg-gradient-to-r from-orange-50 via-white to-amber-50 p-4 sm:p-5 shadow-xs space-y-3">
+                  <div class="flex items-center justify-between gap-3 flex-wrap">
+                    <div class="flex items-center gap-2.5">
+                      <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-white border border-orange-200 p-1.5 shadow-xs shrink-0">
+                        <img src="/images/icons/culqi-logo.png" alt="Culqi" width="32" height="32" loading="lazy" class="h-8 w-8 object-contain" />
+                      </div>
+                      <div>
+                        <h4 class="text-sm font-extrabold text-gray-900 flex items-center gap-2">
+                          <span>Culqi Checkout v4 Oficial</span>
+                          <span class="rounded bg-emerald-100 text-emerald-800 px-2 py-0.5 text-[10px] font-bold">Activo</span>
+                        </h4>
+                        <p class="text-xs text-gray-600">
+                          Paga seguro con pasarela oficial Culqi (Tarjetas Débito / Crédito Visa y Mastercard y billetera Yape)
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    (click)="payWithCulqiCheckoutModal()"
+                    [disabled]="isSubmitting() || isProcessingPayment()"
+                    class="w-full flex items-center justify-center gap-2 rounded-xl bg-orange-600 px-4 py-3 text-sm font-bold text-white shadow-md hover:bg-orange-700 transition active:scale-98 disabled:opacity-50 cursor-pointer"
+                  >
+                    @if (isProcessingPayment() || isSubmitting()) {
+                      <svg class="h-4 w-4 animate-spin text-white" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+                      </svg>
+                      <span>Iniciando pasarela Culqi...</span>
+                    } @else {
+                      <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15A2.25 2.25 0 002.25 6.75v10.5A2.25 2.25 0 004.5 19.5z" />
+                      </svg>
+                      <span>Abrir pasarela emergente Culqi Checkout (S/ {{ grandTotal() | number: '1.2-2' }})</span>
+                    }
+                  </button>
+                </div>
+
+                <div class="relative flex py-1 items-center">
+                  <div class="flex-grow border-t border-gray-200"></div>
+                  <span class="flex-shrink mx-3 text-xs font-medium text-gray-500">o ingresa los datos de tu tarjeta directamente</span>
+                  <div class="flex-grow border-t border-gray-200"></div>
+                </div>
+
+                <!-- Visual Interactive Card Preview -->
+                <div class="relative mx-auto w-full max-w-sm rounded-2xl p-5 text-white shadow-xl transition-all duration-300 bg-gradient-to-br {{ cardAnalysis().theme.gradient }}">
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                      <!-- Chip SVG -->
+                      <div class="h-7 w-9 rounded-md bg-amber-300/80 border border-amber-400/80 shadow-xs flex items-center justify-center">
+                        <div class="h-4 w-6 rounded border border-amber-500/60 grid grid-cols-2"></div>
+                      </div>
+                      <!-- Contactless SVG -->
+                      <svg class="h-4 w-4 opacity-75" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.5 16.5a6 6 0 010-9m3.5 11a10 10 0 010-13m3.5 13a14 14 0 010-13" />
+                      </svg>
+                    </div>
+                    <div class="text-right">
+                      <span class="block text-[11px] font-black tracking-wider uppercase opacity-90 drop-shadow-xs">
+                        {{ cardAnalysis().bankCode !== 'general' ? cardAnalysis().bank : '' }}
+                      </span>
+                      <span class="text-sm font-black tracking-widest uppercase drop-shadow-xs">
+                        {{ cardAnalysis().brand }}
+                      </span>
+                    </div>
+                  </div>
+
+                  <!-- Card Number Display -->
+                  <div class="mt-6 mb-4">
+                    <p class="font-mono text-lg sm:text-xl font-bold tracking-widest drop-shadow-sm">
+                      {{ cardAnalysis().formattedNumber || '•••• •••• •••• ••••' }}
+                    </p>
+                  </div>
+
+                  <!-- Card Bottom: Holder, Expiry, Type -->
+                  <div class="flex items-end justify-between text-xs">
+                    <div>
+                      <span class="block text-[9px] uppercase tracking-wider text-white/70">Titular</span>
+                      <span class="font-semibold tracking-wide uppercase truncate max-w-[170px] block">
+                        {{ cardForm.holder || 'NOMBRE DEL TITULAR' }}
+                      </span>
+                    </div>
+                    <div class="text-center">
+                      <span class="block text-[9px] uppercase tracking-wider text-white/70">Vence</span>
+                      <span class="font-mono font-semibold">
+                        {{ cardForm.expiry || 'MM/AA' }}
+                      </span>
+                    </div>
+                    <div class="text-right">
+                      <span class="rounded bg-white/20 px-2 py-0.5 text-[9px] font-bold tracking-wider uppercase backdrop-blur-xs">
+                        {{ cardAnalysis().type }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Card Form Inputs with Real-time Validation -->
+                <div class="space-y-3.5">
+                  <div>
+                    <div class="flex flex-wrap items-center justify-between gap-2 mb-1">
+                      <label class="block text-xs font-semibold text-gray-700">
+                        Número de tarjeta *
+                      </label>
+                      @if (cardAnalysis().cleanNumber.length >= 2) {
+                        <span
+                          [class]="cardAnalysis().theme.badgeBg + ' ' + cardAnalysis().theme.badgeBorder + ' ' + cardAnalysis().theme.badgeText"
+                          class="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-bold animate-fadeIn"
+                        >
+                          <span>{{ cardAnalysis().bank }}</span>
+                          <span>·</span>
+                          <span>{{ cardAnalysis().brand }} ({{ cardAnalysis().type }})</span>
+                        </span>
+                      }
+                    </div>
+                    <div class="relative">
+                      <input
+                        type="text"
+                        maxlength="19"
+                        inputmode="numeric"
+                        [(ngModel)]="cardForm.number"
+                        (ngModelChange)="onCardNumberInput($event)"
+                        placeholder="4557 •••• •••• ••••"
+                        class="min-h-[44px] w-full rounded-xl border border-gray-200 bg-white font-mono text-base sm:text-sm pl-3.5 pr-10 text-gray-900 placeholder:text-gray-400 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
+                      />
+                      <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">
+                        {{ cardAnalysis().brand }}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label class="block text-xs font-semibold text-gray-700 mb-1">
+                      Nombre del titular de la tarjeta *
+                    </label>
+                    <input
+                      type="text"
+                      [(ngModel)]="cardForm.holder"
+                      (ngModelChange)="onCardHolderInput($event)"
+                      placeholder="Como figura en el frente de la tarjeta"
+                      class="min-h-[44px] w-full rounded-xl border border-gray-200 bg-white uppercase text-base sm:text-sm px-3.5 py-2 text-gray-900 placeholder:text-gray-400 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
+                    />
+                  </div>
+
+                  <div class="grid grid-cols-2 gap-3">
+                    <div>
+                      <label class="block text-xs font-semibold text-gray-700 mb-1">
+                        Vencimiento (MM/AA) *
+                      </label>
+                      <input
+                        type="text"
+                        maxlength="5"
+                        inputmode="numeric"
+                        [(ngModel)]="cardForm.expiry"
+                        (ngModelChange)="onCardExpiryInput($event)"
+                        placeholder="MM/AA"
+                        class="min-h-[44px] w-full rounded-xl border border-gray-200 bg-white font-mono text-base sm:text-sm px-3.5 py-2 text-gray-900 placeholder:text-gray-400 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <div class="flex items-center justify-between mb-1">
+                        <label class="block text-xs font-semibold text-gray-700">CVV / CVC *</label>
+                        <span class="text-[10px] text-gray-500">3 o 4 dígitos</span>
+                      </div>
+                      <div class="relative">
+                        <input
+                          type="password"
+                          maxlength="4"
+                          inputmode="numeric"
+                          [(ngModel)]="cardForm.cvv"
+                          placeholder="•••"
+                          class="min-h-[44px] w-full rounded-xl border border-gray-200 bg-white font-mono text-base sm:text-sm pl-3.5 pr-8 py-2 text-gray-900 placeholder:text-gray-400 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
+                        />
+                        <svg class="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <rect x="3" y="11" width="18" height="11" rx="2" ry="2" stroke-width="2" />
+                          <path stroke-width="2" d="M7 11V7a5 5 0 0110 0v4" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label class="block text-xs font-semibold text-gray-700 mb-1">
+                        DNI del titular
+                      </label>
+                      <input
+                        type="text"
+                        maxlength="12"
+                        inputmode="numeric"
+                        [(ngModel)]="cardForm.documentNumber"
+                        placeholder="DNI o C.E."
+                        class="min-h-[44px] w-full rounded-xl border border-gray-200 bg-white font-mono text-base sm:text-sm px-3.5 py-2 text-gray-900 focus:border-orange-600 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label class="block text-xs font-semibold text-gray-700 mb-1">
+                        Modalidad de cobro
+                      </label>
+                      <div class="min-h-[44px] flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-2 text-xs font-semibold text-gray-800">
+                        <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
+                        <span>Pago directo al contado</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-gray-200 text-[11px] text-gray-500">
+                  <span class="flex items-center gap-1.5">
+                    <svg class="h-3.5 w-3.5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                    </svg>
+                    <span>Autenticación 3D Secure 2.0 activa</span>
+                  </span>
+                  <span>Certificación PCI-DSS Nivel 1</span>
+                </div>
+              </div>
+            }
+
+            <!-- ===================== DETAIL VIEW: YAPE / PLIN ===================== -->
+            @if (paymentMethod === 'YAPE_PLIN') {
+              <div class="rounded-2xl border border-purple-200 bg-purple-50/50 p-5 space-y-3">
+                <div class="flex flex-col sm:flex-row items-center gap-4">
+                  <div class="h-28 w-28 rounded-2xl border border-purple-200 bg-white p-2.5 shrink-0 flex flex-col items-center justify-center shadow-xs gap-1.5">
+                    <div class="flex items-center gap-1.5">
+                      <img src="/images/icons/yape.jpg" alt="Yape" width="36" height="36" loading="lazy" class="h-9 w-9 object-contain rounded-lg" />
+                      <img src="/images/icons/plin.png" alt="Plin" width="36" height="36" loading="lazy" class="h-9 w-9 object-contain rounded-lg" />
+                    </div>
+                    <span class="font-mono font-bold text-xs text-purple-700">922 779 157</span>
+                  </div>
+                  <div class="space-y-1.5 text-xs text-gray-700">
+                    <p class="font-bold text-gray-900">Titular: Repuestos Automotrices Asunción S.A.C.</p>
+                    <p>Número de Yape / Plin: <strong class="font-mono text-purple-700 text-sm">922 779 157</strong></p>
+                    <p class="text-[11px] text-gray-500">
+                      Realiza el pago por el monto total de <strong class="text-gray-800">S/ {{ grandTotal() | number: '1.2-2' }}</strong>. El repartidor verificará la confirmación en su app al momento de la entrega.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            }
+
+            <!-- ===================== DETAIL VIEW: TRANSFERENCIA B2B ===================== -->
+            @if (paymentMethod === 'TRANSFERENCIA_B2B') {
+              <div class="rounded-2xl border border-gray-200 bg-gray-50 p-4 space-y-3 text-xs">
+                <p class="font-bold text-gray-900">Cuentas Corrientes Bancarias (Repuestos Automotrices Asunción S.A.C.):</p>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div class="rounded-xl border border-blue-200 bg-white p-3 space-y-1 shadow-2xs">
+                    <div class="flex items-center gap-2 mb-1">
+                      <img src="/images/icons/bcp.png" alt="BCP" width="28" height="20" loading="lazy" class="h-5 w-auto object-contain" />
+                      <span class="block font-bold text-blue-900">BCP Soles</span>
+                    </div>
+                    <p class="font-mono text-gray-800 text-[11px]">Cta: 191-98765432-0-11</p>
+                    <p class="font-mono text-gray-500 text-[10px]">CCI: 002-191-009876543201-11</p>
+                  </div>
+                  <div class="rounded-xl border border-sky-200 bg-white p-3 space-y-1 shadow-2xs">
+                    <div class="flex items-center gap-2 mb-1">
+                      <img src="/images/icons/bbva.jpg" alt="BBVA" width="28" height="20" loading="lazy" class="h-5 w-auto object-contain rounded" />
+                      <span class="block font-bold text-sky-900">BBVA Soles</span>
+                    </div>
+                    <p class="font-mono text-gray-800 text-[11px]">Cta: 0011-0175-0100098765</p>
+                    <p class="font-mono text-gray-500 text-[10px]">CCI: 011-175-000100098765-88</p>
+                  </div>
+                  <div class="rounded-xl border border-emerald-200 bg-white p-3 space-y-1 shadow-2xs">
+                    <div class="flex items-center gap-2 mb-1">
+                      <img src="/images/icons/interbank.png" alt="Interbank" width="28" height="20" loading="lazy" class="h-5 w-auto object-contain" />
+                      <span class="block font-bold text-emerald-900">Interbank Soles</span>
+                    </div>
+                    <p class="font-mono text-gray-800 text-[11px]">Cta: 200-3001234567</p>
+                    <p class="font-mono text-gray-500 text-[10px]">CCI: 003-200-003001234567-22</p>
+                  </div>
+                </div>
+              </div>
+            }
+          </section>
+
+        </div>
+
+        <!-- Right 4 Cols: Sticky Order Summary -->
+        <aside class="lg:col-span-4 rounded-2xl border border-gray-200 bg-white p-5 sm:p-6 shadow-2xs space-y-4 lg:sticky lg:top-20">
+          <div class="flex items-center justify-between">
+            <h2 class="text-base font-bold text-gray-900">Resumen del pedido</h2>
+            <span class="rounded-full border border-gray-200 bg-gray-50 px-2.5 py-0.5 text-xs font-medium text-gray-600">
+              {{ cart.totalItems() }} und.
+            </span>
+          </div>
+
+          <div class="max-h-64 overflow-y-auto divide-y divide-gray-100 pr-1">
+            @for (item of cart.items(); track item.part.id) {
+              <div class="py-2.5 flex items-center justify-between gap-2 text-xs">
+                <div class="min-w-0">
+                  <p class="font-semibold text-gray-900 truncate">{{ item.part.name }}</p>
+                  <p class="text-[11px] text-gray-500">
+                    {{ item.quantity }} x S/ {{ cart.effectiveUnitPrice(item) | number: '1.2-2' }}
+                    @if (item.part.oemCode) {
+                      · <span class="font-mono">OEM {{ item.part.oemCode }}</span>
+                    }
+                  </p>
+                </div>
+                <span class="font-semibold text-gray-900 shrink-0">
+                  S/ {{ (cart.effectiveUnitPrice(item) * item.quantity) | number: '1.2-2' }}
+                </span>
+              </div>
+            }
+          </div>
+
+          <div class="border-t border-gray-200 pt-3 space-y-2 text-xs">
+            <div class="flex justify-between text-gray-500">
+              <span>Subtotal sin IGV</span>
+              <span>S/ {{ cart.netBaseAmount() | number: '1.2-2' }}</span>
+            </div>
+            <div class="flex justify-between text-gray-500">
+              <span>IGV (18%)</span>
+              <span>S/ {{ cart.igvAmount() | number: '1.2-2' }}</span>
+            </div>
+            <div class="flex justify-between text-gray-600">
+              <span>Costo de envío</span>
+              <span class="font-semibold text-gray-900">
+                @if (deliveryType() === 'PICKUP') {
+                  Gratis (Recojo)
+                } @else if (coverageState()?.covered) {
+                  S/ {{ shippingFee() | number: '1.2-2' }}
+                } @else {
+                  Fuera de zona
+                }
+              </span>
+            </div>
+            <div class="flex justify-between items-baseline text-base font-bold text-gray-900 pt-2.5 border-t border-gray-200">
+              <span>Total a pagar</span>
+              <span class="text-xl tracking-tight text-orange-600 font-extrabold">S/ {{ grandTotal() | number: '1.2-2' }}</span>
+            </div>
+          </div>
+
+          <!-- Out of range notice -->
+          @if (deliveryType() === 'DELIVERY' && coverageState() && !coverageState()!.covered) {
+            <div class="rounded-xl border border-red-200 bg-red-50 p-3 space-y-1.5">
+              <p class="text-xs font-semibold text-red-800">
+                Ubicación fuera del área de reparto ({{ (coverageState()!.distanceMeters / 1000) | number: '1.2-2' }} km).
+              </p>
+              <p class="text-[11px] text-red-700">
+                Por favor selecciona un punto de entrega dentro de Lima Metropolitana o cambia a la opción 'Recojo en tienda'.
+              </p>
+            </div>
+          }
+
+          @if (auth.currentUser()?.email; as userEmail) {
+            <div class="rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-2.5 flex items-start gap-2 text-[11px] text-gray-600">
+              <svg class="mt-0.5 h-3.5 w-3.5 shrink-0 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.85">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+              </svg>
+              <span>
+                Enviaremos el comprobante y el seguimiento del pedido a <strong class="text-gray-800">{{ userEmail }}</strong>.
+              </span>
+            </div>
+          }
+
+          <!-- Submit Order & Pay Button -->
+          <button
+            type="button"
+            [disabled]="isSubmitting() || isProcessingPayment() || !canSubmitOrder()"
+            (click)="submitOrder()"
+            class="w-full min-h-[48px] rounded-xl bg-orange-600 py-3 text-sm font-semibold text-white shadow-xs hover:bg-orange-700 disabled:opacity-40 disabled:cursor-not-allowed transition flex items-center justify-center gap-2"
+          >
+            @if (isSubmitting() || isProcessingPayment()) {
+              <svg class="h-4 w-4 animate-spin text-white" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"></circle>
+                <path class="opacity-90" fill="currentColor" d="M4 12a8 8 0 018-8v3a5 5 0 00-5 5H4z"></path>
+              </svg>
+              <span>Procesando pago seguro...</span>
+            } @else {
+              <span>
+                {{
+                  paymentMethod === 'TARJETA_CREDITO'
+                    ? 'Pagar S/ ' + (grandTotal() | number: '1.2-2') + ' con Culqi'
+                    : paymentMethod === 'YAPE_PLIN'
+                      ? 'Confirmar pedido con Yape / Plin'
+                      : paymentMethod === 'CONTRA_ENTREGA'
+                        ? 'Confirmar pedido contra entrega'
+                        : 'Confirmar pedido'
+                }}
+              </span>
+            }
+          </button>
+
+          <div class="pt-2 text-center space-y-1 text-[11px] text-gray-400">
+            <p>Pasarela bancaria certificada para Perú</p>
+            <div class="flex flex-wrap items-center justify-center gap-2 text-gray-500 font-semibold">
+              <span>Visa</span> · <span>Mastercard</span> · <span>BCP</span> · <span>Interbank</span> · <span>BBVA</span> · <span>Yape</span>
+            </div>
+          </div>
+        </aside>
+      </div>
+    }
+  </div>
+</div>
+
+<!-- ===================== MODAL: COMPROBANTE DE PAGO CON TARJETA APROBADO ===================== -->
+@if (paymentSuccessReceipt(); as receipt) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto">
+    <div class="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl text-center space-y-5 animate-scaleIn">
+      <!-- Success Icon with Ripple -->
+      <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 shadow-inner">
+        <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+        </svg>
+      </div>
+
+      <div class="space-y-1">
+        <span class="rounded-full bg-emerald-50 border border-emerald-200 px-3 py-0.5 text-[10px] font-bold text-emerald-700 uppercase tracking-wider">
+          Transacción aprobada
+        </span>
+        <h3 class="text-xl font-extrabold text-gray-900 tracking-tight">
+          ¡Pago confirmado con éxito!
+        </h3>
+        <p class="text-xs text-gray-500">
+          Tu pedido <strong class="text-gray-900 font-mono">{{ receipt.orderNumber }}</strong> ha sido confirmado y está listo para preparación.
+        </p>
+      </div>
+
+      <!-- Receipt Box -->
+      <div class="rounded-xl border border-gray-200 bg-gray-50/80 p-4 text-left space-y-2.5 text-xs">
+        <div class="flex justify-between items-center pb-2 border-b border-gray-200">
+          <span class="text-gray-500">Importe pagado:</span>
+          <span class="text-base font-extrabold text-gray-900">S/ {{ receipt.amount | number: '1.2-2' }}</span>
+        </div>
+
+        <div class="flex justify-between items-center">
+          <span class="text-gray-500">Banco emisor:</span>
+          <span class="font-bold text-gray-900">{{ receipt.cardBank }}</span>
+        </div>
+
+        <div class="flex justify-between items-center">
+          <span class="text-gray-500">Medio de pago:</span>
+          <span class="font-medium text-gray-800">
+            {{ receipt.cardBrand }} {{ receipt.cardType }} (•••• {{ receipt.cardLastFour }})
+          </span>
+        </div>
+
+        <div class="flex justify-between items-center">
+          <span class="text-gray-500">Titular:</span>
+          <span class="font-medium text-gray-800">{{ receipt.cardholderName }}</span>
+        </div>
+
+        <div class="flex justify-between items-center">
+          <span class="text-gray-500">Modalidad:</span>
+          <span class="font-medium text-emerald-700">Pago único al contado</span>
+        </div>
+
+        <div class="flex justify-between items-center">
+          <span class="text-gray-500">Cód. Autorización:</span>
+          <span class="font-mono font-bold text-emerald-700">{{ receipt.authorizationCode }}</span>
+        </div>
+
+        <div class="flex justify-between items-center pt-1 border-t border-gray-200">
+          <span class="text-gray-400 text-[10px]">Transacción ID:</span>
+          <span class="font-mono text-[10px] text-gray-500">{{ receipt.transactionId }}</span>
+        </div>
+      </div>
+
+      <p class="text-[11px] text-gray-500 leading-snug">
+        Enviamos tu comprobante de pago oficial y el resumen de tu compra a tu correo electrónico.
+      </p>
+
+      <!-- Action Button -->
+      <button
+        type="button"
+        (click)="closeReceiptModal()"
+        class="w-full min-h-[44px] rounded-xl bg-orange-600 py-2.5 text-sm font-semibold text-white hover:bg-orange-700 shadow-xs transition"
+      >
+        Ver seguimiento en vivo de mi pedido
+      </button>
+    </div>
+  </div>
+}

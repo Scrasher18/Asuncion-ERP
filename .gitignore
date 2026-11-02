@@ -1,0 +1,25 @@
+# Node / Angular
+**/node_modules/
+**/dist/
+**/.angular/
+
+# Java / Maven
+**/target/
+*.class
+
+# IDE & OS
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+.DS_Store
+Thumbs.db
+*.log
+
+# Uploads / Local Data
+uploads/
+**/uploads/
+*.h2.db
+.env
+.env.local

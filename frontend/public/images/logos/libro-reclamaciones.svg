@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 100" width="320" height="100">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#002D62"/>
+      <stop offset="100%" stop-color="#001838"/>
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFD700"/>
+      <stop offset="100%" stop-color="#FFA500"/>
+    </linearGradient>
+  </defs>
+  <!-- Outer border & background -->
+  <rect x="2" y="2" width="316" height="96" rx="10" fill="url(#bgGrad)" stroke="#E2B13C" stroke-width="2.5"/>
+  <rect x="6" y="6" width="308" height="88" rx="8" fill="none" stroke="#E2B13C" stroke-width="1" stroke-dasharray="3,3" opacity="0.6"/>
+
+  <!-- Official Open Book Icon -->
+  <g transform="translate(18, 16)">
+    <!-- Book spine & shadow -->
+    <path d="M34,14 L34,58 C25,54 10,54 2,57 L2,13 C10,10 25,10 34,14 Z" fill="#FFFFFF"/>
+    <path d="M34,14 L34,58 C43,54 58,54 66,57 L66,13 C58,10 43,10 34,14 Z" fill="#FFFFFF"/>
+    <!-- Page lines -->
+    <path d="M8,22 C16,20 26,20 30,22" stroke="#002D62" stroke-width="1.8" stroke-linecap="round"/>
+    <path d="M8,30 C16,28 26,28 30,30" stroke="#002D62" stroke-width="1.8" stroke-linecap="round"/>
+    <path d="M8,38 C16,36 26,36 30,38" stroke="#002D62" stroke-width="1.8" stroke-linecap="round"/>
+    <path d="M8,46 C16,44 26,44 30,46" stroke="#002D62" stroke-width="1.8" stroke-linecap="round"/>
+    <path d="M38,22 C42,20 52,20 60,22" stroke="#002D62" stroke-width="1.8" stroke-linecap="round"/>
+    <path d="M38,30 C42,28 52,28 60,30" stroke="#002D62" stroke-width="1.8" stroke-linecap="round"/>
+    <path d="M38,38 C42,36 52,36 60,38" stroke="#002D62" stroke-width="1.8" stroke-linecap="round"/>
+    <path d="M38,46 C42,44 52,44 60,46" stroke="#002D62" stroke-width="1.8" stroke-linecap="round"/>
+    <!-- Gold Ribbon / Bookmark -->
+    <path d="M32,12 L36,12 L36,46 L34,42 L32,46 Z" fill="url(#goldGrad)"/>
+    <!-- Spine divider -->
+    <line x1="34" y1="13" x2="34" y2="58" stroke="#D1D5DB" stroke-width="1.5"/>
+  </g>
+
+  <!-- Typography -->
+  <text x="96" y="32" font-family="'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="14" font-weight="900" fill="#FFFFFF" letter-spacing="1">
+    LIBRO DE
+  </text>
+  <text x="96" y="54" font-family="'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="20" font-weight="900" fill="url(#goldGrad)" letter-spacing="1.5">
+    RECLAMACIONES
+  </text>
+  <text x="96" y="74" font-family="'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="9.5" font-weight="600" fill="#E5E7EB" letter-spacing="0.5">
+    CONFORME A LEY N° 29571 · INDECOPI
+  </text>
+</svg>
