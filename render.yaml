@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: asuncion-backend
+    runtime: docker
+    dockerfilePath: backend/Dockerfile
+    dockerContext: backend
+    plan: free
+    region: ohio
+    branch: main
+    healthCheckPath: /actuator/health
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: postgres
+      - key: DB_URL
+        value: jdbc:postgresql://ep-jolly-poetry-bdy5732e.c-8.us-east-2.aws.neon.tech:5432/neondb?sslmode=require
+      - key: DB_USER
+        value: neondb_owner
+      - key: DB_PASSWORD
+        value: npg_6ECfmD0ISONo
+      - key: CORS_ALLOWED_ORIGINS
+        value: '*'
+      - key: JWT_SECRET
+        value: AsuncionCloudErpSuperSecretHmacKey2026EnterpriseSecurityKeyForStatelessJwtTokens987654321
+      - key: STORAGE_TYPE
+        value: local
+      - key: SERVER_PORT
+        value: 8080
+      - key: APP_SEEDER_ENABLED
+        value: 'false'
