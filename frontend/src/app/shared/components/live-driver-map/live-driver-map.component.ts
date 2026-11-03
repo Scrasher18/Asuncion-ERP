@@ -156,8 +156,8 @@ export class LiveDriverMapComponent implements AfterViewInit, OnChanges, OnDestr
     const tel = this.telemetry;
     const curLat = tel.currentLatitude;
     const curLng = tel.currentLongitude;
-    const origLat = tel.originLatitude ?? -12.0685;
-    const origLng = tel.originLongitude ?? -77.0182;
+    const origLat = tel.originLatitude ?? -12.042941;
+    const origLng = tel.originLongitude ?? -76.956697;
     const destLat = tel.destinationLatitude ?? curLat + 0.015;
     const destLng = tel.destinationLongitude ?? curLng + 0.015;
 
@@ -174,7 +174,7 @@ export class LiveDriverMapComponent implements AfterViewInit, OnChanges, OnDestr
         iconSize: [140, 30],
         iconAnchor: [70, 15],
       });
-      this.originMarker = L.marker([origLat, origLng], { icon: storeIcon }).addTo(this.map);
+      this.originMarker = L.marker([origLat, origLng], { icon: storeIcon, draggable: false }).addTo(this.map);
     } else {
       this.originMarker.setLatLng([origLat, origLng]);
     }

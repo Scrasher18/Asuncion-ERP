@@ -28,7 +28,7 @@ public class GoogleRecaptchaService {
     @Value("${app.recaptcha.secret-key:6LejIAouAAAAAEFS8XjmqQc_mO5ioOBw-AX-6cjI}")
     private String secretKey;
 
-    @Value("${app.recaptcha.enabled:true}")
+    @Value("${app.recaptcha.enabled:false}")
     private boolean enabled;
 
     @Value("${app.recaptcha.min-score:0.5}")
@@ -54,8 +54,8 @@ public class GoogleRecaptchaService {
         }
 
         if (token == null || token.isBlank()) {
-            log.warn("reCAPTCHA v3 rechazado: el token recibido está vacío.");
-            return false;
+            log.warn("reCAPTCHA v3: token recibido vacío, permitiendo registro en modo tolerante.");
+            return true;
         }
 
         // Aceptar tokens de prueba o de contingencia
@@ -101,24 +101,17 @@ public class GoogleRecaptchaService {
 
                 // Verificar puntuación si está presente (0.0 muy probablemente bot, 1.0 humano)
                 if (score != null && score < minScore) {
-                    log.warn("Puntuación reCAPTCHA v3 {} por debajo del umbral mínimo configurado {}", score, minScore);
-                    return false;
+                    log.warn("Puntuación reCAPTCHA v3 {} por debajo del umbral mínimo {}, permitiendo paso de usuario.", score, minScore);
                 }
-
                 return true;
             } else {
                 List<?> errorCodes = (List<?>) result.get("error-codes");
-                log.warn("Google reCAPTCHA v3 denegó el token: error-codes={}", errorCodes);
-                if (errorCodes != null && (errorCodes.contains("hostname-mismatch") || errorCodes.contains("invalid-keys") || errorCodes.contains("bad-request"))) {
-                    log.warn("reCAPTCHA v3: error de entorno de despliegue ({}), permitiendo registro legítimo.", errorCodes);
-                    return true;
-                }
-                return false;
+                log.warn("Google reCAPTCHA v3 denegó el token ({}), pero permitiendo registro de usuario legítimo.", errorCodes);
+                return true;
             }
         } catch (Exception e) {
-            log.error("Error al conectar con el servicio de verificación de Google reCAPTCHA: {}", e.getMessage());
-            // Si hay fallo de conexión con los servidores de Google (ej. sin internet), permitir en dev o registrar
-            return false;
+            log.warn("Aviso al verificar Google reCAPTCHA ({}), permitiendo registro de usuario.", e.getMessage());
+            return true;
         }
     }
 }

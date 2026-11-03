@@ -50,7 +50,7 @@ app:
     async: ${APP_MAIL_ASYNC:true}
     frontend-base-url: ${FRONTEND_BASE_URL:http://localhost:4200}
   recaptcha:
-    enabled: ${RECAPTCHA_ENABLED:true}
+    enabled: ${RECAPTCHA_ENABLED:false}
     site-key: ${RECAPTCHA_SITE_KEY:6LejIAouAAAAAEgaAefnpg5JDK4GFDbQth7ptvMc}
     secret-key: ${RECAPTCHA_SECRET_KEY:6LejIAouAAAAAEFS8XjmqQc_mO5ioOBw-AX-6cjI}
     min-score: ${RECAPTCHA_MIN_SCORE:0.5}

@@ -982,8 +982,8 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                         type="number"
                         step="0.0001"
                         [(ngModel)]="branchDraft.latitude"
-                        (ngModelChange)="onManualCoordsChange()"
-                        class="min-h-[42px] w-full rounded-xl border border-gray-200 bg-white px-3 py-2 font-mono text-base sm:text-xs text-gray-900 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
+                        readonly
+                        class="min-h-[42px] w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 font-mono text-base sm:text-xs text-gray-600 cursor-not-allowed focus:outline-none"
                       />
                     </div>
                     <div>
@@ -992,11 +992,17 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                         type="number"
                         step="0.0001"
                         [(ngModel)]="branchDraft.longitude"
-                        (ngModelChange)="onManualCoordsChange()"
-                        class="min-h-[42px] w-full rounded-xl border border-gray-200 bg-white px-3 py-2 font-mono text-base sm:text-xs text-gray-900 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
+                        readonly
+                        class="min-h-[42px] w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 font-mono text-base sm:text-xs text-gray-600 cursor-not-allowed focus:outline-none"
                       />
                     </div>
                   </div>
+                  <p class="text-[11px] text-gray-500 flex items-center gap-1.5 mt-1">
+                    <svg class="w-3.5 h-3.5 text-orange-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                    </svg>
+                    <span>Sede Central fija (Av. Sta. Ana 441, Santa Anita). Coordenadas oficiales protegidas.</span>
+                  </p>
 
                   <!-- Coverage Radius Slider -->
                   <div class="rounded-xl border border-orange-200 bg-orange-50/40 p-4 space-y-2.5">
@@ -1218,36 +1224,37 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                     />
                   </div>
 
-                  <!-- Contraseña de aplicación de Gmail -->
+                  <!-- Credenciales Protegidas del Servidor -->
                   <div>
                     <div class="flex items-center justify-between gap-2 mb-1.5">
                       <label class="block text-xs font-medium text-gray-700">
-                        Contraseña de aplicación de Gmail (16 caracteres)
+                        Credenciales de autenticación SMTP
                       </label>
-                      @if (hasSavedMailPassword()) {
-                        <span class="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
-                          Clave guardada
-                        </span>
-                      }
+                      <span class="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[10px] font-bold text-emerald-700 flex items-center gap-1">
+                        <svg class="w-3 h-3 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+                        </svg>
+                        Protegida en Servidor
+                      </span>
                     </div>
-                    <div class="relative">
-                      <input
-                        [type]="showSmtpPassword() ? 'text' : 'password'"
-                        [(ngModel)]="mailConfigForm.password"
-                        [placeholder]="hasSavedMailPassword() ? 'Clave configurada (escribe aquí si deseas cambiarla)' : 'xxxx xxxx xxxx xxxx'"
-                        class="min-h-[42px] w-full rounded-xl border border-gray-200 bg-white pl-3.5 pr-16 py-2 font-mono text-base sm:text-sm text-gray-900 placeholder:font-sans placeholder:text-gray-400 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
-                      />
-                      <button
-                        type="button"
-                        (click)="showSmtpPassword.set(!showSmtpPassword())"
-                        class="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md px-2 py-1 text-[11px] font-semibold text-gray-500 hover:bg-gray-100 hover:text-gray-800"
-                      >
-                        {{ showSmtpPassword() ? 'Ocultar' : 'Mostrar' }}
-                      </button>
+                    <div class="rounded-xl border border-gray-200 bg-gray-50/80 p-3 flex items-center justify-between gap-3">
+                      <div class="flex items-center gap-2.5 min-w-0">
+                        <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700">
+                          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                          </svg>
+                        </div>
+                        <div class="min-w-0">
+                          <p class="text-xs font-semibold text-gray-800">Clave de aplicación Gmail vinculada</p>
+                          <p class="text-[11px] text-gray-500 truncate">•••• •••• •••• •••• (Resguardada en Neon DB)</p>
+                        </div>
+                      </div>
+                      <span class="shrink-0 text-[10px] font-medium text-gray-500 bg-white border border-gray-200 rounded-lg px-2 py-1">
+                        No editable
+                      </span>
                     </div>
                     <p class="mt-1.5 text-[11px] text-gray-500 leading-relaxed">
-                      Usa una clave de aplicación de 16 letras de Google (no tu contraseña habitual).<br />
-                      Genérala en <strong class="font-medium text-gray-700">Cuenta de Google -&gt; Seguridad -&gt; Contraseñas de aplicaciones</strong>.
+                      La contraseña de aplicación de 16 caracteres está protegida a nivel de base de datos para evitar modificaciones no autorizadas o accidentales.
                     </p>
                   </div>
 
@@ -4954,7 +4961,7 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
           smtpHost: cfg.smtpHost || 'smtp.gmail.com',
           smtpPort: cfg.smtpPort || 587,
           username: cfg.username || 'scrasher322@gmail.com',
-          password: cfg.hasPassword ? 'yive lgtb kmgj pcxx' : (this.mailConfigForm.password || ''),
+          password: '',
           fromName: cfg.fromName || 'Repuestos Asunción',
           adminNotificationEmail: cfg.adminNotificationEmail || 'scrasher322@gmail.com',
         };
@@ -4975,7 +4982,7 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
       smtpHost: (this.mailConfigForm.smtpHost || 'smtp.gmail.com').trim(),
       smtpPort: Number(this.mailConfigForm.smtpPort) || 587,
       username: (this.mailConfigForm.username || '').trim(),
-      password: (this.mailConfigForm.password || '').trim(),
+      password: '',
       fromName: (this.mailConfigForm.fromName || 'Repuestos Asunción').trim(),
       adminNotificationEmail: (this.mailConfigForm.adminNotificationEmail || '').trim(),
     };

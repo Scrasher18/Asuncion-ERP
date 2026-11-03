@@ -37,11 +37,11 @@ export interface SelectedGeoPoint {
         <div class="flex items-center gap-2 min-w-0">
           @if (adminMode) {
             <span class="inline-flex items-center gap-1.5 rounded-full border border-orange-200 bg-orange-50 px-2.5 py-1 text-xs font-bold text-orange-800">
-              <span class="h-2 w-2 rounded-full bg-orange-600 animate-pulse"></span>
-              <span>Ubicación de Tienda / Sede</span>
+              <span class="h-2 w-2 rounded-full bg-orange-600"></span>
+              <span>Sede Central Fija</span>
             </span>
             <span class="text-xs font-medium text-gray-600 truncate hidden sm:inline flex items-center gap-1">
-              <span>Arrastra el marcador o haz clic en el mapa para ubicar el local</span>
+              <span>Santa Anita (Ubicación oficial fija de despacho y almacén)</span>
             </span>
           } @else {
             <span
@@ -278,11 +278,10 @@ export class CoverageMapComponent implements AfterViewInit, OnChanges, OnDestroy
     // Map Click Listener
     this.map.on('click', (e: L.LeafletMouseEvent) => {
       const { lat, lng } = e.latlng;
-      if (this.adminMode) {
-        this.handleStoreRelocation(lat, lng);
-      } else {
+      if (!this.adminMode) {
         this.handleCustomerSelection(lat, lng);
       }
+      // En modo admin el local permanece 100% fijo e inamovible
     });
 
     // Invalidate size after layout rendering
@@ -302,7 +301,7 @@ export class CoverageMapComponent implements AfterViewInit, OnChanges, OnDestroy
     const storeIcon = L.divIcon({
       className: 'store-pin-wrapper',
       html: `
-        <div style="background:#0F172A;color:#FFFFFF;border:2px solid #FFFFFF;border-radius:12px;padding:6px 12px;font-size:12px;font-weight:700;display:flex;align-items:center;gap:6px;box-shadow:0 4px 14px rgba(0,0,0,0.35);white-space:nowrap;transform:translate(-50%, -100%);cursor:${this.adminMode ? 'grab' : 'default'};">
+        <div style="background:#0F172A;color:#FFFFFF;border:2px solid #FFFFFF;border-radius:12px;padding:6px 12px;font-size:12px;font-weight:700;display:flex;align-items:center;gap:6px;box-shadow:0 4px 14px rgba(0,0,0,0.35);white-space:nowrap;transform:translate(-50%, -100%);cursor:default;">
           <svg style="width:16px;height:16px;color:#EA580C;flex-shrink:0;" fill="currentColor" viewBox="0 0 24 24">
             <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
           </svg>
@@ -313,23 +312,13 @@ export class CoverageMapComponent implements AfterViewInit, OnChanges, OnDestroy
     });
 
     if (!this.branchMarker) {
-      this.branchMarker = L.marker([storeLat, storeLng], {
-        icon: storeIcon,
-        draggable: this.adminMode,
-      }).addTo(this.map);
+      this.branchMarker = L.marker([storeLat, storeLng], { icon: storeIcon, draggable: false }).addTo(this.map);
 
-      this.branchMarker.on('dragend', (e: any) => {
-        const pos = e.target.getLatLng();
-        this.handleStoreRelocation(pos.lat, pos.lng);
-      });
+      // Sede central fija: no drag listener
     } else {
       this.branchMarker.setLatLng([storeLat, storeLng]);
       this.branchMarker.setIcon(storeIcon);
-      if (this.adminMode) {
-        this.branchMarker.dragging?.enable();
-      } else {
-        this.branchMarker.dragging?.disable();
-      }
+      this.branchMarker.dragging?.disable();
     }
 
     // 2. Coverage Radius Circle
