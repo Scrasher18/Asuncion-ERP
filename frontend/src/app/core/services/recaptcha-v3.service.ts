@@ -24,7 +24,7 @@ export class RecaptchaV3Service {
   private readonly apiConfig = inject(ApiConfigService);
 
   // Clave pública oficial de Google reCAPTCHA v3 (obtenida de la consola de Google)
-  siteKey = '6Lc7Hw4uAAAAAP3Z5LhWzPf3Xx2OAQaqkeiFm-Mt';
+  siteKey = '6LfjIg4uAAAAAEl3Io9RcrLpKpNEBPWOu_LrIJ8H';
   readonly isLoaded = signal<boolean>(false);
   private scriptInjected = false;
 

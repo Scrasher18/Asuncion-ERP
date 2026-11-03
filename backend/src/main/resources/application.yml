@@ -51,8 +51,8 @@ app:
     frontend-base-url: ${FRONTEND_BASE_URL:http://localhost:4200}
   recaptcha:
     enabled: ${RECAPTCHA_ENABLED:true}
-    site-key: ${RECAPTCHA_SITE_KEY:6Lc7Hw4uAAAAAP3Z5LhWzPf3Xx2OAQaqkeiFm-Mt}
-    secret-key: ${RECAPTCHA_SECRET_KEY:6Lc7Hw4uAAAAABGpbSjUMZOBAWMYGNP92i0M_obs}
+    site-key: ${RECAPTCHA_SITE_KEY:6LfjIg4uAAAAAEl3Io9RcrLpKpNEBPWOu_LrIJ8H}
+    secret-key: ${RECAPTCHA_SECRET_KEY:6LfjIg4uAAAAAM4TsvLmnOanmliSCDfO3V_TKeeH}
     min-score: ${RECAPTCHA_MIN_SCORE:0.5}
   nosql:
     mongodb:
