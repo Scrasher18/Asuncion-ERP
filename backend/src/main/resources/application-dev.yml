@@ -19,4 +19,4 @@ app:
     type: local
     local:
       base-dir: ${LOCAL_STORAGE_DIR:./uploads}
-      public-url: ${LOCAL_MEDIA_PUBLIC_URL:http://localhost:8080/api/v1/media}
+      public-url: ${LOCAL_MEDIA_PUBLIC_URL:/api/v1/media}
