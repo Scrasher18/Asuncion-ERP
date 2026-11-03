@@ -921,6 +921,525 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
           </div>
         }
 
+        <!-- ========================================================================= -->
+        <!-- TAB 3: DELIVERY ZONES & COVERAGE RADIUS                                   -->
+        <!-- ========================================================================= -->
+        @if (activeTab() === 'branches') {
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            <!-- Branch Configuration Card -->
+            <div class="lg:col-span-5 rounded-2xl border border-gray-200 bg-white p-6 shadow-2xs space-y-5">
+              <div class="space-y-1">
+                <span class="inline-flex items-center rounded-full border border-orange-200 bg-orange-50 px-2.5 py-0.5 text-xs font-medium text-orange-700">
+                  Logística de envíos
+                </span>
+                <h2 class="text-base font-bold text-gray-900">
+                  Configuración de zona de reparto
+                </h2>
+                <p class="text-xs text-gray-500">
+                  Define la dirección de la tienda, el radio máximo de cobertura en kilómetros y las tarifas de envío a domicilio.
+                </p>
+              </div>
+
+              @if (branches().length > 1) {
+                <div>
+                  <label class="block text-xs font-medium text-gray-700 mb-1.5">Sucursal</label>
+                  <select
+                    [(ngModel)]="selectedBranchId"
+                    (ngModelChange)="onSelectBranchForEdit()"
+                    class="min-h-[42px] w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-base sm:text-sm font-medium text-gray-900 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
+                  >
+                    @for (b of branches(); track b.id) {
+                      <option [ngValue]="b.id">{{ b.name }} ({{ b.code }})</option>
+                    }
+                  </select>
+                </div>
+              }
+
+              @if (branchDraft) {
+                <div class="space-y-4">
+                  <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1.5">Nombre de la sucursal</label>
+                    <input
+                      type="text"
+                      [(ngModel)]="branchDraft.name"
+                      class="min-h-[42px] w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-base sm:text-sm text-gray-900 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1.5">Dirección de la tienda</label>
+                    <input
+                      type="text"
+                      [(ngModel)]="branchDraft.address"
+                      class="min-h-[42px] w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-base sm:text-sm text-gray-900 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
+                    />
+                  </div>
+
+                  <div class="grid grid-cols-2 gap-3">
+                    <div>
+                      <label class="block text-xs font-medium text-gray-700 mb-1.5">Latitud</label>
+                      <input
+                        type="number"
+                        step="0.0001"
+                        [(ngModel)]="branchDraft.latitude"
+                        class="min-h-[42px] w-full rounded-xl border border-gray-200 bg-white px-3 py-2 font-mono text-base sm:text-xs text-gray-900 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label class="block text-xs font-medium text-gray-700 mb-1.5">Longitud</label>
+                      <input
+                        type="number"
+                        step="0.0001"
+                        [(ngModel)]="branchDraft.longitude"
+                        class="min-h-[42px] w-full rounded-xl border border-gray-200 bg-white px-3 py-2 font-mono text-base sm:text-xs text-gray-900 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <!-- Coverage Radius Slider -->
+                  <div class="rounded-xl border border-orange-200 bg-orange-50/40 p-4 space-y-2.5">
+                    <div class="flex items-center justify-between gap-2">
+                      <label class="text-xs font-semibold text-gray-900">
+                        Radio máximo de entrega
+                      </label>
+                      <span class="rounded-lg border border-orange-200 bg-orange-50 px-2.5 py-1 text-xs font-bold tabular-nums text-orange-700">
+                        {{ (branchDraft.coverageRadiusMeters / 1000) | number: '1.1-2' }} km
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="1000"
+                      max="25000"
+                      step="500"
+                      [(ngModel)]="branchDraft.coverageRadiusMeters"
+                      class="w-full accent-orange-600 cursor-pointer"
+                    />
+                    <div class="flex justify-between text-[11px] tabular-nums text-gray-500">
+                      <span>1 km</span>
+                      <span>10 km</span>
+                      <span>25 km</span>
+                    </div>
+                  </div>
+
+                  <div class="grid grid-cols-2 gap-3">
+                    <div>
+                      <label class="block text-xs font-medium text-gray-700 mb-1.5">Tarifa base (S/)</label>
+                      <input
+                        type="number"
+                        step="0.5"
+                        [(ngModel)]="branchDraft.baseDeliveryFee"
+                        class="min-h-[42px] w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-base sm:text-sm tabular-nums text-gray-900 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label class="block text-xs font-medium text-gray-700 mb-1.5">Recargo por km (S/)</label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        [(ngModel)]="branchDraft.perKmFee"
+                        class="min-h-[42px] w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-base sm:text-sm tabular-nums text-gray-900 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    [disabled]="savingBranch()"
+                    (click)="saveBranchCoverage()"
+                    class="min-h-[44px] w-full rounded-xl bg-orange-600 py-2.5 px-4 text-sm font-semibold text-white shadow-2xs hover:bg-orange-700 disabled:opacity-50 transition"
+                  >
+                    {{ savingBranch() ? 'Guardando cambios...' : 'Guardar zona de reparto' }}
+                  </button>
+                </div>
+              }
+            </div>
+
+            <!-- Live Interactive Coverage Map Preview -->
+            <div class="lg:col-span-7">
+              <app-coverage-map
+                [branch]="branchDraft"
+                [radiusOverrideMeters]="branchDraft?.coverageRadiusMeters ?? null"
+              />
+            </div>
+          </div>
+        }
+
+        <!-- ========================================================================= -->
+        <!-- TAB 4: ORDERS OVERVIEW                                                    -->
+        <!-- ========================================================================= -->
+        @if (activeTab() === 'orders') {
+          <div class="rounded-2xl border border-gray-200 bg-white overflow-hidden shadow-2xs">
+            <div class="border-b border-gray-200 px-5 py-4 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 class="text-base font-bold text-gray-900">
+                  Pedidos registrados ({{ globalOrders().length }})
+                </h2>
+                <p class="text-xs text-gray-500">Seguimiento completo desde la confirmación hasta la entrega final.</p>
+              </div>
+              <button
+                type="button"
+                (click)="loadGlobalOrders()"
+                class="inline-flex min-h-[38px] items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-gray-700 hover:border-orange-300 hover:text-orange-700 transition"
+              >
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 3v5h5" />
+                  <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
+                  <path d="M16 16h5v5" />
+                </svg>
+                <span>Actualizar</span>
+              </button>
+            </div>
+
+            <div class="overflow-x-auto">
+              <table class="min-w-full divide-y divide-gray-200 text-xs">
+                <thead class="bg-gray-50 text-left font-semibold text-gray-600">
+                  <tr>
+                    <th class="px-4 py-3">N.° de pedido</th>
+                    <th class="px-4 py-3">Cliente / Comprobante</th>
+                    <th class="px-4 py-3">Modalidad</th>
+                    <th class="px-4 py-3">Estado</th>
+                    <th class="px-4 py-3 text-right">Total</th>
+                    <th class="px-4 py-3 text-right">Acción</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                  @for (ord of globalOrders(); track ord.id) {
+                    <tr class="hover:bg-gray-50/70 transition">
+                      <td class="px-4 py-3.5 font-mono font-semibold text-gray-900">
+                        {{ ord.orderNumber }}
+                        <span class="block font-sans font-normal text-[11px] text-gray-500">
+                          {{ ord.createdAt | date: 'dd/MM/yy HH:mm' }}
+                        </span>
+                      </td>
+                      <td class="px-4 py-3.5">
+                        <p class="font-semibold text-gray-900">{{ ord.recipientName || ord.customerName }}</p>
+                        <span class="text-[11px] text-gray-500">
+                          {{ ord.invoiceType }} {{ ord.customerTaxId ? '· RUC ' + ord.customerTaxId : '' }}
+                        </span>
+                      </td>
+                      <td class="px-4 py-3.5">
+                        <span class="font-medium text-gray-800">{{ formatDeliveryType(ord.deliveryType) }}</span>
+                        @if (ord.distanceMeters) {
+                          <span class="block text-[11px] tabular-nums text-emerald-700">
+                            {{ (ord.distanceMeters / 1000) | number: '1.2-2' }} km
+                          </span>
+                        }
+                      </td>
+                      <td class="px-4 py-3.5">
+                        <span
+                          [class]="statusBadgeClass(ord.status)"
+                          class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-semibold"
+                        >
+                          {{ formatOrderStatus(ord.status) }}
+                        </span>
+                      </td>
+                      <td class="px-4 py-3.5 text-right font-bold tabular-nums text-gray-900">
+                        S/ {{ (ord.totalAmount ?? ord.total ?? ord.subtotal) | number: '1.2-2' }}
+                      </td>
+                      <td class="px-4 py-3.5 text-right whitespace-nowrap">
+                        <a
+                          routerLink="/track"
+                          [queryParams]="{ order: ord.orderNumber }"
+                          class="font-semibold text-orange-600 hover:text-orange-700"
+                        >
+                          Ver seguimiento
+                        </a>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
+        }
+
+        <!-- ========================================================================= -->
+        <!-- TAB 5: EMAIL NOTIFICATIONS CONFIGURATION & LIVE OUTBOX                    -->
+        <!-- ========================================================================= -->
+        @if (activeTab() === 'notifications') {
+          @if (!auth.hasAnyRole(['ADMIN'])) {
+            <div class="rounded-2xl border border-gray-200 bg-white p-10 text-center space-y-2 shadow-2xs">
+              <h2 class="text-base font-bold text-gray-900">
+                Configuración reservada para el perfil Administrador
+              </h2>
+              <p class="text-xs text-gray-500 max-w-md mx-auto">
+                La configuración de credenciales de correo SMTP y el registro de notificaciones salientes solo están disponibles para cuentas con permisos de administración general.
+              </p>
+            </div>
+          } @else {
+            <div class="space-y-6">
+              <!-- TOP CARD: Configuración de Correo (Gmail / SMTP) -->
+              <div class="rounded-2xl border border-gray-200 bg-white p-5 sm:p-6 shadow-2xs space-y-5">
+                <div class="flex flex-wrap items-start justify-between gap-4 border-b border-gray-100 pb-4">
+                  <div class="space-y-1">
+                    <span class="inline-flex items-center rounded-full border border-orange-200 bg-orange-50 px-2.5 py-0.5 text-xs font-medium text-orange-700">
+                      Avisos automáticos a clientes
+                    </span>
+                    <h2 class="text-base sm:text-lg font-bold text-gray-900">
+                      Configuración de Correo (Gmail / SMTP)
+                    </h2>
+                    <p class="text-xs text-gray-500">
+                      Envía confirmaciones automáticas de registro, compra, preparación, reparto y entrega.
+                    </p>
+                  </div>
+
+                  <!-- Switch: Activar envío real de correos por SMTP -->
+                  <label class="inline-flex items-center gap-3 cursor-pointer rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 select-none">
+                    <input
+                      type="checkbox"
+                      [(ngModel)]="mailConfigForm.enabled"
+                      class="sr-only peer"
+                    />
+                    <div class="relative w-10 h-5 bg-gray-300 rounded-full peer peer-checked:bg-orange-600 transition after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-5"></div>
+                    <span class="text-xs font-semibold text-gray-900">
+                      Activar envío real de correos por SMTP
+                    </span>
+                  </label>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <!-- Correo remitente -->
+                  <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1.5">
+                      Correo remitente (ej: tutienda&#64;gmail.com)
+                    </label>
+                    <input
+                      type="email"
+                      [(ngModel)]="mailConfigForm.username"
+                      placeholder="repuestos.asuncion@gmail.com"
+                      class="min-h-[42px] w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-base sm:text-sm text-gray-900 placeholder:text-gray-400 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
+                    />
+                  </div>
+
+                  <!-- Contraseña de aplicación de Gmail -->
+                  <div>
+                    <div class="flex items-center justify-between gap-2 mb-1.5">
+                      <label class="block text-xs font-medium text-gray-700">
+                        Contraseña de aplicación de Gmail (16 caracteres)
+                      </label>
+                      @if (hasSavedMailPassword()) {
+                        <span class="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+                          Clave guardada
+                        </span>
+                      }
+                    </div>
+                    <div class="relative">
+                      <input
+                        [type]="showSmtpPassword() ? 'text' : 'password'"
+                        [(ngModel)]="mailConfigForm.password"
+                        [placeholder]="hasSavedMailPassword() ? 'Clave configurada (escribe aquí si deseas cambiarla)' : 'xxxx xxxx xxxx xxxx'"
+                        class="min-h-[42px] w-full rounded-xl border border-gray-200 bg-white pl-3.5 pr-16 py-2 font-mono text-base sm:text-sm text-gray-900 placeholder:font-sans placeholder:text-gray-400 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
+                      />
+                      <button
+                        type="button"
+                        (click)="showSmtpPassword.set(!showSmtpPassword())"
+                        class="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md px-2 py-1 text-[11px] font-semibold text-gray-500 hover:bg-gray-100 hover:text-gray-800"
+                      >
+                        {{ showSmtpPassword() ? 'Ocultar' : 'Mostrar' }}
+                      </button>
+                    </div>
+                    <p class="mt-1.5 text-[11px] text-gray-500 leading-relaxed">
+                      Usa una clave de aplicación de 16 letras de Google (no tu contraseña habitual).<br />
+                      Genérala en <strong class="font-medium text-gray-700">Cuenta de Google -&gt; Seguridad -&gt; Contraseñas de aplicaciones</strong>.
+                    </p>
+                  </div>
+
+                  <!-- Nombre visible -->
+                  <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1.5">
+                      Nombre visible del remitente
+                    </label>
+                    <input
+                      type="text"
+                      [(ngModel)]="mailConfigForm.fromName"
+                      placeholder="Repuestos Asunción"
+                      class="min-h-[42px] w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-base sm:text-sm text-gray-900 placeholder:text-gray-400 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
+                    />
+                  </div>
+
+                  <!-- Correo para alertas de nuevas ventas -->
+                  <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1.5">
+                      Correo para recibir alertas de nuevas ventas
+                    </label>
+                    <input
+                      type="email"
+                      [(ngModel)]="mailConfigForm.adminNotificationEmail"
+                      placeholder="ventas@asuncion.pe"
+                      class="min-h-[42px] w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-base sm:text-sm text-gray-900 placeholder:text-gray-400 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
+                    />
+                  </div>
+
+                  <!-- Servidor SMTP & Puerto -->
+                  <div class="grid grid-cols-3 gap-3">
+                    <div class="col-span-2">
+                      <label class="block text-xs font-medium text-gray-700 mb-1.5">
+                        Servidor SMTP
+                      </label>
+                      <input
+                        type="text"
+                        [(ngModel)]="mailConfigForm.smtpHost"
+                        placeholder="smtp.gmail.com"
+                        class="min-h-[42px] w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2 font-mono text-base sm:text-xs text-gray-900 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label class="block text-xs font-medium text-gray-700 mb-1.5">
+                        Puerto
+                      </label>
+                      <input
+                        type="number"
+                        [(ngModel)]="mailConfigForm.smtpPort"
+                        placeholder="587"
+                        class="min-h-[42px] w-full rounded-xl border border-gray-200 bg-white px-3 py-2 font-mono text-base sm:text-xs text-gray-900 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <!-- Enviar correo de prueba -->
+                  <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1.5">
+                      Destinatario para prueba rápida
+                    </label>
+                    <div class="flex gap-2">
+                      <input
+                        type="email"
+                        [(ngModel)]="testRecipientEmail"
+                        placeholder="correo@ejemplo.com"
+                        class="min-h-[42px] flex-1 rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-base sm:text-sm text-gray-900 placeholder:text-gray-400 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
+                      />
+                      <button
+                        type="button"
+                        [disabled]="sendingTestMail() || !testRecipientEmail.trim()"
+                        (click)="sendTestNotification()"
+                        class="min-h-[42px] shrink-0 rounded-xl border border-orange-200 bg-orange-50 px-4 py-2 text-xs font-semibold text-orange-700 hover:bg-orange-100 disabled:opacity-50 transition"
+                      >
+                        {{ sendingTestMail() ? 'Enviando...' : 'Enviar correo de prueba' }}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="pt-2 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3">
+                  <p class="text-xs text-gray-500">
+                    Los cambios de configuración se aplican de forma inmediata al guardar.
+                  </p>
+                  <button
+                    type="button"
+                    [disabled]="savingMailConfig()"
+                    (click)="saveMailConfiguration()"
+                    class="min-h-[42px] rounded-xl bg-orange-600 px-5 py-2.5 text-sm font-semibold text-white shadow-2xs hover:bg-orange-700 disabled:opacity-50 transition"
+                  >
+                    {{ savingMailConfig() ? 'Guardando...' : 'Guardar configuración' }}
+                  </button>
+                </div>
+              </div>
+
+              <!-- BOTTOM CARD: Historial de Notificaciones Enviadas -->
+              <div class="rounded-2xl border border-gray-200 bg-white overflow-hidden shadow-2xs">
+                <div class="border-b border-gray-200 px-5 py-4 flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <h3 class="text-base font-bold text-gray-900">
+                      Historial de notificaciones enviadas ({{ notificationLogs().length }})
+                    </h3>
+                    <p class="text-xs text-gray-500">
+                      Registro en tiempo real de correos enviados a clientes y alertas internas de pedidos.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    (click)="loadNotificationLogs()"
+                    class="inline-flex min-h-[38px] items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-gray-700 hover:border-orange-300 hover:text-orange-700 transition"
+                  >
+                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M3 3v5h5" />
+                      <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
+                      <path d="M16 16h5v5" />
+                    </svg>
+                    <span>Actualizar</span>
+                  </button>
+                </div>
+
+                @if (loadingNotificationLogs()) {
+                  <div class="p-10 text-center text-xs text-gray-500">
+                    Cargando historial de notificaciones...
+                  </div>
+                } @else if (notificationLogs().length === 0) {
+                  <div class="p-10 text-center space-y-1">
+                    <p class="text-sm font-semibold text-gray-900">Aún no hay notificaciones registradas</p>
+                    <p class="text-xs text-gray-500">
+                      Envía un correo de prueba o realiza un pedido para visualizar las notificaciones aquí.
+                    </p>
+                  </div>
+                } @else {
+                  <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200 text-xs">
+                      <thead class="bg-gray-50 text-left font-semibold text-gray-600">
+                        <tr>
+                          <th class="px-4 py-3">Fecha y hora</th>
+                          <th class="px-4 py-3">Evento</th>
+                          <th class="px-4 py-3">Destinatario</th>
+                          <th class="px-4 py-3">Asunto</th>
+                          <th class="px-4 py-3">Estado</th>
+                          <th class="px-4 py-3 text-right">Acción</th>
+                        </tr>
+                      </thead>
+                      <tbody class="divide-y divide-gray-100">
+                        @for (mailLog of notificationLogs(); track mailLog.id) {
+                          <tr class="hover:bg-gray-50/70 transition">
+                            <td class="px-4 py-3.5 whitespace-nowrap font-mono text-[11px] text-gray-600">
+                              {{ mailLog.createdAt | date: 'dd/MM/yyyy HH:mm' }}
+                            </td>
+                            <td class="px-4 py-3.5 whitespace-nowrap">
+                              <span class="inline-flex items-center rounded-md border border-gray-200 bg-gray-50 px-2 py-0.5 text-[11px] font-semibold text-gray-800">
+                                {{ formatNotificationEvent(mailLog.eventType) }}
+                              </span>
+                            </td>
+                            <td class="px-4 py-3.5">
+                              <span class="block font-medium text-gray-900">{{ mailLog.recipientEmail }}</span>
+                              @if (mailLog.orderNumber) {
+                                <span class="font-mono text-[11px] text-orange-700">
+                                  Pedido {{ mailLog.orderNumber }}
+                                </span>
+                              }
+                            </td>
+                            <td class="px-4 py-3.5 max-w-xs">
+                              <p class="font-medium text-gray-800 truncate" [title]="mailLog.subject">
+                                {{ mailLog.subject }}
+                              </p>
+                            </td>
+                            <td class="px-4 py-3.5">
+                              <span
+                                [class]="notificationStatusBadgeClass(mailLog.deliveryStatus)"
+                                class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-semibold"
+                              >
+                                {{ formatNotificationStatus(mailLog.deliveryStatus) }}
+                              </span>
+                              @if (mailLog.errorMessage && mailLog.deliveryStatus === 'FAILED') {
+                                <p class="mt-1 text-[10px] text-red-600 max-w-[220px] truncate" [title]="mailLog.errorMessage">
+                                  {{ mailLog.errorMessage }}
+                                </p>
+                              }
+                            </td>
+                            <td class="px-4 py-3.5 text-right whitespace-nowrap">
+                              <button
+                                type="button"
+                                (click)="openEmailPreview(mailLog)"
+                                class="inline-flex min-h-[32px] items-center rounded-lg border border-gray-200 bg-white px-3 py-1 text-xs font-semibold text-gray-700 hover:border-orange-300 hover:text-orange-700 transition"
+                              >
+                                Ver vista previa
+                              </button>
+                            </td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        }
 
         <!-- ========================================================================= -->
         <!-- TAB 6: PASARELAS DE PAGO & GESTIÓN DE COBROS (PERÚ)                       -->
