@@ -50,8 +50,8 @@ export class CheckoutPageComponent implements OnInit, OnDestroy {
   readonly invoiceType = signal<InvoiceType>('BOLETA');
   selectedBranchId: number | null = null;
 
-  readonly deliveryLatitude = signal<number>(-12.046374);
-  readonly deliveryLongitude = signal<number>(-77.042793);
+  readonly deliveryLatitude = signal<number>(-12.045000);
+  readonly deliveryLongitude = signal<number>(-76.952000);
   readonly coverageState = signal<CoverageValidationResponse | null>(null);
 
   readonly isLookingUpDni = signal(false);

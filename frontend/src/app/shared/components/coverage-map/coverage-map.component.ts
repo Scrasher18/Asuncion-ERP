@@ -150,15 +150,15 @@ export class CoverageMapComponent implements AfterViewInit, OnChanges, OnDestroy
   // Fallback branch: Real Store Location (Av. Sta. Ana 441, Lima 15011, Santa Anita)
   private readonly defaultBranch: Branch = {
     id: 1,
-    code: 'LIM-CENTRAL',
-    name: 'Autopartes Asuncion - Santa Anita',
+    code: 'SEDE-CENTRAL',
+    name: 'Repuestos Asunción - Sede Santa Anita',
     address: 'Av. Sta. Ana 441, Lima 15011',
     phone: '+51 987 654 321',
-    latitude: -12.042941,
-    longitude: -76.956697,
-    coverageRadiusMeters: 2500,
-    baseDeliveryFee: 10.0,
-    perKmFee: 1.5,
+    latitude: -12.043004,
+    longitude: -76.956621,
+    coverageRadiusMeters: 4500,
+    baseDeliveryFee: 5.0,
+    perKmFee: 1.8,
     active: true,
   };
 
@@ -176,12 +176,12 @@ export class CoverageMapComponent implements AfterViewInit, OnChanges, OnDestroy
     address?: string;
   }>();
 
-  readonly customerLat = signal<number>(-12.0931);
-  readonly customerLng = signal<number>(-77.0265);
+  readonly customerLat = signal<number>(-12.045000);
+  readonly customerLng = signal<number>(-76.952000);
   readonly isLocatingGps = signal<boolean>(false);
   readonly isCovered = signal<boolean>(true);
-  readonly customerDistanceMeters = signal<number>(3100);
-  readonly estimatedFee = signal<number>(14.65);
+  readonly customerDistanceMeters = signal<number>(550);
+  readonly estimatedFee = signal<number>(5.00);
 
   private map: L.Map | null = null;
   private branchMarker: L.Marker | null = null;
@@ -195,17 +195,17 @@ export class CoverageMapComponent implements AfterViewInit, OnChanges, OnDestroy
   }
 
   get currentStoreLat(): number {
-    if (typeof this.initialLatitude === 'number' && !Number.isNaN(this.initialLatitude)) {
+    if (this.adminMode && typeof this.initialLatitude === 'number' && !Number.isNaN(this.initialLatitude)) {
       return this.initialLatitude;
     }
-    return this.effectiveBranch.latitude || -12.042941;
+    return this.effectiveBranch.latitude || -12.043004;
   }
 
   get currentStoreLng(): number {
-    if (typeof this.initialLongitude === 'number' && !Number.isNaN(this.initialLongitude)) {
+    if (this.adminMode && typeof this.initialLongitude === 'number' && !Number.isNaN(this.initialLongitude)) {
       return this.initialLongitude;
     }
-    return this.effectiveBranch.longitude || -76.956697;
+    return this.effectiveBranch.longitude || -76.956621;
   }
 
   get currentCoverageRadiusMeters(): number {

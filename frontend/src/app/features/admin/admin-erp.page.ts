@@ -1712,93 +1712,65 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
               </div>
 
               <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <!-- Culqi Config -->
-                <div class="rounded-xl border border-gray-200 bg-gray-50/60 p-4 space-y-4">
+                <!-- Culqi & Yape Status Card -->
+                <div class="rounded-xl border border-emerald-200 bg-emerald-50/50 p-5 space-y-3">
                   <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-2">
-                      <span class="font-bold text-sm text-gray-900">Culqi Tarjetas & Yape Online</span>
-                      <span class="rounded bg-orange-100 text-orange-800 px-2 py-0.5 text-[10px] font-bold">Oficial Perú</span>
-                    </div>
-                    <label class="relative inline-flex cursor-pointer items-center">
-                      <input
-                        type="checkbox"
-                        [(ngModel)]="paymentConfigForm.culqiEnabled"
-                        class="peer sr-only"
-                      />
-                      <div class="peer h-5 w-9 rounded-full bg-gray-200 after:absolute after:top-[2px] after:left-[2px] after:h-4 after:w-4 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:bg-orange-600 peer-checked:after:translate-x-full"></div>
-                    </label>
-                  </div>
-
-                  <div class="space-y-3 text-xs">
-                    <div>
-                      <label class="block font-medium text-gray-700 mb-1">Llave Pública (Public Key)</label>
-                      <input
-                        type="text"
-                        [(ngModel)]="paymentConfigForm.culqiPublicKey"
-                        placeholder="pk_test_..."
-                        class="w-full min-h-[40px] rounded-xl border border-gray-200 bg-white px-3 font-mono text-xs text-gray-900 focus:border-orange-600 focus:outline-none"
-                      />
-                    </div>
-                    <div>
-                      <div class="flex items-center justify-between mb-1">
-                        <label class="block font-medium text-gray-700">Llave Privada (Secret Key)</label>
-                        <button
-                          type="button"
-                          (click)="showCulqiSecret.set(!showCulqiSecret())"
-                          class="text-[11px] font-semibold text-orange-600 hover:text-orange-700"
-                        >
-                          {{ showCulqiSecret() ? 'Ocultar' : 'Mostrar' }}
-                        </button>
+                    <div class="flex items-center gap-2.5">
+                      <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
                       </div>
-                      <input
-                        [type]="showCulqiSecret() ? 'text' : 'password'"
-                        [(ngModel)]="paymentConfigForm.culqiSecretKey"
-                        placeholder="•••••••••••••••••••••••• (sk_test_... activa)"
-                        class="w-full min-h-[40px] rounded-xl border border-gray-200 bg-white px-3 font-mono text-xs text-gray-900 focus:border-orange-600 focus:outline-none"
-                      />
-                      <p class="mt-1 text-[11px] text-gray-500">
-                        Ingresa una nueva llave solo si deseas actualizar tus credenciales desde panel.culqi.com.
-                      </p>
+                      <div>
+                        <span class="font-bold text-sm text-gray-900">Cobros con Tarjetas & Yape Online</span>
+                        <span class="block text-[11px] text-emerald-700 font-medium">Pasarela certificada activa</span>
+                      </div>
                     </div>
+                    <span class="rounded-full border border-emerald-300 bg-white px-2.5 py-1 text-xs font-bold text-emerald-800 shadow-2xs">
+                      En servicio
+                    </span>
+                  </div>
+                  <p class="text-xs text-gray-600 leading-relaxed">
+                    Tus clientes pueden pagar al instante con tarjetas Visa, Mastercard, Diners, American Express y Yape Online.
+                  </p>
+                  <div class="rounded-lg border border-emerald-200/80 bg-white/90 p-3 space-y-1.5 text-xs text-gray-700">
+                    <p class="flex items-center gap-2">
+                      <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
+                      <span><strong>Modo seguro:</strong> Llaves y encriptación bancaria protegidas en servidor.</span>
+                    </p>
+                    <p class="flex items-center gap-2">
+                      <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
+                      <span><strong>Protección antifraude:</strong> Validación en tiempo real con 3DS y Culqi Shield.</span>
+                    </p>
                   </div>
                 </div>
 
-                <!-- Culqi Info & Docs Helper -->
-                <div class="rounded-xl border border-orange-200 bg-orange-50/50 p-4 space-y-3 text-xs">
-                  <div class="flex items-center gap-2">
-                    <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-orange-600 text-white font-bold text-xs">C</span>
-                    <span class="font-bold text-sm text-gray-900">Panel Oficial Culqi</span>
+                <!-- Panel Oficial Culqi & Liquidación -->
+                <div class="rounded-xl border border-orange-200 bg-orange-50/50 p-5 space-y-3 text-xs">
+                  <div class="flex items-center gap-2.5">
+                    <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-orange-600 text-white font-bold text-sm shadow-2xs">C</span>
+                    <div>
+                      <span class="font-bold text-sm text-gray-900">Liquidaciones y Cuenta Bancaria</span>
+                      <span class="block text-[11px] text-orange-700 font-medium">Banco de Crédito del Perú (BCP)</span>
+                    </div>
                   </div>
                   <p class="text-gray-600 leading-relaxed">
-                    Todas las compras con tarjeta son liquidadas automáticamente en tu cuenta bancaria registrada en Culqi.
+                    Todas las compras cobradas en la tienda son transferidas y liquidadas automáticamente en tu cuenta corriente BCP registrada.
                   </p>
-                  <div class="space-y-1.5 pt-1 text-[11px] text-gray-700">
-                    <p>• <strong>Usuario Culqi:</strong> <span class="font-mono">luisoscarperez322&#64;hotmail.com</span></p>
+                  <div class="space-y-1.5 pt-1 text-xs text-gray-700">
+                    <p>• <strong>Cuenta bancaria vinculada:</strong> <span class="font-mono text-gray-900 font-semibold">luisoscarperez322@hotmail.com</span></p>
                     <p>• <strong>Depósitos y Liquidaciones:</strong> Directo a tu cuenta corriente BCP registrada.</p>
-                    <p>• <strong>Panel de Control:</strong> <a href="https://panel.culqi.com" target="_blank" class="text-orange-700 font-semibold hover:underline">panel.culqi.com ↗</a></p>
-                    <p>• <strong>Comisión de referencia:</strong> 3.99% + IGV por transacción exitosa.</p>
+                    <p>• <strong>Panel de Control Culqi:</strong> <a href="https://panel.culqi.com" target="_blank" class="text-orange-700 font-semibold hover:underline">Acceder al panel oficial ↗</a></p>
+                    <p>• <strong>Comisión por venta:</strong> 3.99% + IGV por cobro exitoso.</p>
                   </div>
                 </div>
               </div>
 
-              <!-- Environment Switch -->
-              <div class="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-gray-100 text-xs">
-                <div class="flex items-center gap-2">
-                  <span class="font-semibold text-gray-700">Entorno de procesamiento:</span>
-                  <select
-                    [(ngModel)]="paymentConfigForm.environment"
-                    class="rounded-lg border border-gray-200 bg-white px-3 py-1.5 font-bold text-gray-900 focus:border-orange-600 focus:outline-none"
-                  >
-                    <option value="SANDBOX">SANDBOX (Pruebas de desarrollo)</option>
-                    <option value="PRODUCTION">PRODUCCIÓN (Cobros reales con tarjeta y CIP)</option>
-                  </select>
+              @if (paymentConfigForm.updatedAt) {
+                <div class="pt-2 border-t border-gray-100 text-[11px] text-gray-500">
+                  Última sincronización con servidor: {{ paymentConfigForm.updatedAt | date: 'dd/MM/yyyy HH:mm' }}
                 </div>
-                @if (paymentConfigForm.updatedAt) {
-                  <span class="text-[11px] text-gray-500">
-                    Última actualización: {{ paymentConfigForm.updatedAt | date: 'dd/MM/yyyy HH:mm' }}
-                  </span>
-                }
-              </div>
+              }
             </div>
 
             <!-- SECCIÓN 4: CONTRA ENTREGA & RECOJO EN TIENDA -->
