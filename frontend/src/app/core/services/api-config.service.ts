@@ -74,7 +74,7 @@ export class ApiConfigService {
     // Fotos subidas desde el panel: se sirven por el backend en /api/v1/media/**
     // (también corrige URLs antiguas guardadas con http://localhost:8080)
     const mediaIdx = url.indexOf('/api/v1/media/');
-    if (mediaIdx >= 0 && (mediaIdx === 0 || url.includes('localhost') || url.includes('127.0.0.1'))) {
+    if (mediaIdx >= 0) {
       return `${this.backendOrigin}${url.substring(mediaIdx)}`;
     }
 

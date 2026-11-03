@@ -74,7 +74,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/auth/recaptcha-config").permitAll()
                         // Public Catalog & Media
                         .requestMatchers(HttpMethod.GET, "/api/v1/catalog/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/v1/media/**").permitAll()
+                        .requestMatchers("/api/v1/media/**").permitAll()
                         // Public Logistics & Coverage Validation
                         .requestMatchers(HttpMethod.GET, "/api/v1/logistics/branches").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/logistics/validate-coverage").permitAll()

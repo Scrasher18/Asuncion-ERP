@@ -115,6 +115,7 @@ export interface StagedUploadBundle {
                   <img
                     [src]="resolveUrl(img.imageUrl)"
                     alt="Imagen del repuesto"
+                    (error)="onImageError($event)"
                     class="h-full w-full object-cover transition duration-300 group-hover:scale-105"
                   />
                 </div>
@@ -574,6 +575,17 @@ export class PartImageUploaderComponent implements OnDestroy {
   resolveUrl(url: string): string {
     const p = this._part();
     return this.apiConfig.resolveMediaUrl(url, p?.oemCode || p?.sku, p?.manufacturerBrand);
+  }
+
+  onImageError(event: Event): void {
+    const img = event.target as HTMLImageElement;
+    if (img) {
+      const p = this._part();
+      const fallback = this.apiConfig.getCategoryFallback(p?.categoryName);
+      if (img.src !== fallback && !img.src.endsWith(fallback)) {
+        img.src = fallback;
+      }
+    }
   }
 
   private emitStagedBundle(): void {
