@@ -67,6 +67,7 @@ import { ToastService } from '../../../core/services/toast.service';
                     <img
                       [src]="resolveImage(item.part)"
                       [alt]="item.part.name"
+                      (error)="onCartImageError($event, item.part)"
                       class="h-18 w-18 shrink-0 rounded-lg border border-gray-100 object-cover bg-gray-50"
                     />
                     <div class="flex-1 min-w-0">
@@ -201,6 +202,16 @@ export class CartDrawerComponent {
 
   resolveImage(part: Part): string {
     return this.apiConfig.resolvePartPrimaryImage(part);
+  }
+
+  onCartImageError(event: Event, part: Part): void {
+    const img = event.target as HTMLImageElement;
+    if (img) {
+      const fallback = this.apiConfig.getCategoryFallback(part.categoryName);
+      if (img.src !== fallback && !img.src.endsWith(fallback)) {
+        img.src = fallback;
+      }
+    }
   }
 
   proceedToCheckout(): void {

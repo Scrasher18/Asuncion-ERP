@@ -852,6 +852,7 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                             <img
                               [src]="resolvePartImg(p)"
                               [alt]="p.name"
+                              (error)="onAdminPartImgError($event, p)"
                               class="h-11 w-14 rounded-lg border border-gray-200 object-cover bg-gray-50 shrink-0"
                             />
                             <div>
@@ -3205,6 +3206,16 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
 
   resolvePartImg(part: Part): string {
     return this.apiConfig.resolvePartPrimaryImage(part);
+  }
+
+  onAdminPartImgError(event: Event, part: Part): void {
+    const img = event.target as HTMLImageElement;
+    if (img) {
+      const fallback = this.apiConfig.getCategoryFallback(part.categoryName);
+      if (img.src !== fallback && !img.src.endsWith(fallback)) {
+        img.src = fallback;
+      }
+    }
   }
 
   openCreatePartModal(): void {

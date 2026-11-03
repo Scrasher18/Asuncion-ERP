@@ -55,6 +55,7 @@ import { ToastService } from '../../core/services/toast.service';
                 <img
                   [src]="activeImageUrl()"
                   [alt]="p.name"
+                  (error)="onDetailImageError($event, p)"
                   [style.transform]="isZooming() ? 'scale(2.35)' : 'scale(1)'"
                   [style.transform-origin]="zoomOrigin()"
                   class="h-full w-full object-cover transition-transform duration-100 ease-out"
@@ -560,5 +561,15 @@ export class PartDetailPageComponent implements OnInit {
   isOil(part: Part): boolean {
     const text = `${part.name} ${part.categoryName || ''}`.toLowerCase();
     return text.includes('aceite') || text.includes('lubricante') || text.includes('oil');
+  }
+
+  onDetailImageError(event: Event, part: Part): void {
+    const img = event.target as HTMLImageElement;
+    if (img) {
+      const fallback = this.apiConfig.getCategoryFallback(part.categoryName);
+      if (img.src !== fallback && !img.src.endsWith(fallback)) {
+        img.src = fallback;
+      }
+    }
   }
 }

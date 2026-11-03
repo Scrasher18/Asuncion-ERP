@@ -468,6 +468,7 @@ import { CatalogService } from '../../core/services/catalog.service';
                   <img
                     [src]="resolveImage(part)"
                     [alt]="part.name"
+                    (error)="onPartImageError($event, part)"
                     class="h-full w-full object-cover transition duration-300 group-hover:scale-103"
                   />
 
@@ -979,6 +980,16 @@ export class CatalogPageComponent implements OnInit {
 
   resolveImage(part: Part): string {
     return this.apiConfig.resolvePartPrimaryImage(part);
+  }
+
+  onPartImageError(event: Event, part: Part): void {
+    const img = event.target as HTMLImageElement;
+    if (img) {
+      const fallback = this.apiConfig.getCategoryFallback(part.categoryName);
+      if (img.src !== fallback && !img.src.endsWith(fallback)) {
+        img.src = fallback;
+      }
+    }
   }
 
   formatFirstCompatibility(part: Part): string {

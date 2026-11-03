@@ -45,36 +45,8 @@ export class ApiConfigService {
     this.googleMapsApiKey.set(trimmed);
   }
 
-  resolveMediaUrl(rawUrl?: string | null, fallbackSku?: string, fallbackBrand?: string): string {
-    if (!rawUrl || !rawUrl.trim()) {
-      return buildPartPlaceholderDataUri(fallbackSku || 'OEM', fallbackBrand || 'Asunción');
-    }
-    const url = rawUrl.trim();
-    if (
-      url.startsWith('http://') ||
-      url.startsWith('https://') ||
-      url.startsWith('data:') ||
-      url.startsWith('blob:')
-    ) {
-      return url;
-    }
-    if (url.startsWith('/')) {
-      return `${this.backendOrigin}${url}`;
-    }
-    return `${this.backendOrigin}/${url}`;
-  }
-
-  resolvePartPrimaryImage(part: Part): string {
-    if (part.primaryImageUrl) {
-      return this.resolveMediaUrl(part.primaryImageUrl, part.oemCode || part.sku, part.manufacturerBrand);
-    }
-    if (part.images && part.images.length > 0) {
-      const primary = part.images.find((img) => this.isPrimary(img)) || part.images[0];
-      return this.resolveMediaUrl(primary.imageUrl, part.oemCode || part.sku, part.manufacturerBrand);
-    }
-
-    // High-resolution automotive category photography fallback instead of plain icon
-    const cat = (part.categoryName || '').toUpperCase();
+  getCategoryFallback(categoryName?: string | null): string {
+    const cat = (categoryName || '').toUpperCase();
     if (cat.includes('FREN')) return '/images/categories/frenos.jpg';
     if (cat.includes('FILTR') || cat.includes('LUBRIC')) return '/images/categories/filtros.jpg';
     if (cat.includes('ELEC') || cat.includes('ILUM') || cat.includes('FOCO')) return '/images/categories/electrico.jpg';
@@ -83,8 +55,87 @@ export class ApiConfigService {
     if (cat.includes('TRANSM') || cat.includes('EMBRAG')) return '/images/categories/transmision.jpg';
     if (cat.includes('REFRIG') || cat.includes('CLIM')) return '/images/categories/refrigeracion.jpg';
     if (cat.includes('CARROC') || cat.includes('FARO')) return '/images/categories/carroceria.jpg';
-
     return '/images/categories/frenos.jpg';
+  }
+
+  resolveMediaUrl(rawUrl?: string | null, fallbackSku?: string, fallbackBrand?: string): string {
+    const sku = (fallbackSku || '').trim().toLowerCase();
+
+    // If rawUrl is missing, check if we have a known SKU or return placeholder
+    if (!rawUrl || !rawUrl.trim()) {
+      if (sku && sku.startsWith('asu-')) {
+        return `/uploads/parts/${sku}.webp`;
+      }
+      return buildPartPlaceholderDataUri(fallbackSku || 'OEM', fallbackBrand || 'Asunción');
+    }
+
+    const url = rawUrl.trim();
+
+    // Clean up local development MinIO / localhost URLs that trigger browser PNA security prompts
+    if (url.includes('localhost') || url.includes('127.0.0.1')) {
+      if (url.includes('/parts/')) {
+        const partsMatch = url.match(/\/parts\/([^\/\?]+)/i);
+        if (partsMatch && partsMatch[1]) {
+          return `/uploads/parts/${partsMatch[1].toLowerCase().replace(/\.webp$/i, '')}.webp`;
+        }
+      }
+      if (sku && sku.startsWith('asu-')) {
+        return `/uploads/parts/${sku}.webp`;
+      }
+      return this.getCategoryFallback(fallbackBrand);
+    }
+
+    // Static assets hosted on Vercel frontend root
+    if (url.startsWith('/uploads/') || url.startsWith('/images/') || url.startsWith('/icons/')) {
+      return url;
+    }
+
+    // Fully qualified external URLs (HTTPS or data/blob)
+    if (
+      url.startsWith('https://') ||
+      url.startsWith('http://') ||
+      url.startsWith('data:') ||
+      url.startsWith('blob:')
+    ) {
+      return url;
+    }
+
+    // Relative backend URLs
+    if (url.startsWith('/')) {
+      return `${this.backendOrigin}${url}`;
+    }
+    return `${this.backendOrigin}/${url}`;
+  }
+
+  resolvePartPrimaryImage(part: Part): string {
+    const sku = (part.sku || '').trim().toLowerCase();
+
+    // 1. If part has an explicit primaryImageUrl
+    if (part.primaryImageUrl && part.primaryImageUrl.trim()) {
+      const resolved = this.resolveMediaUrl(part.primaryImageUrl, part.sku, part.manufacturerBrand);
+      if (resolved && !resolved.includes('localhost')) {
+        return resolved;
+      }
+    }
+
+    // 2. If part has gallery images
+    if (part.images && part.images.length > 0) {
+      const primary = part.images.find((img) => this.isPrimary(img)) || part.images[0];
+      if (primary && primary.imageUrl) {
+        const resolved = this.resolveMediaUrl(primary.imageUrl, part.sku, part.manufacturerBrand);
+        if (resolved && !resolved.includes('localhost')) {
+          return resolved;
+        }
+      }
+    }
+
+    // 3. Directly map to standard SKU WebP if available
+    if (sku && sku.startsWith('asu-')) {
+      return `/uploads/parts/${sku}.webp`;
+    }
+
+    // 4. Fallback to category photo
+    return this.getCategoryFallback(part.categoryName);
   }
 
   isPrimary(img: PartImage): boolean {

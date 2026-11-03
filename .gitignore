@@ -18,8 +18,8 @@ Thumbs.db
 *.log
 
 # Uploads / Local Data
-uploads/
-**/uploads/
+backend/uploads/
+!frontend/public/uploads/**
 *.h2.db
 .env
 .env.local
