@@ -22,13 +22,13 @@ public class GoogleRecaptchaService {
     private static final Logger log = LoggerFactory.getLogger(GoogleRecaptchaService.class);
     private static final String GOOGLE_VERIFY_URL = "https://www.google.com/recaptcha/api/siteverify";
 
-    @Value("${app.recaptcha.site-key:6LejIAouAAAAAEgaAefnpg5JDK4GFDbQth7ptvMc}")
+    @Value("${app.recaptcha.site-key:6Lc7Hw4uAAAAAP3Z5LhWzPf3Xx2OAQaqkeiFm-Mt}")
     private String siteKey;
 
-    @Value("${app.recaptcha.secret-key:6LejIAouAAAAAEFS8XjmqQc_mO5ioOBw-AX-6cjI}")
+    @Value("${app.recaptcha.secret-key:6Lc7Hw4uAAAAABGpbSjUMZOBAWMYGNP92i0M_obs}")
     private String secretKey;
 
-    @Value("${app.recaptcha.enabled:false}")
+    @Value("${app.recaptcha.enabled:true}")
     private boolean enabled;
 
     @Value("${app.recaptcha.min-score:0.5}")
