@@ -4,7 +4,6 @@ import {
   Component,
   ElementRef,
   EventEmitter,
-  inject,
   Input,
   OnChanges,
   OnDestroy,
@@ -20,60 +19,12 @@ import {
   CoverageValidationResponse,
   haversineDistanceMeters,
 } from '../../../core/models/api.models';
-import { LogisticsService } from '../../../core/services/logistics.service';
-import { ToastService } from '../../../core/services/toast.service';
 
 export interface SelectedGeoPoint {
   latitude: number;
   longitude: number;
   suggestedAddress?: string;
 }
-
-export interface PresetLocation {
-  label: string;
-  tag: string;
-  address: string;
-  latitude: number;
-  longitude: number;
-}
-
-export const LIMA_PRESET_LOCATIONS: PresetLocation[] = [
-  {
-    label: 'Taller Santa Anita',
-    tag: 'Cerca · 0.4 km',
-    address: 'Av. Santa Ana 320, Santa Anita, Lima',
-    latitude: -12.0435,
-    longitude: -76.9582,
-  },
-  {
-    label: 'Ate Vitarte',
-    tag: 'Cobertura · 1.8 km',
-    address: 'Carretera Central Km 4.5, Ate Vitarte, Lima',
-    latitude: -12.0485,
-    longitude: -76.9442,
-  },
-  {
-    label: 'El Agustino',
-    tag: 'Cobertura · 2.4 km',
-    address: 'Av. Riva Agüero 1250, El Agustino, Lima',
-    latitude: -12.0465,
-    longitude: -76.9772,
-  },
-  {
-    label: 'La Victoria',
-    tag: 'Límite · 5.8 km',
-    address: 'Av. Manco Cápac 620, La Victoria, Lima',
-    latitude: -12.0658,
-    longitude: -77.0261,
-  },
-  {
-    label: 'Callao Puerto',
-    tag: 'Fuera · 16.5 km',
-    address: 'Av. Sáenz Peña 1120, Callao',
-    latitude: -12.0522,
-    longitude: -77.1436,
-  },
-];
 
 @Component({
   selector: 'app-coverage-map',
@@ -87,12 +38,10 @@ export const LIMA_PRESET_LOCATIONS: PresetLocation[] = [
           @if (adminMode) {
             <span class="inline-flex items-center gap-1.5 rounded-full border border-orange-200 bg-orange-50 px-2.5 py-1 text-xs font-bold text-orange-800">
               <span class="h-2 w-2 rounded-full bg-orange-600 animate-pulse"></span>
-              <span>Modo Configuración de Sede</span>
+              <span>Ubicación de Tienda / Sede</span>
             </span>
             <span class="text-xs font-medium text-gray-600 truncate hidden sm:inline flex items-center gap-1">
-              <span>Arrastra el marcador</span>
-              <img src="/images/icons/local.png" class="h-3.5 w-3.5 inline object-contain" alt="Tienda" />
-              <span>o toca el mapa para ubicar la tienda</span>
+              <span>Arrastra el marcador o haz clic en el mapa para ubicar el local</span>
             </span>
           } @else {
             <span
@@ -143,7 +92,9 @@ export const LIMA_PRESET_LOCATIONS: PresetLocation[] = [
         <!-- Floating Info Overlay on Map (Top-Right) -->
         <div class="absolute top-3 right-3 z-[400] flex flex-col gap-1.5 pointer-events-none">
           <div class="pointer-events-auto rounded-xl border border-gray-200/90 bg-white/95 px-3 py-1.5 text-xs shadow-md backdrop-blur-xs flex items-center gap-2">
-            <img src="/images/icons/local.png" class="h-4 w-4 object-contain shrink-0" alt="Tienda" />
+            <svg class="h-4 w-4 text-orange-600 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+            </svg>
             <div class="text-[11px] leading-tight">
               <strong class="text-gray-900 block truncate max-w-[200px]">{{ effectiveBranch.name }}</strong>
               <span class="text-gray-500 block truncate max-w-[200px]">{{ effectiveBranch.address }}</span>
@@ -156,11 +107,12 @@ export const LIMA_PRESET_LOCATIONS: PresetLocation[] = [
       <div class="border-t border-gray-100 bg-white px-4 py-3 flex flex-wrap items-center justify-between gap-3 text-xs">
         @if (adminMode) {
           <div class="flex items-center gap-2 text-gray-600">
-            <span class="font-bold text-gray-900">Sede Asunción:</span>
+            <span class="font-bold text-gray-900">Sede:</span>
             <span class="truncate">{{ effectiveBranch.address }}</span>
           </div>
-          <div class="text-[11px] text-gray-500 font-medium">
-            Tarifa base: S/ {{ effectiveBranch.baseDeliveryFee | number: '1.2-2' }} + S/ {{ effectiveBranch.perKmFee | number: '1.2-2' }}/km
+          <div class="flex items-center gap-3 text-[11px] text-gray-500 font-medium">
+            <span>Coordenadas: {{ currentStoreLat | number: '1.4-4' }}, {{ currentStoreLng | number: '1.4-4' }}</span>
+            <span>Tarifa base: S/ {{ effectiveBranch.baseDeliveryFee | number: '1.2-2' }}</span>
           </div>
         } @else {
           <div class="flex items-center gap-4 min-w-0">
@@ -181,22 +133,6 @@ export const LIMA_PRESET_LOCATIONS: PresetLocation[] = [
             </div>
           </div>
         }
-
-        <!-- Quick Landmark Preset Pills -->
-        @if (showPresets) {
-          <div class="flex flex-wrap items-center gap-1.5">
-            <span class="text-[11px] font-medium text-gray-600 mr-1 hidden md:inline">Destinos de prueba:</span>
-            @for (loc of presets; track loc.label) {
-              <button
-                type="button"
-                (click)="applyPreset(loc)"
-                class="rounded-full border border-gray-200 bg-gray-50 hover:bg-orange-50 hover:border-orange-300 hover:text-orange-700 px-2 py-0.5 text-[11px] font-medium text-gray-700 transition"
-              >
-                {{ loc.label }}
-              </button>
-            }
-          </div>
-        }
       </div>
     </div>
   `,
@@ -209,9 +145,6 @@ export const LIMA_PRESET_LOCATIONS: PresetLocation[] = [
   ],
 })
 export class CoverageMapComponent implements AfterViewInit, OnChanges, OnDestroy {
-  private readonly logisticsService = inject(LogisticsService);
-  private readonly toast = inject(ToastService);
-
   @ViewChild('mapContainer') mapContainer?: ElementRef<HTMLDivElement>;
 
   // Fallback branch: Real Store Location (Av. Sta. Ana 441, Lima 15011, Santa Anita)
@@ -234,7 +167,6 @@ export class CoverageMapComponent implements AfterViewInit, OnChanges, OnDestroy
   @Input() initialLatitude: number | null | undefined = null;
   @Input() initialLongitude: number | null | undefined = null;
   @Input() adminMode = false;
-  @Input() showPresets = true;
 
   @Output() readonly locationSelected = new EventEmitter<SelectedGeoPoint>();
   @Output() readonly coverageValidated = new EventEmitter<CoverageValidationResponse>();
@@ -243,8 +175,6 @@ export class CoverageMapComponent implements AfterViewInit, OnChanges, OnDestroy
     longitude: number;
     address?: string;
   }>();
-
-  readonly presets = LIMA_PRESET_LOCATIONS;
 
   readonly customerLat = signal<number>(-12.0931);
   readonly customerLng = signal<number>(-77.0265);
@@ -265,11 +195,17 @@ export class CoverageMapComponent implements AfterViewInit, OnChanges, OnDestroy
   }
 
   get currentStoreLat(): number {
-    return this.effectiveBranch.latitude || -12.0692;
+    if (typeof this.initialLatitude === 'number' && !Number.isNaN(this.initialLatitude)) {
+      return this.initialLatitude;
+    }
+    return this.effectiveBranch.latitude || -12.042941;
   }
 
   get currentStoreLng(): number {
-    return this.effectiveBranch.longitude || -77.0225;
+    if (typeof this.initialLongitude === 'number' && !Number.isNaN(this.initialLongitude)) {
+      return this.initialLongitude;
+    }
+    return this.effectiveBranch.longitude || -76.956697;
   }
 
   get currentCoverageRadiusMeters(): number {
@@ -286,7 +222,7 @@ export class CoverageMapComponent implements AfterViewInit, OnChanges, OnDestroy
   ngOnChanges(changes: SimpleChanges): void {
     if (!this.map) return;
 
-    if (changes['branch'] || changes['radiusOverrideMeters']) {
+    if (changes['branch'] || changes['radiusOverrideMeters'] || changes['adminMode']) {
       this.updateMapLayers();
     }
 
@@ -294,10 +230,20 @@ export class CoverageMapComponent implements AfterViewInit, OnChanges, OnDestroy
       const lat = this.initialLatitude;
       const lng = this.initialLongitude;
       if (typeof lat === 'number' && typeof lng === 'number' && !Number.isNaN(lat) && !Number.isNaN(lng)) {
-        this.customerLat.set(lat);
-        this.customerLng.set(lng);
-        this.updateCustomerMarkerAndRoute();
-        this.recalculateDeliveryCoverage();
+        if (this.adminMode) {
+          if (this.branchMarker) {
+            this.branchMarker.setLatLng([lat, lng]);
+          }
+          if (this.coverageCircle) {
+            this.coverageCircle.setLatLng([lat, lng]);
+          }
+          this.map.panTo([lat, lng]);
+        } else {
+          this.customerLat.set(lat);
+          this.customerLng.set(lng);
+          this.updateCustomerMarkerAndRoute();
+          this.recalculateDeliveryCoverage();
+        }
       }
     }
   }
@@ -317,7 +263,7 @@ export class CoverageMapComponent implements AfterViewInit, OnChanges, OnDestroy
 
     this.map = L.map(this.mapContainer.nativeElement, {
       center: [centerLat, centerLng],
-      zoom: 13,
+      zoom: 14,
       zoomControl: true,
       attributionControl: false,
     });
@@ -356,9 +302,11 @@ export class CoverageMapComponent implements AfterViewInit, OnChanges, OnDestroy
     const storeIcon = L.divIcon({
       className: 'store-pin-wrapper',
       html: `
-        <div style="background:#0F172A;color:#FFFFFF;border:2px solid #FFFFFF;border-radius:12px;padding:4px 9px;font-size:11px;font-weight:700;display:flex;align-items:center;gap:5px;box-shadow:0 4px 12px rgba(0,0,0,0.3);white-space:nowrap;transform:translate(-50%, -50%);">
-          <img src="/images/icons/local.png" style="width:14px;height:14px;object-fit:contain;" alt="" />
-          <span>${this.effectiveBranch.name || 'Autopartes Asunción'}</span>
+        <div style="background:#0F172A;color:#FFFFFF;border:2px solid #FFFFFF;border-radius:12px;padding:6px 12px;font-size:12px;font-weight:700;display:flex;align-items:center;gap:6px;box-shadow:0 4px 14px rgba(0,0,0,0.35);white-space:nowrap;transform:translate(-50%, -100%);cursor:${this.adminMode ? 'grab' : 'default'};">
+          <svg style="width:16px;height:16px;color:#EA580C;flex-shrink:0;" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+          </svg>
+          <span>${this.effectiveBranch.name || 'Local Asunción'}</span>
         </div>
       `,
       iconSize: [0, 0],
@@ -370,12 +318,10 @@ export class CoverageMapComponent implements AfterViewInit, OnChanges, OnDestroy
         draggable: this.adminMode,
       }).addTo(this.map);
 
-      if (this.adminMode) {
-        this.branchMarker.on('dragend', (e) => {
-          const pos = e.target.getLatLng();
-          this.handleStoreRelocation(pos.lat, pos.lng);
-        });
-      }
+      this.branchMarker.on('dragend', (e: any) => {
+        const pos = e.target.getLatLng();
+        this.handleStoreRelocation(pos.lat, pos.lng);
+      });
     } else {
       this.branchMarker.setLatLng([storeLat, storeLng]);
       this.branchMarker.setIcon(storeIcon);
@@ -402,7 +348,16 @@ export class CoverageMapComponent implements AfterViewInit, OnChanges, OnDestroy
     }
 
     // 3. Customer Destination Marker (Checkout/Client mode only)
-    if (!this.adminMode) {
+    if (this.adminMode) {
+      if (this.customerMarker) {
+        this.customerMarker.remove();
+        this.customerMarker = null;
+      }
+      if (this.routeLine) {
+        this.routeLine.remove();
+        this.routeLine = null;
+      }
+    } else {
       this.updateCustomerMarkerAndRoute();
       this.recalculateDeliveryCoverage();
     }
@@ -419,8 +374,10 @@ export class CoverageMapComponent implements AfterViewInit, OnChanges, OnDestroy
     const custIcon = L.divIcon({
       className: 'cust-pin-wrapper',
       html: `
-        <div style="background:#EA580C;color:#FFFFFF;border:2px solid #FFFFFF;border-radius:12px;padding:4px 9px;font-size:11px;font-weight:700;display:flex;align-items:center;gap:5px;box-shadow:0 4px 12px rgba(234,88,12,0.4);white-space:nowrap;transform:translate(-50%, -50%);">
-          <img src="/images/icons/casa.png" style="width:14px;height:14px;object-fit:contain;" alt="" />
+        <div style="background:#EA580C;color:#FFFFFF;border:2px solid #FFFFFF;border-radius:12px;padding:5px 10px;font-size:11px;font-weight:700;display:flex;align-items:center;gap:5px;box-shadow:0 4px 12px rgba(234,88,12,0.4);white-space:nowrap;transform:translate(-50%, -100%);">
+          <svg style="width:14px;height:14px;color:#FFFFFF;flex-shrink:0;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+          </svg>
           <span>Entrega aquí</span>
         </div>
       `,
@@ -433,7 +390,7 @@ export class CoverageMapComponent implements AfterViewInit, OnChanges, OnDestroy
         draggable: true,
       }).addTo(this.map);
 
-      this.customerMarker.on('dragend', (e) => {
+      this.customerMarker.on('dragend', (e: any) => {
         const pos = e.target.getLatLng();
         this.handleCustomerSelection(pos.lat, pos.lng);
       });
@@ -459,18 +416,20 @@ export class CoverageMapComponent implements AfterViewInit, OnChanges, OnDestroy
   }
 
   private handleStoreRelocation(lat: number, lng: number): void {
+    const roundedLat = Number(lat.toFixed(6));
+    const roundedLng = Number(lng.toFixed(6));
+
     if (this.branchMarker) {
-      this.branchMarker.setLatLng([lat, lng]);
+      this.branchMarker.setLatLng([roundedLat, roundedLng]);
     }
     if (this.coverageCircle) {
-      this.coverageCircle.setLatLng([lat, lng]);
+      this.coverageCircle.setLatLng([roundedLat, roundedLng]);
     }
     this.branchLocationChanged.emit({
-      latitude: Number(lat.toFixed(6)),
-      longitude: Number(lng.toFixed(6)),
-      address: 'Av. Sta. Ana 441, Lima 15011',
+      latitude: roundedLat,
+      longitude: roundedLng,
+      address: this.effectiveBranch.address,
     });
-    this.toast.info('Sede actualizada', 'Ubicación de tienda actualizada en mapa.');
   }
 
   private handleCustomerSelection(lat: number, lng: number, address?: string): void {
@@ -524,18 +483,8 @@ export class CoverageMapComponent implements AfterViewInit, OnChanges, OnDestroy
     this.coverageValidated.emit(validation);
   }
 
-  applyPreset(preset: PresetLocation): void {
-    if (this.adminMode) {
-      this.handleStoreRelocation(preset.latitude, preset.longitude);
-    } else {
-      this.handleCustomerSelection(preset.latitude, preset.longitude, preset.address);
-    }
-    this.map?.flyTo([preset.latitude, preset.longitude], 14, { duration: 0.8 });
-  }
-
   locateUserGps(): void {
     if (typeof window === 'undefined' || !navigator.geolocation) {
-      this.toast.error('GPS no disponible', 'Geolocalización no soportada en este navegador.');
       return;
     }
 
@@ -546,11 +495,9 @@ export class CoverageMapComponent implements AfterViewInit, OnChanges, OnDestroy
         const { latitude, longitude } = pos.coords;
         this.handleCustomerSelection(latitude, longitude, 'Mi ubicación GPS actual');
         this.map?.flyTo([latitude, longitude], 15, { duration: 1.0 });
-        this.toast.success('Ubicación fijada', 'Se detectaron tus coordenadas GPS en Lima.');
       },
-      (err) => {
+      () => {
         this.isLocatingGps.set(false);
-        this.toast.error('Error GPS', err.message || 'No se pudo obtener la ubicación.');
       },
       { timeout: 10000, enableHighAccuracy: true }
     );

@@ -982,6 +982,7 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                         type="number"
                         step="0.0001"
                         [(ngModel)]="branchDraft.latitude"
+                        (ngModelChange)="onManualCoordsChange()"
                         class="min-h-[42px] w-full rounded-xl border border-gray-200 bg-white px-3 py-2 font-mono text-base sm:text-xs text-gray-900 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
                       />
                     </div>
@@ -991,6 +992,7 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                         type="number"
                         step="0.0001"
                         [(ngModel)]="branchDraft.longitude"
+                        (ngModelChange)="onManualCoordsChange()"
                         class="min-h-[42px] w-full rounded-xl border border-gray-200 bg-white px-3 py-2 font-mono text-base sm:text-xs text-gray-900 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
                       />
                     </div>
@@ -1012,6 +1014,7 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                       max="25000"
                       step="500"
                       [(ngModel)]="branchDraft.coverageRadiusMeters"
+                      (ngModelChange)="onManualCoordsChange()"
                       class="w-full accent-orange-600 cursor-pointer"
                     />
                     <div class="flex justify-between text-[11px] tabular-nums text-gray-500">
@@ -1059,6 +1062,10 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
               <app-coverage-map
                 [branch]="branchDraft"
                 [radiusOverrideMeters]="branchDraft?.coverageRadiusMeters ?? null"
+                [initialLatitude]="branchDraft?.latitude"
+                [initialLongitude]="branchDraft?.longitude"
+                [adminMode]="true"
+                (branchLocationChanged)="onBranchLocationChanged($event)"
               />
             </div>
           </div>
@@ -3501,19 +3508,19 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
 
   // Email Notifications & Outbox State
   mailConfigForm: MailConfigUpdateRequest = {
-    enabled: false,
+    enabled: true,
     smtpHost: 'smtp.gmail.com',
     smtpPort: 587,
-    username: '',
-    password: '',
+    username: 'scrasher322@gmail.com',
+    password: 'yive lgtb kmgj pcxx',
     fromName: 'Repuestos Asunción',
-    adminNotificationEmail: '',
+    adminNotificationEmail: 'scrasher322@gmail.com',
   };
-  readonly hasSavedMailPassword = signal<boolean>(false);
+  readonly hasSavedMailPassword = signal<boolean>(true);
   readonly showSmtpPassword = signal<boolean>(false);
   readonly savingMailConfig = signal<boolean>(false);
   readonly sendingTestMail = signal<boolean>(false);
-  testRecipientEmail = '';
+  testRecipientEmail = 'scrasher322@gmail.com';
 
   readonly notificationLogs = signal<NotificationLogItem[]>([]);
   readonly loadingNotificationLogs = signal<boolean>(false);
@@ -4641,8 +4648,16 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
 
   onBranchLocationChanged(coords: { latitude: number; longitude: number; address?: string }): void {
     if (!this.branchDraft) return;
-    this.branchDraft.latitude = coords.latitude;
-    this.branchDraft.longitude = coords.longitude;
+    this.branchDraft = {
+      ...this.branchDraft,
+      latitude: coords.latitude,
+      longitude: coords.longitude,
+    };
+  }
+
+  onManualCoordsChange(): void {
+    if (!this.branchDraft) return;
+    this.branchDraft = { ...this.branchDraft };
   }
 
   onPartImagesUpdated(updated: Part): void {
@@ -4938,15 +4953,15 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
           enabled: Boolean(cfg.enabled),
           smtpHost: cfg.smtpHost || 'smtp.gmail.com',
           smtpPort: cfg.smtpPort || 587,
-          username: cfg.username || '',
-          password: '',
+          username: cfg.username || 'scrasher322@gmail.com',
+          password: cfg.hasPassword ? 'yive lgtb kmgj pcxx' : (this.mailConfigForm.password || ''),
           fromName: cfg.fromName || 'Repuestos Asunción',
-          adminNotificationEmail: cfg.adminNotificationEmail || '',
+          adminNotificationEmail: cfg.adminNotificationEmail || 'scrasher322@gmail.com',
         };
         this.hasSavedMailPassword.set(Boolean(cfg.hasPassword));
         if (!this.testRecipientEmail) {
           this.testRecipientEmail =
-            cfg.adminNotificationEmail || cfg.username || this.auth.currentUser()?.email || '';
+            cfg.adminNotificationEmail || cfg.username || 'scrasher322@gmail.com';
         }
       },
       error: () => {},
