@@ -15,7 +15,7 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    const { to, subject, html, fromName, pass } = req.body || {};
+    const { to, subject, html, fromName, username, pass } = req.body || {};
 
     if (!to || !subject || !html) {
       return res.status(400).json({
@@ -24,8 +24,8 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    const appPassword = (pass || process.env.MAIL_APP_PASSWORD || 'yivelgtbkmgjpcxx').replace(/\s+/g, '');
-    const userEmail = process.env.MAIL_USER || 'scrasher322@gmail.com';
+    const userEmail = (username || process.env.MAIL_USER || 'luisoscarperez322@gmail.com').trim();
+    const appPassword = (pass || process.env.MAIL_APP_PASSWORD || 'chbgdvonuzffgzsg').replace(/\s+/g, '');
     const senderName = fromName || 'Repuestos Asunción';
 
     const transporter = nodemailer.createTransport({
@@ -48,6 +48,8 @@ module.exports = async function handler(req, res) {
       html: html
     });
 
+    console.log(`Email successfully delivered to ${to}. MessageId: ${info.messageId}`);
+
     return res.status(200).json({
       success: true,
       messageId: info.messageId,
@@ -62,7 +64,7 @@ module.exports = async function handler(req, res) {
       success: false,
       isAuthError,
       error: isAuthError
-        ? 'Google rechazó la contraseña de aplicación (535 BadCredentials). Se requiere generar una nueva clave de 16 letras en myaccount.google.com/apppasswords'
+        ? 'Google rechazó la contraseña de aplicación (535 BadCredentials).'
         : `Error de entrega: ${errText}`
     });
   }

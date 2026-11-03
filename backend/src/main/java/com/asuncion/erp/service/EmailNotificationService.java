@@ -755,6 +755,7 @@ public class EmailNotificationService {
             payload.put("subject", subject);
             payload.put("html", htmlBody);
             payload.put("fromName", settings.fromName());
+            payload.put("username", settings.username());
             payload.put("pass", settings.password());
 
             String json = mapper.writeValueAsString(payload);
