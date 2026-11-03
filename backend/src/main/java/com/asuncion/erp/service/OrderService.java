@@ -111,11 +111,17 @@ public class OrderService {
             requestedQuantities.merge(itemReq.partId(), itemReq.quantity(), Integer::sum);
         }
 
+        String paymentMethod = req.paymentMethod() != null && !req.paymentMethod().isBlank()
+                ? req.paymentMethod().trim().toUpperCase()
+                : "TARJETA";
+        boolean isOnlinePayment = isOnlinePaymentMethod(paymentMethod);
+        OrderStatus initialStatus = isOnlinePayment ? OrderStatus.PENDIENTE : OrderStatus.CONFIRMADO;
+
         CustomerOrder order = new CustomerOrder();
         order.setOrderNumber(generateNextOrderNumber());
         order.setCustomer(currentUser);
         order.setBranch(branch);
-        order.setStatus(OrderStatus.CONFIRMADO);
+        order.setStatus(initialStatus);
         order.setDeliveryType(deliveryType);
         order.setDeliveryAddress(req.deliveryAddress() != null && !req.deliveryAddress().isBlank()
                 ? req.deliveryAddress().trim()
@@ -183,15 +189,17 @@ public class OrderService {
         order.setDeliveryFee(deliveryFee);
         order.setTotalAmount(totalAmount);
 
-        String historyComment = "DELIVERY".equals(deliveryType)
-                ? String.format("Pedido confirmado con validación geoespacial aprobada (%.2f km desde %s).",
-                calculatedDistance / 1000.0, branch.getName())
-                : "Pedido confirmado para recojo presencial en " + branch.getName() + ".";
+        String historyComment = isOnlinePayment
+                ? "Pedido registrado en espera de confirmación y autorización de pago en pasarela online Culqi."
+                : ("DELIVERY".equals(deliveryType)
+                    ? String.format("Pedido confirmado con validación geoespacial aprobada (%.2f km desde %s).",
+                    calculatedDistance / 1000.0, branch.getName())
+                    : "Pedido confirmado para recojo presencial en " + branch.getName() + ".");
 
         order.getStatusHistory().add(new OrderStatusHistory(
                 order,
                 null,
-                OrderStatus.CONFIRMADO,
+                initialStatus,
                 currentUser,
                 historyComment,
                 Instant.now()
@@ -199,7 +207,9 @@ public class OrderService {
 
         CustomerOrder saved = orderRepository.save(order);
         OrderResponse response = toOrderResponse(saved);
-        emailNotificationService.notifyOrderCreated(response);
+        if (!isOnlinePayment) {
+            emailNotificationService.notifyOrderCreated(response);
+        }
         return response;
     }
 
@@ -780,5 +790,12 @@ public class OrderService {
             }
         }
         return null;
+    }
+
+    private boolean isOnlinePaymentMethod(String method) {
+        if (method == null) return false;
+        String m = method.trim().toUpperCase();
+        return m.contains("TARJETA") || m.contains("CULQI") || m.contains("DEBITO") 
+                || m.contains("CREDITO") || m.contains("PAGOEFECTIVO") || m.equals("ONLINE");
     }
 }
