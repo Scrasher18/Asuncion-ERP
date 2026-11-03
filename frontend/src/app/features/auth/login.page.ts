@@ -41,47 +41,7 @@ import { RecaptchaV3Service } from '../../core/services/recaptcha-v3.service';
           </div>
         </div>
 
-        @if (auth.isAuthenticated()) {
-          <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-2xs space-y-3">
-            <div class="flex items-center gap-3">
-              <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-orange-100 text-orange-700 font-bold text-sm">
-                {{ auth.currentUser()?.fullName?.charAt(0) || 'U' }}
-              </div>
-              <div class="min-w-0 flex-1">
-                <span class="block text-[11px] font-semibold text-emerald-700">Sesión actualmente iniciada</span>
-                <p class="font-bold text-sm text-gray-900 truncate">{{ auth.currentUser()?.fullName }}</p>
-                <p class="text-xs text-gray-500 truncate">{{ auth.currentUser()?.email }}</p>
-              </div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-2 pt-2 border-t border-gray-100">
-              <a
-                routerLink="/my-orders"
-                [queryParams]="{ tab: 'profile' }"
-                class="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-xl border border-orange-200 bg-orange-50 px-3 py-1.5 text-xs font-semibold text-orange-700 hover:bg-orange-100 transition"
-              >
-                <span>Editar mis datos</span>
-              </a>
-
-              <a
-                routerLink="/my-orders"
-                class="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-xl bg-gray-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-black transition"
-              >
-                <span>Mis pedidos</span>
-              </a>
-            </div>
-
-            <div class="text-center pt-1">
-              <button
-                type="button"
-                (click)="auth.logout()"
-                class="text-xs text-red-600 hover:text-red-700 font-medium"
-              >
-                Cerrar sesión actual
-              </button>
-            </div>
-          </div>
-        }
+        
 
         <!-- Primary Login / Register Card -->
         <div class="rounded-2xl border border-gray-200 bg-white p-6 sm:p-7 shadow-2xs">
@@ -628,6 +588,13 @@ export class LoginPageComponent implements OnInit {
   confirmResetPassword = '';
 
   ngOnInit(): void {
+    if (this.auth.isAuthenticated()) {
+      const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
+      const destination = returnUrl || this.auth.defaultHomeForUser();
+      void this.router.navigateByUrl(destination);
+      return;
+    }
+
     const tab = this.route.snapshot.queryParamMap.get('tab');
     if (tab === 'register') {
       this.mode.set('register');
