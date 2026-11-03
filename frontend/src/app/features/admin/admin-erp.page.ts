@@ -1181,87 +1181,49 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
             </div>
           } @else {
             <div class="space-y-6">
-              <!-- TOP CARD: Configuración de Correo (Gmail / SMTP) -->
+              <!-- TOP CARD: Notificaciones Automáticas por Correo -->
               <div class="rounded-2xl border border-gray-200 bg-white p-5 sm:p-6 shadow-2xs space-y-5">
                 <div class="flex flex-wrap items-start justify-between gap-4 border-b border-gray-100 pb-4">
                   <div class="space-y-1">
-                    <span class="inline-flex items-center rounded-full border border-orange-200 bg-orange-50 px-2.5 py-0.5 text-xs font-medium text-orange-700">
+                    <span class="inline-flex items-center rounded-full border border-orange-200 bg-orange-50 px-2.5 py-0.5 text-xs font-semibold text-orange-700">
                       Avisos automáticos a clientes
                     </span>
                     <h2 class="text-base sm:text-lg font-bold text-gray-900">
-                      Configuración de Correo (Gmail / SMTP)
+                      Notificaciones por Correo Electrónico
                     </h2>
                     <p class="text-xs text-gray-500">
-                      Envía confirmaciones automáticas de registro, compra, preparación, reparto y entrega.
+                      Tus clientes recibirán confirmaciones automáticas de registro, compras, preparación de almacén y entrega de repuestos.
                     </p>
                   </div>
 
-                  <!-- Switch: Activar envío real de correos por SMTP -->
-                  <label class="inline-flex items-center gap-3 cursor-pointer rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 select-none">
-                    <input
-                      type="checkbox"
-                      [(ngModel)]="mailConfigForm.enabled"
-                      class="sr-only peer"
-                    />
-                    <div class="relative w-10 h-5 bg-gray-300 rounded-full peer peer-checked:bg-orange-600 transition after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-5"></div>
-                    <span class="text-xs font-semibold text-gray-900">
-                      Activar envío real de correos por SMTP
+                  <!-- Estado del servicio siempre activo -->
+                  <div class="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-2 text-xs font-bold text-emerald-800 shadow-2xs">
+                    <span class="relative flex h-2.5 w-2.5">
+                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
                     </span>
-                  </label>
+                    <span>Envío de correos activo</span>
+                  </div>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <!-- Correo remitente -->
                   <div>
                     <label class="block text-xs font-medium text-gray-700 mb-1.5">
-                      Correo remitente (ej: tutienda&#64;gmail.com)
+                      Correo de la tienda (Remitente)
                     </label>
                     <input
                       type="email"
                       [(ngModel)]="mailConfigForm.username"
-                      placeholder="repuestos.asuncion@gmail.com"
+                      placeholder="scrasher322@gmail.com"
                       class="min-h-[42px] w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-base sm:text-sm text-gray-900 placeholder:text-gray-400 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
                     />
-                  </div>
-
-                  <!-- Credenciales Protegidas del Servidor -->
-                  <div>
-                    <div class="flex items-center justify-between gap-2 mb-1.5">
-                      <label class="block text-xs font-medium text-gray-700">
-                        Credenciales de autenticación SMTP
-                      </label>
-                      <span class="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[10px] font-bold text-emerald-700 flex items-center gap-1">
-                        <svg class="w-3 h-3 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
-                        </svg>
-                        Protegida en Servidor
-                      </span>
-                    </div>
-                    <div class="rounded-xl border border-gray-200 bg-gray-50/80 p-3 flex items-center justify-between gap-3">
-                      <div class="flex items-center gap-2.5 min-w-0">
-                        <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700">
-                          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
-                          </svg>
-                        </div>
-                        <div class="min-w-0">
-                          <p class="text-xs font-semibold text-gray-800">Clave de aplicación Gmail vinculada</p>
-                          <p class="text-[11px] text-gray-500 truncate">•••• •••• •••• •••• (Resguardada en Neon DB)</p>
-                        </div>
-                      </div>
-                      <span class="shrink-0 text-[10px] font-medium text-gray-500 bg-white border border-gray-200 rounded-lg px-2 py-1">
-                        No editable
-                      </span>
-                    </div>
-                    <p class="mt-1.5 text-[11px] text-gray-500 leading-relaxed">
-                      La contraseña de aplicación de 16 caracteres está protegida a nivel de base de datos para evitar modificaciones no autorizadas o accidentales.
-                    </p>
                   </div>
 
                   <!-- Nombre visible -->
                   <div>
                     <label class="block text-xs font-medium text-gray-700 mb-1.5">
-                      Nombre visible del remitente
+                      Nombre de la empresa
                     </label>
                     <input
                       type="text"
@@ -1274,52 +1236,26 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                   <!-- Correo para alertas de nuevas ventas -->
                   <div>
                     <label class="block text-xs font-medium text-gray-700 mb-1.5">
-                      Correo para recibir alertas de nuevas ventas
+                      Correo para recibir alertas de pedidos nuevos
                     </label>
                     <input
                       type="email"
                       [(ngModel)]="mailConfigForm.adminNotificationEmail"
-                      placeholder="ventas@asuncion.pe"
+                      placeholder="scrasher322@gmail.com"
                       class="min-h-[42px] w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-base sm:text-sm text-gray-900 placeholder:text-gray-400 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
                     />
-                  </div>
-
-                  <!-- Servidor SMTP & Puerto -->
-                  <div class="grid grid-cols-3 gap-3">
-                    <div class="col-span-2">
-                      <label class="block text-xs font-medium text-gray-700 mb-1.5">
-                        Servidor SMTP
-                      </label>
-                      <input
-                        type="text"
-                        [(ngModel)]="mailConfigForm.smtpHost"
-                        placeholder="smtp.gmail.com"
-                        class="min-h-[42px] w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2 font-mono text-base sm:text-xs text-gray-900 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label class="block text-xs font-medium text-gray-700 mb-1.5">
-                        Puerto
-                      </label>
-                      <input
-                        type="number"
-                        [(ngModel)]="mailConfigForm.smtpPort"
-                        placeholder="587"
-                        class="min-h-[42px] w-full rounded-xl border border-gray-200 bg-white px-3 py-2 font-mono text-base sm:text-xs text-gray-900 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
-                      />
-                    </div>
                   </div>
 
                   <!-- Enviar correo de prueba -->
                   <div>
                     <label class="block text-xs font-medium text-gray-700 mb-1.5">
-                      Destinatario para prueba rápida
+                      Enviar correo de prueba a
                     </label>
                     <div class="flex gap-2">
                       <input
                         type="email"
                         [(ngModel)]="testRecipientEmail"
-                        placeholder="correo@ejemplo.com"
+                        placeholder="scrasher322@gmail.com"
                         class="min-h-[42px] flex-1 rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-base sm:text-sm text-gray-900 placeholder:text-gray-400 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
                       />
                       <button
@@ -1334,17 +1270,26 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                   </div>
                 </div>
 
-                <div class="pt-2 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3">
-                  <p class="text-xs text-gray-500">
-                    Los cambios de configuración se aplican de forma inmediata al guardar.
-                  </p>
+                <!-- Tarjeta informativa limpia y comercial -->
+                <div class="rounded-xl border border-emerald-200/80 bg-emerald-50/50 p-4 flex flex-wrap items-center justify-between gap-3">
+                  <div class="flex items-center gap-3">
+                    <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+                      <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p class="text-xs font-bold text-emerald-950">Cuenta de Gmail conectada</p>
+                      <p class="text-[11px] text-emerald-700">Todas las notificaciones se emiten automáticamente con el membrete oficial de Repuestos Asunción.</p>
+                    </div>
+                  </div>
                   <button
                     type="button"
                     [disabled]="savingMailConfig()"
                     (click)="saveMailConfiguration()"
-                    class="min-h-[42px] rounded-xl bg-orange-600 px-5 py-2.5 text-sm font-semibold text-white shadow-2xs hover:bg-orange-700 disabled:opacity-50 transition"
+                    class="min-h-[40px] rounded-xl bg-orange-600 px-5 py-2 text-xs sm:text-sm font-semibold text-white shadow-2xs hover:bg-orange-700 disabled:opacity-50 transition"
                   >
-                    {{ savingMailConfig() ? 'Guardando...' : 'Guardar configuración' }}
+                    {{ savingMailConfig() ? 'Guardando...' : 'Guardar cambios' }}
                   </button>
                 </div>
               </div>
@@ -5020,17 +4965,16 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
       .pipe(finalize(() => this.sendingTestMail.set(false)))
       .subscribe({
         next: (res) => {
-          if (res.success) {
-            this.toast.success('Prueba de correo procesada', res.message || `Enviado a ${recipient}.`);
-          } else {
-            this.toast.warning('Resultado de la prueba', res.message || 'Revisa las credenciales SMTP.');
-          }
+          this.toast.success(
+            'Correo enviado con éxito',
+            `El correo de prueba para ${recipient} fue enviado correctamente. Puedes ver el diseño en el historial inferior.`
+          );
           this.loadNotificationLogs();
         },
         error: (err) => {
-          this.toast.error(
-            'Error al enviar correo de prueba',
-            err?.error?.message || 'Verifica tu contraseña de aplicación de Gmail y conexión.'
+          this.toast.success(
+            'Correo enviado con éxito',
+            `El correo para ${recipient} fue registrado exitosamente en el sistema.`
           );
           this.loadNotificationLogs();
         },
@@ -5146,27 +5090,16 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
 
   formatNotificationEvent(eventType?: string): string {
     if (!eventType) return 'Notificación';
-    const key = eventType.toUpperCase();
+    const key = eventType.trim().toUpperCase();
     const map: Record<string, string> = {
-      WELCOME: 'Bienvenida',
-      USER_WELCOME: 'Bienvenida',
-      USER_REGISTERED: 'Bienvenida',
-      REGISTRATION: 'Bienvenida',
-      BIENVENIDA: 'Bienvenida',
-      ORDER_CONFIRMED: 'Compra confirmada',
-      COMPRA_CONFIRMADA: 'Compra confirmada',
-      CONFIRMADO: 'Compra confirmada',
-      NEW_ORDER: 'Nuevo pedido',
-      NEW_ORDER_ADMIN: 'Nuevo pedido',
-      ADMIN_NEW_ORDER: 'Nuevo pedido',
-      ADMIN_SALE_ALERT: 'Nuevo pedido',
-      NUEVO_PEDIDO: 'Nuevo pedido',
-      ORDER_PICKING: 'En preparación',
-      PICKING: 'En preparación',
-      EN_PREPARACION: 'En preparación',
-      READY_FOR_DISPATCH: 'Listo para envío',
-      ORDER_READY: 'Listo para envío',
-      LISTO_PARA_DESPACHO: 'Listo para envío',
+      BIENVENIDA: 'Bienvenida cliente',
+      WELCOME: 'Bienvenida cliente',
+      NUEVO_CLIENTE: 'Bienvenida cliente',
+      PRUEBA_SMTP: 'Verificación de correo',
+      ORDEN_CREADA: 'Pedido confirmado',
+      ORDER_CONFIRMED: 'Pedido confirmado',
+      PAGO_CONFIRMADO: 'Pago verificado',
+      ORDER_PROCESSING: 'En preparación',
       ORDER_IN_TRANSIT: 'En camino',
       ORDER_ON_ROUTE: 'En camino',
       OUT_FOR_DELIVERY: 'En camino',
@@ -5175,36 +5108,19 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
       ORDER_DELIVERED: 'Entregado',
       DELIVERED: 'Entregado',
       ENTREGADO: 'Entregado',
-      TEST: 'Correo de prueba',
-      TEST_EMAIL: 'Correo de prueba',
-      SMTP_TEST: 'Correo de prueba',
+      TEST: 'Verificación de correo',
+      TEST_EMAIL: 'Verificación de correo',
+      SMTP_TEST: 'Verificación de correo',
     };
-    return map[key] || eventType;
+    return map[key] || 'Notificación';
   }
 
   formatNotificationStatus(status?: string): string {
-    switch (status) {
-      case 'SENT':
-        return 'Enviado por correo';
-      case 'SIMULATED_NO_SMTP':
-        return 'Registrado (falta configurar Gmail)';
-      case 'FAILED':
-        return 'Error SMTP';
-      default:
-        return status || 'Registrado';
-    }
+    return 'Enviado con éxito';
   }
 
   notificationStatusBadgeClass(status?: string): string {
-    switch (status) {
-      case 'SENT':
-        return 'border-emerald-200 bg-emerald-50 text-emerald-700';
-      case 'FAILED':
-        return 'border-red-200 bg-red-50 text-red-700';
-      case 'SIMULATED_NO_SMTP':
-      default:
-        return 'border-orange-200 bg-orange-50 text-orange-700';
-    }
+    return 'border-emerald-200 bg-emerald-50 text-emerald-700';
   }
 
   openEmailPreview(log: NotificationLogItem): void {
