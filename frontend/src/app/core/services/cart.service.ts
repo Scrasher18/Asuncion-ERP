@@ -1,15 +1,26 @@
-import { computed, inject, Injectable, signal } from '@angular/core';
+import { computed, effect, inject, Injectable, signal } from '@angular/core';
 import { CartItem, Part } from '../models/api.models';
 import { ToastService } from './toast.service';
+import { AuthService } from './auth.service';
 
-const CART_STORAGE_KEY = 'asuncion_cart_v1';
+const GUEST_CART_KEY = 'asuncion_cart_guest_v2';
 
 @Injectable({ providedIn: 'root' })
 export class CartService {
   private readonly toast = inject(ToastService);
+  private readonly authService = inject(AuthService);
 
-  readonly items = signal<CartItem[]>(this.loadCart());
+  readonly items = signal<CartItem[]>([]);
   readonly isDrawerOpen = signal<boolean>(false);
+
+  constructor() {
+    // Automatically switch cart storage when user logs in, logs out, or switches account
+    effect(() => {
+      const user = this.authService.currentUser();
+      const storageKey = user && user.id ? `asuncion_cart_user_${user.id}_v2` : GUEST_CART_KEY;
+      this.items.set(this.loadCartFromKey(storageKey));
+    }, { allowSignalWrites: true });
+  }
 
   readonly totalItems = computed(() =>
     this.items().reduce((acc, item) => acc + item.quantity, 0)
@@ -95,15 +106,33 @@ export class CartService {
     this.persist();
   }
 
+  private getStorageKey(): string {
+    const user = this.authService.currentUser();
+    if (user && user.id) {
+      return `asuncion_cart_user_${user.id}_v2`;
+    }
+    return GUEST_CART_KEY;
+  }
+
   private persist(): void {
     if (typeof window !== 'undefined') {
-      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(this.items()));
+      const key = this.getStorageKey();
+      localStorage.setItem(key, JSON.stringify(this.items()));
     }
   }
 
-  private loadCart(): CartItem[] {
+  private loadCartFromKey(key: string): CartItem[] {
     if (typeof window === 'undefined') return [];
-    const raw = localStorage.getItem(CART_STORAGE_KEY);
+    let raw = localStorage.getItem(key);
+    if (!raw) {
+      // Legacy cart migration check
+      const legacy = localStorage.getItem('asuncion_cart_v1');
+      if (legacy) {
+        localStorage.removeItem('asuncion_cart_v1');
+        localStorage.setItem(key, legacy);
+        raw = legacy;
+      }
+    }
     if (!raw) return [];
     try {
       const parsed = JSON.parse(raw) as CartItem[];

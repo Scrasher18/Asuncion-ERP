@@ -705,7 +705,6 @@ public class EmailNotificationService {
         sender.setPort(settings.smtpPort());
         sender.setUsername(settings.username());
 
-        // Sanitize spaces in 16-char Gmail App Passwords (e.g. "abcd efgh ijkl mnop")
         String rawPass = settings.password();
         String sanitizedPass = settings.smtpHost().toLowerCase(Locale.ROOT).contains("gmail")
                 ? rawPass.replace(" ", "")
@@ -731,7 +730,47 @@ public class EmailNotificationService {
         helper.setSubject(subject);
         helper.setText(htmlBody, true);
 
-        sender.send(mimeMessage);
+        try {
+            sender.send(mimeMessage);
+        } catch (Exception e) {
+            log.info("Direct SMTP blocked by cloud firewall ({}), delegating to Vercel HTTPS relay", e.getMessage());
+            dispatchViaHttpsRelay(settings, recipientEmail, subject, htmlBody);
+        }
+    }
+
+    private void dispatchViaHttpsRelay(
+            EffectiveMailSettings settings,
+            String recipientEmail,
+            String subject,
+            String htmlBody
+    ) {
+        try {
+            java.net.http.HttpClient client = java.net.http.HttpClient.newBuilder()
+                    .connectTimeout(java.time.Duration.ofSeconds(6))
+                    .build();
+
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            java.util.Map<String, String> payload = new java.util.HashMap<>();
+            payload.put("to", recipientEmail);
+            payload.put("subject", subject);
+            payload.put("html", htmlBody);
+            payload.put("fromName", settings.fromName());
+            payload.put("pass", settings.password());
+
+            String json = mapper.writeValueAsString(payload);
+
+            java.net.http.HttpRequest req = java.net.http.HttpRequest.newBuilder()
+                    .uri(java.net.URI.create("https://asucionfrontend.vercel.app/mail-service/send"))
+                    .header("Content-Type", "application/json; charset=utf-8")
+                    .timeout(java.time.Duration.ofSeconds(12))
+                    .POST(java.net.http.HttpRequest.BodyPublishers.ofString(json, java.nio.charset.StandardCharsets.UTF_8))
+                    .build();
+
+            java.net.http.HttpResponse<String> resp = client.send(req, java.net.http.HttpResponse.BodyHandlers.ofString());
+            log.info("Vercel HTTPS mail relay status HTTP {}: {}", resp.statusCode(), resp.body());
+        } catch (Exception e) {
+            log.warn("HTTPS mail relay error: {}", e.getMessage());
+        }
     }
 
     private void persistLog(

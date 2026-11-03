@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/mail-service/send",
+      "destination": "/api/send-mail"
+    },
+    {
       "source": "/api/:path*",
       "destination": "https://asuncion-erp.onrender.com/api/:path*"
     },

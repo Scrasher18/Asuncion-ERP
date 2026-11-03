@@ -940,31 +940,8 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                 </p>
               </div>
 
-              @if (branches().length > 1) {
-                <div>
-                  <label class="block text-xs font-medium text-gray-700 mb-1.5">Sucursal</label>
-                  <select
-                    [(ngModel)]="selectedBranchId"
-                    (ngModelChange)="onSelectBranchForEdit()"
-                    class="min-h-[42px] w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-base sm:text-sm font-medium text-gray-900 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
-                  >
-                    @for (b of branches(); track b.id) {
-                      <option [ngValue]="b.id">{{ b.name }} ({{ b.code }})</option>
-                    }
-                  </select>
-                </div>
-              }
-
               @if (branchDraft) {
                 <div class="space-y-4">
-                  <div>
-                    <label class="block text-xs font-medium text-gray-700 mb-1.5">Nombre de la sucursal</label>
-                    <input
-                      type="text"
-                      [(ngModel)]="branchDraft.name"
-                      class="min-h-[42px] w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-base sm:text-sm text-gray-900 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
-                    />
-                  </div>
 
                   <div>
                     <label class="block text-xs font-medium text-gray-700 mb-1.5">Dirección de la tienda</label>
@@ -1271,6 +1248,25 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                 </div>
 
                 <!-- Tarjeta informativa limpia y comercial -->
+                <!-- Actualizar contraseña de aplicación de Google si es necesario -->
+                <div class="rounded-xl border border-gray-200 bg-gray-50/70 p-3.5 space-y-2">
+                  <div class="flex items-center justify-between gap-2">
+                    <label class="text-xs font-medium text-gray-700 flex items-center gap-1.5">
+                      <svg class="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
+                      </svg>
+                      <span>Actualizar contraseña de aplicación de Google (Opcional - 16 caracteres)</span>
+                    </label>
+                    <span class="text-[10px] text-gray-400 font-medium">Dejar vacío si no deseas cambiarla</span>
+                  </div>
+                  <input
+                    type="password"
+                    [(ngModel)]="mailConfigForm.password"
+                    placeholder="Escribe aquí solo si deseas ingresar una nueva clave de 16 letras"
+                    class="min-h-[40px] w-full rounded-xl border border-gray-200 bg-white px-3.5 py-1.5 font-mono text-xs text-gray-900 placeholder:font-sans placeholder:text-gray-400 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
+                  />
+                </div>
+
                 <div class="rounded-xl border border-emerald-200/80 bg-emerald-50/50 p-4 flex flex-wrap items-center justify-between gap-3">
                   <div class="flex items-center gap-3">
                     <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
