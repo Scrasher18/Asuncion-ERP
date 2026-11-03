@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, OnDestroy, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { finalize } from 'rxjs';
 import { DriverStatus, Order } from '../../core/models/api.models';
@@ -121,7 +121,7 @@ import { LiveDriverMapComponent } from '../../shared/components/live-driver-map/
           <div class="rounded-2xl border border-gray-200 bg-white p-10 text-center text-xs text-gray-500">
             Actualizando tus entregas...
           </div>
-        } @else if (orders().length === 0) {
+        } @else if (displayOrders().length === 0) {
           <div class="rounded-2xl border border-gray-200 bg-white p-12 text-center space-y-3 shadow-2xs">
             <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-xl border border-orange-200 bg-orange-50 text-orange-600">
               <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
@@ -134,7 +134,7 @@ import { LiveDriverMapComponent } from '../../shared/components/live-driver-map/
             </p>
           </div>
         } @else {
-          @for (ord of orders(); track ord.id) {
+          @for (ord of displayOrders(); track ord.id) {
             <article class="rounded-2xl border border-gray-200 bg-white overflow-hidden shadow-2xs">
               <!-- Card Top -->
               <div class="border-b border-gray-100 bg-gray-50/80 px-4 py-3 flex items-center justify-between gap-2">
@@ -456,6 +456,20 @@ export class DeliveryPageComponent implements OnInit, OnDestroy {
   private readonly toast = inject(ToastService);
 
   readonly orders = signal<Order[]>([]);
+
+  readonly activeInRouteOrder = computed(() => {
+    return this.orders().find((o) => o.status === 'EN_RUTA') ?? null;
+  });
+
+  readonly displayOrders = computed(() => {
+    const inRoute = this.activeInRouteOrder();
+    if (inRoute) {
+      // Focus solely on the active delivery currently in progress
+      return [inRoute];
+    }
+    // Otherwise show only ready-for-dispatch orders (never show delivered or cancelled orders)
+    return this.orders().filter((o) => o.status === 'LISTO_PARA_DESPACHO');
+  });
   readonly isLoading = signal<boolean>(true);
   readonly busyId = signal<number | null>(null);
 

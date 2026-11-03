@@ -466,8 +466,7 @@ public class OrderService {
         boolean isAdmin = hasRole(currentUser, RoleName.ADMIN);
         List<OrderStatus> statuses = List.of(
                 OrderStatus.LISTO_PARA_DESPACHO,
-                OrderStatus.EN_RUTA,
-                OrderStatus.ENTREGADO
+                OrderStatus.EN_RUTA
         );
 
         return orderRepository.findByStatusInOrderByCreatedAtDesc(statuses).stream()
