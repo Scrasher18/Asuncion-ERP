@@ -217,12 +217,7 @@ import { LiveDriverMapComponent } from '../../shared/components/live-driver-map/
                         </svg>
                         <span>Mi mapa de navegación GPS en vivo</span>
                       </span>
-                      @if (isBroadcastingGps(ord.id)) {
-                        <span class="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
-                          <span class="h-1.5 w-1.5 rounded-full bg-emerald-600 animate-ping"></span>
-                          <span>GPS Satelital Activo</span>
-                        </span>
-                      }
+                      
                     </div>
 
                     @if (orderTelemetries()[ord.orderNumber]; as tel) {
@@ -258,46 +253,10 @@ import { LiveDriverMapComponent } from '../../shared/components/live-driver-map/
                       <span>Iniciar ruta de entrega</span>
                     </button>
                   } @else if (ord.status === 'EN_RUTA') {
-                    <!-- Live GPS Telemetry Broadcast Panel -->
-                    <div class="rounded-xl border border-orange-200 bg-orange-50/70 p-3 space-y-2 text-xs sm:col-span-2">
-                      <div class="flex items-center justify-between gap-2">
-                        <span class="inline-flex items-center gap-1.5 font-bold text-gray-900">
-                          <span class="relative flex h-2 w-2">
-                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-500 opacity-75"></span>
-                            <span class="relative inline-flex rounded-full h-2 w-2 bg-orange-600"></span>
-                          </span>
-                          <span>Transmisión GPS Satelital en Tiempo Real</span>
-                        </span>
-                        <span class="text-[11px] font-semibold text-orange-800">
-                          {{ isBroadcastingGps(ord.id) ? 'Transmitiendo satélite' : 'Pausado' }}
-                        </span>
-                      </div>
-
-                      <button
-                        type="button"
-                        (click)="toggleGpsBroadcast(ord)"
-                        [class]="isBroadcastingGps(ord.id) ? 'bg-red-600 hover:bg-red-700 text-white' : 'bg-orange-600 hover:bg-orange-700 text-white'"
-                        class="w-full min-h-[42px] flex items-center justify-center gap-2 rounded-xl font-bold shadow-2xs transition cursor-pointer"
-                      >
-                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-                        </svg>
-                        <span>{{ isBroadcastingGps(ord.id) ? 'Pausar transmisión GPS' : 'Activar transmisión GPS en Vivo' }}</span>
-                      </button>
-
-                      @if (driverCurrentCoords()[ord.id]; as coords) {
-                        <div class="rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-1.5 text-[11px] text-emerald-800 flex items-center justify-between">
-                          <span class="font-mono font-semibold">Coords en vivo: {{ coords.latitude | number: '1.4-4' }}, {{ coords.longitude | number: '1.4-4' }}</span>
-                          <span class="font-mono text-[10px] text-emerald-700">Precisión: ±{{ coords.accuracy | number: '1.0-0' }}m</span>
-                        </div>
-                      }
-                    </div>
-
                     <button
                       type="button"
                       (click)="openCompletionModal(ord)"
-                      class="min-h-[48px] sm:col-span-2 inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 px-4 text-xs font-semibold text-white shadow-xs hover:bg-emerald-700 transition cursor-pointer"
+                      class="min-h-[48px] inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 px-4 text-xs font-bold text-white shadow-xs hover:bg-emerald-700 transition cursor-pointer"
                     >
                       <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />

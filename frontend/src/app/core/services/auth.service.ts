@@ -87,7 +87,7 @@ export class AuthService {
   });
 
   readonly canAccessAdmin = computed(() => this.hasAnyRole(['ADMIN', 'VENDEDOR']));
-  readonly canAccessDelivery = computed(() => this.hasAnyRole(['ADMIN', 'MOTORIZADO']));
+  readonly canAccessDelivery = computed(() => this.hasAnyRole(['MOTORIZADO']));
 
   // Strict role segregation for delivery drivers
   readonly isDeliveryDriverOnly = computed(() => {

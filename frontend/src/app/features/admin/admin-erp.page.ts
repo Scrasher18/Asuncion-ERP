@@ -1088,8 +1088,9 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                     <th class="px-4 py-3">Cliente / Comprobante</th>
                     <th class="px-4 py-3">Modalidad</th>
                     <th class="px-4 py-3">Estado</th>
+                    <th class="px-4 py-3">Repartidor</th>
                     <th class="px-4 py-3 text-right">Total</th>
-                    <th class="px-4 py-3 text-right">Acción</th>
+                    <th class="px-4 py-3 text-right">Acciones</th>
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100">
@@ -1123,10 +1124,54 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                           {{ formatOrderStatus(ord.status) }}
                         </span>
                       </td>
+                      <td class="px-4 py-3.5">
+                        @if (ord.deliveryType === 'DELIVERY') {
+                          @if (ord.assignedDriverName) {
+                            <div class="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-800">
+                              <img src="/images/icons/repartidor.png" alt="" class="h-3.5 w-3.5 object-contain" />
+                              <span>{{ ord.assignedDriverName }}</span>
+                            </div>
+                            @if (ord.status !== 'ENTREGADO' && ord.status !== 'CANCELADO') {
+                              <button
+                                type="button"
+                                (click)="openDriverAssignmentModal(ord)"
+                                class="ml-1.5 text-[10px] font-semibold text-orange-600 hover:text-orange-700 underline cursor-pointer"
+                              >
+                                Cambiar
+                              </button>
+                            }
+                          } @else if (ord.status !== 'ENTREGADO' && ord.status !== 'CANCELADO') {
+                            <button
+                              type="button"
+                              (click)="openDriverAssignmentModal(ord)"
+                              class="inline-flex items-center gap-1.5 rounded-lg border border-orange-300 bg-orange-50 px-2.5 py-1 text-[11px] font-bold text-orange-700 shadow-2xs hover:bg-orange-100 hover:border-orange-400 transition cursor-pointer"
+                            >
+                              <img src="/images/icons/repartidor.png" alt="" class="h-3.5 w-3.5 object-contain" />
+                              <span>Asignar repartidor</span>
+                            </button>
+                          } @else {
+                            <span class="text-[11px] text-gray-400">Sin asignar</span>
+                          }
+                        } @else {
+                          <span class="inline-flex items-center gap-1 text-[11px] font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-md">
+                            Recojo en tienda
+                          </span>
+                        }
+                      </td>
                       <td class="px-4 py-3.5 text-right font-bold tabular-nums text-gray-900">
                         S/ {{ (ord.totalAmount ?? ord.total ?? ord.subtotal) | number: '1.2-2' }}
                       </td>
-                      <td class="px-4 py-3.5 text-right whitespace-nowrap">
+                      <td class="px-4 py-3.5 text-right whitespace-nowrap space-x-1.5">
+                        @if (ord.deliveryType === 'DELIVERY' && !ord.assignedDriverName && ord.status !== 'ENTREGADO' && ord.status !== 'CANCELADO') {
+                          <button
+                            type="button"
+                            (click)="openDriverAssignmentModal(ord)"
+                            class="font-bold text-orange-600 hover:text-orange-700 cursor-pointer text-xs"
+                          >
+                            Asignar
+                          </button>
+                          <span class="text-gray-300">·</span>
+                        }
                         <a
                           routerLink="/track"
                           [queryParams]="{ order: ord.orderNumber }"
@@ -3224,6 +3269,160 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
           </div>
         </div>
       }
+
+      <!-- Driver Assignment Modal for Delivery Orders -->
+      @if (selectedOrderForDispatch(); as orderForDispatch) {
+        <div class="fixed inset-0 z-50 overflow-y-auto bg-gray-900/50 backdrop-blur-xs p-4 flex items-center justify-center">
+          <div class="w-full max-w-lg rounded-2xl border border-gray-200 bg-white shadow-2xl overflow-hidden">
+            <!-- Modal Header -->
+            <div class="border-b border-gray-200 bg-gray-50/80 px-6 py-4 flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-orange-200 bg-orange-100/70 text-orange-700">
+                  <img src="/images/icons/repartidor.png" alt="" class="h-6 w-6 object-contain" />
+                </div>
+                <div>
+                  <div class="flex items-center gap-2">
+                    <span class="font-mono text-xs font-bold text-orange-600">
+                      {{ orderForDispatch.orderNumber }}
+                    </span>
+                    <span class="rounded-full bg-orange-100 text-orange-800 text-[10px] font-bold px-2 py-0.5 border border-orange-200">
+                      Envío a domicilio
+                    </span>
+                  </div>
+                  <h3 class="text-base font-bold text-gray-900">Asignar Repartidor Motorizado</h3>
+                </div>
+              </div>
+              <button
+                type="button"
+                (click)="closeDriverAssignmentModal()"
+                class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition cursor-pointer"
+                aria-label="Cerrar modal"
+              >
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <!-- Modal Content -->
+            <div class="p-6 space-y-4 text-xs">
+              <!-- Order Destination Details -->
+              <div class="rounded-xl border border-gray-200 bg-gray-50/60 p-3.5 space-y-1.5">
+                <div class="flex items-center justify-between">
+                  <span class="text-gray-500 font-medium">Cliente:</span>
+                  <span class="font-bold text-gray-900">{{ orderForDispatch.recipientName || orderForDispatch.customerName }}</span>
+                </div>
+                <div class="flex items-start justify-between gap-2">
+                  <span class="text-gray-500 font-medium shrink-0">Dirección:</span>
+                  <span class="text-right font-medium text-gray-800">{{ orderForDispatch.deliveryAddress }}</span>
+                </div>
+                @if (orderForDispatch.deliveryReference) {
+                  <div class="flex items-start justify-between gap-2">
+                    <span class="text-gray-500 font-medium shrink-0">Referencia:</span>
+                    <span class="text-right text-gray-600">{{ orderForDispatch.deliveryReference }}</span>
+                  </div>
+                }
+              </div>
+
+              <!-- Driver Selection -->
+              <div>
+                <label class="block font-bold text-gray-900 mb-2">
+                  Selecciona el repartidor para esta entrega:
+                </label>
+
+                @if (loadingDrivers()) {
+                  <div class="py-8 text-center text-gray-500">
+                    <span class="inline-block animate-spin mr-2">⏳</span> Cargando lista de motorizados...
+                  </div>
+                } @else if (drivers().length === 0) {
+                  <div class="rounded-xl border border-amber-200 bg-amber-50 p-4 text-center text-amber-800 space-y-1">
+                    <p class="font-bold">No hay motorizados registrados</p>
+                    <p class="text-[11px]">Crea o habilita un usuario con rol "Motorizado" en la pestaña de Usuarios.</p>
+                  </div>
+                } @else {
+                  <div class="space-y-2 max-h-56 overflow-y-auto pr-1">
+                    @for (d of drivers(); track d.id) {
+                      <label
+                        [class]="selectedDriverId() === d.id ? 'border-orange-500 bg-orange-50/60 ring-2 ring-orange-500/20' : 'border-gray-200 bg-white hover:bg-gray-50'"
+                        class="flex items-center justify-between gap-3 p-3 rounded-xl border cursor-pointer transition"
+                      >
+                        <div class="flex items-center gap-3">
+                          <input
+                            type="radio"
+                            name="assignedDriver"
+                            [value]="d.id"
+                            [checked]="selectedDriverId() === d.id"
+                            (change)="selectedDriverId.set(d.id)"
+                            class="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300"
+                          />
+                          <div>
+                            <div class="flex items-center gap-2">
+                              <span class="font-bold text-gray-900">{{ d.fullName }}</span>
+                              @if (d.vehiclePlate) {
+                                <span class="font-mono text-[10px] font-semibold bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded border border-gray-200">
+                                  {{ d.vehiclePlate }}
+                                </span>
+                              }
+                            </div>
+                            <p class="text-[11px] text-gray-500">
+                              {{ d.phone || d.email || 'Sin teléfono' }}
+                              @if (d.vehicleModel) {
+                                <span>· {{ d.vehicleModel }}</span>
+                              }
+                            </p>
+                          </div>
+                        </div>
+
+                        <span
+                          [class]="driverStatusBadgeClass(d.status)"
+                          class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wide shrink-0"
+                        >
+                          {{ driverStatusLabel(d.status) }}
+                        </span>
+                      </label>
+                    }
+                  </div>
+                }
+              </div>
+
+              <!-- Error Alert -->
+              @if (driverAssignError()) {
+                <div class="rounded-xl border border-red-200 bg-red-50 p-3 text-red-700 text-xs flex items-center gap-2">
+                  <svg class="h-4 w-4 shrink-0 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  <span>{{ driverAssignError() }}</span>
+                </div>
+              }
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="border-t border-gray-100 bg-gray-50/80 px-6 py-4 flex items-center justify-end gap-2.5">
+              <button
+                type="button"
+                (click)="closeDriverAssignmentModal()"
+                class="h-9.5 rounded-xl border border-gray-200 bg-white px-4 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                [disabled]="!selectedDriverId() || isAssigningDriver()"
+                (click)="confirmDriverAssignment()"
+                class="h-9.5 rounded-xl bg-orange-600 px-5 text-xs font-bold text-white shadow-xs hover:bg-orange-700 disabled:opacity-50 transition cursor-pointer inline-flex items-center gap-2"
+              >
+                @if (isAssigningDriver()) {
+                  <span class="inline-block animate-spin">⏳</span>
+                  <span>Asignando...</span>
+                } @else {
+                  <span>Confirmar y Despachar</span>
+                }
+              </button>
+            </div>
+          </div>
+        </div>
+      }
+
     </div>
   `,
 })
@@ -4771,6 +4970,7 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
     });
   }
 
+  
   loadDrivers(): void {
     this.loadingDrivers.set(true);
     this.ordersService.getDrivers().subscribe({

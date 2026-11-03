@@ -18,33 +18,25 @@ import { LiveTrackingResponse } from '../../../core/models/telemetry.models';
   imports: [CommonModule],
   template: `
     <div class="relative w-full rounded-2xl overflow-hidden border border-gray-200 bg-white shadow-2xs">
-      <!-- Top Live Telemetry Overlay Pill -->
-      <div class="absolute top-3 left-3 right-3 z-[1000] flex flex-wrap items-center justify-between gap-2 pointer-events-none">
-        <div class="inline-flex items-center gap-2 rounded-xl border border-gray-200/80 bg-white/95 px-3 py-1.5 shadow-md backdrop-blur-xs pointer-events-auto">
-          <span class="relative flex h-2.5 w-2.5">
-            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-            <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
-          </span>
-          <span class="text-xs font-bold text-gray-900">
-            {{ telemetry?.isLive ? 'Repartidor en tiempo real' : 'Ubicación de despacho' }}
-          </span>
-          @if (telemetry?.speedKmh && telemetry!.speedKmh > 3) {
-            <span class="font-mono text-[11px] font-semibold text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded border border-orange-200">
-              {{ telemetry?.speedKmh | number: '1.0-0' }} km/h
-            </span>
-          }
-        </div>
-
-        @if (telemetry?.isLive || (telemetry?.orderStatus === 'EN_RUTA') || telemetry?.noSqlEngine) {
-          <div class="inline-flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50/90 px-2.5 py-1 text-[11px] font-semibold text-emerald-800 shadow-sm pointer-events-auto">
-            <span class="relative flex h-2 w-2">
+      <!-- Top Live Status Badge -->
+      @if (telemetry?.isLive || telemetry?.orderStatus === 'EN_RUTA') {
+        <div class="absolute top-3 left-3 z-[1000] pointer-events-none">
+          <div class="inline-flex items-center gap-2 rounded-xl border border-gray-200/80 bg-white/95 px-3 py-1.5 shadow-md backdrop-blur-xs pointer-events-auto">
+            <span class="relative flex h-2.5 w-2.5">
               <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
             </span>
-            <span>Conexión Satelital Activa</span>
+            <span class="text-xs font-bold text-gray-900">
+              Repartidor en camino
+            </span>
+            @if (telemetry?.speedKmh && telemetry!.speedKmh > 3) {
+              <span class="font-mono text-[11px] font-semibold text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded border border-orange-200">
+                {{ telemetry?.speedKmh | number: '1.0-0' }} km/h
+              </span>
+            }
           </div>
-        }
-      </div>
+        </div>
+      }
 
       <!-- Map Container -->
       <div #mapContainer class="h-80 sm:h-96 w-full z-0 bg-[#F8F9FA]"></div>
@@ -60,7 +52,7 @@ import { LiveTrackingResponse } from '../../../core/models/telemetry.models';
               {{ telemetry?.driverName || 'Repartidor Motorizado Asunción' }}
             </p>
             <p class="text-[11px] text-gray-500 truncate">
-              {{ telemetry?.statusMessage || 'Transmisión GPS satelital activa' }}
+              {{ telemetry?.statusMessage || 'Ruta de entrega activa' }}
             </p>
           </div>
         </div>
@@ -161,18 +153,17 @@ export class LiveDriverMapComponent implements AfterViewInit, OnChanges, OnDestr
     const destLat = tel.destinationLatitude ?? curLat + 0.015;
     const destLng = tel.destinationLongitude ?? curLng + 0.015;
 
-    // 1. Origin Store Marker
+    // 1. Origin Store Marker (compact circle, doesn't obscure the driver icon)
     if (!this.originMarker) {
       const storeIcon = L.divIcon({
         className: 'custom-store-pin',
         html: `
-          <div style="background:#0F172A;color:#FFFFFF;border:2px solid #FFFFFF;border-radius:12px;padding:4px 8px;font-size:11px;font-weight:700;display:flex;align-items:center;gap:5px;box-shadow:0 4px 12px rgba(0,0,0,0.25);white-space:nowrap;">
-            <img src="/images/icons/local.png" style="width:14px;height:14px;object-fit:contain;" alt="" />
-            <span>${tel.branchName || 'Tienda Asunción'}</span>
+          <div style="width:32px;height:32px;border-radius:50%;background:#0F172A;border:2px solid #FFFFFF;box-shadow:0 3px 10px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;" title="${tel.branchName || 'Sede Santa Anita'}">
+            <img src="/images/icons/local.png" style="width:16px;height:16px;object-fit:contain;" alt="Tienda" />
           </div>
         `,
-        iconSize: [140, 30],
-        iconAnchor: [70, 15],
+        iconSize: [32, 32],
+        iconAnchor: [16, 16],
       });
       this.originMarker = L.marker([origLat, origLng], { icon: storeIcon, draggable: false }).addTo(this.map);
     } else {
@@ -216,7 +207,7 @@ export class LiveDriverMapComponent implements AfterViewInit, OnChanges, OnDestr
     });
 
     if (!this.driverMarker) {
-      this.driverMarker = L.marker([curLat, curLng], { icon: driverIcon, zIndexOffset: 1000 }).addTo(this.map);
+      this.driverMarker = L.marker([curLat, curLng], { icon: driverIcon, zIndexOffset: 2500 }).addTo(this.map);
     } else {
       this.driverMarker.setIcon(driverIcon);
       this.driverMarker.setLatLng([curLat, curLng]);

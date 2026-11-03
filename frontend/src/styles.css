@@ -63,6 +63,9 @@
 
 @media (max-width: 1023px) {
   .grecaptcha-badge {
-    bottom: 140px !important;
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
   }
 }
