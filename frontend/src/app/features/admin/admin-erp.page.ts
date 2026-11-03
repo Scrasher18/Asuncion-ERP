@@ -3508,7 +3508,7 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
 
   // Email Notifications & Outbox State
   mailConfigForm: MailConfigUpdateRequest = {
-    enabled: true,
+    enabled: false,
     smtpHost: 'smtp.gmail.com',
     smtpPort: 587,
     username: 'scrasher322@gmail.com',

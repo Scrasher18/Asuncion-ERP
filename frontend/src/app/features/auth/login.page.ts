@@ -417,7 +417,7 @@ import { RecaptchaV3Service } from '../../core/services/recaptcha-v3.service';
                       [(ngModel)]="registerData.documentNumber"
                       (ngModelChange)="onRegisterDocumentChange($event)"
                       (blur)="onRegisterDocumentChange(registerData.documentNumber || '')"
-                      [attr.maxlength]="registerData.documentType === 'CE' ? 15 : 11"
+                      [attr.maxlength]="expectedDocMaxLength()"
                       inputmode="numeric"
                       [placeholder]="registerData.documentType === 'RUC' ? 'Ej: 20608899114' : 'Ej: 71156519'"
                       class="w-full min-h-[44px] rounded-xl border border-gray-200 bg-white pl-3.5 pr-20 py-2 text-base sm:text-sm font-mono text-gray-900 placeholder-gray-400 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
@@ -442,6 +442,16 @@ import { RecaptchaV3Service } from '../../core/services/recaptcha-v3.service';
                       }
                     </div>
                   </div>
+                  @if (isDocNumberInvalid()) {
+                    <p class="text-[11px] text-amber-600 mt-1 flex items-center gap-1 font-medium">
+                      <svg class="h-3.5 w-3.5 text-amber-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" y1="8" x2="12" y2="12"/>
+                        <line x1="12" y1="16" x2="12.01" y2="16"/>
+                      </svg>
+                      <span>{{ docNumberValidationMessage() }}</span>
+                    </p>
+                  }
                 </div>
               </div>
 
@@ -579,7 +589,7 @@ import { RecaptchaV3Service } from '../../core/services/recaptcha-v3.service';
 
               <button
                 type="submit"
-                [disabled]="isLoading() || !isRegisterFormReady()"
+                [disabled]="isLoading()"
                 class="w-full min-h-[44px] rounded-xl bg-orange-600 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-orange-700 disabled:opacity-50 transition cursor-pointer"
               >
                 {{ isLoading() ? 'Creando cuenta...' : 'Crear cuenta' }}
@@ -660,6 +670,38 @@ export class LoginPageComponent implements OnInit {
     return !(/^9\d{8}$/.test(p));
   });
 
+  readonly isDocNumberInvalid = computed(() => {
+    this.formVersion();
+    const doc = (this.registerData.documentNumber || '').trim();
+    if (!doc) return false;
+    if (this.registerData.documentType === 'DNI') return doc.length !== 8;
+    if (this.registerData.documentType === 'RUC') return doc.length !== 11;
+    return false;
+  });
+
+  readonly docNumberValidationMessage = computed(() => {
+    this.formVersion();
+    const doc = (this.registerData.documentNumber || '').trim();
+    if (this.registerData.documentType === 'DNI') {
+      return `El DNI debe tener exactamente 8 dígitos (ingresaste ${doc.length})`;
+    }
+    if (this.registerData.documentType === 'RUC') {
+      return `El RUC debe tener exactamente 11 dígitos (ingresaste ${doc.length})`;
+    }
+    return '';
+  });
+
+  readonly expectedDocMaxLength = computed(() => {
+    this.formVersion();
+    switch (this.registerData.documentType) {
+      case 'DNI': return 8;
+      case 'RUC': return 11;
+      case 'CE': return 15;
+      case 'PASAPORTE': return 12;
+      default: return 12;
+    }
+  });
+
   readonly isRegisterFormReady = computed(() => {
     this.formVersion();
     const emailOk = this.isEmailFormatValid();
@@ -721,10 +763,15 @@ export class LoginPageComponent implements OnInit {
       return;
     }
 
-    const digits = (rawValue || '').replace(/\D/g, '');
-    if (digits !== rawValue) {
-      this.registerData.documentNumber = digits;
+    let digits = (rawValue || '').replace(/\D/g, '');
+    if (this.registerData.documentType === 'DNI') {
+      digits = digits.slice(0, 8);
+    } else if (this.registerData.documentType === 'RUC') {
+      digits = digits.slice(0, 11);
     }
+
+    this.registerData.documentNumber = digits;
+    this.formVersion.update((v) => v + 1);
 
     if (
       this.registerData.documentType === 'DNI' &&
