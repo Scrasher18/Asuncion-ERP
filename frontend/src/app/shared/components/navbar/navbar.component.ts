@@ -1,8 +1,12 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, signal } from '@angular/core';
+import { Component, HostListener, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { CartService } from '../../../core/services/cart.service';
+import {
+  NotificationCenterService,
+  AppNotification,
+} from '../../../core/services/notification-center.service';
 
 @Component({
   selector: 'app-navbar',
@@ -83,7 +87,259 @@ import { CartService } from '../../../core/services/cart.service';
 
           <!-- Right Action Controls -->
           <div class="flex items-center gap-2">
-            <!-- Cart Drawer Button -->
+            <!-- 1. NOTIFICATIONS BELL & DROPDOWN (Accessible for Admin and Regular Users) -->
+            <div class="relative notif-dropdown-container">
+              <button
+                type="button"
+                (click)="toggleNotifications($event)"
+                class="relative inline-flex min-h-[40px] min-w-[40px] items-center justify-center rounded-lg border border-gray-200 bg-white p-2 text-xs font-semibold text-gray-700 shadow-2xs hover:border-orange-300 hover:text-orange-600 transition"
+                title="Historial de notificaciones y actualizaciones en vivo"
+                aria-label="Notificaciones"
+              >
+                <!-- Bell SVG -->
+                <svg
+                  class="h-5 w-5 text-gray-600 transition-transform group-hover:scale-110"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"
+                  />
+                </svg>
+
+                <!-- Unread Badge with ping animation -->
+                @if (notifService.unreadCount() > 0) {
+                  <span
+                    class="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-black text-white shadow-xs"
+                  >
+                    <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75"></span>
+                    <span class="relative">{{ notifService.unreadCount() > 99 ? '99+' : notifService.unreadCount() }}</span>
+                  </span>
+                }
+              </button>
+
+              <!-- Notifications Popover Dropdown -->
+              @if (notifOpen()) {
+                <div
+                  class="absolute right-0 mt-2 w-80 sm:w-96 rounded-2xl border border-gray-200 bg-white shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+                  (click)="$event.stopPropagation()"
+                >
+                  <!-- Popover Header -->
+                  <div class="flex items-center justify-between border-b border-gray-100 bg-gray-50/90 px-4 py-3">
+                    <div class="flex items-center gap-2.5">
+                      <div class="flex h-7 w-7 items-center justify-center rounded-lg bg-orange-100 text-orange-600">
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+                        </svg>
+                      </div>
+                      <div>
+                        <h3 class="text-sm font-extrabold text-gray-900 leading-none">Notificaciones</h3>
+                        <span class="text-[11px] text-gray-500 font-medium">
+                          {{ notifService.unreadCount() }} pendiente(s) de lectura
+                        </span>
+                      </div>
+                    </div>
+
+                    <div class="flex items-center gap-1">
+                      @if (notifService.unreadCount() > 0) {
+                        <button
+                          type="button"
+                          (click)="notifService.markAllAsRead()"
+                          class="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-gray-600 hover:bg-white hover:text-orange-600 hover:shadow-2xs transition"
+                          title="Marcar todas como leídas"
+                        >
+                          <svg class="h-3.5 w-3.5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                          </svg>
+                          <span class="hidden sm:inline">Leer todas</span>
+                        </button>
+                      }
+                      <button
+                        type="button"
+                        (click)="notifService.refresh()"
+                        class="rounded-lg p-1.5 text-xs text-gray-600 hover:bg-white hover:text-orange-600 hover:shadow-2xs transition"
+                        title="Actualizar ahora"
+                      >
+                        <svg class="h-4 w-4" [class.animate-spin]="notifService.isLoading()" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                        </svg>
+                      </button>
+                      <button
+                        type="button"
+                        (click)="notifOpen.set(false)"
+                        class="rounded-lg p-1.5 text-xs text-gray-400 hover:bg-white hover:text-gray-700 hover:shadow-2xs transition"
+                        title="Cerrar panel"
+                      >
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Filter Tabs -->
+                  <div class="flex items-center gap-1 border-b border-gray-100 bg-white px-3 py-2 text-xs">
+                    <button
+                      type="button"
+                      (click)="notifFilter.set('ALL')"
+                      [class]="notifFilter() === 'ALL' ? 'bg-orange-50 font-bold text-orange-700' : 'text-gray-600 hover:text-gray-900 font-medium'"
+                      class="rounded-md px-2.5 py-1 transition"
+                    >
+                      Todas ({{ notifService.notifications().length }})
+                    </button>
+                    <button
+                      type="button"
+                      (click)="notifFilter.set('UNREAD')"
+                      [class]="notifFilter() === 'UNREAD' ? 'bg-orange-50 font-bold text-orange-700' : 'text-gray-600 hover:text-gray-900 font-medium'"
+                      class="rounded-md px-2.5 py-1 transition"
+                    >
+                      No leídas ({{ notifService.unreadCount() }})
+                    </button>
+                    @if (auth.hasAnyRole(['ADMIN', 'VENDEDOR'])) {
+                      <button
+                        type="button"
+                        (click)="notifFilter.set('SALES')"
+                        [class]="notifFilter() === 'SALES' ? 'bg-orange-50 font-bold text-orange-700' : 'text-gray-600 hover:text-gray-900 font-medium'"
+                        class="rounded-md px-2.5 py-1 transition"
+                      >
+                        Ventas
+                      </button>
+                      <button
+                        type="button"
+                        (click)="notifFilter.set('DELIVERY')"
+                        [class]="notifFilter() === 'DELIVERY' ? 'bg-orange-50 font-bold text-orange-700' : 'text-gray-600 hover:text-gray-900 font-medium'"
+                        class="rounded-md px-2.5 py-1 transition"
+                      >
+                        Repartos
+                      </button>
+                    }
+                  </div>
+
+                  <!-- Notification List -->
+                  <div class="max-h-80 overflow-y-auto divide-y divide-gray-100">
+                    @for (item of filteredNotifications(); track item.id) {
+                      <div
+                        (click)="onNotificationClick(item)"
+                        [class.bg-orange-50/50]="!item.read"
+                        class="group flex items-start gap-3 p-3.5 hover:bg-gray-50/90 transition cursor-pointer relative"
+                      >
+                        <!-- Category Icon Badge -->
+                        <div
+                          class="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl font-bold shadow-2xs"
+                          [ngClass]="getCategoryBadgeClass(item)"
+                        >
+                          @switch (item.iconType) {
+                            @case ('truck') {
+                              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.25V4.5A2.25 2.25 0 0012 2.25H4.5A2.25 2.25 0 002.25 4.5v9.75m12 0H2.25" />
+                              </svg>
+                            }
+                            @case ('shopping-bag') {
+                              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                              </svg>
+                            }
+                            @case ('cash') {
+                              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
+                              </svg>
+                            }
+                            @case ('check-circle') {
+                              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                            }
+                            @default {
+                              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                              </svg>
+                            }
+                          }
+                        </div>
+
+                        <!-- Content -->
+                        <div class="flex-1 min-w-0 pr-3">
+                          <div class="flex items-center justify-between gap-1 mb-0.5">
+                            <span class="text-xs font-bold text-gray-900 truncate">
+                              {{ item.title }}
+                            </span>
+                            @if (!item.read) {
+                              <span class="h-2 w-2 rounded-full bg-orange-600 shrink-0"></span>
+                            }
+                          </div>
+                          <p class="text-[11px] text-gray-600 line-clamp-2 leading-relaxed">
+                            {{ item.message }}
+                          </p>
+                          <div class="flex items-center gap-2 mt-1.5">
+                            <span class="text-[10px] text-gray-400 font-medium">
+                              {{ item.relativeTime }}
+                            </span>
+                            @if (item.statusBadge) {
+                              <span class="rounded bg-gray-100 px-1.5 py-0.5 text-[9px] font-semibold text-gray-600 uppercase">
+                                {{ item.statusBadge }}
+                              </span>
+                            }
+                          </div>
+                        </div>
+                      </div>
+                    } @empty {
+                      <div class="flex flex-col items-center justify-center p-8 text-center text-gray-500">
+                        <div class="flex h-12 w-12 items-center justify-center rounded-full bg-orange-50 text-orange-600 mb-2">
+                          <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        </div>
+                        <p class="text-xs font-bold text-gray-800">¡Todo al día!</p>
+                        <p class="text-[11px] text-gray-500 max-w-[200px] mt-0.5">
+                          No tienes notificaciones pendientes en este momento.
+                        </p>
+                      </div>
+                    }
+                  </div>
+
+                  <!-- Popover Footer -->
+                  <div class="border-t border-gray-100 bg-gray-50/70 p-2.5 text-center">
+                    @if (auth.hasAnyRole(['ADMIN', 'VENDEDOR'])) {
+                      <a
+                        routerLink="/admin"
+                        (click)="notifOpen.set(false)"
+                        class="inline-flex items-center gap-1.5 text-xs font-bold text-orange-600 hover:text-orange-700 transition"
+                      >
+                        <span>Ver panel completo de administración</span>
+                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                        </svg>
+                      </a>
+                    } @else if (auth.isAuthenticated()) {
+                      <a
+                        routerLink="/my-orders"
+                        (click)="notifOpen.set(false)"
+                        class="inline-flex items-center gap-1.5 text-xs font-bold text-orange-600 hover:text-orange-700 transition"
+                      >
+                        <span>Ver historial completo de mis pedidos</span>
+                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                        </svg>
+                      </a>
+                    } @else {
+                      <a
+                        routerLink="/login"
+                        (click)="notifOpen.set(false)"
+                        class="inline-flex items-center gap-1.5 text-xs font-bold text-orange-600 hover:text-orange-700 transition"
+                      >
+                        <span>Inicia sesión para recibir alertas en tiempo real</span>
+                      </a>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+
+            <!-- 2. Cart Drawer Button -->
             @if (auth.canAccessCart()) {
               <button
                 type="button"
@@ -102,7 +358,7 @@ import { CartService } from '../../../core/services/cart.service';
               </button>
             }
 
-            <!-- User Session -->
+            <!-- 3. User Session -->
             @if (auth.isAuthenticated()) {
               <div class="hidden sm:flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50/80 pl-3 pr-1.5 py-1">
                 <div class="text-right leading-tight">
@@ -219,6 +475,25 @@ import { CartService } from '../../../core/services/cart.service';
               Reparto
             </a>
           }
+
+          <!-- Notifications shortcut on mobile menu -->
+          <button
+            type="button"
+            (click)="toggleNotifications($event); mobileOpen.set(false);"
+            class="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-orange-50 hover:text-orange-700"
+          >
+            <div class="flex items-center gap-2">
+              <svg class="h-4 w-4 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+              </svg>
+              <span>Notificaciones</span>
+            </div>
+            @if (notifService.unreadCount() > 0) {
+              <span class="rounded-full bg-red-600 px-2 py-0.5 text-xs font-bold text-white">
+                {{ notifService.unreadCount() }}
+              </span>
+            }
+          </button>
 
           <div class="pt-3 mt-2 border-t border-gray-100 flex items-center justify-between gap-2">
             @if (auth.isAuthenticated()) {
@@ -372,9 +647,73 @@ import { CartService } from '../../../core/services/cart.service';
 export class NavbarComponent {
   readonly auth = inject(AuthService);
   readonly cart = inject(CartService);
+  readonly notifService = inject(NotificationCenterService);
   private readonly router = inject(Router);
 
   readonly mobileOpen = signal(false);
+  readonly notifOpen = signal(false);
+  readonly notifFilter = signal<'ALL' | 'UNREAD' | 'SALES' | 'DELIVERY'>('ALL');
+
+  readonly filteredNotifications = computed(() => {
+    const list = this.notifService.notifications();
+    const filter = this.notifFilter();
+
+    switch (filter) {
+      case 'UNREAD':
+        return list.filter((n) => !n.read);
+      case 'SALES':
+        return list.filter(
+          (n) =>
+            n.category === 'NEW_SALE' ||
+            n.category === 'PAYMENT' ||
+            n.category === 'ORDER_STATUS'
+        );
+      case 'DELIVERY':
+        return list.filter((n) => n.category === 'DELIVERY');
+      default:
+        return list;
+    }
+  });
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    const target = event.target as HTMLElement;
+    if (!target.closest('.notif-dropdown-container')) {
+      this.notifOpen.set(false);
+    }
+  }
+
+  toggleNotifications(event: MouseEvent): void {
+    event.stopPropagation();
+    this.notifOpen.set(!this.notifOpen());
+    if (this.notifOpen()) {
+      this.notifService.refresh(true);
+    }
+  }
+
+  onNotificationClick(item: AppNotification): void {
+    this.notifService.handleNotificationClick(item);
+    this.notifOpen.set(false);
+  }
+
+  getCategoryBadgeClass(item: AppNotification): string {
+    switch (item.accentColor) {
+      case 'orange':
+        return 'bg-orange-100 text-orange-700 border border-orange-200';
+      case 'emerald':
+        return 'bg-emerald-100 text-emerald-700 border border-emerald-200';
+      case 'blue':
+        return 'bg-blue-100 text-blue-700 border border-blue-200';
+      case 'purple':
+        return 'bg-purple-100 text-purple-700 border border-purple-200';
+      case 'rose':
+        return 'bg-rose-100 text-rose-700 border border-rose-200';
+      case 'amber':
+        return 'bg-amber-100 text-amber-700 border border-amber-200';
+      default:
+        return 'bg-gray-100 text-gray-700 border border-gray-200';
+    }
+  }
 
   roleLabel(): string {
     switch (this.auth.primaryRole()) {

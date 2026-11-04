@@ -33,6 +33,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { CatalogService } from '../../core/services/catalog.service';
 import { LogisticsService } from '../../core/services/logistics.service';
 import { LookupService } from '../../core/services/lookup.service';
+import { NotificationCenterService } from '../../core/services/notification-center.service';
 import { NotificationAdminService } from '../../core/services/notification-admin.service';
 import { OrdersService } from '../../core/services/orders.service';
 import { PaymentService } from '../../core/services/payment.service';
@@ -128,6 +129,15 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
             </div>
 
             <div class="flex items-center gap-2">
+              <button
+                type="button"
+                (click)="switchTab('orders')"
+                class="inline-flex items-center gap-2 rounded-xl border border-orange-200 bg-orange-50/80 px-3.5 py-2 text-xs font-bold text-orange-900 shadow-2xs hover:bg-orange-100 transition"
+                title="Ver pedidos y ventas activas"
+              >
+                <span class="flex h-2 w-2 rounded-full bg-orange-600 animate-pulse"></span>
+                <span>{{ notifService.unreadCount() > 0 ? notifService.unreadCount() + ' novedades en vivo' : 'Ventas y Repartos al día' }}</span>
+              </button>
             </div>
           </div>
 
@@ -3755,6 +3765,7 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
   readonly selectedDriverForRatings = signal<string | null>(null);
 
   readonly auth = inject(AuthService);
+  readonly notifService = inject(NotificationCenterService);
   private readonly analyticsService = inject(AnalyticsService);
   private readonly catalogService = inject(CatalogService);
   private readonly logisticsService = inject(LogisticsService);
