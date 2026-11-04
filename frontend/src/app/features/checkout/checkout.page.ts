@@ -398,18 +398,10 @@ export class CheckoutPageComponent implements OnInit, OnDestroy {
       }
     }
 
-    if (this.paymentMethod === 'TARJETA_CREDITO') {
-      const cleanNum = this.cardAnalysis().cleanNumber;
-      if (cleanNum.length < 14) return false;
-      if (!this.cardForm.holder.trim()) return false;
-      if (this.cardForm.expiry.length !== 5) return false;
-      if (this.cardForm.cvv.trim().length < 3) return false;
-    }
-
     return true;
   }
 
-  payWithCulqiCheckoutModal(): void {
+  async payWithCulqiCheckoutModal(): Promise<void> {
     if (!this.auth.isAuthenticated()) {
       this.toast.warning('Inicia sesión primero', 'Ingresa a tu cuenta para confirmar el pedido.');
       return;
@@ -422,25 +414,13 @@ export class CheckoutPageComponent implements OnInit, OnDestroy {
       this.toast.warning('Dirección requerida', 'Por favor ingresa la dirección de entrega.');
       return;
     }
+    if (this.invoiceType() === 'FACTURA' && (!this.customerTaxId.trim() || !this.customerBusinessName.trim())) {
+      this.toast.warning('Datos de facturación requeridos', 'Por favor ingresa tu RUC y Razón Social.');
+      return;
+    }
 
-    this.isSubmitting.set(true);
-    const payload = this.buildCreateOrderPayload();
-    this.ordersService.createOrder(payload).subscribe({
-      next: (createdOrder) => {
-        this.isSubmitting.set(false);
-        void this.openCulqiModalForOrder(createdOrder.id, createdOrder.orderNumber, createdOrder.totalAmount ?? this.grandTotal());
-      },
-      error: (err) => {
-        this.isSubmitting.set(false);
-        const serverMsg = err?.error?.message || 'No se pudo crear el pedido.';
-        this.toast.error('Error al registrar pedido', serverMsg);
-      },
-    });
-  }
-
-  async openCulqiModalForOrder(orderId: number, orderNumber: string, amount: number): Promise<void> {
     this.isProcessingPayment.set(true);
-    const email = this.auth.currentUser()?.email || 'luisoscarperez322@hotmail.com';
+    const email = this.auth.currentUser()?.email || 'cliente@asuncion.pe';
 
     let activeKey = 'pk_test_E1MAjdXpMaux0f3u';
     try {
@@ -453,49 +433,69 @@ export class CheckoutPageComponent implements OnInit, OnDestroy {
     }
 
     try {
+      // Abrir la pasarela Culqi PRIMERO (sin crear pedido en BD todavía)
       const res = await this.paymentService.openCulqiCheckout({
         title: 'Autopartes Asunción',
         currency: 'PEN',
-        amount: amount,
+        amount: this.grandTotal(),
         publicKey: activeKey,
         email: email,
       });
 
       if (res.token) {
+        // ¡TOKEN GENERADO CON ÉXITO! AHORA SÍ CREAMOS EL PEDIDO Y PROCESAMOS EL CARGO
         this.paymentService.closeCulqiModal();
-        this.paymentService
-          .processCulqiCharge({
-            orderId,
-            tokenId: res.token.id,
-            email: res.token.email || email,
-          })
-          .subscribe({
-            next: (receipt) => {
-              this.paymentService.closeCulqiModal();
-              this.isProcessingPayment.set(false);
-              this.cart.clear();
-              this.paymentSuccessReceipt.set(receipt);
-              this.toast.success(
-                '¡Pago aprobado con éxito en Culqi!',
-                `Transacción ${receipt.transactionId} confirmada. Autorización: ${receipt.authorizationCode}`
-              );
-            },
-            error: (chargeErr) => {
-              this.paymentService.closeCulqiModal();
-              this.isProcessingPayment.set(false);
-              const msg = chargeErr?.error?.message || 'Culqi no pudo procesar el cargo de tu tarjeta.';
-              this.toast.error('Pago rechazado por Culqi', msg);
-              void this.router.navigate(['/track'], { queryParams: { order: orderNumber, paymentError: '1' } });
-            },
-          });
+        this.isSubmitting.set(true);
+        const payload = this.buildCreateOrderPayload();
+
+        this.ordersService.createOrder(payload).subscribe({
+          next: (createdOrder) => {
+            this.paymentService
+              .processCulqiCharge({
+                orderId: createdOrder.id,
+                tokenId: res.token.id,
+                email: res.token.email || email,
+              })
+              .subscribe({
+                next: (receipt) => {
+                  this.paymentService.closeCulqiModal();
+                  this.isProcessingPayment.set(false);
+                  this.isSubmitting.set(false);
+                  this.cart.clear();
+                  this.paymentSuccessReceipt.set(receipt);
+                  this.toast.success(
+                    '¡Pago aprobado con éxito en Culqi!',
+                    `Transacción ${receipt.transactionId} confirmada. Pedido #${createdOrder.orderNumber}`
+                  );
+                  void this.router.navigate(['/track'], {
+                    queryParams: { order: createdOrder.orderNumber, paid: '1' },
+                  });
+                },
+                error: (chargeErr) => {
+                  this.paymentService.closeCulqiModal();
+                  this.isProcessingPayment.set(false);
+                  this.isSubmitting.set(false);
+                  const msg = chargeErr?.error?.message || 'Culqi no pudo procesar el cargo de tu tarjeta.';
+                  this.toast.error('Pago rechazado por Culqi', msg);
+                },
+              });
+          },
+          error: (orderErr) => {
+            this.paymentService.closeCulqiModal();
+            this.isProcessingPayment.set(false);
+            this.isSubmitting.set(false);
+            this.toast.error('Error al registrar pedido', orderErr?.error?.message || 'No se pudo crear la orden.');
+          },
+        });
       } else if (res.error) {
         this.paymentService.closeCulqiModal();
         this.isProcessingPayment.set(false);
         const userMsg = res.error.user_message || res.error.merchant_message || 'Error en pasarela Culqi.';
         this.toast.error('Error en Culqi', userMsg);
       } else if (res.closed) {
+        // EL USUARIO CERRÓ LA VENTANA DE CULQI SIN PAGAR: NO SE CREA NINGÚN PEDIDO
         this.isProcessingPayment.set(false);
-        this.toast.info('Pasarela cerrada', 'Puedes intentar pagar nuevamente cuando desees.');
+        this.toast.info('Pasarela Culqi cerrada', 'No se ha realizado ningún cobro ni se generó ningún pedido.');
       }
     } catch (e: any) {
       this.isProcessingPayment.set(false);

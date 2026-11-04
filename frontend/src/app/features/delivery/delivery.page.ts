@@ -456,6 +456,110 @@ import { LiveDriverMapComponent } from '../../shared/components/live-driver-map/
           </div>
         </div>
       }
+
+      <!-- MODAL DE COBRO CON QR (YAPE / PLIN) EN RUTA -->
+      @if (qrCobroOrder(); as qrOrd) {
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs animate-fadeIn">
+          <div class="relative w-full max-w-sm rounded-3xl bg-white p-5 sm:p-6 shadow-2xl space-y-4 border border-gray-100">
+            <!-- Header -->
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-100 text-purple-700">
+                  <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+                  </svg>
+                </span>
+                <div>
+                  <h3 class="text-sm font-bold text-gray-900">QR de Cobro al Cliente</h3>
+                  <p class="text-[11px] text-gray-500">Pedido #{{ qrOrd.orderNumber }}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                (click)="closeQrCobroModal()"
+                class="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition cursor-pointer"
+              >
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <!-- Total Amount Card -->
+            <div class="rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 p-4 text-white text-center shadow-xs">
+              <span class="text-xs uppercase tracking-wider font-semibold opacity-90">Total a cobrar al cliente</span>
+              <p class="text-3xl font-black tracking-tight mt-0.5">
+                S/ {{ (qrOrd.totalAmount ?? qrOrd.total ?? 0) | number: '1.2-2' }}
+              </p>
+              <p class="text-[11px] opacity-90 truncate mt-0.5">{{ qrOrd.recipientName || qrOrd.customerName }}</p>
+            </div>
+
+            <!-- Tab Selector: Yape vs Plin -->
+            <div class="grid grid-cols-2 gap-2 p-1 bg-gray-100 rounded-xl">
+              <button
+                type="button"
+                (click)="selectedQrTab.set('YAPE')"
+                [class]="selectedQrTab() === 'YAPE' ? 'bg-purple-600 text-white shadow-xs font-bold' : 'text-gray-600 hover:text-gray-900 font-medium'"
+                class="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs transition cursor-pointer"
+              >
+                <img src="/images/icons/yape.jpg" alt="Yape" class="h-4 w-4 rounded object-contain" />
+                <span>Yape QR</span>
+              </button>
+              <button
+                type="button"
+                (click)="selectedQrTab.set('PLIN')"
+                [class]="selectedQrTab() === 'PLIN' ? 'bg-teal-600 text-white shadow-xs font-bold' : 'text-gray-600 hover:text-gray-900 font-medium'"
+                class="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs transition cursor-pointer"
+              >
+                <img src="/images/icons/plin.png" alt="Plin" class="h-4 w-4 rounded object-contain" />
+                <span>Plin QR</span>
+              </button>
+            </div>
+
+            <!-- QR Content Display -->
+            @if (selectedQrTab() === 'YAPE') {
+              <div class="flex flex-col items-center text-center space-y-3 p-3 rounded-2xl border border-purple-200 bg-purple-50/50">
+                <div class="h-52 w-52 rounded-2xl border-2 border-purple-300 bg-white p-2.5 shadow-sm flex items-center justify-center">
+                  <img
+                    [src]="walletConfig().yapeQrImageUrl || '/images/qr/qr-yape-default.svg'"
+                    alt="QR Yape Oficial"
+                    class="h-full w-full object-contain rounded-xl"
+                  />
+                </div>
+                <div>
+                  <p class="text-xs font-bold text-purple-950">{{ walletConfig().yapeHolder || 'Repuestos Automotrices Asunción S.A.C.' }}</p>
+                  <p class="font-mono text-sm font-black text-purple-800">Cel: {{ walletConfig().yapePhone || '922779157' }}</p>
+                  <span class="inline-block mt-1 text-[10px] text-gray-500 font-medium">Escanea desde tu app Yape BCP</span>
+                </div>
+              </div>
+            } @else {
+              <div class="flex flex-col items-center text-center space-y-3 p-3 rounded-2xl border border-teal-200 bg-teal-50/50">
+                <div class="h-52 w-52 rounded-2xl border-2 border-teal-300 bg-white p-2.5 shadow-sm flex items-center justify-center">
+                  <img
+                    [src]="walletConfig().plinQrImageUrl || '/images/qr/qr-plin-default.svg'"
+                    alt="QR Plin Oficial"
+                    class="h-full w-full object-contain rounded-xl"
+                  />
+                </div>
+                <div>
+                  <p class="text-xs font-bold text-teal-950">{{ walletConfig().plinHolder || 'Repuestos Automotrices Asunción S.A.C.' }}</p>
+                  <p class="font-mono text-sm font-black text-teal-800">Cel: {{ walletConfig().plinPhone || '922779157' }}</p>
+                  <span class="inline-block mt-1 text-[10px] text-gray-500 font-medium">Interbank · BBVA · Scotiabank</span>
+                </div>
+              </div>
+            }
+
+            <!-- Bottom Button -->
+            <button
+              type="button"
+              (click)="closeQrCobroModal()"
+              class="w-full min-h-[44px] rounded-xl bg-gray-900 py-2.5 text-xs font-bold text-white hover:bg-gray-800 transition cursor-pointer"
+            >
+              Cerrar y proceder con la entrega
+            </button>
+          </div>
+        </div>
+      }
     </div>
   `,
 })
@@ -658,6 +762,11 @@ export class DeliveryPageComponent implements OnInit, OnDestroy {
   
   openQrCobroModal(ord: Order): void {
     this.walletConfig.set(this.paymentService.getStoreWalletConfig());
+    if (ord.paymentMethod === 'PLIN') {
+      this.selectedQrTab.set('PLIN');
+    } else {
+      this.selectedQrTab.set('YAPE');
+    }
     this.qrCobroOrder.set(ord);
   }
 

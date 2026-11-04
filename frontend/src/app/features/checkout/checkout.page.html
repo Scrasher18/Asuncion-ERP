@@ -458,7 +458,7 @@
 
             <!-- Payment Method Selector Tabs -->
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-              <!-- Tab 1: Yape -->
+              <!-- Tab 1: Yape (Contra Entrega) -->
               <button
                 type="button"
                 (click)="setPaymentMethod('YAPE')"
@@ -472,16 +472,16 @@
                 <div class="flex items-center justify-between gap-1 mb-1">
                   <span class="text-xs font-bold text-gray-900 flex items-center gap-1.5">
                     <img src="/images/icons/yape.jpg" alt="Yape" class="h-5 w-5 object-contain rounded" />
-                    <span>Yape QR</span>
+                    <span>Yape</span>
                   </span>
-                  <span class="rounded bg-purple-100 text-purple-800 px-1.5 py-0.2 text-[9px] font-bold">Sin comisión</span>
+                  <span class="rounded bg-purple-100 text-purple-800 px-1.5 py-0.5 text-[9px] font-bold">🛵 Pago al recibir</span>
                 </div>
                 <p class="text-[11px] text-gray-500 leading-snug">
-                  Paga escaneando QR o al recibir delivery.
+                  Pagas con QR al recibir tu pedido en delivery o en tienda.
                 </p>
               </button>
 
-              <!-- Tab 2: Plin -->
+              <!-- Tab 2: Plin (Contra Entrega) -->
               <button
                 type="button"
                 (click)="setPaymentMethod('PLIN')"
@@ -495,22 +495,22 @@
                 <div class="flex items-center justify-between gap-1 mb-1">
                   <span class="text-xs font-bold text-gray-900 flex items-center gap-1.5">
                     <img src="/images/icons/plin.png" alt="Plin" class="h-5 w-5 object-contain rounded" />
-                    <span>Plin QR</span>
+                    <span>Plin</span>
                   </span>
-                  <span class="rounded bg-teal-100 text-teal-800 px-1.5 py-0.2 text-[9px] font-bold">Interbancario</span>
+                  <span class="rounded bg-teal-100 text-teal-800 px-1.5 py-0.5 text-[9px] font-bold">🛵 Pago al recibir</span>
                 </div>
                 <p class="text-[11px] text-gray-500 leading-snug">
-                  BBVA, Interbank y Scotiabank al instante.
+                  Interbancario (BBVA, Interbank, Scotiabank). Pagas con QR al recibir.
                 </p>
               </button>
 
-              <!-- Tab 3: Tarjetas Culqi -->
+              <!-- Tab 3: Tarjetas Culqi (Online) -->
               <button
                 type="button"
                 (click)="setPaymentMethod('TARJETA_CREDITO')"
                 [class]="
                   paymentMethod === 'TARJETA_CREDITO'
-                    ? 'border-orange-500 bg-orange-50/60 ring-2 ring-orange-500/20'
+                    ? 'border-orange-500 bg-orange-50/60 ring-2 ring-orange-500/20 font-bold text-orange-950'
                     : 'border-gray-200 bg-white hover:border-gray-300'
                 "
                 class="rounded-xl border p-3 text-left transition relative cursor-pointer"
@@ -520,15 +520,15 @@
                     <img src="/images/icons/culqi-logo.png" alt="Culqi" class="h-5 w-5 object-contain rounded" />
                     <span>Tarjetas (Culqi)</span>
                   </span>
-                  <span class="rounded bg-orange-100 text-orange-800 px-1.5 py-0.2 text-[9px] font-bold">Online</span>
+                  <span class="rounded bg-orange-100 text-orange-800 px-1.5 py-0.5 text-[9px] font-bold">🔒 Online</span>
                 </div>
                 <p class="text-[11px] text-gray-500 leading-snug">
-                  Visa, Mastercard, Débito y Crédito.
+                  Visa, Mastercard, Débito o Crédito en pasarela virtual.
                 </p>
               </button>
             </div>
 
-            <!-- Other secondary payment methods -->
+            <!-- Other secondary payment method -->
             <div class="flex items-center gap-2 pt-1">
               <button
                 type="button"
@@ -536,327 +536,201 @@
                 [class]="paymentMethod === 'CONTRA_ENTREGA' ? 'border-orange-500 bg-orange-50 font-bold text-orange-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'"
                 class="rounded-lg border px-3 py-1.5 text-xs transition cursor-pointer"
               >
-                Pago contra entrega (Efectivo / POS)
-              </button>
-              <button
-                type="button"
-                (click)="setPaymentMethod('TRANSFERENCIA_B2B')"
-                [class]="paymentMethod === 'TRANSFERENCIA_B2B' ? 'border-orange-500 bg-orange-50 font-bold text-orange-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'"
-                class="rounded-lg border px-3 py-1.5 text-xs transition cursor-pointer"
-              >
-                Transferencia bancaria BCP / BBVA
+                Pago contra entrega en efectivo o POS móvil
               </button>
             </div>
 
-            <!-- ===================== DETAIL VIEW: TARJETA DE CREDITO / DEBITO ===================== -->
+            <!-- ===================== DETAIL VIEW: TARJETA DE CREDITO / DEBITO (CULQI VIRTUAL) ===================== -->
             @if (paymentMethod === 'TARJETA_CREDITO') {
-              <div class="rounded-2xl border border-gray-200 bg-gray-50/70 p-5 space-y-6">
-                <!-- CULQI OFFICIAL CHECKOUT V4 LAUNCHER -->
-                <div class="rounded-2xl border-2 border-orange-500/30 bg-gradient-to-r from-orange-50 via-white to-amber-50 p-4 sm:p-5 shadow-xs space-y-3">
+              <div class="rounded-2xl border border-orange-200 bg-orange-50/40 p-5 space-y-4">
+                <div class="rounded-2xl border-2 border-orange-500/30 bg-white p-5 sm:p-6 shadow-xs space-y-4">
                   <div class="flex items-center justify-between gap-3 flex-wrap">
-                    <div class="flex items-center gap-2.5">
-                      <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-white border border-orange-200 p-1.5 shadow-xs shrink-0">
-                        <img src="/images/icons/culqi-logo.png" alt="Culqi" width="32" height="32" loading="lazy" class="h-8 w-8 object-contain" />
+                    <div class="flex items-center gap-3">
+                      <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-50 border border-orange-200 p-2 shadow-2xs shrink-0">
+                        <img src="/images/icons/culqi-logo.png" alt="Culqi" class="h-8 w-8 object-contain" />
                       </div>
                       <div>
-                        <h4 class="text-sm font-extrabold text-gray-900 flex items-center gap-2">
-                          <span>Culqi Checkout v4 Oficial</span>
-                          <span class="rounded bg-emerald-100 text-emerald-800 px-2 py-0.5 text-[10px] font-bold">Activo</span>
+                        <h4 class="text-base font-extrabold text-gray-900 flex items-center gap-2">
+                          <span>Pasarela Virtual Culqi Checkout v4</span>
+                          <span class="rounded-full bg-emerald-100 text-emerald-800 px-2 py-0.5 text-[10px] font-bold">Pago 100% Online</span>
                         </h4>
-                        <p class="text-xs text-gray-600">
-                          Paga seguro con pasarela oficial Culqi (Tarjetas Débito / Crédito Visa y Mastercard y billetera Yape)
+                        <p class="text-xs text-gray-600 mt-0.5">
+                          Acepta Visa, Mastercard, American Express, Diners Club y tarjetas de débito/crédito de todos los bancos del Perú.
                         </p>
                       </div>
                     </div>
+                  </div>
+
+                  <!-- Security features banner -->
+                  <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
+                    <div class="flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50/80 px-3 py-2 text-xs text-gray-700">
+                      <svg class="h-4 w-4 text-emerald-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+                      </svg>
+                      <span class="font-medium">Encriptación bancaria SSL</span>
+                    </div>
+                    <div class="flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50/80 px-3 py-2 text-xs text-gray-700">
+                      <svg class="h-4 w-4 text-blue-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                      </svg>
+                      <span class="font-medium">Validación 3D Secure 2.0</span>
+                    </div>
+                    <div class="flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50/80 px-3 py-2 text-xs text-gray-700">
+                      <svg class="h-4 w-4 text-amber-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6H2.25m0 0v10.5m0-10.5h16.5m0 0h.75A.75.75 0 0121 6.75v.75m0 0v10.5m0-10.5H4.5" />
+                      </svg>
+                      <span class="font-medium">Acreditación instantánea</span>
+                    </div>
+                  </div>
+
+                  <div class="rounded-xl border border-amber-200 bg-amber-50/80 p-3 text-xs text-amber-900 leading-relaxed">
+                    <strong>Importante:</strong> Al dar clic en el botón de abajo o en "Pagar en línea", se abrirá la ventana emergente segura oficial de Culqi donde ingresarás los datos de tu tarjeta. <em>No se creará ningún pedido ni se cobrará nada hasta que completes exitosamente el pago en la pasarela.</em>
                   </div>
 
                   <button
                     type="button"
                     (click)="payWithCulqiCheckoutModal()"
                     [disabled]="isSubmitting() || isProcessingPayment()"
-                    class="w-full flex items-center justify-center gap-2 rounded-xl bg-orange-600 px-4 py-3 text-sm font-bold text-white shadow-md hover:bg-orange-700 transition active:scale-98 disabled:opacity-50 cursor-pointer"
+                    class="w-full flex items-center justify-center gap-2 rounded-xl bg-orange-600 px-5 py-3.5 text-sm font-bold text-white shadow-md hover:bg-orange-700 transition active:scale-98 disabled:opacity-50 cursor-pointer"
                   >
                     @if (isProcessingPayment() || isSubmitting()) {
                       <svg class="h-4 w-4 animate-spin text-white" fill="none" viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
                       </svg>
-                      <span>Iniciando pasarela Culqi...</span>
+                      <span>Abriendo pasarela protegida Culqi...</span>
                     } @else {
                       <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15A2.25 2.25 0 002.25 6.75v10.5A2.25 2.25 0 004.5 19.5z" />
                       </svg>
-                      <span>Abrir pasarela emergente Culqi Checkout (S/ {{ grandTotal() | number: '1.2-2' }})</span>
+                      <span>Abrir pasarela emergente Culqi (S/ {{ grandTotal() | number: '1.2-2' }})</span>
                     }
                   </button>
                 </div>
-
-                <div class="relative flex py-1 items-center">
-                  <div class="flex-grow border-t border-gray-200"></div>
-                  <span class="flex-shrink mx-3 text-xs font-medium text-gray-500">o ingresa los datos de tu tarjeta directamente</span>
-                  <div class="flex-grow border-t border-gray-200"></div>
-                </div>
-
-                <!-- Visual Interactive Card Preview -->
-                <div class="relative mx-auto w-full max-w-sm rounded-2xl p-5 text-white shadow-xl transition-all duration-300 bg-gradient-to-br {{ cardAnalysis().theme.gradient }}">
-                  <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-2">
-                      <!-- Chip SVG -->
-                      <div class="h-7 w-9 rounded-md bg-amber-300/80 border border-amber-400/80 shadow-xs flex items-center justify-center">
-                        <div class="h-4 w-6 rounded border border-amber-500/60 grid grid-cols-2"></div>
-                      </div>
-                      <!-- Contactless SVG -->
-                      <svg class="h-4 w-4 opacity-75" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.5 16.5a6 6 0 010-9m3.5 11a10 10 0 010-13m3.5 13a14 14 0 010-13" />
-                      </svg>
-                    </div>
-                    <div class="text-right">
-                      <span class="block text-[11px] font-black tracking-wider uppercase opacity-90 drop-shadow-xs">
-                        {{ cardAnalysis().bankCode !== 'general' ? cardAnalysis().bank : '' }}
-                      </span>
-                      <span class="text-sm font-black tracking-widest uppercase drop-shadow-xs">
-                        {{ cardAnalysis().brand }}
-                      </span>
-                    </div>
-                  </div>
-
-                  <!-- Card Number Display -->
-                  <div class="mt-6 mb-4">
-                    <p class="font-mono text-lg sm:text-xl font-bold tracking-widest drop-shadow-sm">
-                      {{ cardAnalysis().formattedNumber || '•••• •••• •••• ••••' }}
-                    </p>
-                  </div>
-
-                  <!-- Card Bottom: Holder, Expiry, Type -->
-                  <div class="flex items-end justify-between text-xs">
-                    <div>
-                      <span class="block text-[9px] uppercase tracking-wider text-white/70">Titular</span>
-                      <span class="font-semibold tracking-wide uppercase truncate max-w-[170px] block">
-                        {{ cardForm.holder || 'NOMBRE DEL TITULAR' }}
-                      </span>
-                    </div>
-                    <div class="text-center">
-                      <span class="block text-[9px] uppercase tracking-wider text-white/70">Vence</span>
-                      <span class="font-mono font-semibold">
-                        {{ cardForm.expiry || 'MM/AA' }}
-                      </span>
-                    </div>
-                    <div class="text-right">
-                      <span class="rounded bg-white/20 px-2 py-0.5 text-[9px] font-bold tracking-wider uppercase backdrop-blur-xs">
-                        {{ cardAnalysis().type }}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Card Form Inputs with Real-time Validation -->
-                <div class="space-y-3.5">
-                  <div>
-                    <div class="flex flex-wrap items-center justify-between gap-2 mb-1">
-                      <label class="block text-xs font-semibold text-gray-700">
-                        Número de tarjeta *
-                      </label>
-                      @if (cardAnalysis().cleanNumber.length >= 2) {
-                        <span
-                          [class]="cardAnalysis().theme.badgeBg + ' ' + cardAnalysis().theme.badgeBorder + ' ' + cardAnalysis().theme.badgeText"
-                          class="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-bold animate-fadeIn"
-                        >
-                          <span>{{ cardAnalysis().bank }}</span>
-                          <span>·</span>
-                          <span>{{ cardAnalysis().brand }} ({{ cardAnalysis().type }})</span>
-                        </span>
-                      }
-                    </div>
-                    <div class="relative">
-                      <input
-                        type="text"
-                        maxlength="19"
-                        inputmode="numeric"
-                        [(ngModel)]="cardForm.number"
-                        (ngModelChange)="onCardNumberInput($event)"
-                        placeholder="4557 •••• •••• ••••"
-                        class="min-h-[44px] w-full rounded-xl border border-gray-200 bg-white font-mono text-base sm:text-sm pl-3.5 pr-10 text-gray-900 placeholder:text-gray-400 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
-                      />
-                      <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">
-                        {{ cardAnalysis().brand }}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label class="block text-xs font-semibold text-gray-700 mb-1">
-                      Nombre del titular de la tarjeta *
-                    </label>
-                    <input
-                      type="text"
-                      [(ngModel)]="cardForm.holder"
-                      (ngModelChange)="onCardHolderInput($event)"
-                      placeholder="Como figura en el frente de la tarjeta"
-                      class="min-h-[44px] w-full rounded-xl border border-gray-200 bg-white uppercase text-base sm:text-sm px-3.5 py-2 text-gray-900 placeholder:text-gray-400 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
-                    />
-                  </div>
-
-                  <div class="grid grid-cols-2 gap-3">
-                    <div>
-                      <label class="block text-xs font-semibold text-gray-700 mb-1">
-                        Vencimiento (MM/AA) *
-                      </label>
-                      <input
-                        type="text"
-                        maxlength="5"
-                        inputmode="numeric"
-                        [(ngModel)]="cardForm.expiry"
-                        (ngModelChange)="onCardExpiryInput($event)"
-                        placeholder="MM/AA"
-                        class="min-h-[44px] w-full rounded-xl border border-gray-200 bg-white font-mono text-base sm:text-sm px-3.5 py-2 text-gray-900 placeholder:text-gray-400 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
-                      />
-                    </div>
-                    <div>
-                      <div class="flex items-center justify-between mb-1">
-                        <label class="block text-xs font-semibold text-gray-700">CVV / CVC *</label>
-                        <span class="text-[10px] text-gray-500">3 o 4 dígitos</span>
-                      </div>
-                      <div class="relative">
-                        <input
-                          type="password"
-                          maxlength="4"
-                          inputmode="numeric"
-                          [(ngModel)]="cardForm.cvv"
-                          placeholder="•••"
-                          class="min-h-[44px] w-full rounded-xl border border-gray-200 bg-white font-mono text-base sm:text-sm pl-3.5 pr-8 py-2 text-gray-900 placeholder:text-gray-400 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
-                        />
-                        <svg class="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <rect x="3" y="11" width="18" height="11" rx="2" ry="2" stroke-width="2" />
-                          <path stroke-width="2" d="M7 11V7a5 5 0 0110 0v4" />
-                        </svg>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label class="block text-xs font-semibold text-gray-700 mb-1">
-                        DNI del titular
-                      </label>
-                      <input
-                        type="text"
-                        maxlength="12"
-                        inputmode="numeric"
-                        [(ngModel)]="cardForm.documentNumber"
-                        placeholder="DNI o C.E."
-                        class="min-h-[44px] w-full rounded-xl border border-gray-200 bg-white font-mono text-base sm:text-sm px-3.5 py-2 text-gray-900 focus:border-orange-600 focus:outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label class="block text-xs font-semibold text-gray-700 mb-1">
-                        Modalidad de cobro
-                      </label>
-                      <div class="min-h-[44px] flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-2 text-xs font-semibold text-gray-800">
-                        <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
-                        <span>Pago directo al contado</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-gray-200 text-[11px] text-gray-500">
-                  <span class="flex items-center gap-1.5">
-                    <svg class="h-3.5 w-3.5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                    </svg>
-                    <span>Autenticación 3D Secure 2.0 activa</span>
-                  </span>
-                  <span>Certificación PCI-DSS Nivel 1</span>
-                </div>
               </div>
             }
 
-            <!-- ===================== DETAIL VIEW: YAPE ===================== -->
+            <!-- ===================== DETAIL VIEW: YAPE (CONTRA ENTREGA) ===================== -->
             @if (paymentMethod === 'YAPE') {
-              <div class="rounded-2xl border border-purple-200 bg-purple-50/50 p-5 space-y-3">
-                <div class="flex flex-col sm:flex-row items-center gap-4">
-                  <div class="h-36 w-36 rounded-2xl border border-purple-200 bg-white p-2 shrink-0 flex flex-col items-center justify-center shadow-xs">
-                    <img
-                      [src]="walletConfig().yapeQrImageUrl || '/images/qr/qr-yape-default.svg'"
-                      alt="QR Yape"
-                      class="h-28 w-28 object-contain rounded-lg"
-                    />
-                    <span class="font-mono font-bold text-[10px] text-purple-700 mt-1">Escanea con Yape</span>
+              <div class="rounded-2xl border border-purple-200 bg-purple-50/60 p-5 space-y-4">
+                <div class="flex items-start gap-3">
+                  <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-white border border-purple-200 p-2 shadow-2xs shrink-0">
+                    <img src="/images/icons/yape.jpg" alt="Yape" class="h-8 w-8 object-contain rounded" />
                   </div>
-                  <div class="space-y-1.5 text-xs text-gray-700">
-                    <div class="inline-flex items-center gap-1.5 rounded-full bg-purple-100 text-purple-800 px-2.5 py-0.5 text-xs font-bold">
-                      <img src="/images/icons/yape.jpg" alt="" class="h-3.5 w-3.5 rounded object-contain" />
-                      <span>Pago sin comisiones</span>
+                  <div class="space-y-1">
+                    <div class="flex items-center gap-2 flex-wrap">
+                      <h4 class="text-base font-extrabold text-purple-950">Pago Contra Entrega con Yape</h4>
+                      <span class="rounded-full bg-purple-100 text-purple-800 px-2 py-0.5 text-[10px] font-bold">🛵 Sin pago previo en web</span>
                     </div>
-                    <p class="font-bold text-gray-900 text-sm">Titular: {{ walletConfig().yapeHolder || 'Repuestos Automotrices Asunción S.A.C.' }}</p>
-                    <p class="text-xs">Número de Yape: <strong class="font-mono text-purple-800 text-base font-extrabold">{{ walletConfig().yapePhone || '999 411 501' }}</strong></p>
-                    <p class="text-[11px] text-gray-600 leading-relaxed">
-                      Monto total: <strong class="text-gray-900">S/ {{ grandTotal() | number: '1.2-2' }}</strong>.
-                      Puedes pagar ahora escaneando el QR o al momento de recibir tus repuestos con el motorizado. Haz clic en "Confirmar pedido con Yape" para despachar tu delivery de inmediato.
+                    <p class="text-xs text-purple-900 leading-relaxed">
+                      <strong>No necesitas pagar por adelantado en la página web.</strong> Tu pedido se registra de inmediato y pagarás al recibir tus repuestos escaneando el código QR oficial.
                     </p>
+                  </div>
+                </div>
+
+                <!-- Explanation based on Delivery vs Pickup -->
+                <div class="rounded-xl border border-purple-200 bg-white p-4 space-y-2 text-xs text-gray-700">
+                  @if (deliveryType() === 'DELIVERY') {
+                    <div class="flex items-start gap-2.5">
+                      <span class="flex h-6 w-6 items-center justify-center rounded-full bg-purple-100 text-purple-800 text-xs font-bold shrink-0">🛵</span>
+                      <div>
+                        <strong class="text-gray-900">Envío a Domicilio:</strong>
+                        <p class="text-gray-600 mt-0.5">El repartidor motorizado llevará el código QR oficial de Yape en su aplicativo móvil al llegar a tu dirección. Solo abres tu app Yape, escaneas su pantalla y listo.</p>
+                      </div>
+                    </div>
+                  } @else {
+                    <div class="flex items-start gap-2.5">
+                      <span class="flex h-6 w-6 items-center justify-center rounded-full bg-purple-100 text-purple-800 text-xs font-bold shrink-0">🏬</span>
+                      <div>
+                        <strong class="text-gray-900">Recojo en Tienda:</strong>
+                        <p class="text-gray-600 mt-0.5">Escanearás el código QR oficial de Yape directamente en la caja de nuestra sede en Santa Anita al momento de retirar tus repuestos.</p>
+                      </div>
+                    </div>
+                  }
+                </div>
+
+                <!-- Summary Box -->
+                <div class="flex flex-col sm:flex-row items-center justify-between gap-3 rounded-xl border border-purple-200 bg-purple-100/50 p-3.5 text-xs">
+                  <div>
+                    <span class="block text-gray-500 text-[10px] uppercase font-bold tracking-wider">Titular de la cuenta Yape</span>
+                    <strong class="text-gray-900 font-bold">{{ walletConfig().yapeHolder || 'Repuestos Automotrices Asunción S.A.C.' }}</strong>
+                  </div>
+                  <div>
+                    <span class="block text-gray-500 text-[10px] uppercase font-bold tracking-wider">Número de Celular</span>
+                    <strong class="font-mono text-purple-900 font-bold text-sm">{{ walletConfig().yapePhone || '922779157' }}</strong>
+                  </div>
+                  <div class="text-right">
+                    <span class="block text-gray-500 text-[10px] uppercase font-bold tracking-wider">Monto a pagar al recibir</span>
+                    <strong class="font-mono text-base font-black text-purple-900">S/ {{ grandTotal() | number: '1.2-2' }}</strong>
                   </div>
                 </div>
               </div>
             }
 
-            <!-- ===================== DETAIL VIEW: PLIN ===================== -->
+            <!-- ===================== DETAIL VIEW: PLIN (CONTRA ENTREGA) ===================== -->
             @if (paymentMethod === 'PLIN') {
-              <div class="rounded-2xl border border-teal-200 bg-teal-50/50 p-5 space-y-3">
-                <div class="flex flex-col sm:flex-row items-center gap-4">
-                  <div class="h-36 w-36 rounded-2xl border border-teal-200 bg-white p-2 shrink-0 flex flex-col items-center justify-center shadow-xs">
-                    <img
-                      [src]="walletConfig().plinQrImageUrl || '/images/qr/qr-plin-default.svg'"
-                      alt="QR Plin"
-                      class="h-28 w-28 object-contain rounded-lg"
-                    />
-                    <span class="font-mono font-bold text-[10px] text-teal-700 mt-1">Escanea con Plin</span>
+              <div class="rounded-2xl border border-teal-200 bg-teal-50/60 p-5 space-y-4">
+                <div class="flex items-start gap-3">
+                  <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-white border border-teal-200 p-2 shadow-2xs shrink-0">
+                    <img src="/images/icons/plin.png" alt="Plin" class="h-8 w-8 object-contain rounded" />
                   </div>
-                  <div class="space-y-1.5 text-xs text-gray-700">
-                    <div class="inline-flex items-center gap-1.5 rounded-full bg-teal-100 text-teal-800 px-2.5 py-0.5 text-xs font-bold">
-                      <img src="/images/icons/plin.png" alt="" class="h-3.5 w-3.5 rounded object-contain" />
-                      <span>Interbank / BBVA / Scotiabank</span>
+                  <div class="space-y-1">
+                    <div class="flex items-center gap-2 flex-wrap">
+                      <h4 class="text-base font-extrabold text-teal-950">Pago Contra Entrega con Plin</h4>
+                      <span class="rounded-full bg-teal-100 text-teal-800 px-2 py-0.5 text-[10px] font-bold">🛵 Sin pago previo en web</span>
                     </div>
-                    <p class="font-bold text-gray-900 text-sm">Titular: {{ walletConfig().plinHolder || 'Repuestos Automotrices Asunción S.A.C.' }}</p>
-                    <p class="text-xs">Número de Plin: <strong class="font-mono text-teal-800 text-base font-extrabold">{{ walletConfig().plinPhone || '999 411 501' }}</strong></p>
-                    <p class="text-[11px] text-gray-600 leading-relaxed">
-                      Monto total: <strong class="text-gray-900">S/ {{ grandTotal() | number: '1.2-2' }}</strong>.
-                      Escanea el QR desde tu app bancaria o paga al recibir con el motorizado. Haz clic en "Confirmar pedido con Plin" para iniciar el despacho.
+                    <p class="text-xs text-teal-900 leading-relaxed">
+                      <strong>No necesitas pagar por adelantado en la página web.</strong> Tu pedido se registra de inmediato y pagarás al recibir tus repuestos escaneando el código QR de Plin desde BBVA, Interbank o Scotiabank.
                     </p>
+                  </div>
+                </div>
+
+                <!-- Explanation based on Delivery vs Pickup -->
+                <div class="rounded-xl border border-teal-200 bg-white p-4 space-y-2 text-xs text-gray-700">
+                  @if (deliveryType() === 'DELIVERY') {
+                    <div class="flex items-start gap-2.5">
+                      <span class="flex h-6 w-6 items-center justify-center rounded-full bg-teal-100 text-teal-800 text-xs font-bold shrink-0">🛵</span>
+                      <div>
+                        <strong class="text-gray-900">Envío a Domicilio:</strong>
+                        <p class="text-gray-600 mt-0.5">El motorizado mostrará el código QR oficial de Plin en su teléfono móvil al llegar a tu dirección. Puedes escanearlo desde la app de BBVA, Interbank, Scotiabank u otra entidad compatible.</p>
+                      </div>
+                    </div>
+                  } @else {
+                    <div class="flex items-start gap-2.5">
+                      <span class="flex h-6 w-6 items-center justify-center rounded-full bg-teal-100 text-teal-800 text-xs font-bold shrink-0">🏬</span>
+                      <div>
+                        <strong class="text-gray-900">Recojo en Tienda:</strong>
+                        <p class="text-gray-600 mt-0.5">Escanearás el código QR de Plin en el mostrador de nuestra tienda en Santa Anita al momento de retirar tus repuestos.</p>
+                      </div>
+                    </div>
+                  }
+                </div>
+
+                <!-- Summary Box -->
+                <div class="flex flex-col sm:flex-row items-center justify-between gap-3 rounded-xl border border-teal-200 bg-teal-100/50 p-3.5 text-xs">
+                  <div>
+                    <span class="block text-gray-500 text-[10px] uppercase font-bold tracking-wider">Titular de la cuenta Plin</span>
+                    <strong class="text-gray-900 font-bold">{{ walletConfig().plinHolder || 'Repuestos Automotrices Asunción S.A.C.' }}</strong>
+                  </div>
+                  <div>
+                    <span class="block text-gray-500 text-[10px] uppercase font-bold tracking-wider">Número de Celular</span>
+                    <strong class="font-mono text-teal-900 font-bold text-sm">{{ walletConfig().plinPhone || '922779157' }}</strong>
+                  </div>
+                  <div class="text-right">
+                    <span class="block text-gray-500 text-[10px] uppercase font-bold tracking-wider">Monto a pagar al recibir</span>
+                    <strong class="font-mono text-base font-black text-teal-900">S/ {{ grandTotal() | number: '1.2-2' }}</strong>
                   </div>
                 </div>
               </div>
             }
 
-            <!-- ===================== DETAIL VIEW: TRANSFERENCIA B2B ===================== -->
-            @if (paymentMethod === 'TRANSFERENCIA_B2B') {
-              <div class="rounded-2xl border border-gray-200 bg-gray-50 p-4 space-y-3 text-xs">
-                <p class="font-bold text-gray-900">Cuentas Corrientes Bancarias (Repuestos Automotrices Asunción S.A.C.):</p>
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div class="rounded-xl border border-blue-200 bg-white p-3 space-y-1 shadow-2xs">
-                    <div class="flex items-center gap-2 mb-1">
-                      <img src="/images/icons/bcp.png" alt="BCP" width="28" height="20" loading="lazy" class="h-5 w-auto object-contain" />
-                      <span class="block font-bold text-blue-900">BCP Soles</span>
-                    </div>
-                    <p class="font-mono text-gray-800 text-[11px]">Cta: 191-98765432-0-11</p>
-                    <p class="font-mono text-gray-500 text-[10px]">CCI: 002-191-009876543201-11</p>
-                  </div>
-                  <div class="rounded-xl border border-sky-200 bg-white p-3 space-y-1 shadow-2xs">
-                    <div class="flex items-center gap-2 mb-1">
-                      <img src="/images/icons/bbva.jpg" alt="BBVA" width="28" height="20" loading="lazy" class="h-5 w-auto object-contain rounded" />
-                      <span class="block font-bold text-sky-900">BBVA Soles</span>
-                    </div>
-                    <p class="font-mono text-gray-800 text-[11px]">Cta: 0011-0175-0100098765</p>
-                    <p class="font-mono text-gray-500 text-[10px]">CCI: 011-175-000100098765-88</p>
-                  </div>
-                  <div class="rounded-xl border border-emerald-200 bg-white p-3 space-y-1 shadow-2xs">
-                    <div class="flex items-center gap-2 mb-1">
-                      <img src="/images/icons/interbank.png" alt="Interbank" width="28" height="20" loading="lazy" class="h-5 w-auto object-contain" />
-                      <span class="block font-bold text-emerald-900">Interbank Soles</span>
-                    </div>
-                    <p class="font-mono text-gray-800 text-[11px]">Cta: 200-3001234567</p>
-                    <p class="font-mono text-gray-500 text-[10px]">CCI: 003-200-003001234567-22</p>
-                  </div>
-                </div>
+            <!-- ===================== DETAIL VIEW: CONTRA ENTREGA (EFECTIVO / POS) ===================== -->
+            @if (paymentMethod === 'CONTRA_ENTREGA') {
+              <div class="rounded-2xl border border-orange-200 bg-orange-50/50 p-4 space-y-2 text-xs">
+                <p class="font-bold text-gray-900">Pago presencial al recibir:</p>
+                <p class="text-gray-600 leading-relaxed">
+                  Pagarás al momento de la entrega en efectivo (el motorizado cuenta con cambio) o con tarjeta física mediante terminal POS móvil inalámbrico.
+                </p>
               </div>
             }
           </section>
@@ -946,24 +820,26 @@
             type="button"
             [disabled]="isSubmitting() || isProcessingPayment() || !canSubmitOrder()"
             (click)="submitOrder()"
-            class="w-full min-h-[48px] rounded-xl bg-orange-600 py-3 text-sm font-semibold text-white shadow-xs hover:bg-orange-700 disabled:opacity-40 disabled:cursor-not-allowed transition flex items-center justify-center gap-2"
+            class="w-full min-h-[48px] rounded-xl bg-orange-600 py-3 text-sm font-semibold text-white shadow-xs hover:bg-orange-700 disabled:opacity-40 disabled:cursor-not-allowed transition flex items-center justify-center gap-2 cursor-pointer"
           >
             @if (isSubmitting() || isProcessingPayment()) {
               <svg class="h-4 w-4 animate-spin text-white" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"></circle>
                 <path class="opacity-90" fill="currentColor" d="M4 12a8 8 0 018-8v3a5 5 0 00-5 5H4z"></path>
               </svg>
-              <span>Procesando pago seguro...</span>
+              <span>{{ paymentMethod === 'TARJETA_CREDITO' ? 'Iniciando pasarela Culqi...' : 'Confirmando pedido...' }}</span>
             } @else {
               <span>
                 {{
                   paymentMethod === 'TARJETA_CREDITO'
-                    ? 'Pagar S/ ' + (grandTotal() | number: '1.2-2') + ' con Culqi'
-                    : paymentMethod === 'YAPE_PLIN'
-                      ? 'Confirmar pedido con Yape / Plin'
-                      : paymentMethod === 'CONTRA_ENTREGA'
-                        ? 'Confirmar pedido contra entrega'
-                        : 'Confirmar pedido'
+                    ? 'Pagar S/ ' + (grandTotal() | number: '1.2-2') + ' en línea con Culqi'
+                    : paymentMethod === 'YAPE'
+                      ? 'Confirmar pedido con Yape al recibir (S/ ' + (grandTotal() | number: '1.2-2') + ')'
+                      : paymentMethod === 'PLIN'
+                        ? 'Confirmar pedido con Plin al recibir (S/ ' + (grandTotal() | number: '1.2-2') + ')'
+                        : paymentMethod === 'CONTRA_ENTREGA'
+                          ? 'Confirmar pedido contra entrega (S/ ' + (grandTotal() | number: '1.2-2') + ')'
+                          : 'Confirmar pedido (S/ ' + (grandTotal() | number: '1.2-2') + ')'
                 }}
               </span>
             }
