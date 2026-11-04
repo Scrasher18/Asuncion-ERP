@@ -17,10 +17,10 @@ import { LiveTrackingResponse } from '../../../core/models/telemetry.models';
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div class="relative w-full rounded-2xl overflow-hidden border border-gray-200 bg-white shadow-2xs">
+    <div class="relative w-full rounded-2xl overflow-hidden border border-gray-200 bg-white shadow-2xs z-0" style="isolation: isolate;">
       <!-- Top Live Status Badge -->
       @if (telemetry?.isLive || telemetry?.orderStatus === 'EN_RUTA') {
-        <div class="absolute top-3 left-3 z-[1000] pointer-events-none">
+        <div class="absolute top-3 left-3 z-20 pointer-events-none">
           <div class="inline-flex items-center gap-2 rounded-xl border border-gray-200/80 bg-white/95 px-3 py-1.5 shadow-md backdrop-blur-xs pointer-events-auto">
             <span class="relative flex h-2.5 w-2.5">
               <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>

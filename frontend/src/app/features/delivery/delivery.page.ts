@@ -284,7 +284,7 @@ import { LiveDriverMapComponent } from '../../shared/components/live-driver-map/
 
       <!-- Proof of Delivery Capture Modal -->
       @if (completingOrder(); as target) {
-        <div class="fixed inset-0 z-50 overflow-y-auto bg-gray-900/40 backdrop-blur-xs p-4 flex items-center justify-center">
+        <div class="fixed inset-0 z-[9999] overflow-y-auto bg-gray-900/60 backdrop-blur-xs p-4 flex items-center justify-center" style="isolation: isolate;">
           <div class="w-full max-w-md rounded-2xl border border-gray-200 bg-white shadow-2xl overflow-hidden">
             <div class="border-b border-gray-200 bg-white px-5 py-4 flex items-center justify-between">
               <div>
@@ -459,7 +459,7 @@ import { LiveDriverMapComponent } from '../../shared/components/live-driver-map/
 
       <!-- MODAL DE COBRO CON QR (YAPE / PLIN) EN RUTA -->
       @if (qrCobroOrder(); as qrOrd) {
-        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs animate-fadeIn">
+        <div class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 p-4 backdrop-blur-xs animate-fadeIn" style="isolation: isolate;">
           <div class="relative w-full max-w-sm rounded-3xl bg-white p-5 sm:p-6 shadow-2xl space-y-4 border border-gray-100">
             <!-- Header -->
             <div class="flex items-center justify-between">

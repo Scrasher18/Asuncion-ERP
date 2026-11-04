@@ -25,7 +25,7 @@ const STORAGE_KEY = 'asuncion_driver_ratings';
 const INITIAL_RATINGS: DriverRatingItem[] = [
   {
     id: 'rate-1',
-    orderNumber: 'ASN-2026-0001',
+    orderNumber: 'ASN-HIST-101',
     driverName: 'Miguel Ángel Flores',
     driverEmail: 'motorizado@asuncion.pe',
     customerName: 'Ing. Marco Antonio Vera',
@@ -36,7 +36,7 @@ const INITIAL_RATINGS: DriverRatingItem[] = [
   },
   {
     id: 'rate-2',
-    orderNumber: 'ASN-2026-0002',
+    orderNumber: 'ASN-HIST-102',
     driverName: 'Miguel Ángel Flores',
     driverEmail: 'motorizado@asuncion.pe',
     customerName: 'Roberto Vargas Sánchez',
@@ -47,7 +47,7 @@ const INITIAL_RATINGS: DriverRatingItem[] = [
   },
   {
     id: 'rate-3',
-    orderNumber: 'ASN-2026-0003',
+    orderNumber: 'ASN-HIST-103',
     driverName: 'Miguel Ángel Flores',
     driverEmail: 'motorizado@asuncion.pe',
     customerName: 'Luis Alberto Huerta',
@@ -58,7 +58,7 @@ const INITIAL_RATINGS: DriverRatingItem[] = [
   },
   {
     id: 'rate-4',
-    orderNumber: 'ASN-2026-0004',
+    orderNumber: 'ASN-HIST-104',
     driverName: 'Miguel Ángel Flores',
     driverEmail: 'motorizado@asuncion.pe',
     customerName: 'Pedro Pablo Quispe',

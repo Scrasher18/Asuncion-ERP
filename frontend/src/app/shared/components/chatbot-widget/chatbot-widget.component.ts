@@ -234,18 +234,33 @@ export class ChatbotWidgetComponent {
   }
 
   shouldShow(): boolean {
-    const url = this.currentUrl() || (typeof window !== 'undefined' ? window.location.pathname : '');
-    if (!url) return true;
-    if (
-      url.startsWith('/admin') ||
-      url.startsWith('/delivery') ||
-      url.startsWith('/login') ||
-      url.startsWith('/register') ||
-      url.startsWith('/recuperar-clave') ||
-      url.startsWith('/reset-password')
-    ) {
+    const rawUrl = this.router.url || this.currentUrl() || (typeof window !== 'undefined' ? window.location.pathname : '');
+    const url = (rawUrl || '').toLowerCase();
+
+    // 1. Strictly suppress chatbot on admin, delivery, tracking, checkout, auth, profile, and complaints pages
+    const blockedRoutes = [
+      '/admin',
+      '/delivery',
+      '/reparto',
+      '/track',
+      '/seguimiento',
+      '/checkout',
+      '/login',
+      '/register',
+      '/recuperar-clave',
+      '/reset-password',
+      '/complaints-book',
+      '/libro-reclamaciones',
+      '/profile',
+      '/perfil',
+      '/mis-pedidos',
+    ];
+
+    if (blockedRoutes.some((route) => url.startsWith(route))) {
       return false;
     }
+
+    // 2. Hide when cart drawer is open
     if (this.cart.isDrawerOpen()) {
       return false;
     }

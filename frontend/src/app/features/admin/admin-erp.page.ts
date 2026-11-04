@@ -639,6 +639,119 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                 </div>
               </div>
 
+              <!-- Rendimiento y Calificación de Repartidores Motorizados -->
+              <div class="rounded-2xl border border-gray-200 bg-white p-5 sm:p-6 shadow-2xs space-y-4">
+                <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 pb-3">
+                  <div class="flex items-center gap-3">
+                    <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-600 border border-amber-200 text-lg">
+                      ⭐
+                    </span>
+                    <div>
+                      <h3 class="text-sm font-bold text-gray-900">
+                        Calificación y Rendimiento de Repartidores Motorizados
+                      </h3>
+                      <p class="text-xs text-gray-500">
+                        Evaluación continua del servicio de delivery otorgada por los clientes al recibir sus pedidos.
+                      </p>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <span class="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-bold text-amber-800">
+                      <span>★</span>
+                      <span>Promedio flota: {{ getDriverRatingStats('Miguel Ángel Flores').averageRating }} / 5.0</span>
+                    </span>
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <!-- Motorizado Principal Card -->
+                  <div class="rounded-xl border border-gray-200 bg-gray-50/70 p-4 space-y-3">
+                    <div class="flex items-center justify-between">
+                      <div class="flex items-center gap-2.5">
+                        <div class="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 text-emerald-800 font-bold text-xs">
+                          MF
+                        </div>
+                        <div>
+                          <h4 class="font-bold text-gray-900 text-xs">Miguel Ángel Flores</h4>
+                          <span class="text-[11px] text-gray-500">Motorizado Asunción • Placa 4582-7B</span>
+                        </div>
+                      </div>
+                      <span class="rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 text-[10px] font-bold">
+                        Activo en ruta
+                      </span>
+                    </div>
+
+                    <div class="flex items-center justify-between rounded-lg bg-white p-3 border border-gray-200/80">
+                      <div>
+                        <span class="text-[11px] text-gray-500 block">Puntuación</span>
+                        <div class="flex items-center gap-1">
+                          <span class="text-xl font-black text-amber-600">{{ getDriverRatingStats('Miguel Ángel Flores').averageRating }}</span>
+                          <span class="text-amber-400 text-sm">★★★★★</span>
+                        </div>
+                      </div>
+                      <div class="text-right">
+                        <span class="text-[11px] text-gray-500 block">Entregas evaluadas</span>
+                        <span class="text-base font-bold text-gray-900">{{ getDriverRatingStats('Miguel Ángel Flores').totalReviews }} opiniones</span>
+                      </div>
+                    </div>
+
+                    <div class="space-y-1">
+                      <span class="text-[10px] font-semibold text-gray-500 uppercase tracking-wider block">Cualidades más votadas</span>
+                      <div class="flex flex-wrap gap-1">
+                        <span class="rounded-md bg-white border border-gray-200 px-1.5 py-0.5 text-[10px] font-medium text-gray-700">✓ Muy puntual</span>
+                        <span class="rounded-md bg-white border border-gray-200 px-1.5 py-0.5 text-[10px] font-medium text-gray-700">✓ Repuesto sellado</span>
+                        <span class="rounded-md bg-white border border-gray-200 px-1.5 py-0.5 text-[10px] font-medium text-gray-700">✓ Cobro con QR fácil</span>
+                        <span class="rounded-md bg-white border border-gray-200 px-1.5 py-0.5 text-[10px] font-medium text-gray-700">✓ Amable</span>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      (click)="openDriverRatingsModal('Miguel Ángel Flores')"
+                      class="w-full rounded-lg bg-white border border-gray-300 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-100 hover:text-orange-600 transition cursor-pointer"
+                    >
+                      Ver detalle de opiniones
+                    </button>
+                  </div>
+
+                  <!-- Feed de Últimas Reseñas de Clientes -->
+                  <div class="md:col-span-2 rounded-xl border border-gray-200 bg-white p-4 space-y-2.5 flex flex-col justify-between">
+                    <div>
+                      <div class="flex items-center justify-between pb-2 border-b border-gray-100">
+                        <span class="text-xs font-bold text-gray-900">Últimos comentarios de clientes sobre el motorizado</span>
+                        <span class="text-[11px] text-gray-500">Actualizado en tiempo real</span>
+                      </div>
+                      <div class="space-y-2 pt-2 max-h-48 overflow-y-auto pr-1">
+                        @for (rev of driverRatingService.ratings().slice(0, 3); track rev.id) {
+                          <div class="rounded-lg bg-gray-50 p-2.5 text-xs space-y-1 border border-gray-100">
+                            <div class="flex items-center justify-between">
+                              <span class="font-bold text-gray-900">{{ rev.customerName }}</span>
+                              <div class="flex items-center gap-1.5">
+                                <span class="text-amber-500 font-bold text-xs">{{ '★'.repeat(rev.stars) }}</span>
+                                <span class="text-[10px] text-gray-400 font-mono">{{ rev.orderNumber }}</span>
+                              </div>
+                            </div>
+                            @if (rev.comment) {
+                              <p class="text-gray-600 text-[11px] italic">"{{ rev.comment }}"</p>
+                            }
+                          </div>
+                        }
+                      </div>
+                    </div>
+                    <div class="pt-2 text-right">
+                      <button
+                        type="button"
+                        (click)="openDriverRatingsModal('Miguel Ángel Flores')"
+                        class="text-xs font-semibold text-orange-600 hover:text-orange-700 inline-flex items-center gap-1 cursor-pointer"
+                      >
+                        <span>Ver todas las calificaciones ({{ driverRatingService.ratings().length }})</span>
+                        <span>→</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <!-- High-Rotation vs Low-Rotation Inventory Tables -->
               <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <!-- High Rotation / Más Vendidos -->
@@ -3883,28 +3996,65 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
     }
     this.paymentService.fetchStoreWalletConfig().subscribe({
       next: (cfg) => {
-        this.storePaymentMethods = { ...this.storePaymentMethods, ...cfg };
+        this.storePaymentMethods = {
+          ...this.storePaymentMethods,
+          ...cfg,
+          yapeQrImageUrl: cfg.yapeQrImageUrl || this.storePaymentMethods.yapeQrImageUrl,
+          plinQrImageUrl: cfg.plinQrImageUrl || this.storePaymentMethods.plinQrImageUrl,
+        };
       },
     });
   }
 
   
-  onUploadWalletQr(event: Event, type: 'YAPE' | 'PLIN'): void {
+  private compressImageFile(file: File, maxWidth = 600, maxHeight = 600, quality = 0.85): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          let { width, height } = img;
+          if (width > maxWidth || height > maxHeight) {
+            const ratio = Math.min(maxWidth / width, maxHeight / height);
+            width = Math.round(width * ratio);
+            height = Math.round(height * ratio);
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            resolve(reader.result as string);
+            return;
+          }
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        };
+        img.onerror = () => resolve(reader.result as string);
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = (err) => reject(err);
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async onUploadWalletQr(event: Event, type: 'YAPE' | 'PLIN'): Promise<void> {
     const input = event.target as HTMLInputElement;
     if (!input.files || input.files.length === 0) return;
     const file = input.files[0];
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result as string;
+    try {
+      const compressedBase64 = await this.compressImageFile(file, 600, 600, 0.85);
       if (type === 'YAPE') {
-        this.storePaymentMethods.yapeQrImageUrl = result;
+        this.storePaymentMethods.yapeQrImageUrl = compressedBase64;
       } else {
-        this.storePaymentMethods.plinQrImageUrl = result;
+        this.storePaymentMethods.plinQrImageUrl = compressedBase64;
       }
       this.saveStorePaymentMethods();
-      this.toast.success('QR Actualizado', `Se cargó la imagen QR de ${type} exitosamente.`);
-    };
-    reader.readAsDataURL(file);
+      this.toast.success('QR Actualizado', `Se optimizó y guardó la imagen oficial de ${type} exitosamente.`);
+    } catch (e) {
+      console.error('Error al procesar imagen QR:', e);
+      this.toast.error('Error al subir imagen', 'No se pudo procesar la foto seleccionada.');
+    }
   }
 
   downloadOrderPdf(order: Order): void {
@@ -5726,7 +5876,11 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
       .getUsers()
       .pipe(finalize(() => this.loadingStaffUsers.set(false)))
       .subscribe({
-        next: (users) => this.staffUsers.set(users),
+        next: (users) => {
+          // Strictly exclude customer accounts (CLIENTE / ROLE_CLIENTE) from staff payroll
+          const staffOnly = users.filter((u) => u.role !== 'CLIENTE' && u.role !== 'ROLE_CLIENTE');
+          this.staffUsers.set(staffOnly);
+        },
         error: (err) =>
           this.toast.error('Error al cargar personal', err?.error?.message || 'No se pudo obtener la lista de usuarios.'),
       });
@@ -5740,8 +5894,10 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
     const q = this.userSearchQuery.trim().toLowerCase();
     const roleFilter = this.userRoleFilter;
 
-    return this.staffUsers().filter((u) => {
-      const matchesRole = roleFilter === 'TODOS' || u.role === roleFilter;
+    return this.staffUsers()
+      .filter((u) => u.role !== 'CLIENTE' && u.role !== 'ROLE_CLIENTE')
+      .filter((u) => {
+        const matchesRole = roleFilter === 'TODOS' || u.role === roleFilter;
       const matchesQuery =
         !q ||
         u.fullName.toLowerCase().includes(q) ||

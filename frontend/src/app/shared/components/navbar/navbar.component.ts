@@ -125,7 +125,7 @@ import {
               <!-- Notifications Popover Dropdown -->
               @if (notifOpen()) {
                 <div
-                  class="absolute right-0 mt-2 w-80 sm:w-96 rounded-2xl border border-gray-200 bg-white shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+                  class="fixed left-3 right-3 top-16 sm:absolute sm:left-auto sm:right-0 sm:top-auto sm:mt-2 sm:w-96 max-w-sm sm:max-w-none mx-auto sm:mx-0 rounded-2xl border border-gray-200 bg-white shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-150"
                   (click)="$event.stopPropagation()"
                 >
                   <!-- Popover Header -->
@@ -182,7 +182,7 @@ import {
                   </div>
 
                   <!-- Filter Tabs -->
-                  <div class="flex items-center gap-1 border-b border-gray-100 bg-white px-3 py-2 text-xs">
+                  <div class="flex items-center gap-1 border-b border-gray-100 bg-white px-3 py-2 text-xs overflow-x-auto scrollbar-none">
                     <button
                       type="button"
                       (click)="notifFilter.set('ALL')"
