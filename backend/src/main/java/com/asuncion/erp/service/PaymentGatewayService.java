@@ -761,7 +761,14 @@ public class PaymentGatewayService {
                 cfg.getNiubizMerchantId(),
                 cfg.getNiubizPassword() != null && !cfg.getNiubizPassword().isBlank(),
                 cfg.getEnvironment(),
-                cfg.getUpdatedAt()
+                cfg.getUpdatedAt(),
+                cfg.getYapePhone(),
+                cfg.getYapeHolder(),
+                cfg.getYapeQrImageUrl(),
+                cfg.getPlinPhone(),
+                cfg.getPlinHolder(),
+                cfg.getPlinQrImageUrl(),
+                cfg.getWalletInstructions()
         );
     }
 
@@ -782,6 +789,13 @@ public class PaymentGatewayService {
         if (req.niubizPassword() != null && !req.niubizPassword().isBlank()) cfg.setNiubizPassword(req.niubizPassword().trim());
 
         if (req.environment() != null) cfg.setEnvironment(req.environment().trim().toUpperCase(Locale.ROOT));
+        if (req.yapePhone() != null) cfg.setYapePhone(req.yapePhone().trim());
+        if (req.yapeHolder() != null) cfg.setYapeHolder(req.yapeHolder().trim());
+        if (req.yapeQrImageUrl() != null) cfg.setYapeQrImageUrl(req.yapeQrImageUrl());
+        if (req.plinPhone() != null) cfg.setPlinPhone(req.plinPhone().trim());
+        if (req.plinHolder() != null) cfg.setPlinHolder(req.plinHolder().trim());
+        if (req.plinQrImageUrl() != null) cfg.setPlinQrImageUrl(req.plinQrImageUrl());
+        if (req.walletInstructions() != null) cfg.setWalletInstructions(req.walletInstructions().trim());
         cfg.setUpdatedAt(Instant.now());
 
         configRepository.save(cfg);

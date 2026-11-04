@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, of } from 'rxjs';
+import { map, catchError } from 'rxjs/operators';
 import { ApiConfigService } from './api-config.service';
 import {
   CardAnalysisResult,
@@ -191,14 +192,14 @@ export interface StoreWalletConfig {
 
 export const DEFAULT_WALLET_CONFIG: StoreWalletConfig = {
   yapeEnabled: true,
-  yapePhone: '999 411 501',
+  yapePhone: '922779157',
   yapeHolder: 'Repuestos Automotrices Asunción S.A.C.',
   yapeQrImageUrl: '/images/qr/qr-yape-default.svg',
   plinEnabled: true,
-  plinPhone: '999 411 501',
+  plinPhone: '922779157',
   plinHolder: 'Repuestos Automotrices Asunción S.A.C.',
   plinQrImageUrl: '/images/qr/qr-plin-default.svg',
-  walletInstructions: 'Envía la constancia o captura de tu pago al WhatsApp +51 999 411 501 indicando tu N° de Pedido.',
+  walletInstructions: 'Envía la constancia o captura de tu pago al WhatsApp +51 922779157 indicando tu N° de Pedido.',
   bcpEnabled: true,
   bcpAccount: '193-98765432-0-12',
   bcpCci: '002-193-009876543201-12',
@@ -399,23 +400,99 @@ export class PaymentService {
       });
 
       let handled = false;
+      let checkInterval: any = null;
+
+      const finishClose = () => {
+        if (handled) return;
+        handled = true;
+        cleanup();
+        this.closeCulqiModal();
+        resolve({ closed: true });
+      };
+
+      const cleanup = () => {
+        if (checkInterval) {
+          clearInterval(checkInterval);
+          checkInterval = null;
+        }
+        if (typeof window !== 'undefined') {
+          window.removeEventListener('message', onMessage);
+          window.removeEventListener('keydown', onKeyDown);
+        }
+      };
+
+      const onMessage = (event: MessageEvent) => {
+        if (handled) return;
+        const data = event.data;
+        if (!data) return;
+        if (typeof data === 'string') {
+          const lower = data.toLowerCase();
+          if (lower.includes('close') || lower.includes('cerrar') || lower.includes('closed') || lower.includes('cancel')) {
+            finishClose();
+          }
+        } else if (typeof data === 'object') {
+          try {
+            const str = JSON.stringify(data).toLowerCase();
+            if (str.includes('close') || str.includes('cerrar') || lowerStr(str)) {
+              finishClose();
+            }
+          } catch (e) {}
+        }
+      };
+
+      const lowerStr = (s: string) => s.includes('close') || s.includes('cerrar') || s.includes('checkout_closed');
+
+      const onKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'Escape' || e.key === 'Esc') {
+          finishClose();
+        }
+      };
+
+      if (typeof window !== 'undefined') {
+        window.addEventListener('message', onMessage);
+        window.addEventListener('keydown', onKeyDown);
+
+        let frameAppeared = false;
+        checkInterval = setInterval(() => {
+          if (handled) {
+            cleanup();
+            return;
+          }
+          const frame = document.querySelector(
+            '#culqi_checkout_frame, #culqi-container, iframe[src*="culqi.com"], iframe[src*="checkout.culqi.com"], .culqi_overlay'
+          ) as HTMLElement | null;
+
+          if (frame) {
+            frameAppeared = true;
+            try {
+              const style = window.getComputedStyle(frame);
+              if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') {
+                finishClose();
+              }
+            } catch (e) {}
+          } else if (frameAppeared) {
+            finishClose();
+          }
+        }, 300);
+      }
 
       win.culqi = () => {
         if (handled) return;
         if (Culqi.token) {
           handled = true;
+          cleanup();
           this.closeCulqiModal();
           resolve({ token: Culqi.token });
         } else if (Culqi.order) {
           handled = true;
+          cleanup();
           this.closeCulqiModal();
           resolve({ order: Culqi.order });
         } else if (Culqi.close) {
-          handled = true;
-          this.closeCulqiModal();
-          resolve({ closed: true });
+          finishClose();
         } else if (Culqi.error) {
           handled = true;
+          cleanup();
           resolve({ error: Culqi.error });
         }
       };
@@ -496,12 +573,19 @@ export class PaymentService {
   getRecentTransactions(): Observable<PaymentTransactionDto[]> {
     return this.http.get<PaymentTransactionDto[]>(`${this.adminUrl}/transactions`);
   }
+  private cachedWalletConfig: StoreWalletConfig | null = null;
+
   getStoreWalletConfig(): StoreWalletConfig {
+    if (this.cachedWalletConfig) {
+      return this.cachedWalletConfig;
+    }
     if (typeof window !== 'undefined') {
       try {
         const stored = localStorage.getItem('asuncion_store_payment_methods');
         if (stored) {
-          return { ...DEFAULT_WALLET_CONFIG, ...JSON.parse(stored) };
+          const parsedCfg = { ...DEFAULT_WALLET_CONFIG, ...JSON.parse(stored) };
+          this.cachedWalletConfig = parsedCfg;
+          return parsedCfg;
         }
       } catch (e) {}
     }
@@ -509,10 +593,32 @@ export class PaymentService {
   }
 
   saveStoreWalletConfig(cfg: StoreWalletConfig): void {
+    this.cachedWalletConfig = cfg;
     if (typeof window !== 'undefined') {
       try {
         localStorage.setItem('asuncion_store_payment_methods', JSON.stringify(cfg));
       } catch (e) {}
     }
+  }
+
+  fetchStoreWalletConfig(): Observable<StoreWalletConfig> {
+    return this.getPublicConfig().pipe(
+      map((cfg) => {
+        const current = this.getStoreWalletConfig();
+        const updated: StoreWalletConfig = {
+          ...current,
+          yapePhone: cfg.yapePhone || current.yapePhone,
+          yapeHolder: cfg.yapeHolder || current.yapeHolder,
+          yapeQrImageUrl: cfg.yapeQrImageUrl || current.yapeQrImageUrl,
+          plinPhone: cfg.plinPhone || current.plinPhone,
+          plinHolder: cfg.plinHolder || current.plinHolder,
+          plinQrImageUrl: cfg.plinQrImageUrl || current.plinQrImageUrl,
+          walletInstructions: cfg.walletInstructions || current.walletInstructions,
+        };
+        this.saveStoreWalletConfig(updated);
+        return updated;
+      }),
+      catchError(() => of(this.getStoreWalletConfig()))
+    );
   }
 }

@@ -50,6 +50,27 @@ public class SystemPaymentConfig {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt = Instant.now();
 
+    @Column(name = "yape_phone", length = 50)
+    private String yapePhone = "922779157";
+
+    @Column(name = "yape_holder", length = 150)
+    private String yapeHolder = "Repuestos Automotrices Asunción S.A.C.";
+
+    @Column(name = "yape_qr_image_url", columnDefinition = "TEXT")
+    private String yapeQrImageUrl;
+
+    @Column(name = "plin_phone", length = 50)
+    private String plinPhone = "922779157";
+
+    @Column(name = "plin_holder", length = 150)
+    private String plinHolder = "Repuestos Automotrices Asunción S.A.C.";
+
+    @Column(name = "plin_qr_image_url", columnDefinition = "TEXT")
+    private String plinQrImageUrl;
+
+    @Column(name = "wallet_instructions", columnDefinition = "TEXT")
+    private String walletInstructions = "Envía la constancia o captura de tu pago al WhatsApp +51 922779157 indicando tu N° de Pedido.";
+
     public SystemPaymentConfig() {
     }
 
@@ -155,5 +176,61 @@ public class SystemPaymentConfig {
 
     public void setUpdatedAt(Instant updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public String getYapePhone() {
+        return yapePhone;
+    }
+
+    public void setYapePhone(String yapePhone) {
+        this.yapePhone = yapePhone;
+    }
+
+    public String getYapeHolder() {
+        return yapeHolder;
+    }
+
+    public void setYapeHolder(String yapeHolder) {
+        this.yapeHolder = yapeHolder;
+    }
+
+    public String getYapeQrImageUrl() {
+        return yapeQrImageUrl;
+    }
+
+    public void setYapeQrImageUrl(String yapeQrImageUrl) {
+        this.yapeQrImageUrl = yapeQrImageUrl;
+    }
+
+    public String getPlinPhone() {
+        return plinPhone;
+    }
+
+    public void setPlinPhone(String plinPhone) {
+        this.plinPhone = plinPhone;
+    }
+
+    public String getPlinHolder() {
+        return plinHolder;
+    }
+
+    public void setPlinHolder(String plinHolder) {
+        this.plinHolder = plinHolder;
+    }
+
+    public String getPlinQrImageUrl() {
+        return plinQrImageUrl;
+    }
+
+    public void setPlinQrImageUrl(String plinQrImageUrl) {
+        this.plinQrImageUrl = plinQrImageUrl;
+    }
+
+    public String getWalletInstructions() {
+        return walletInstructions;
+    }
+
+    public void setWalletInstructions(String walletInstructions) {
+        this.walletInstructions = walletInstructions;
     }
 }

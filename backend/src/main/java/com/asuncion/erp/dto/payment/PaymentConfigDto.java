@@ -13,6 +13,13 @@ public record PaymentConfigDto(
         String niubizMerchantId,
         boolean hasNiubizPassword,
         String environment, // SANDBOX or PRODUCTION
-        Instant updatedAt
+        Instant updatedAt,
+        String yapePhone,
+        String yapeHolder,
+        String yapeQrImageUrl,
+        String plinPhone,
+        String plinHolder,
+        String plinQrImageUrl,
+        String walletInstructions
 ) {
 }

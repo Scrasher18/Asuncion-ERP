@@ -11,6 +11,13 @@ public record PaymentConfigUpdateRequest(
         String niubizMerchantId,
         String niubizUser,
         String niubizPassword,
-        String environment
+        String environment,
+        String yapePhone,
+        String yapeHolder,
+        String yapeQrImageUrl,
+        String plinPhone,
+        String plinHolder,
+        String plinQrImageUrl,
+        String walletInstructions
 ) {
 }

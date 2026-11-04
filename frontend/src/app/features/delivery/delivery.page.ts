@@ -615,6 +615,9 @@ export class DeliveryPageComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.walletConfig.set(this.paymentService.getStoreWalletConfig());
+    this.paymentService.fetchStoreWalletConfig().subscribe({
+      next: (cfg) => this.walletConfig.set(cfg),
+    });
     this.loadDeliveryOrders();
   }
 
@@ -762,6 +765,9 @@ export class DeliveryPageComponent implements OnInit, OnDestroy {
   
   openQrCobroModal(ord: Order): void {
     this.walletConfig.set(this.paymentService.getStoreWalletConfig());
+    this.paymentService.fetchStoreWalletConfig().subscribe({
+      next: (cfg) => this.walletConfig.set(cfg),
+    });
     if (ord.paymentMethod === 'PLIN') {
       this.selectedQrTab.set('PLIN');
     } else {

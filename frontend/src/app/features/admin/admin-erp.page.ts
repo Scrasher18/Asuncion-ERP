@@ -3825,14 +3825,14 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
   storePaymentMethods = {
     // Billeteras Digitales
     yapeEnabled: true,
-    yapePhone: '999 411 501',
+    yapePhone: '922779157',
     yapeHolder: 'Repuestos Automotrices Asunción S.A.C.',
     yapeQrImageUrl: '/images/qr/qr-yape-default.svg',
     plinEnabled: true,
-    plinPhone: '999 411 501',
+    plinPhone: '922779157',
     plinHolder: 'Repuestos Automotrices Asunción S.A.C.',
     plinQrImageUrl: '/images/qr/qr-plin-default.svg',
-    walletInstructions: 'Envía la constancia o captura de tu pago al WhatsApp +51 999 411 501 indicando tu N° de Pedido.',
+    walletInstructions: 'Envía la constancia o captura de tu pago al WhatsApp +51 922779157 indicando tu N° de Pedido.',
     
     // Transferencias Bancarias
     bcpEnabled: true,
@@ -3870,6 +3870,11 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
         console.warn('Could not parse stored payment methods:', e);
       }
     }
+    this.paymentService.fetchStoreWalletConfig().subscribe({
+      next: (cfg) => {
+        this.storePaymentMethods = { ...this.storePaymentMethods, ...cfg };
+      },
+    });
   }
 
   
@@ -3897,12 +3902,32 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
   }
 
   saveStorePaymentMethods(): void {
-    if (typeof window !== 'undefined') {
-      try {
-        localStorage.setItem('asuncion_store_payment_methods', JSON.stringify(this.storePaymentMethods));
-      } catch (e) {
-        console.warn('Could not save payment methods:', e);
-      }
+    this.paymentService.saveStoreWalletConfig(this.storePaymentMethods);
+    if (this.auth.hasAnyRole(['ADMIN'])) {
+      const payload: PaymentConfigUpdateRequest = {
+        culqiEnabled: Boolean(this.paymentConfigForm?.culqiEnabled ?? true),
+        culqiPublicKey: (this.paymentConfigForm?.culqiPublicKey || '').trim(),
+        culqiSecretKey: (this.paymentConfigForm?.culqiSecretKey || '').trim(),
+        pagoefectivoEnabled: Boolean(this.paymentConfigForm?.pagoefectivoEnabled ?? false),
+        pagoefectivoServiceId: (this.paymentConfigForm?.pagoefectivoServiceId || '').trim(),
+        pagoefectivoSecretKey: (this.paymentConfigForm?.pagoefectivoSecretKey || '').trim(),
+        niubizEnabled: Boolean(this.paymentConfigForm?.niubizEnabled ?? false),
+        niubizMerchantId: (this.paymentConfigForm?.niubizMerchantId || '').trim(),
+        niubizUser: (this.paymentConfigForm?.niubizUser || '').trim(),
+        niubizPassword: (this.paymentConfigForm?.niubizPassword || '').trim(),
+        environment: this.paymentConfigForm?.environment || 'SANDBOX',
+        yapePhone: (this.storePaymentMethods.yapePhone || '').trim(),
+        yapeHolder: (this.storePaymentMethods.yapeHolder || '').trim(),
+        yapeQrImageUrl: this.storePaymentMethods.yapeQrImageUrl || '',
+        plinPhone: (this.storePaymentMethods.plinPhone || '').trim(),
+        plinHolder: (this.storePaymentMethods.plinHolder || '').trim(),
+        plinQrImageUrl: this.storePaymentMethods.plinQrImageUrl || '',
+        walletInstructions: (this.storePaymentMethods.walletInstructions || '').trim(),
+      };
+      this.paymentService.updateAdminConfig(payload).subscribe({
+        next: () => {},
+        error: (err) => console.warn('Could not sync payment config with server:', err),
+      });
     }
   }
 
@@ -5548,6 +5573,14 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
           environment: cfg.environment || 'SANDBOX',
           updatedAt: cfg.updatedAt,
         };
+        if (cfg.yapePhone) this.storePaymentMethods.yapePhone = cfg.yapePhone;
+        if (cfg.yapeHolder) this.storePaymentMethods.yapeHolder = cfg.yapeHolder;
+        if (cfg.yapeQrImageUrl) this.storePaymentMethods.yapeQrImageUrl = cfg.yapeQrImageUrl;
+        if (cfg.plinPhone) this.storePaymentMethods.plinPhone = cfg.plinPhone;
+        if (cfg.plinHolder) this.storePaymentMethods.plinHolder = cfg.plinHolder;
+        if (cfg.plinQrImageUrl) this.storePaymentMethods.plinQrImageUrl = cfg.plinQrImageUrl;
+        if (cfg.walletInstructions) this.storePaymentMethods.walletInstructions = cfg.walletInstructions;
+        this.paymentService.saveStoreWalletConfig(this.storePaymentMethods);
       },
       error: (err) => {
         this.toast.error(
@@ -5572,6 +5605,13 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
       niubizUser: (this.paymentConfigForm.niubizUser || '').trim(),
       niubizPassword: (this.paymentConfigForm.niubizPassword || '').trim(),
       environment: this.paymentConfigForm.environment || 'SANDBOX',
+      yapePhone: (this.storePaymentMethods.yapePhone || '').trim(),
+      yapeHolder: (this.storePaymentMethods.yapeHolder || '').trim(),
+      yapeQrImageUrl: this.storePaymentMethods.yapeQrImageUrl || '',
+      plinPhone: (this.storePaymentMethods.plinPhone || '').trim(),
+      plinHolder: (this.storePaymentMethods.plinHolder || '').trim(),
+      plinQrImageUrl: this.storePaymentMethods.plinQrImageUrl || '',
+      walletInstructions: (this.storePaymentMethods.walletInstructions || '').trim(),
     };
 
     this.paymentService

@@ -125,6 +125,9 @@ export class CheckoutPageComponent implements OnInit, OnDestroy {
     }
 
     this.walletConfig.set(this.paymentService.getStoreWalletConfig());
+    this.paymentService.fetchStoreWalletConfig().subscribe({
+      next: (cfg) => this.walletConfig.set(cfg),
+    });
     this.logisticsService.getBranches().subscribe({
       next: (list) => {
         if (list.length > 0) {
@@ -490,15 +493,20 @@ export class CheckoutPageComponent implements OnInit, OnDestroy {
       } else if (res.error) {
         this.paymentService.closeCulqiModal();
         this.isProcessingPayment.set(false);
+        this.isSubmitting.set(false);
         const userMsg = res.error.user_message || res.error.merchant_message || 'Error en pasarela Culqi.';
         this.toast.error('Error en Culqi', userMsg);
-      } else if (res.closed) {
-        // EL USUARIO CERRÓ LA VENTANA DE CULQI SIN PAGAR: NO SE CREA NINGÚN PEDIDO
+      } else {
+        // Modal cerrado o cancelado por el usuario
+        this.paymentService.closeCulqiModal();
         this.isProcessingPayment.set(false);
+        this.isSubmitting.set(false);
         this.toast.info('Pasarela Culqi cerrada', 'No se ha realizado ningún cobro ni se generó ningún pedido.');
       }
     } catch (e: any) {
+      this.paymentService.closeCulqiModal();
       this.isProcessingPayment.set(false);
+      this.isSubmitting.set(false);
       this.toast.error('Error inesperado', e?.message || 'No se pudo abrir Culqi Checkout.');
     }
   }

@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { jsPDF } from 'jspdf';
 import { Order } from '../models/api.models';
+import { COMPANY_LOGO_BASE64 } from '../constants/company-logo.constant';
 
 @Injectable({ providedIn: 'root' })
 export class PdfInvoiceService {
@@ -15,61 +16,63 @@ export class PdfInvoiceService {
     const docTitle = isFactura ? 'FACTURA ELECTRÓNICA' : 'BOLETA DE VENTA ELECTRÓNICA';
     const docSeries = (isFactura ? 'F001-' : 'B001-') + order.orderNumber.replace(/^[A-Z]+-/, '');
 
-    // Colors
-    const primaryColor = '#EA580C'; // Asunción Orange
-    const darkColor = '#0F172A'; // Slate 900
-    const grayColor = '#64748B'; // Slate 500
-    const borderColor = '#E2E8F0'; // Slate 200
-
     // Top Header Banner
     doc.setFillColor(15, 23, 42); // #0F172A
-    doc.rect(0, 0, 210, 8, 'F');
+    doc.rect(0, 0, 210, 6, 'F');
 
-    // Company Brand Name & Info
+    // 1. Company Logo (Top-Left)
+    try {
+      doc.addImage(COMPANY_LOGO_BASE64, 'JPEG', 14, 11, 24, 24);
+    } catch (e) {
+      console.warn('Could not render logo in PDF:', e);
+    }
+
+    // 2. Company Brand Name & Info (Next to logo, carefully aligned to never collide with RUC box)
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(16);
+    doc.setFontSize(12.5);
     doc.setTextColor(234, 88, 12); // #EA580C
-    doc.text('REPUESTOS AUTOMOTRICES ASUNCIÓN S.A.C.', 14, 22);
+    doc.text('REPUESTOS AUTOMOTRICES', 41, 17);
+    doc.text('ASUNCIÓN S.A.C.', 41, 22.5);
 
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8.5);
+    doc.setFontSize(7.5);
     doc.setTextColor(100, 116, 139);
-    doc.text('Venta de Autopartes, Filtros, Bujías y Repuestos Multimarca para Camiones y Autos', 14, 27);
-    doc.text('Sede Central: Av. Sta. Ana 441, Santa Anita, Lima - Perú', 14, 31);
-    doc.text('Teléfonos: +51 999 411 501 / (01) 362-8900  |  ventas@asuncion.pe', 14, 35);
-    doc.text('Portal Web: https://asucionfrontend.vercel.app', 14, 39);
+    doc.text('Venta de Autopartes, Filtros, Bujías y Repuestos Multimarca', 41, 27);
+    doc.text('Sede Central: Av. Sta. Ana 441, Santa Anita, Lima - Perú', 41, 31);
+    doc.text('Teléfonos: +51 922 779 157 / (01) 362-8900  |  ventas@asuncion.pe', 41, 35);
+    doc.text('Portal Web: https://asucionfrontend.vercel.app', 41, 39);
 
-    // Document Box (RUC & Tipo de comprobante)
+    // 3. Document Box (RUC & Tipo de comprobante)
     doc.setDrawColor(234, 88, 12);
     doc.setLineWidth(0.8);
     doc.setFillColor(255, 247, 237); // Orange 50
-    doc.roundedRect(132, 14, 64, 28, 2, 2, 'FD');
+    doc.roundedRect(132, 11, 64, 29, 2, 2, 'FD');
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10.5);
     doc.setTextColor(15, 23, 42);
-    doc.text('R.U.C. 20601234567', 164, 21, { align: 'center' });
+    doc.text('R.U.C. 20601234567', 164, 18, { align: 'center' });
 
     doc.setFillColor(234, 88, 12);
-    doc.rect(132, 24, 64, 7.5, 'F');
-    doc.setFontSize(9);
+    doc.rect(132, 21.5, 64, 7.5, 'F');
+    doc.setFontSize(8.5);
     doc.setTextColor(255, 255, 255);
-    doc.text(docTitle, 164, 29, { align: 'center' });
+    doc.text(docTitle, 164, 26.5, { align: 'center' });
 
     doc.setFontSize(11);
     doc.setTextColor(234, 88, 12);
-    doc.text(docSeries, 164, 38, { align: 'center' });
+    doc.text(docSeries, 164, 35.5, { align: 'center' });
 
     // Horizontal separator
     doc.setDrawColor(226, 232, 240);
     doc.setLineWidth(0.4);
-    doc.line(14, 46, 196, 46);
+    doc.line(14, 44, 196, 44);
 
     // Customer & Transaction Details Box
     doc.setFillColor(248, 250, 252);
-    doc.roundedRect(14, 49, 182, 34, 1.5, 1.5, 'F');
+    doc.roundedRect(14, 47, 182, 34, 1.5, 1.5, 'F');
     doc.setDrawColor(226, 232, 240);
-    doc.roundedRect(14, 49, 182, 34, 1.5, 1.5, 'D');
+    doc.roundedRect(14, 47, 182, 34, 1.5, 1.5, 'D');
 
     const customerName = order.recipientName || order.customerName || 'Cliente General';
     const docNumber = isFactura
@@ -83,58 +86,58 @@ export class PdfInvoiceService {
     doc.setFontSize(8.5);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(15, 23, 42);
-    doc.text('Señor(es):', 18, 56);
+    doc.text('Señor(es):', 18, 54);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(51, 65, 85);
-    doc.text(customerName, 36, 56);
+    doc.text(customerName, 36, 54);
 
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(15, 23, 42);
-    doc.text(isFactura ? 'RUC:' : 'DNI / Doc:', 18, 62);
+    doc.text(isFactura ? 'RUC:' : 'DNI / Doc:', 18, 60);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(51, 65, 85);
-    doc.text(docNumber, 36, 62);
+    doc.text(docNumber, 36, 60);
 
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(15, 23, 42);
-    doc.text('Dirección:', 18, 68);
+    doc.text('Dirección:', 18, 66);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(51, 65, 85);
     const addr = order.deliveryAddress || 'Recojo en Almacén Central Santa Anita';
-    doc.text(doc.splitTextToSize(addr, 95), 36, 68);
+    doc.text(doc.splitTextToSize(addr, 95), 36, 66);
 
     // Right Column in customer box
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(15, 23, 42);
-    doc.text('Fecha Emisión:', 135, 56);
+    doc.text('Fecha Emisión:', 135, 54);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(51, 65, 85);
-    doc.text(formattedDate, 162, 56);
+    doc.text(formattedDate, 162, 54);
 
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(15, 23, 42);
-    doc.text('Moneda:', 135, 62);
+    doc.text('Moneda:', 135, 60);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(51, 65, 85);
-    doc.text('SOLES (PEN / S/)', 162, 62);
+    doc.text('SOLES (PEN / S/)', 162, 60);
 
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(15, 23, 42);
-    doc.text('Forma de Pago:', 135, 68);
+    doc.text('Forma de Pago:', 135, 66);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(51, 65, 85);
     const methodClean = (order.paymentMethod || 'CONTADO').replace(/_/g, ' ');
-    doc.text(methodClean, 162, 68);
+    doc.text(methodClean, 162, 66);
 
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(15, 23, 42);
-    doc.text('Modalidad:', 135, 74);
+    doc.text('Modalidad:', 135, 72);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(51, 65, 85);
-    doc.text(order.deliveryType === 'DELIVERY' ? 'Envío a Domicilio' : 'Recojo en Mostrador', 162, 74);
+    doc.text(order.deliveryType === 'DELIVERY' ? 'Envío a Domicilio' : 'Recojo en Mostrador', 162, 72);
 
     // Table Header
-    let yPos = 90;
+    let yPos = 86;
     doc.setFillColor(234, 88, 12);
     doc.roundedRect(14, yPos, 182, 7.5, 1, 1, 'F');
 
@@ -242,7 +245,7 @@ export class PdfInvoiceService {
       doc.text('Repartidor asignado: ' + order.assignedDriverName, 14, yPos + 21);
     }
 
-    // QR Code Stamp simulation & Legal Footer
+    // Legal Footer
     const footerY = 272;
     doc.setDrawColor(226, 232, 240);
     doc.line(14, footerY, 196, footerY);

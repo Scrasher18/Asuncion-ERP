@@ -138,6 +138,13 @@ export interface PaymentConfigDto {
   hasNiubizPassword: boolean;
   environment: 'SANDBOX' | 'PRODUCTION';
   updatedAt: string;
+  yapePhone?: string;
+  yapeHolder?: string;
+  yapeQrImageUrl?: string;
+  plinPhone?: string;
+  plinHolder?: string;
+  plinQrImageUrl?: string;
+  walletInstructions?: string;
 }
 
 export interface PaymentConfigUpdateRequest {
@@ -152,6 +159,13 @@ export interface PaymentConfigUpdateRequest {
   niubizUser?: string;
   niubizPassword?: string;
   environment: string;
+  yapePhone?: string;
+  yapeHolder?: string;
+  yapeQrImageUrl?: string;
+  plinPhone?: string;
+  plinHolder?: string;
+  plinQrImageUrl?: string;
+  walletInstructions?: string;
 }
 
 export interface PaymentTransactionDto {
