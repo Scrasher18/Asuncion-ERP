@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, ElementRef, inject, signal, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { NavigationEnd, Router } from '@angular/router';
 import { finalize } from 'rxjs';
 import { Order, Part } from '../../../core/models/api.models';
 import { AuthService } from '../../../core/services/auth.service';
@@ -24,6 +24,7 @@ interface ChatMessageItem {
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
+    @if (shouldShow()) {
     <div class="fixed bottom-20 right-4 lg:bottom-6 lg:right-6 z-40 flex flex-col items-end">
       <!-- Chat Window -->
       @if (isOpen()) {
@@ -218,9 +219,39 @@ interface ChatMessageItem {
         </span>
       </button>
     </div>
+    }
   `,
 })
 export class ChatbotWidgetComponent {
+  readonly currentUrl = signal<string>(typeof window !== 'undefined' ? window.location.pathname : '');
+
+  constructor() {
+    this.router.events.subscribe((event) => {
+      if (event instanceof NavigationEnd) {
+        this.currentUrl.set(event.urlAfterRedirects || event.url);
+      }
+    });
+  }
+
+  shouldShow(): boolean {
+    const url = this.currentUrl() || (typeof window !== 'undefined' ? window.location.pathname : '');
+    if (!url) return true;
+    if (
+      url.startsWith('/admin') ||
+      url.startsWith('/delivery') ||
+      url.startsWith('/login') ||
+      url.startsWith('/register') ||
+      url.startsWith('/recuperar-clave') ||
+      url.startsWith('/reset-password')
+    ) {
+      return false;
+    }
+    if (this.cart.isDrawerOpen()) {
+      return false;
+    }
+    return true;
+  }
+
   readonly auth = inject(AuthService);
   private readonly chatbotService = inject(ChatbotService);
   readonly cart = inject(CartService);

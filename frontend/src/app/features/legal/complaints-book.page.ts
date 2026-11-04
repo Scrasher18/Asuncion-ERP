@@ -3,23 +3,9 @@ import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { RecaptchaV3Service } from '../../core/services/recaptcha-v3.service';
+import { ComplaintsService, ComplaintRecord } from '../../core/services/complaints.service';
 
-interface ComplaintRecord {
-  sheetNumber: string;
-  createdAt: string;
-  docType: string;
-  docNumber: string;
-  fullName: string;
-  address: string;
-  phone: string;
-  email: string;
-  goodType: 'PRODUCTO' | 'SERVICIO';
-  claimedAmount: number;
-  goodDescription: string;
-  claimType: 'RECLAMO' | 'QUEJA';
-  claimDetail: string;
-  claimRequest: string;
-}
+// ComplaintRecord interface is provided by ComplaintsService
 
 @Component({
   selector: 'app-complaints-book-page',
@@ -390,6 +376,7 @@ interface ComplaintRecord {
 })
 export class ComplaintsBookPageComponent {
   private readonly recaptchaV3 = inject(RecaptchaV3Service);
+  readonly complaintsService = inject(ComplaintsService);
 
   formData = {
     docType: 'DNI',
@@ -420,29 +407,22 @@ export class ComplaintsBookPageComponent {
       console.warn('reCAPTCHA v3 warning:', e);
     }
 
-    const correlative = Math.floor(1000 + Math.random() * 9000);
-    const date = new Date();
-    const formattedDate = date.toLocaleDateString('es-PE', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
+    const created = this.complaintsService.createComplaint({
+      ...this.formData,
     });
 
-    const record: ComplaintRecord = {
-      ...this.formData,
-      sheetNumber: `LR-2026-${correlative}`,
-      createdAt: formattedDate,
-    };
-
-    this.submittedRecord.set(record);
+    this.submittedRecord.set(created);
     this.isSubmitting.set(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   printClaimSheet(): void {
-    window.print();
+    const rec = this.submittedRecord();
+    if (rec) {
+      this.complaintsService.downloadComplaintPdf(rec);
+    } else {
+      window.print();
+    }
   }
 
   resetForm(): void {

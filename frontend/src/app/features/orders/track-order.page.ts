@@ -10,6 +10,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { OrdersService } from '../../core/services/orders.service';
 import { TelemetryService } from '../../core/services/telemetry.service';
 import { PdfInvoiceService } from '../../core/services/pdf-invoice.service';
+import { DriverRatingService } from '../../core/services/driver-rating.service';
 import { ToastService } from '../../core/services/toast.service';
 import { LiveDriverMapComponent } from '../../shared/components/live-driver-map/live-driver-map.component';
 
@@ -236,6 +237,93 @@ const ORDER_STAGES = [
             </div>
           }
 
+          <!-- Customer Courier Rating Card (when ENTREGADO) -->
+          @if (ord.status === 'ENTREGADO') {
+            <div class="rounded-2xl border-2 border-amber-200 bg-amber-50/50 p-6 space-y-4 shadow-xs">
+              <div class="flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-3">
+                  <span class="flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-100 text-amber-700 text-xl font-bold shadow-2xs">
+                    ⭐
+                  </span>
+                  <div>
+                    <h3 class="text-base font-bold text-gray-950">Califica la atención de tu repartidor</h3>
+                    <p class="text-xs text-gray-600">
+                      Repartidor: <strong class="text-gray-900">{{ ord.assignedDriverName || ord.deliveryProof?.driverName || 'Miguel Ángel Flores' }}</strong> • Tu opinión nos ayuda a mantener el mejor servicio.
+                    </p>
+                  </div>
+                </div>
+                @if (driverRatingService.hasRated(ord.orderNumber)) {
+                  <span class="inline-flex items-center gap-1.5 rounded-full border border-emerald-300 bg-emerald-100/70 px-3 py-1 text-xs font-bold text-emerald-800">
+                    <span>✓</span>
+                    <span>¡Entrega calificada!</span>
+                  </span>
+                }
+              </div>
+
+              @if (!driverRatingService.hasRated(ord.orderNumber)) {
+                <div class="space-y-3 pt-1">
+                  <!-- Star Selector -->
+                  <div class="flex items-center gap-2">
+                    <span class="text-xs font-bold text-gray-800">Puntuación:</span>
+                    <div class="flex items-center gap-1">
+                      @for (star of [1, 2, 3, 4, 5]; track star) {
+                        <button
+                          type="button"
+                          (click)="selectedStars.set(star)"
+                          class="text-2xl transition hover:scale-125 cursor-pointer focus:outline-none"
+                          [class.text-amber-400]="star <= selectedStars()"
+                          [class.text-gray-300]="star > selectedStars()"
+                        >
+                          ★
+                        </button>
+                      }
+                    </div>
+                    <span class="text-xs font-bold text-amber-900 ml-2">
+                      {{ selectedStars() }} de 5 estrellas
+                    </span>
+                  </div>
+
+                  <!-- Quick Tag Pills -->
+                  <div class="space-y-1.5">
+                    <span class="text-[11px] font-semibold text-gray-600 block">¿Qué destacarías de la entrega?</span>
+                    <div class="flex flex-wrap gap-2">
+                      @for (tag of availableRatingTags; track tag) {
+                        <button
+                          type="button"
+                          (click)="toggleRatingTag(tag)"
+                          [class]="selectedRatingTags().includes(tag) ? 'bg-amber-600 text-white border-amber-600' : 'bg-white text-gray-700 border-gray-200 hover:border-amber-300'"
+                          class="rounded-lg border px-2.5 py-1 text-xs font-medium transition cursor-pointer"
+                        >
+                          {{ tag }}
+                        </button>
+                      }
+                    </div>
+                  </div>
+
+                  <!-- Optional Comment -->
+                  <div>
+                    <input
+                      type="text"
+                      [(ngModel)]="ratingComment"
+                      placeholder="Escribe un comentario sobre la entrega (opcional)..."
+                      class="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-xs text-gray-900 placeholder:text-gray-400 focus:border-amber-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <div class="flex justify-end pt-1">
+                    <button
+                      type="button"
+                      (click)="submitDriverRating(ord)"
+                      class="rounded-xl bg-amber-600 px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-amber-700 transition cursor-pointer"
+                    >
+                      Enviar Calificación ⭐
+                    </button>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+
           <!-- Photographic Proof of Delivery (when ENTREGADO) -->
           @if (ord.deliveryProof; as proof) {
             <div class="rounded-2xl border border-emerald-200 bg-emerald-50/40 p-6 space-y-4">
@@ -356,6 +444,35 @@ const ORDER_STAGES = [
   `,
 })
 export class TrackOrderPageComponent implements OnInit, OnDestroy {
+  readonly driverRatingService = inject(DriverRatingService);
+
+  readonly selectedStars = signal<number>(5);
+  readonly selectedRatingTags = signal<string[]>(['Muy puntual', 'Amable']);
+  ratingComment = '';
+  readonly availableRatingTags = ['Muy puntual', 'Amable', 'Repuesto sellado', 'Llegó rápido', 'Excelente servicio'];
+
+  toggleRatingTag(tag: string): void {
+    const current = this.selectedRatingTags();
+    if (current.includes(tag)) {
+      this.selectedRatingTags.set(current.filter((t) => t !== tag));
+    } else {
+      this.selectedRatingTags.set([...current, tag]);
+    }
+  }
+
+  submitDriverRating(ord: Order): void {
+    this.driverRatingService.submitRating({
+      orderNumber: ord.orderNumber,
+      driverName: ord.assignedDriverName || ord.deliveryProof?.driverName || 'Miguel Ángel Flores',
+      driverEmail: 'motorizado@asuncion.pe',
+      customerName: ord.recipientName || ord.customerName || 'Cliente Asunción',
+      stars: this.selectedStars(),
+      tags: this.selectedRatingTags(),
+      comment: this.ratingComment.trim() || undefined,
+    });
+    this.ratingComment = '';
+  }
+
   readonly auth = inject(AuthService);
   private readonly ordersService = inject(OrdersService);
   private readonly telemetryService = inject(TelemetryService);

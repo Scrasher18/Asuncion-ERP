@@ -45,20 +45,37 @@
 }
 
 /* ==============================================================================
-   Insignia oficial Google reCAPTCHA v3
-   Posicionada para flotar elegantemente arriba del botón "Asistente Asunción"
-   sin colisionar ni obstruir su apertura.
+   Insignia oficial Google reCAPTCHA v3 — Desplegable en Laptop y PC
+   Ubicada en la esquina inferior izquierda (separada 100% del Asistente Asunción).
+   Permanece discretamente plegada y se despliega con animación fluida al pasar el cursor.
    ============================================================================== */
 .grecaptcha-badge {
   visibility: visible !important;
-  opacity: 1 !important;
+  opacity: 0.88 !important;
   display: block !important;
-  bottom: 84px !important;
-  right: 12px !important;
-  z-index: 9999 !important;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12) !important;
-  border-radius: 8px 0 0 8px !important;
-  transition: bottom 0.3s ease, right 0.3s ease !important;
+  bottom: 24px !important;
+  left: -190px !important;
+  right: auto !important;
+  z-index: 40 !important;
+  box-shadow: 2px 4px 14px rgba(0, 0, 0, 0.14) !important;
+  border-radius: 0 10px 10px 0 !important;
+  transition: left 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease, box-shadow 0.25s ease !important;
+  cursor: pointer !important;
+}
+
+.grecaptcha-badge:hover,
+.grecaptcha-badge:focus-within {
+  left: 0 !important;
+  opacity: 1 !important;
+  box-shadow: 4px 6px 20px rgba(0, 0, 0, 0.22) !important;
+}
+
+body.hide-recaptcha .grecaptcha-badge,
+.hide-recaptcha-badge .grecaptcha-badge {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
 }
 
 @media (max-width: 1023px) {

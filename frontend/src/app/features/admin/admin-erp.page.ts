@@ -42,6 +42,8 @@ import {
   PaymentTransactionDto,
 } from '../../core/models/payment.models';
 import { ToastService } from '../../core/services/toast.service';
+import { ComplaintsService, ComplaintRecord } from '../../core/services/complaints.service';
+import { DriverRatingService, DriverRatingStats, DriverRatingItem } from '../../core/services/driver-rating.service';
 import { CoverageMapComponent } from '../../shared/components/coverage-map/coverage-map.component';
 import {
   PartImageUploaderComponent,
@@ -49,7 +51,7 @@ import {
 } from '../../shared/components/part-image-uploader/part-image-uploader.component';
 import { SalesChartComponent } from '../../shared/components/sales-chart/sales-chart.component';
 
-type AdminTab = 'analytics' | 'parts' | 'branches' | 'orders' | 'notifications' | 'payments' | 'users';
+type AdminTab = 'analytics' | 'parts' | 'branches' | 'orders' | 'notifications' | 'payments' | 'users' | 'claims';
 
 interface CompatibilityDraftRow extends PartCompatibilityInput {
   makeNameLabel?: string;
@@ -72,6 +74,41 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
       <!-- Top Workspace Header -->
       <div class="border-b border-gray-200 bg-white">
         <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-6">
+        <!-- Live Real-Time New Order Chime Alert Banner -->
+        @if (newOrderBanner(); as banner) {
+          <div class="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border-2 border-orange-500 bg-orange-50/90 p-4 shadow-md transition animate-pulse">
+            <div class="flex items-center gap-3">
+              <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-orange-600 text-white font-extrabold text-xl shadow-xs">
+                🔔
+              </span>
+              <div>
+                <p class="font-extrabold text-sm text-gray-950 flex items-center gap-2">
+                  <span>¡NUEVO PEDIDO RECIBIDO EN TIEMPO REAL!</span>
+                  <span class="rounded-full bg-orange-600 text-white text-[10px] px-2 py-0.5 font-bold uppercase tracking-wider">Alerta Tienda</span>
+                </p>
+                <p class="text-xs text-gray-700 font-medium mt-0.5">
+                  Pedido <strong>{{ banner.orderNumber }}</strong> por <strong>S/ {{ banner.total | number: '1.2-2' }}</strong> — Cliente: <strong>{{ banner.customerName }}</strong>.
+                </p>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <button
+                type="button"
+                (click)="switchTab('orders'); dismissNewOrderBanner()"
+                class="rounded-xl bg-orange-600 px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-orange-700 transition cursor-pointer"
+              >
+                Asignar Repartidor
+              </button>
+              <button
+                type="button"
+                (click)="dismissNewOrderBanner()"
+                class="rounded-xl border border-gray-300 bg-white px-3 py-2 text-xs font-bold text-gray-600 hover:bg-gray-100 transition cursor-pointer"
+              >
+                Cerrar alerta ✕
+              </button>
+            </div>
+          </div>
+        }
           <div class="flex flex-wrap items-start justify-between gap-4 pb-5">
             <div class="space-y-1">
               <div class="flex items-center gap-2">
@@ -1457,27 +1494,27 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
               <div class="rounded-2xl border border-gray-200 bg-white p-4 shadow-2xs">
                 <span class="block text-xs font-medium text-gray-500">Entorno activo</span>
                 <span class="text-xl font-bold text-gray-900 mt-1 block uppercase">{{ paymentConfigForm.environment }}</span>
-                <span class="text-[11px] text-gray-500">Culqi / PagoEfectivo / Niubiz</span>
+                <span class="text-[11px] text-gray-500">Culqi Perú / Modo Seguro</span>
               </div>
               <div class="rounded-2xl border border-gray-200 bg-white p-4 shadow-2xs">
-                <span class="block text-xs font-medium text-gray-500">Pasarela Oficial (Culqi)</span>
+                <span class="block text-xs font-medium text-gray-500">Pasarela Oficial</span>
                 <span class="text-sm font-bold text-emerald-700 mt-2 block flex items-center gap-1.5">
                   <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
-                  <span>{{ paymentConfigForm.culqiEnabled ? 'Habilitado' : 'Deshabilitado' }}</span>
+                  <span>Culqi Habilitado</span>
                 </span>
-                <span class="text-[11px] text-gray-500 font-mono">Visa, MC, Yape, BCP</span>
+                <span class="text-[11px] text-gray-500">Tarjetas Visa, MC, Diners, Amex</span>
               </div>
               <div class="rounded-2xl border border-gray-200 bg-white p-4 shadow-2xs">
-                <span class="block text-xs font-medium text-gray-500">Billeteras & Transferencias</span>
+                <span class="block text-xs font-medium text-gray-500">Billeteras Móviles QR</span>
                 <span class="text-sm font-bold text-gray-900 mt-2 block flex items-center gap-1.5">
                   <span class="h-2 w-2 rounded-full bg-purple-600"></span>
-                  <span>Yape / Plin / BCP / BBVA</span>
+                  <span>Yape & Plin Oficiales</span>
                 </span>
-                <span class="text-[11px] text-gray-500">Cuentas comerciales Perú</span>
+                <span class="text-[11px] text-gray-500">Cobro web y por repartidor</span>
               </div>
             </div>
 
-            <!-- SECCIÓN 1: BILLETERAS DIGITALES (YAPE & PLIN) -->
+            <!-- SECCIÓN 1: BILLETERAS DIGITALES (YAPE & PLIN CON SUBIDA DIRECTA DE CÓDIGO QR) -->
             <div class="rounded-2xl border border-gray-200 bg-white p-5 sm:p-6 shadow-2xs space-y-5">
               <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 pb-4">
                 <div class="space-y-1">
@@ -1485,10 +1522,10 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                     <span class="inline-flex items-center rounded-full bg-purple-100 text-purple-800 px-2.5 py-0.5 text-xs font-bold">
                       Billeteras Móviles
                     </span>
-                    <h3 class="text-base font-bold text-gray-900">Cobro Inmediato con Yape & Plin</h3>
+                    <h3 class="text-base font-bold text-gray-900">Cobro con Yape & Plin (Número Celular y QR)</h3>
                   </div>
                   <p class="text-xs text-gray-500">
-                    Configura los datos del número telefónico y titular que se mostrarán al cliente durante el checkout.
+                    Sube las imágenes oficiales de tus códigos QR. Se sincronizarán automáticamente tanto en el checkout web como en el celular del motorizado para cobrar.
                   </p>
                 </div>
                 <button
@@ -1497,21 +1534,21 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                   (click)="savePaymentConfig()"
                   class="min-h-[40px] rounded-xl bg-orange-600 px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-orange-700 disabled:opacity-50 transition cursor-pointer"
                 >
-                  {{ savingPaymentConfig() ? 'Guardando...' : 'Guardar todas las pasarelas' }}
+                  {{ savingPaymentConfig() ? 'Guardando...' : 'Guardar configuración de pagos' }}
                 </button>
               </div>
 
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <!-- Yape Card -->
-                <div class="rounded-xl border border-purple-200 bg-purple-50/40 p-4 space-y-3.5">
+                <div class="rounded-xl border border-purple-200 bg-purple-50/40 p-4 sm:p-5 space-y-4">
                   <div class="flex items-center justify-between">
                     <div class="flex items-center gap-2.5">
-                      <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-[#742284] text-white font-extrabold text-sm">
+                      <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-[#742284] text-white font-extrabold text-sm shadow-2xs">
                         Y
                       </div>
                       <div>
                         <span class="font-bold text-sm text-gray-900">Yape (BCP)</span>
-                        <span class="block text-[11px] text-purple-700 font-medium">Pagos hasta S/ 500 / S/ 950 al día</span>
+                        <span class="block text-[11px] text-purple-700 font-medium">Cobro móvil con QR oficial</span>
                       </div>
                     </div>
                     <label class="relative inline-flex cursor-pointer items-center">
@@ -1524,13 +1561,13 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                     </label>
                   </div>
 
-                  <div class="space-y-2 text-xs">
+                  <div class="space-y-3 text-xs">
                     <div>
                       <label class="block font-medium text-gray-700 mb-1">Número de Celular Yape</label>
                       <input
                         type="text"
                         [(ngModel)]="storePaymentMethods.yapePhone"
-                        placeholder="Ej: 999 411 501"
+                        placeholder="Ej: 922 779 157"
                         class="w-full min-h-[38px] rounded-lg border border-gray-200 bg-white px-3 font-mono text-sm font-semibold text-gray-900 focus:border-purple-600 focus:outline-none"
                       />
                     </div>
@@ -1543,19 +1580,48 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                         class="w-full min-h-[38px] rounded-lg border border-gray-200 bg-white px-3 text-xs text-gray-900 focus:border-purple-600 focus:outline-none"
                       />
                     </div>
+
+                    <!-- Código QR Yape Preview & Uploader -->
+                    <div class="rounded-xl border border-purple-200 bg-white p-3 space-y-2">
+                      <span class="block font-bold text-purple-950 text-xs">Código QR Oficial de Yape</span>
+                      <div class="flex items-center gap-3">
+                        <img
+                          [src]="storePaymentMethods.yapeQrImageUrl || '/images/qr/qr-yape-default.svg'"
+                          alt="QR Yape"
+                          class="h-24 w-24 object-contain rounded-lg border border-purple-200 p-1 bg-white shadow-2xs shrink-0"
+                        />
+                        <div class="space-y-1.5 flex-1">
+                          <p class="text-[11px] text-gray-600 leading-snug">
+                            Este QR se muestra al cliente en la web y al motorizado en su celular para cobrar en la entrega.
+                          </p>
+                          <label class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-[#742284] px-3 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-purple-900 transition">
+                            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                            </svg>
+                            <span>Subir foto de QR Yape</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              (change)="onUploadWalletQr($event, 'YAPE')"
+                              class="hidden"
+                            />
+                          </label>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
                 <!-- Plin Card -->
-                <div class="rounded-xl border border-sky-200 bg-sky-50/40 p-4 space-y-3.5">
+                <div class="rounded-xl border border-sky-200 bg-sky-50/40 p-4 sm:p-5 space-y-4">
                   <div class="flex items-center justify-between">
                     <div class="flex items-center gap-2.5">
-                      <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-[#00D09C] text-white font-extrabold text-sm">
+                      <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-[#00D09C] text-white font-extrabold text-sm shadow-2xs">
                         P
                       </div>
                       <div>
                         <span class="font-bold text-sm text-gray-900">Plin (Interbank / BBVA / Scotiabank)</span>
-                        <span class="block text-[11px] text-teal-700 font-medium">Interoperabilidad bancaria nacional</span>
+                        <span class="block text-[11px] text-teal-700 font-medium">Cobro móvil con QR oficial</span>
                       </div>
                     </div>
                     <label class="relative inline-flex cursor-pointer items-center">
@@ -1568,13 +1634,13 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                     </label>
                   </div>
 
-                  <div class="space-y-2 text-xs">
+                  <div class="space-y-3 text-xs">
                     <div>
                       <label class="block font-medium text-gray-700 mb-1">Número de Celular Plin</label>
                       <input
                         type="text"
                         [(ngModel)]="storePaymentMethods.plinPhone"
-                        placeholder="Ej: 999 411 501"
+                        placeholder="Ej: 922 779 157"
                         class="w-full min-h-[38px] rounded-lg border border-gray-200 bg-white px-3 font-mono text-sm font-semibold text-gray-900 focus:border-teal-600 focus:outline-none"
                       />
                     </div>
@@ -1587,6 +1653,35 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                         class="w-full min-h-[38px] rounded-lg border border-gray-200 bg-white px-3 text-xs text-gray-900 focus:border-teal-600 focus:outline-none"
                       />
                     </div>
+
+                    <!-- Código QR Plin Preview & Uploader -->
+                    <div class="rounded-xl border border-teal-200 bg-white p-3 space-y-2">
+                      <span class="block font-bold text-teal-950 text-xs">Código QR Oficial de Plin</span>
+                      <div class="flex items-center gap-3">
+                        <img
+                          [src]="storePaymentMethods.plinQrImageUrl || '/images/qr/qr-plin-default.svg'"
+                          alt="QR Plin"
+                          class="h-24 w-24 object-contain rounded-lg border border-teal-200 p-1 bg-white shadow-2xs shrink-0"
+                        />
+                        <div class="space-y-1.5 flex-1">
+                          <p class="text-[11px] text-gray-600 leading-snug">
+                            Este QR se muestra al cliente en la web y al motorizado en su celular para cobrar en la entrega.
+                          </p>
+                          <label class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-teal-700 transition">
+                            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                            </svg>
+                            <span>Subir foto de QR Plin</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              (change)="onUploadWalletQr($event, 'PLIN')"
+                              class="hidden"
+                            />
+                          </label>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1598,225 +1693,44 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                 <input
                   type="text"
                   [(ngModel)]="storePaymentMethods.walletInstructions"
-                  placeholder="Envía la constancia o captura de tu pago al WhatsApp +51 999 411 501 indicando tu N° de Pedido."
+                  placeholder="Envía la constancia o captura de tu pago al WhatsApp +51 922 779 157 indicando tu N° de Pedido."
                   class="w-full min-h-[40px] rounded-xl border border-gray-200 bg-white px-3.5 text-xs text-gray-900 focus:border-orange-600 focus:outline-none"
                 />
               </div>
             </div>
 
-            <!-- SECCIÓN 2: TRANSFERENCIAS BANCARIAS (BCP, BBVA, INTERBANK) -->
-            <div class="rounded-2xl border border-gray-200 bg-white p-5 sm:p-6 shadow-2xs space-y-5">
-              <div class="border-b border-gray-100 pb-3">
-                <span class="inline-flex items-center rounded-full bg-blue-100 text-blue-800 px-2.5 py-0.5 text-xs font-bold mb-1">
-                  Banca Nacional
-                </span>
-                <h3 class="text-base font-bold text-gray-900">Cuentas Bancarias Oficiales (Transferencia Directa)</h3>
-                <p class="text-xs text-gray-500">
-                  Cuentas comerciales en Soles y Códigos de Cuenta Interbancario (CCI) para compras de talleres, flotas y empresas.
-                </p>
-              </div>
-
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <!-- BCP Card -->
-                <div class="rounded-xl border border-blue-200 bg-blue-50/30 p-4 space-y-3 text-xs">
-                  <div class="flex items-center justify-between">
-                    <span class="font-bold text-blue-900 flex items-center gap-1.5">
-                      <span class="h-2 w-2 rounded-full bg-blue-700"></span>
-                      BCP (Banco de Crédito)
-                    </span>
-                    <label class="relative inline-flex cursor-pointer items-center">
-                      <input
-                        type="checkbox"
-                        [(ngModel)]="storePaymentMethods.bcpEnabled"
-                        class="peer sr-only"
-                      />
-                      <div class="peer h-4 w-7 rounded-full bg-gray-200 after:absolute after:top-[2px] after:left-[2px] after:h-3 after:w-3 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:bg-blue-700 peer-checked:after:translate-x-full"></div>
-                    </label>
-                  </div>
-                  <div>
-                    <label class="block text-gray-600 text-[11px] mb-0.5">N° Cuenta Corriente Soles</label>
-                    <input
-                      type="text"
-                      [(ngModel)]="storePaymentMethods.bcpAccount"
-                      class="w-full rounded border border-gray-200 bg-white px-2 py-1 font-mono text-xs text-gray-900"
-                    />
-                  </div>
-                  <div>
-                    <label class="block text-gray-600 text-[11px] mb-0.5">CCI (20 dígitos)</label>
-                    <input
-                      type="text"
-                      [(ngModel)]="storePaymentMethods.bcpCci"
-                      class="w-full rounded border border-gray-200 bg-white px-2 py-1 font-mono text-[11px] text-gray-900"
-                    />
-                  </div>
-                  <div>
-                    <label class="block text-gray-600 text-[11px] mb-0.5">Titular</label>
-                    <input
-                      type="text"
-                      [(ngModel)]="storePaymentMethods.bcpHolder"
-                      class="w-full rounded border border-gray-200 bg-white px-2 py-1 text-[11px] text-gray-900"
-                    />
-                  </div>
-                </div>
-
-                <!-- BBVA Card -->
-                <div class="rounded-xl border border-sky-200 bg-sky-50/30 p-4 space-y-3 text-xs">
-                  <div class="flex items-center justify-between">
-                    <span class="font-bold text-sky-900 flex items-center gap-1.5">
-                      <span class="h-2 w-2 rounded-full bg-sky-700"></span>
-                      BBVA Perú
-                    </span>
-                    <label class="relative inline-flex cursor-pointer items-center">
-                      <input
-                        type="checkbox"
-                        [(ngModel)]="storePaymentMethods.bbvaEnabled"
-                        class="peer sr-only"
-                      />
-                      <div class="peer h-4 w-7 rounded-full bg-gray-200 after:absolute after:top-[2px] after:left-[2px] after:h-3 after:w-3 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:bg-sky-700 peer-checked:after:translate-x-full"></div>
-                    </label>
-                  </div>
-                  <div>
-                    <label class="block text-gray-600 text-[11px] mb-0.5">N° Cuenta Corriente Soles</label>
-                    <input
-                      type="text"
-                      [(ngModel)]="storePaymentMethods.bbvaAccount"
-                      class="w-full rounded border border-gray-200 bg-white px-2 py-1 font-mono text-xs text-gray-900"
-                    />
-                  </div>
-                  <div>
-                    <label class="block text-gray-600 text-[11px] mb-0.5">CCI (20 dígitos)</label>
-                    <input
-                      type="text"
-                      [(ngModel)]="storePaymentMethods.bbvaCci"
-                      class="w-full rounded border border-gray-200 bg-white px-2 py-1 font-mono text-[11px] text-gray-900"
-                    />
-                  </div>
-                  <div>
-                    <label class="block text-gray-600 text-[11px] mb-0.5">Titular</label>
-                    <input
-                      type="text"
-                      [(ngModel)]="storePaymentMethods.bbvaHolder"
-                      class="w-full rounded border border-gray-200 bg-white px-2 py-1 text-[11px] text-gray-900"
-                    />
-                  </div>
-                </div>
-
-                <!-- Interbank Card -->
-                <div class="rounded-xl border border-emerald-200 bg-emerald-50/30 p-4 space-y-3 text-xs">
-                  <div class="flex items-center justify-between">
-                    <span class="font-bold text-emerald-900 flex items-center gap-1.5">
-                      <span class="h-2 w-2 rounded-full bg-emerald-700"></span>
-                      Interbank
-                    </span>
-                    <label class="relative inline-flex cursor-pointer items-center">
-                      <input
-                        type="checkbox"
-                        [(ngModel)]="storePaymentMethods.interbankEnabled"
-                        class="peer sr-only"
-                      />
-                      <div class="peer h-4 w-7 rounded-full bg-gray-200 after:absolute after:top-[2px] after:left-[2px] after:h-3 after:w-3 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:bg-emerald-700 peer-checked:after:translate-x-full"></div>
-                    </label>
-                  </div>
-                  <div>
-                    <label class="block text-gray-600 text-[11px] mb-0.5">N° Cuenta Soles</label>
-                    <input
-                      type="text"
-                      [(ngModel)]="storePaymentMethods.interbankAccount"
-                      class="w-full rounded border border-gray-200 bg-white px-2 py-1 font-mono text-xs text-gray-900"
-                    />
-                  </div>
-                  <div>
-                    <label class="block text-gray-600 text-[11px] mb-0.5">CCI (20 dígitos)</label>
-                    <input
-                      type="text"
-                      [(ngModel)]="storePaymentMethods.interbankCci"
-                      class="w-full rounded border border-gray-200 bg-white px-2 py-1 font-mono text-[11px] text-gray-900"
-                    />
-                  </div>
-                  <div>
-                    <label class="block text-gray-600 text-[11px] mb-0.5">Titular</label>
-                    <input
-                      type="text"
-                      [(ngModel)]="storePaymentMethods.interbankHolder"
-                      class="w-full rounded border border-gray-200 bg-white px-2 py-1 text-[11px] text-gray-900"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- SECCIÓN 3: PASARELA OFICIAL DE TARJETAS (CULQI) -->
-            <div class="rounded-2xl border border-gray-200 bg-white p-5 sm:p-6 shadow-2xs space-y-6">
-              <div class="border-b border-gray-100 pb-3">
-                <span class="inline-flex items-center rounded-full bg-orange-100 text-orange-800 px-2.5 py-0.5 text-xs font-bold mb-1">
-                  Tarjetas de Crédito / Débito
-                </span>
-                <h3 class="text-base font-bold text-gray-900">Pasarela Oficial Culqi Checkout v4</h3>
-                <p class="text-xs text-gray-500">
-                  Procesamiento seguro de tarjetas Visa, Mastercard, American Express y Diners Club con liquidación directa BCP.
-                </p>
-              </div>
-
-              <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <!-- Culqi & Yape Status Card -->
-                <div class="rounded-xl border border-emerald-200 bg-emerald-50/50 p-5 space-y-3">
-                  <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-2.5">
-                      <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
-                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                      </div>
-                      <div>
-                        <span class="font-bold text-sm text-gray-900">Cobros con Tarjetas & Yape Online</span>
-                        <span class="block text-[11px] text-emerald-700 font-medium">Pasarela certificada activa</span>
-                      </div>
-                    </div>
-                    <span class="rounded-full border border-emerald-300 bg-white px-2.5 py-1 text-xs font-bold text-emerald-800 shadow-2xs">
-                      En servicio
-                    </span>
-                  </div>
-                  <p class="text-xs text-gray-600 leading-relaxed">
-                    Tus clientes pueden pagar al instante con tarjetas Visa, Mastercard, Diners, American Express y Yape Online.
+            <!-- SECCIÓN 2: PASARELA OFICIAL DE TARJETAS (CULQI) — SIMPLIFICADA Y SIN DETALLES TÉCNICOS -->
+            <div class="rounded-2xl border border-gray-200 bg-white p-5 sm:p-6 shadow-2xs space-y-4">
+              <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 pb-3">
+                <div class="space-y-0.5">
+                  <span class="inline-flex items-center rounded-full bg-orange-100 text-orange-800 px-2.5 py-0.5 text-xs font-bold">
+                    Tarjetas de Crédito / Débito
+                  </span>
+                  <h3 class="text-base font-bold text-gray-900">Pasarela Oficial Culqi</h3>
+                  <p class="text-xs text-gray-500">
+                    Procesamiento de pagos con tarjetas de débito y crédito Visa, Mastercard, American Express y Diners Club.
                   </p>
-                  <div class="rounded-lg border border-emerald-200/80 bg-white/90 p-3 space-y-1.5 text-xs text-gray-700">
-                    <p class="flex items-center gap-2">
-                      <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
-                      <span><strong>Modo seguro:</strong> Llaves y encriptación bancaria protegidas en servidor.</span>
-                    </p>
-                    <p class="flex items-center gap-2">
-                      <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
-                      <span><strong>Protección antifraude:</strong> Validación en tiempo real con 3DS y Culqi Shield.</span>
+                </div>
+                <span class="rounded-full border border-emerald-300 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-800">
+                  ● Activo y en servicio
+                </span>
+              </div>
+
+              <div class="rounded-xl border border-gray-200 bg-[#F8F9FA] p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div class="flex items-center gap-3.5">
+                  <img src="/images/logos/culqi-logo.png" alt="Culqi Checkout" class="h-8 w-auto object-contain" />
+                  <div>
+                    <h4 class="text-sm font-bold text-gray-900">Autopartes Asunción trabaja con Culqi</h4>
+                    <p class="text-xs text-gray-600 mt-0.5">
+                      Cobros seguros para tus clientes con liquidación directa a la cuenta corriente registrada de la empresa.
                     </p>
                   </div>
                 </div>
-
-                <!-- Panel Oficial Culqi & Liquidación -->
-                <div class="rounded-xl border border-orange-200 bg-orange-50/50 p-5 space-y-3 text-xs">
-                  <div class="flex items-center gap-2.5">
-                    <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-orange-600 text-white font-bold text-sm shadow-2xs">C</span>
-                    <div>
-                      <span class="font-bold text-sm text-gray-900">Liquidaciones y Cuenta Bancaria</span>
-                      <span class="block text-[11px] text-orange-700 font-medium">Banco de Crédito del Perú (BCP)</span>
-                    </div>
-                  </div>
-                  <p class="text-gray-600 leading-relaxed">
-                    Todas las compras cobradas en la tienda son transferidas y liquidadas automáticamente en tu cuenta corriente BCP registrada.
-                  </p>
-                  <div class="space-y-1.5 pt-1 text-xs text-gray-700">
-                    <p>• <strong>Cuenta bancaria vinculada:</strong> <span class="font-mono text-gray-900 font-semibold">luisoscarperez322@hotmail.com</span></p>
-                    <p>• <strong>Depósitos y Liquidaciones:</strong> Directo a tu cuenta corriente BCP registrada.</p>
-                    <p>• <strong>Panel de Control Culqi:</strong> <a href="https://panel.culqi.com" target="_blank" class="text-orange-700 font-semibold hover:underline">Acceder al panel oficial ↗</a></p>
-                    <p>• <strong>Comisión por venta:</strong> 3.99% + IGV por cobro exitoso.</p>
-                  </div>
+                <div class="flex items-center gap-2 shrink-0">
+                  <img src="/images/logos/visa.png" alt="Visa" class="h-6 w-auto object-contain" />
+                  <img src="/images/logos/mastercard.svg" alt="Mastercard" class="h-6 w-auto object-contain" />
                 </div>
               </div>
-
-              @if (paymentConfigForm.updatedAt) {
-                <div class="pt-2 border-t border-gray-100 text-[11px] text-gray-500">
-                  Última sincronización con servidor: {{ paymentConfigForm.updatedAt | date: 'dd/MM/yyyy HH:mm' }}
-                </div>
-              }
             </div>
 
             <!-- SECCIÓN 4: CONTRA ENTREGA & RECOJO EN TIENDA -->
@@ -2143,6 +2057,22 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                                 {{ u.vehiclePlate ? 'Placa: ' + u.vehiclePlate : '' }}
                               </div>
                             }
+                            @if (u.role === 'MOTORIZADO') {
+                              <div class="mt-1.5 flex items-center gap-1.5">
+                                <span class="inline-flex items-center gap-1 rounded-md bg-amber-50 border border-amber-200 px-2 py-0.5 text-[11px] font-bold text-amber-900">
+                                  <span>⭐</span>
+                                  <span>{{ getDriverRatingStats(u.fullName).averageRating }}</span>
+                                  <span class="text-amber-700 font-normal">({{ getDriverRatingStats(u.fullName).totalReviews }} op.)</span>
+                                </span>
+                                <button
+                                  type="button"
+                                  (click)="openDriverRatingsModal(u.fullName)"
+                                  class="text-[11px] font-semibold text-orange-600 hover:text-orange-800 hover:underline cursor-pointer"
+                                >
+                                  Ver opiniones
+                                </button>
+                              </div>
+                            }
                           </td>
 
                           <!-- Document & Phone -->
@@ -2211,7 +2141,384 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
             </div>
           </div>
         }
+
+        <!-- ========================================================================= -->
+        <!-- TAB 8: LIBRO DE RECLAMACIONES VIRTUAL (INDECOPI - LEY 29571)              -->
+        <!-- ========================================================================= -->
+        @if (activeTab() === 'claims' && auth.hasAnyRole(['ADMIN'])) {
+          <div class="space-y-6">
+            <!-- KPI Summary Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+              <div class="rounded-2xl border border-gray-200 bg-white p-4 shadow-2xs">
+                <span class="block text-xs font-medium text-gray-500">Total Hojas Registradas</span>
+                <span class="text-2xl font-extrabold text-gray-900 mt-1 block">{{ complaintsService.complaints().length }}</span>
+                <span class="text-[11px] text-gray-500">Conforme a Ley INDECOPI</span>
+              </div>
+              <div class="rounded-2xl border border-red-200 bg-red-50/50 p-4 shadow-2xs">
+                <span class="block text-xs font-medium text-red-700">Reclamos Pendientes</span>
+                <span class="text-2xl font-extrabold text-red-900 mt-1 block">{{ pendingClaimsCount() }}</span>
+                <span class="text-[11px] text-red-600">Requieren respuesta formal</span>
+              </div>
+              <div class="rounded-2xl border border-emerald-200 bg-emerald-50/50 p-4 shadow-2xs">
+                <span class="block text-xs font-medium text-emerald-700">Reclamos Atendidos</span>
+                <span class="text-2xl font-extrabold text-emerald-900 mt-1 block">{{ resolvedClaimsCount() }}</span>
+                <span class="text-[11px] text-emerald-600">Respuesta oficial emitida</span>
+              </div>
+              <div class="rounded-2xl border border-blue-200 bg-blue-50/50 p-4 shadow-2xs">
+                <span class="block text-xs font-medium text-blue-700">Plazo Legal de Atención</span>
+                <span class="text-xl font-bold text-blue-900 mt-1 block">15 Días Hábiles</span>
+                <span class="text-[11px] text-blue-600">Art. 24 D.S. 011-2011-PCM</span>
+              </div>
+            </div>
+
+            <!-- Table & Filters Container -->
+            <div class="rounded-2xl border border-gray-200 bg-white shadow-2xs overflow-hidden">
+              <div class="border-b border-gray-100 p-5 sm:p-6 flex flex-wrap items-center justify-between gap-4">
+                <div class="space-y-0.5">
+                  <div class="flex items-center gap-2">
+                    <img src="/images/icons/libro_reclamaciones.png" alt="Libro Reclamaciones" class="h-6 w-auto object-contain" />
+                    <h3 class="text-base font-bold text-gray-900">Libro de Reclamaciones Virtual Oficial</h3>
+                  </div>
+                  <p class="text-xs text-gray-500">
+                    Control legal y atención formal a las hojas de reclamación interpuestas por los clientes.
+                  </p>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-3">
+                  <!-- Type Filter -->
+                  <div class="flex items-center rounded-xl bg-gray-100 p-1 text-xs">
+                    <button
+                      type="button"
+                      (click)="claimFilterType.set('TODOS')"
+                      [class]="claimFilterType() === 'TODOS' ? 'bg-white font-bold text-gray-900 shadow-2xs' : 'text-gray-500 hover:text-gray-900'"
+                      class="rounded-lg px-2.5 py-1 transition cursor-pointer"
+                    >
+                      Todos
+                    </button>
+                    <button
+                      type="button"
+                      (click)="claimFilterType.set('RECLAMO')"
+                      [class]="claimFilterType() === 'RECLAMO' ? 'bg-white font-bold text-red-800 shadow-2xs' : 'text-gray-500 hover:text-gray-900'"
+                      class="rounded-lg px-2.5 py-1 transition cursor-pointer"
+                    >
+                      Reclamos
+                    </button>
+                    <button
+                      type="button"
+                      (click)="claimFilterType.set('QUEJA')"
+                      [class]="claimFilterType() === 'QUEJA' ? 'bg-white font-bold text-amber-800 shadow-2xs' : 'text-gray-500 hover:text-gray-900'"
+                      class="rounded-lg px-2.5 py-1 transition cursor-pointer"
+                    >
+                      Quejas
+                    </button>
+                  </div>
+
+                  <!-- Status Filter -->
+                  <div class="flex items-center rounded-xl bg-gray-100 p-1 text-xs">
+                    <button
+                      type="button"
+                      (click)="claimFilterStatus.set('TODOS')"
+                      [class]="claimFilterStatus() === 'TODOS' ? 'bg-white font-bold text-gray-900 shadow-2xs' : 'text-gray-500 hover:text-gray-900'"
+                      class="rounded-lg px-2.5 py-1 transition cursor-pointer"
+                    >
+                      Todos los estados
+                    </button>
+                    <button
+                      type="button"
+                      (click)="claimFilterStatus.set('PENDIENTE')"
+                      [class]="claimFilterStatus() === 'PENDIENTE' ? 'bg-white font-bold text-red-800 shadow-2xs' : 'text-gray-500 hover:text-gray-900'"
+                      class="rounded-lg px-2.5 py-1 transition cursor-pointer"
+                    >
+                      Pendientes
+                    </button>
+                    <button
+                      type="button"
+                      (click)="claimFilterStatus.set('ATENDIDO')"
+                      [class]="claimFilterStatus() === 'ATENDIDO' ? 'bg-white font-bold text-emerald-800 shadow-2xs' : 'text-gray-500 hover:text-gray-900'"
+                      class="rounded-lg px-2.5 py-1 transition cursor-pointer"
+                    >
+                      Atendidos
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Complaints Table -->
+              @if (filteredComplaints().length === 0) {
+                <div class="p-12 text-center text-xs text-gray-500">
+                  No se encontraron hojas de reclamación con los filtros aplicados.
+                </div>
+              } @else {
+                <div class="overflow-x-auto">
+                  <table class="w-full text-left text-xs divide-y divide-gray-100">
+                    <thead class="bg-gray-50 text-gray-600 font-semibold">
+                      <tr>
+                        <th class="px-5 py-3">N° Hoja & Fecha</th>
+                        <th class="px-5 py-3">Consumidor Reclamante</th>
+                        <th class="px-5 py-3">Tipo</th>
+                        <th class="px-5 py-3">Bien Contratado</th>
+                        <th class="px-5 py-3">Estado</th>
+                        <th class="px-5 py-3 text-right">Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                      @for (c of filteredComplaints(); track c.sheetNumber) {
+                        <tr class="hover:bg-gray-50/70 transition">
+                          <!-- Sheet Number & Date -->
+                          <td class="px-5 py-3.5">
+                            <span class="font-mono font-bold text-gray-900 block">{{ c.sheetNumber }}</span>
+                            <span class="text-[11px] text-gray-400">{{ c.createdAt }}</span>
+                          </td>
+
+                          <!-- Consumer Info -->
+                          <td class="px-5 py-3.5">
+                            <span class="font-bold text-gray-900 block">{{ c.fullName }}</span>
+                            <span class="text-[11px] text-gray-500 block">{{ c.docType }}: {{ c.docNumber }} • Cel: {{ c.phone }}</span>
+                            <span class="font-mono text-[11px] text-gray-400">{{ c.email }}</span>
+                          </td>
+
+                          <!-- Claim Type Badge -->
+                          <td class="px-5 py-3.5">
+                            @if (c.claimType === 'RECLAMO') {
+                              <span class="inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2.5 py-0.5 text-[11px] font-bold text-red-700">
+                                Reclamo (Producto)
+                              </span>
+                            } @else {
+                              <span class="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-[11px] font-bold text-amber-800">
+                                Queja (Atención)
+                              </span>
+                            }
+                          </td>
+
+                          <!-- Good Description -->
+                          <td class="px-5 py-3.5">
+                            <span class="font-medium text-gray-900 block line-clamp-1 max-w-xs">{{ c.goodDescription }}</span>
+                            <span class="text-[11px] text-gray-500">
+                              {{ c.goodType }} {{ c.claimedAmount > 0 ? '• Monto: S/ ' + (c.claimedAmount | number: '1.2-2') : '' }}
+                            </span>
+                          </td>
+
+                          <!-- Status Badge -->
+                          <td class="px-5 py-3.5">
+                            @if (c.status === 'ATENDIDO') {
+                              <span class="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-emerald-700">
+                                <span class="h-1.5 w-1.5 rounded-full bg-emerald-600"></span>
+                                <span>Atendido</span>
+                              </span>
+                            } @else {
+                              <span class="inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2.5 py-0.5 text-[11px] font-bold text-red-700">
+                                <span class="h-1.5 w-1.5 rounded-full bg-red-600"></span>
+                                <span>Pendiente</span>
+                              </span>
+                            }
+                          </td>
+
+                          <!-- Action Buttons -->
+                          <td class="px-5 py-3.5 text-right whitespace-nowrap">
+                            <div class="inline-flex items-center gap-1.5">
+                              <button
+                                type="button"
+                                (click)="openComplaintModal(c)"
+                                class="rounded-lg border border-gray-200 bg-white px-2.5 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-50 hover:text-orange-600 transition cursor-pointer"
+                              >
+                                Ver Hoja
+                              </button>
+                              <button
+                                type="button"
+                                (click)="complaintsService.downloadComplaintPdf(c)"
+                                class="rounded-lg border border-orange-200 bg-orange-50 px-2 py-1 text-xs font-semibold text-orange-700 hover:bg-orange-100 transition cursor-pointer"
+                                title="Descargar comprobante oficial en PDF"
+                              >
+                                📄 PDF
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              }
+            </div>
+          </div>
+        }
       </div>
+
+      <!-- MODAL: DETALLE Y RESPUESTA A HOJA DE RECLAMACIÓN -->
+      @if (selectedComplaint(); as claim) {
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
+          <div class="w-full max-w-2xl rounded-2xl border border-gray-200 bg-white p-6 shadow-2xl space-y-5 animate-scaleIn max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between border-b border-gray-100 pb-3">
+              <div class="flex items-center gap-2.5">
+                <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-red-100 text-red-700 font-extrabold text-sm">
+                  ⚖️
+                </span>
+                <div>
+                  <h3 class="text-base font-bold text-gray-900">Hoja de Reclamación {{ claim.sheetNumber }}</h3>
+                  <p class="text-xs text-gray-500">Registrada el {{ claim.createdAt }} • Tipo: {{ claim.claimType }}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                (click)="closeComplaintModal()"
+                class="rounded-xl border border-gray-200 p-1.5 text-gray-500 hover:bg-gray-100 transition cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <!-- Client Info Grid -->
+            <div class="rounded-xl bg-[#F8F9FA] p-4 text-xs space-y-2 border border-gray-200">
+              <p><strong>Consumidor:</strong> {{ claim.fullName }} ({{ claim.docType }} {{ claim.docNumber }})</p>
+              <p><strong>Dirección:</strong> {{ claim.address }}</p>
+              <p><strong>Contacto:</strong> Cel: {{ claim.phone }} | Correo: <span class="font-mono">{{ claim.email }}</span></p>
+              <p><strong>Bien Contratado:</strong> {{ claim.goodDescription }} ({{ claim.goodType }} - S/ {{ claim.claimedAmount | number: '1.2-2' }})</p>
+            </div>
+
+            <!-- Detail of Facts & Request -->
+            <div class="space-y-3 text-xs">
+              <div class="rounded-xl border border-gray-200 p-3.5 space-y-1">
+                <span class="font-bold text-gray-900 block">Detalle de los Hechos:</span>
+                <p class="text-gray-700 leading-relaxed">{{ claim.claimDetail }}</p>
+              </div>
+
+              <div class="rounded-xl border border-gray-200 p-3.5 space-y-1">
+                <span class="font-bold text-gray-900 block">Pedido Concreto del Consumidor:</span>
+                <p class="text-gray-700 leading-relaxed">{{ claim.claimRequest }}</p>
+              </div>
+            </div>
+
+            <!-- Response Form -->
+            <div class="rounded-xl border-2 border-orange-200 bg-orange-50/40 p-4 space-y-2 text-xs">
+              <span class="font-bold text-orange-950 block">Acción Adoptada por la Empresa (Respuesta Formal al Cliente):</span>
+              @if (claim.status === 'ATENDIDO') {
+                <div class="bg-white p-3 rounded-lg border border-emerald-300 text-emerald-950 space-y-1">
+                  <p class="font-bold">✓ Reclamación Atendida el {{ claim.resolvedAt || 'Previamente' }}:</p>
+                  <p class="text-gray-700">{{ claim.adminResponseNote }}</p>
+                </div>
+              } @else {
+                <textarea
+                  [(ngModel)]="claimResponseText"
+                  rows="3"
+                  placeholder="Escribe la respuesta formal y solución brindada al cliente conforme al marco legal INDECOPI..."
+                  class="w-full rounded-xl border border-gray-200 bg-white p-3 text-xs text-gray-900 focus:border-orange-600 focus:outline-none"
+                ></textarea>
+                <div class="flex justify-end pt-1">
+                  <button
+                    type="button"
+                    (click)="submitComplaintResolution()"
+                    [disabled]="!claimResponseText.trim()"
+                    class="rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-emerald-700 disabled:opacity-50 transition cursor-pointer"
+                  >
+                    Marcar como Atendido y Emitir Respuesta
+                  </button>
+                </div>
+              }
+            </div>
+
+            <div class="flex items-center justify-between pt-2 border-t border-gray-100">
+              <button
+                type="button"
+                (click)="complaintsService.downloadComplaintPdf(claim)"
+                class="rounded-xl border border-orange-200 bg-orange-50 px-3.5 py-2 text-xs font-bold text-orange-700 hover:bg-orange-100 transition cursor-pointer"
+              >
+                📄 Descargar Hoja Oficial PDF
+              </button>
+              <button
+                type="button"
+                (click)="closeComplaintModal()"
+                class="rounded-xl border border-gray-200 bg-white px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition cursor-pointer"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- MODAL: CALIFICACIONES Y OPINIONES DEL REPARTIDOR -->
+      @if (selectedDriverForRatings(); as driverName) {
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
+          <div class="w-full max-w-xl rounded-2xl border border-gray-200 bg-white p-6 shadow-2xl space-y-5 animate-scaleIn max-h-[88vh] overflow-y-auto">
+            <div class="flex items-center justify-between border-b border-gray-100 pb-3">
+              <div class="flex items-center gap-3">
+                <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-100 text-amber-800 font-extrabold text-lg">
+                  ⭐
+                </span>
+                <div>
+                  <h3 class="text-base font-bold text-gray-900">Evaluación y Desempeño: {{ driverName }}</h3>
+                  <p class="text-xs text-gray-500">Puntuación otorgada por clientes al recibir sus pedidos</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                (click)="closeDriverRatingsModal()"
+                class="rounded-xl border border-gray-200 p-1.5 text-gray-500 hover:bg-gray-100 transition cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <!-- Score Summary Card -->
+            <div class="rounded-xl border border-amber-200 bg-amber-50/50 p-4 flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <span class="text-3xl font-black text-amber-900">{{ getDriverRatingStats(driverName).averageRating }}</span>
+                <div>
+                  <div class="text-amber-500 text-sm font-bold">★★★★★</div>
+                  <span class="text-xs text-amber-800 font-medium">
+                    Promedio general basado en {{ getDriverRatingStats(driverName).totalReviews }} entregas
+                  </span>
+                </div>
+              </div>
+              <span class="rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 px-3 py-1 text-xs font-bold">
+                Excelente Servicio
+              </span>
+            </div>
+
+            <!-- Reviews Feed -->
+            <div class="space-y-3">
+              <h4 class="text-xs font-bold text-gray-900 uppercase tracking-wider">Opiniones recientes de clientes</h4>
+              <div class="space-y-2.5 max-h-60 overflow-y-auto pr-1">
+                @for (rev of driverRatingService.ratings(); track rev.id) {
+                  <div class="rounded-xl border border-gray-200 bg-[#F8F9FA] p-3 text-xs space-y-1.5">
+                    <div class="flex items-center justify-between">
+                      <div class="flex items-center gap-2">
+                        <span class="font-bold text-gray-900">{{ rev.customerName }}</span>
+                        <span class="text-amber-500 font-bold">
+                          {{ '★'.repeat(rev.stars) }}{{ '☆'.repeat(5 - rev.stars) }}
+                        </span>
+                      </div>
+                      <span class="text-[11px] text-gray-400">{{ rev.createdAt }}</span>
+                    </div>
+                    @if (rev.comment) {
+                      <p class="text-gray-700 italic">"{{ rev.comment }}"</p>
+                    }
+                    @if (rev.tags.length > 0) {
+                      <div class="flex flex-wrap gap-1 pt-0.5">
+                        @for (t of rev.tags; track t) {
+                          <span class="rounded-md bg-white border border-gray-200 px-1.5 py-0.5 text-[10px] font-semibold text-gray-600">
+                            {{ t }}
+                          </span>
+                        }
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+            </div>
+
+            <div class="flex justify-end pt-2 border-t border-gray-100">
+              <button
+                type="button"
+                (click)="closeDriverRatingsModal()"
+                class="rounded-xl border border-gray-200 bg-white px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition cursor-pointer"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      }
 
       <!-- =========================================================================== -->
       <!-- MODAL EDITOR: SPARE PART DETAILS, SMART AUTOCOMPLETE, VEHICLES & PHOTOS     -->
@@ -3428,6 +3735,25 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
   `,
 })
 export class AdminErpPageComponent implements OnInit, OnDestroy {
+  readonly complaintsService = inject(ComplaintsService);
+  readonly driverRatingService = inject(DriverRatingService);
+
+  // Libro de Reclamaciones State
+  readonly selectedComplaint = signal<ComplaintRecord | null>(null);
+  claimResponseText = '';
+  readonly claimFilterType = signal<'TODOS' | 'RECLAMO' | 'QUEJA'>('TODOS');
+  readonly claimFilterStatus = signal<'TODOS' | 'PENDIENTE' | 'ATENDIDO'>('TODOS');
+
+  // Real-Time New Order Monitor & Chime
+  readonly newOrderBanner = signal<{ orderNumber: string; total: number; customerName: string } | null>(null);
+  readonly newOrdersAlertCount = signal<number>(0);
+  private knownOrderNumbers = new Set<string>();
+  private orderMonitorInterval: ReturnType<typeof setInterval> | null = null;
+  private hasInitializedOrderMonitor = false;
+
+  // Driver Ratings Modal State
+  readonly selectedDriverForRatings = signal<string | null>(null);
+
   readonly auth = inject(AuthService);
   private readonly analyticsService = inject(AnalyticsService);
   private readonly catalogService = inject(CatalogService);
@@ -3694,6 +4020,7 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
     this.loadAdminParts();
     this.loadBranches();
     this.loadStorePaymentMethods();
+    this.initOrderMonitor();
   }
 
   switchTab(tab: AdminTab): void {
@@ -5613,7 +5940,147 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
     }
   }
 
+  // ---------------------------------------------------------------------------
+  // LIBRO DE RECLAMACIONES & CALIFICACIONES DE REPARTIDORES
+  // ---------------------------------------------------------------------------
+  pendingClaimsCount(): number {
+    return this.complaintsService.complaints().filter((c) => c.status === 'PENDIENTE').length;
+  }
+
+  resolvedClaimsCount(): number {
+    return this.complaintsService.complaints().filter((c) => c.status === 'ATENDIDO').length;
+  }
+
+  filteredComplaints(): ComplaintRecord[] {
+    return this.complaintsService.complaints().filter((c) => {
+      if (this.claimFilterType() !== 'TODOS' && c.claimType !== this.claimFilterType()) {
+        return false;
+      }
+      if (this.claimFilterStatus() !== 'TODOS' && c.status !== this.claimFilterStatus()) {
+        return false;
+      }
+      return true;
+    });
+  }
+
+  openComplaintModal(c: ComplaintRecord): void {
+    this.selectedComplaint.set(c);
+    this.claimResponseText = c.adminResponseNote || '';
+  }
+
+  closeComplaintModal(): void {
+    this.selectedComplaint.set(null);
+    this.claimResponseText = '';
+  }
+
+  submitComplaintResolution(): void {
+    const claim = this.selectedComplaint();
+    if (!claim || !this.claimResponseText.trim()) return;
+    this.complaintsService.resolveComplaint(claim.sheetNumber, this.claimResponseText.trim());
+    this.closeComplaintModal();
+  }
+
+  getDriverRatingStats(driverName: string = 'Miguel Ángel Flores'): DriverRatingStats {
+    return this.driverRatingService.getDriverStats(driverName);
+  }
+
+  openDriverRatingsModal(driverName: string): void {
+    this.selectedDriverForRatings.set(driverName);
+  }
+
+  closeDriverRatingsModal(): void {
+    this.selectedDriverForRatings.set(null);
+  }
+
+  // ---------------------------------------------------------------------------
+  // REAL-TIME ORDER MONITOR & WEB AUDIO API CHIME (DING-DONG)
+  // ---------------------------------------------------------------------------
+  initOrderMonitor(): void {
+    if (typeof window === 'undefined') return;
+    this.checkNewOrders();
+    this.orderMonitorInterval = setInterval(() => {
+      this.checkNewOrders();
+    }, 20000); // Poll every 20 seconds
+  }
+
+  private checkNewOrders(): void {
+    this.ordersService.getAllOrders().subscribe({
+      next: (orders: Order[]) => {
+        if (!orders || orders.length === 0) return;
+
+        if (!this.hasInitializedOrderMonitor) {
+          // First run: populate known IDs without chiming
+          orders.forEach((o) => this.knownOrderNumbers.add(o.orderNumber));
+          this.hasInitializedOrderMonitor = true;
+          return;
+        }
+
+        // Check for any newly arrived order
+        const newOrders = orders.filter((o) => !this.knownOrderNumbers.has(o.orderNumber));
+        if (newOrders.length > 0) {
+          const latest = newOrders[0];
+          newOrders.forEach((o) => this.knownOrderNumbers.add(o.orderNumber));
+          this.newOrdersAlertCount.update((c) => c + newOrders.length);
+          this.newOrderBanner.set({
+            orderNumber: latest.orderNumber,
+            total: latest.totalAmount ?? latest.total ?? latest.subtotal ?? 0,
+            customerName: latest.customerName || 'Cliente Asunción',
+          });
+          this.playNewOrderChime();
+          this.toast.info('¡Nuevo Pedido!', `Orden #${latest.orderNumber} por S/ ${(latest.totalAmount ?? latest.total ?? latest.subtotal ?? 0).toFixed(2)}`);
+
+          // Request native browser desktop notification if permitted
+          if ('Notification' in window && Notification.permission === 'granted') {
+            new Notification('¡Nuevo Pedido en Autopartes Asunción!', {
+              body: `Orden #${latest.orderNumber} por S/ ${(latest.totalAmount ?? latest.total ?? latest.subtotal ?? 0).toFixed(2)} de ${latest.customerName || "Cliente"}`,
+              icon: '/images/logos/logo.jpg',
+            });
+          } else if ('Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission();
+          }
+        }
+      },
+      error: () => {},
+    });
+  }
+
+  playNewOrderChime(): void {
+    if (typeof window === 'undefined') return;
+    try {
+      const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+
+      const playTone = (freq: number, start: number, duration: number) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, ctx.currentTime + start);
+        gain.gain.setValueAtTime(0.25, ctx.currentTime + start);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + start + duration);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(ctx.currentTime + start);
+        osc.stop(ctx.currentTime + start + duration);
+      };
+
+      // Two-tone bell chime: E5 (659Hz) -> G5 (784Hz)
+      playTone(659.25, 0, 0.25);
+      playTone(783.99, 0.18, 0.45);
+    } catch (e) {
+      console.warn('AudioContext not allowed or not supported:', e);
+    }
+  }
+
+  dismissNewOrderBanner(): void {
+    this.newOrderBanner.set(null);
+    this.newOrdersAlertCount.set(0);
+  }
+
   ngOnDestroy(): void {
+    if (this.orderMonitorInterval) {
+      clearInterval(this.orderMonitorInterval);
+    }
     if (this.partAutocompleteTimer) {
       clearTimeout(this.partAutocompleteTimer);
     }

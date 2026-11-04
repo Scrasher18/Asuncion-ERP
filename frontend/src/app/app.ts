@@ -1,5 +1,5 @@
-import { Component } from '@angular/core';
-import { RouterLink, RouterOutlet } from '@angular/router';
+import { Component, inject } from '@angular/core';
+import { NavigationEnd, Router, RouterLink, RouterOutlet } from '@angular/router';
 import { CartDrawerComponent } from './shared/components/cart-drawer/cart-drawer.component';
 import { ChatbotWidgetComponent } from './shared/components/chatbot-widget/chatbot-widget.component';
 import { NavbarComponent } from './shared/components/navbar/navbar.component';
@@ -175,4 +175,21 @@ import { ToastContainerComponent } from './shared/components/toast-container/toa
     </div>
   `,
 })
-export class App {}
+export class App {
+  private readonly router = inject(Router);
+
+  constructor() {
+    this.router.events.subscribe((evt) => {
+      if (evt instanceof NavigationEnd) {
+        const url = evt.urlAfterRedirects || evt.url;
+        if (typeof document !== 'undefined') {
+          if (url.startsWith('/admin') || url.startsWith('/delivery')) {
+            document.body.classList.add('hide-recaptcha');
+          } else {
+            document.body.classList.remove('hide-recaptcha');
+          }
+        }
+      }
+    });
+  }
+}
