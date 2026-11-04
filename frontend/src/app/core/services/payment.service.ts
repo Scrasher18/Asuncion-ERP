@@ -161,6 +161,61 @@ const DEFAULT_THEME: CardAnalysisResult['theme'] = {
   gradient: 'from-[#1E293B] via-[#0F172A] to-[#020617]',
 };
 
+
+export interface StoreWalletConfig {
+  yapeEnabled: boolean;
+  yapePhone: string;
+  yapeHolder: string;
+  yapeQrImageUrl?: string;
+  plinEnabled: boolean;
+  plinPhone: string;
+  plinHolder: string;
+  plinQrImageUrl?: string;
+  walletInstructions: string;
+  bcpEnabled: boolean;
+  bcpAccount: string;
+  bcpCci: string;
+  bcpHolder: string;
+  bbvaEnabled: boolean;
+  bbvaAccount: string;
+  bbvaCci: string;
+  bbvaHolder: string;
+  interbankEnabled: boolean;
+  interbankAccount: string;
+  interbankCci: string;
+  interbankHolder: string;
+  codCashEnabled: boolean;
+  codPosEnabled: boolean;
+  codMaxAmount: number;
+}
+
+export const DEFAULT_WALLET_CONFIG: StoreWalletConfig = {
+  yapeEnabled: true,
+  yapePhone: '999 411 501',
+  yapeHolder: 'Repuestos Automotrices Asunción S.A.C.',
+  yapeQrImageUrl: '/images/qr/qr-yape-default.svg',
+  plinEnabled: true,
+  plinPhone: '999 411 501',
+  plinHolder: 'Repuestos Automotrices Asunción S.A.C.',
+  plinQrImageUrl: '/images/qr/qr-plin-default.svg',
+  walletInstructions: 'Envía la constancia o captura de tu pago al WhatsApp +51 999 411 501 indicando tu N° de Pedido.',
+  bcpEnabled: true,
+  bcpAccount: '193-98765432-0-12',
+  bcpCci: '002-193-009876543201-12',
+  bcpHolder: 'Repuestos Automotrices Asunción S.A.C.',
+  bbvaEnabled: true,
+  bbvaAccount: '0011-0123-0100045678',
+  bbvaCci: '011-123-000100045678-45',
+  bbvaHolder: 'Repuestos Automotrices Asunción S.A.C.',
+  interbankEnabled: true,
+  interbankAccount: '200-3001234567',
+  interbankCci: '003-200-003001234567-89',
+  interbankHolder: 'Repuestos Automotrices Asunción S.A.C.',
+  codCashEnabled: true,
+  codPosEnabled: true,
+  codMaxAmount: 1500,
+};
+
 @Injectable({
   providedIn: 'root',
 })
@@ -440,5 +495,24 @@ export class PaymentService {
 
   getRecentTransactions(): Observable<PaymentTransactionDto[]> {
     return this.http.get<PaymentTransactionDto[]>(`${this.adminUrl}/transactions`);
+  }
+  getStoreWalletConfig(): StoreWalletConfig {
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('asuncion_store_payment_methods');
+        if (stored) {
+          return { ...DEFAULT_WALLET_CONFIG, ...JSON.parse(stored) };
+        }
+      } catch (e) {}
+    }
+    return DEFAULT_WALLET_CONFIG;
+  }
+
+  saveStoreWalletConfig(cfg: StoreWalletConfig): void {
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('asuncion_store_payment_methods', JSON.stringify(cfg));
+      } catch (e) {}
+    }
   }
 }

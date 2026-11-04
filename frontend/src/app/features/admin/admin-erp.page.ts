@@ -36,6 +36,7 @@ import { LookupService } from '../../core/services/lookup.service';
 import { NotificationAdminService } from '../../core/services/notification-admin.service';
 import { OrdersService } from '../../core/services/orders.service';
 import { PaymentService } from '../../core/services/payment.service';
+import { PdfInvoiceService } from '../../core/services/pdf-invoice.service';
 import {
   PaymentConfigUpdateRequest,
   PaymentTransactionDto,
@@ -3435,6 +3436,7 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
   private readonly ordersService = inject(OrdersService);
   private readonly apiConfig = inject(ApiConfigService);
   private readonly paymentService = inject(PaymentService);
+  readonly pdfInvoiceService = inject(PdfInvoiceService);
   private readonly sanitizer = inject(DomSanitizer);
   private readonly toast = inject(ToastService);
   private readonly adminUsersService = inject(AdminUsersService);
@@ -3499,9 +3501,11 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
     yapeEnabled: true,
     yapePhone: '999 411 501',
     yapeHolder: 'Repuestos Automotrices Asunción S.A.C.',
+    yapeQrImageUrl: '/images/qr/qr-yape-default.svg',
     plinEnabled: true,
     plinPhone: '999 411 501',
     plinHolder: 'Repuestos Automotrices Asunción S.A.C.',
+    plinQrImageUrl: '/images/qr/qr-plin-default.svg',
     walletInstructions: 'Envía la constancia o captura de tu pago al WhatsApp +51 999 411 501 indicando tu N° de Pedido.',
     
     // Transferencias Bancarias
@@ -3540,6 +3544,30 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
         console.warn('Could not parse stored payment methods:', e);
       }
     }
+  }
+
+  
+  onUploadWalletQr(event: Event, type: 'YAPE' | 'PLIN'): void {
+    const input = event.target as HTMLInputElement;
+    if (!input.files || input.files.length === 0) return;
+    const file = input.files[0];
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      if (type === 'YAPE') {
+        this.storePaymentMethods.yapeQrImageUrl = result;
+      } else {
+        this.storePaymentMethods.plinQrImageUrl = result;
+      }
+      this.saveStorePaymentMethods();
+      this.toast.success('QR Actualizado', `Se cargó la imagen QR de ${type} exitosamente.`);
+    };
+    reader.readAsDataURL(file);
+  }
+
+  downloadOrderPdf(order: Order): void {
+    this.pdfInvoiceService.generateInvoicePdf(order, true);
+    this.toast.success('Descargando comprobante', `Generando PDF oficial para el pedido #${order.orderNumber}`);
   }
 
   saveStorePaymentMethods(): void {

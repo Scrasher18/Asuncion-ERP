@@ -7,6 +7,7 @@ import { LiveTrackingResponse } from '../../core/models/telemetry.models';
 import { AuthService } from '../../core/services/auth.service';
 import { LookupService } from '../../core/services/lookup.service';
 import { OrdersService } from '../../core/services/orders.service';
+import { PaymentService, StoreWalletConfig, DEFAULT_WALLET_CONFIG } from '../../core/services/payment.service';
 import { TelemetryService } from '../../core/services/telemetry.service';
 import { ToastService } from '../../core/services/toast.service';
 import { LiveDriverMapComponent } from '../../shared/components/live-driver-map/live-driver-map.component';
@@ -240,6 +241,16 @@ import { LiveDriverMapComponent } from '../../shared/components/live-driver-map/
                     <span>Abrir ruta en Google Maps</span>
                   </a>
 
+                  <button
+                    type="button"
+                    (click)="openQrCobroModal(ord)"
+                    class="min-h-[48px] sm:col-span-2 inline-flex items-center justify-center gap-2 rounded-xl border border-purple-300 bg-purple-50/80 py-3 px-4 text-xs font-bold text-purple-900 shadow-2xs hover:bg-purple-100 transition cursor-pointer"
+                  >
+                    <img src="/images/icons/yape.jpg" alt="Yape" class="h-4 w-4 rounded object-contain" />
+                    <img src="/images/icons/plin.png" alt="Plin" class="h-4 w-4 rounded object-contain" />
+                    <span>Mostrar QR de Cobro (Yape / Plin)</span>
+                  </button>
+
                   @if (ord.status === 'LISTO_PARA_DESPACHO') {
                     <button
                       type="button"
@@ -454,6 +465,10 @@ export class DeliveryPageComponent implements OnInit, OnDestroy {
   private readonly lookupService = inject(LookupService);
   private readonly telemetryService = inject(TelemetryService);
   private readonly toast = inject(ToastService);
+  private readonly paymentService = inject(PaymentService);
+  readonly walletConfig = signal<StoreWalletConfig>(DEFAULT_WALLET_CONFIG);
+  readonly qrCobroOrder = signal<Order | null>(null);
+  readonly selectedQrTab = signal<'YAPE' | 'PLIN'>('YAPE');
 
   readonly orders = signal<Order[]>([]);
 
@@ -495,6 +510,7 @@ export class DeliveryPageComponent implements OnInit, OnDestroy {
   deliveryNotes = 'Entregado conforme en dirección indicada.';
 
   ngOnInit(): void {
+    this.walletConfig.set(this.paymentService.getStoreWalletConfig());
     this.loadDeliveryOrders();
   }
 
@@ -637,6 +653,16 @@ export class DeliveryPageComponent implements OnInit, OnDestroy {
         error: (err) =>
           this.toast.error('No se pudo iniciar la ruta', err?.error?.message || 'Inténtalo nuevamente.'),
       });
+  }
+
+  
+  openQrCobroModal(ord: Order): void {
+    this.walletConfig.set(this.paymentService.getStoreWalletConfig());
+    this.qrCobroOrder.set(ord);
+  }
+
+  closeQrCobroModal(): void {
+    this.qrCobroOrder.set(null);
   }
 
   openCompletionModal(order: Order): void {

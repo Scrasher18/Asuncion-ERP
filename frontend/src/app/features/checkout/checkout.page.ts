@@ -22,7 +22,8 @@ import { CartService } from '../../core/services/cart.service';
 import { LogisticsService } from '../../core/services/logistics.service';
 import { LookupService } from '../../core/services/lookup.service';
 import { OrdersService } from '../../core/services/orders.service';
-import { PaymentService } from '../../core/services/payment.service';
+import { PaymentService, StoreWalletConfig, DEFAULT_WALLET_CONFIG } from '../../core/services/payment.service';
+import { PdfInvoiceService } from '../../core/services/pdf-invoice.service';
 import { ToastService } from '../../core/services/toast.service';
 import {
   CoverageMapComponent,
@@ -44,6 +45,8 @@ export class CheckoutPageComponent implements OnInit, OnDestroy {
   readonly paymentService = inject(PaymentService);
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
+  readonly pdfInvoiceService = inject(PdfInvoiceService);
+  readonly walletConfig = signal<StoreWalletConfig>(DEFAULT_WALLET_CONFIG);
 
   readonly branches = signal<Branch[]>([]);
   readonly deliveryType = signal<DeliveryType>('DELIVERY');
@@ -121,6 +124,7 @@ export class CheckoutPageComponent implements OnInit, OnDestroy {
       this.prefillFromUser();
     }
 
+    this.walletConfig.set(this.paymentService.getStoreWalletConfig());
     this.logisticsService.getBranches().subscribe({
       next: (list) => {
         if (list.length > 0) {
@@ -177,6 +181,13 @@ export class CheckoutPageComponent implements OnInit, OnDestroy {
 
   onCardHolderInput(val: string): void {
     this.cardForm.holder = (val || '').toUpperCase();
+  }
+
+  
+  downloadOrderPdf(order: any): void {
+    if (!order) return;
+    this.pdfInvoiceService.generateInvoicePdf(order, true);
+    this.toast.success('Descargando comprobante', 'Generando Boleta / Factura en PDF...');
   }
 
   closeReceiptModal(): void {
