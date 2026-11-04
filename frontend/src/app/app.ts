@@ -191,5 +191,21 @@ export class App {
         }
       }
     });
+
+    if (typeof window !== 'undefined') {
+      // Toggle expansion when clicking/pulsando on the reCAPTCHA badge iframe
+      window.addEventListener('blur', () => {
+        const badge = document.querySelector('.grecaptcha-badge');
+        if (badge && document.activeElement && badge.contains(document.activeElement)) {
+          badge.classList.toggle('expanded');
+        }
+      });
+      document.addEventListener('click', (e) => {
+        const badge = document.querySelector('.grecaptcha-badge');
+        if (badge && !badge.contains(e.target as Node)) {
+          badge.classList.remove('expanded');
+        }
+      });
+    }
   }
 }
