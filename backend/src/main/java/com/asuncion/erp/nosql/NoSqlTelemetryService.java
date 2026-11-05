@@ -49,6 +49,9 @@ public class NoSqlTelemetryService {
     private final CustomerOrderRepository orderRepository;
     private final ObjectMapper objectMapper;
 
+    @Value("${app.nosql.mongodb.enabled:false}")
+    private boolean mongoEnabled;
+
     @Value("${app.nosql.mongodb.uri:mongodb://localhost:27017}")
     private String mongoUri;
 
@@ -77,7 +80,11 @@ public class NoSqlTelemetryService {
     @PostConstruct
     public void initializeNoSqlEngine() {
         initLocalStorage();
-        initMongoConnection();
+        if (mongoEnabled) {
+            initMongoConnection();
+        } else {
+            log.info("Motor NoSQL MongoDB remoto desactivado por configuración. Operando con Document Store JSONL embebido.");
+        }
     }
 
     private void initLocalStorage() {

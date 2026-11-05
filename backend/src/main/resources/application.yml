@@ -64,5 +64,5 @@ app:
     mongodb:
       uri: ${MONGODB_URI:mongodb://localhost:27017}
       database: ${MONGODB_DATABASE:asuncion_telemetry}
-      enabled: ${MONGODB_ENABLED:true}
+      enabled: ${MONGODB_ENABLED:false}
     storage-dir: ${NOSQL_STORAGE_DIR:./data/nosql}

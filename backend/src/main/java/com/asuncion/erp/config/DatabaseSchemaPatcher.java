@@ -115,7 +115,8 @@ public class DatabaseSchemaPatcher implements CommandLineRunner {
                 Category found = existing.stream()
                         .filter(c -> spec.code().equalsIgnoreCase(c.getCode())
                                 || ("CAT-" + spec.code()).equalsIgnoreCase(c.getCode())
-                                || (c.getCode() != null && c.getCode().toUpperCase().contains(spec.code())))
+                                || (c.getCode() != null && c.getCode().toUpperCase().contains(spec.code()))
+                                || (c.getName() != null && spec.name().equalsIgnoreCase(c.getName())))
                         .findFirst()
                         .orElse(null);
                 if (found != null) {
