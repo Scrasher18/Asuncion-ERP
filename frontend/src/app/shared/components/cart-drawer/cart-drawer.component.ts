@@ -127,9 +127,15 @@ import { ToastService } from '../../../core/services/toast.service';
                             S/ {{ (cart.effectiveUnitPrice(item) * item.quantity) | number: '1.2-2' }}
                           </span>
                           @if (cart.effectiveUnitPrice(item) < item.part.salePrice) {
-                            <span class="inline-block rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700">
-                              Precio por mayor
-                            </span>
+                            @if (cart.promotionService.getPromotion(item.part.sku); as promo) {
+                              <span class="inline-block rounded bg-red-50 border border-red-200 px-1.5 py-0.5 text-[10px] font-bold text-red-700">
+                                {{ promo.badgeLabel || 'OFERTA' }} -{{ promo.discountPercentage }}%
+                              </span>
+                            } @else {
+                              <span class="inline-block rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700">
+                                Precio por mayor
+                              </span>
+                            }
                           }
                         </div>
                       </div>

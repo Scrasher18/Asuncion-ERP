@@ -38,6 +38,7 @@ import { NotificationAdminService } from '../../core/services/notification-admin
 import { OrdersService } from '../../core/services/orders.service';
 import { PaymentService } from '../../core/services/payment.service';
 import { PdfInvoiceService } from '../../core/services/pdf-invoice.service';
+import { PromotionService } from '../../core/services/promotion.service';
 import {
   PaymentConfigUpdateRequest,
   PaymentTransactionDto,
@@ -947,7 +948,11 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                               {{ item.currentStock ?? item.stockQuantity ?? 0 }} un.
                             </td>
                             <td class="px-4 py-3 text-center">
-                              @if (item.rotationStatus === 'SIN_MOVIMIENTO') {
+                              @if (promotionService.hasPromotion(item.sku)) {
+                                <span class="inline-flex items-center rounded-full border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-800 animate-pulse">
+                                  🏷️ En Oferta Web (-{{ promotionService.getPromotion(item.sku)?.discountPercentage }}%)
+                                </span>
+                              } @else if (item.rotationStatus === 'SIN_MOVIMIENTO') {
                                 <span class="inline-flex items-center rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[10px] font-bold text-red-700">
                                   Sin movimiento
                                 </span>
@@ -962,14 +967,25 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                               }
                             </td>
                             <td class="px-3 py-3 text-center">
-                              <button
-                                type="button"
-                                (click)="inspectPartInInventory(item.sku)"
-                                class="rounded-lg border border-orange-200 bg-orange-50/70 px-2 py-1 text-[11px] font-semibold text-orange-700 hover:bg-orange-600 hover:text-white transition shadow-2xs"
-                                title="Editar precio o activar descuento"
-                              >
-                                Liquidar
-                              </button>
+                              @if (promotionService.hasPromotion(item.sku)) {
+                                <button
+                                  type="button"
+                                  (click)="openPromotionModal(item)"
+                                  class="rounded-lg border border-emerald-300 bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-800 hover:bg-emerald-600 hover:text-white transition shadow-2xs cursor-pointer"
+                                  title="Oferta activa: Haz clic para ver o editar la promoción"
+                                >
+                                  ✓ Oferta Activa
+                                </button>
+                              } @else {
+                                <button
+                                  type="button"
+                                  (click)="openPromotionModal(item)"
+                                  class="rounded-lg border border-orange-300 bg-orange-50 px-2.5 py-1 text-[11px] font-bold text-orange-800 hover:bg-orange-600 hover:text-white transition shadow-2xs cursor-pointer"
+                                  title="Crear oferta o combo para acelerar rotación"
+                                >
+                                  🏷️ Crear Oferta
+                                </button>
+                              }
                             </td>
                           </tr>
                         }
@@ -2711,6 +2727,298 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
       }
 
       <!-- =========================================================================== -->
+      <!-- MODAL: ESTRATEGIA COMERCIAL: CREAR OFERTA / PROMOCIÓN DE STOCK (CANDADO FINANCIERO) -->
+      <!-- =========================================================================== -->
+      @if (showPromotionModal()) {
+        @if (promoPart(); as part) {
+          <div class="fixed inset-0 z-50 overflow-y-auto bg-gray-900/50 backdrop-blur-xs p-3 sm:p-6 flex items-center justify-center">
+            <div class="w-full max-w-2xl rounded-3xl border border-gray-200 bg-white p-6 sm:p-8 shadow-2xl space-y-6 animate-scaleIn max-h-[92vh] overflow-y-auto">
+              
+              <!-- Modal Header -->
+              <div class="flex items-center justify-between border-b border-gray-100 pb-4">
+                <div class="flex items-center gap-3">
+                  <span class="flex h-11 w-11 items-center justify-center rounded-2xl bg-orange-100 text-orange-600 font-extrabold text-xl shadow-2xs">
+                    🏷️
+                  </span>
+                  <div>
+                    <h3 class="text-lg font-black text-gray-900">
+                      Estrategia Comercial: Oferta & Rotación de Stock
+                    </h3>
+                    <p class="text-xs text-gray-500">
+                      Impulsa la venta de inventario estancado protegiendo tu costo base y margen mínimo.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  (click)="closePromotionModal()"
+                  class="rounded-xl border border-gray-200 p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition cursor-pointer"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <!-- Part Identity Card -->
+              <div class="rounded-2xl border border-gray-200 bg-[#F8F9FA] p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div class="flex items-center gap-3">
+                  <div class="h-12 w-12 rounded-xl bg-white border border-gray-200 flex items-center justify-center overflow-hidden shrink-0">
+                    @if (part.imageUrl) {
+                      <img [src]="part.imageUrl" [alt]="part.name" class="h-full w-full object-cover" />
+                    } @else {
+                      <span class="text-xl">⚙️</span>
+                    }
+                  </div>
+                  <div>
+                    <h4 class="font-bold text-gray-900 text-sm leading-snug">{{ part.name }}</h4>
+                    <div class="flex flex-wrap items-center gap-2 mt-0.5">
+                      @if (part.oemCode) {
+                        <span class="rounded bg-white border border-gray-200 px-1.5 py-0.5 text-[10px] font-mono text-gray-600">OEM {{ part.oemCode }}</span>
+                      }
+                      <span class="font-mono text-[10px] text-gray-500">{{ part.sku }}</span>
+                      <span class="text-xs text-gray-400">•</span>
+                      <span class="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">{{ part.stockQuantity }} und. en stock</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Financial Guardrail 3-Card Strip -->
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div class="rounded-xl border border-gray-200 bg-white p-3 shadow-2xs">
+                  <span class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Precio de Venta Normal</span>
+                  <span class="text-lg font-black text-gray-900 mt-0.5 block">S/ {{ part.salePrice | number: '1.2-2' }}</span>
+                  <span class="text-[10px] text-gray-400">Precio regular de lista</span>
+                </div>
+                <div class="rounded-xl border border-blue-200 bg-blue-50/50 p-3 shadow-2xs">
+                  <span class="block text-[11px] font-semibold text-blue-700 uppercase tracking-wider">Costo Base (Piso Seguro)</span>
+                  <span class="text-lg font-black text-blue-900 mt-0.5 block">S/ {{ part.purchasePrice | number: '1.2-2' }}</span>
+                  <span class="text-[10px] text-blue-600">Costo de compra al importador</span>
+                </div>
+                <div class="rounded-xl border border-amber-200 bg-amber-50/50 p-3 shadow-2xs">
+                  <span class="block text-[11px] font-semibold text-amber-700 uppercase tracking-wider">Margen Bruto Actual</span>
+                  <span class="text-lg font-black text-amber-900 mt-0.5 block">
+                    {{ Math.round(((part.salePrice - part.purchasePrice) / part.salePrice) * 100) }}%
+                  </span>
+                  <span class="text-[10px] text-amber-700">Ganancia S/ {{ (part.salePrice - part.purchasePrice) | number: '1.2-2' }} c/u</span>
+                </div>
+              </div>
+
+              <!-- Promo Type Toggle -->
+              <div class="space-y-2">
+                <span class="block text-xs font-bold text-gray-800">1. Selecciona la modalidad de oferta:</span>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    (click)="promoType = 'DESCUENTO_DIRECTO'"
+                    [class]="promoType === 'DESCUENTO_DIRECTO' ? 'border-orange-500 bg-orange-50/60 ring-2 ring-orange-500/20' : 'border-gray-200 bg-white hover:bg-gray-50'"
+                    class="rounded-xl border p-3.5 text-left transition cursor-pointer"
+                  >
+                    <div class="flex items-center gap-2">
+                      <span class="text-lg">🏷️</span>
+                      <span class="text-xs font-bold text-gray-900">Descuento Directo en Catálogo</span>
+                    </div>
+                    <p class="text-[11px] text-gray-500 mt-1">
+                      Muestra el precio anterior tachado y la etiqueta de oferta en la web para incentivar la compra inmediata.
+                    </p>
+                  </button>
+
+                  <button
+                    type="button"
+                    (click)="promoType = 'COMBO_SUGERIDO'"
+                    [class]="promoType === 'COMBO_SUGERIDO' ? 'border-orange-500 bg-orange-50/60 ring-2 ring-orange-500/20' : 'border-gray-200 bg-white hover:bg-gray-50'"
+                    class="rounded-xl border p-3.5 text-left transition cursor-pointer"
+                  >
+                    <div class="flex items-center gap-2">
+                      <span class="text-lg">📦</span>
+                      <span class="text-xs font-bold text-gray-900">Combo Automotriz Sugerido</span>
+                    </div>
+                    <p class="text-[11px] text-gray-500 mt-1">
+                      Empareja este repuesto estancado con uno de alta rotación (aceite, filtro o líquido) con ahorro conjunto.
+                    </p>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Discount Configuration Section -->
+              <div class="space-y-4 rounded-2xl border border-gray-200 bg-white p-4">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                  <span class="text-xs font-bold text-gray-900">2. Define el porcentaje de descuento:</span>
+                  <span class="text-xs text-gray-500">
+                    Descuento máximo seguro sin pérdida: <strong class="text-emerald-700">{{ promoMaxSafeDiscount }}%</strong>
+                  </span>
+                </div>
+
+                <!-- Quick Preset Pills -->
+                <div class="flex flex-wrap items-center gap-2">
+                  @for (pct of [5, 8, 10, 12, 15, 20]; track pct) {
+                    <button
+                      type="button"
+                      (click)="selectPresetDiscount(pct)"
+                      [disabled]="pct > promoMaxSafeDiscount"
+                      [class]="
+                        promoDiscountPercent === pct
+                          ? 'bg-orange-600 text-white font-bold border-orange-600 shadow-xs'
+                          : pct > promoMaxSafeDiscount
+                            ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed line-through'
+                            : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-orange-50 hover:border-orange-300'
+                      "
+                      class="rounded-lg border px-3 py-1.5 text-xs font-medium transition cursor-pointer"
+                    >
+                      {{ pct }}% {{ pct === 10 ? '⭐ Recomendado' : '' }}
+                    </button>
+                  }
+                </div>
+
+                <!-- Slider and Input -->
+                <div class="flex items-center gap-4 pt-1">
+                  <input
+                    type="range"
+                    min="1"
+                    [max]="Math.max(1, promoMaxSafeDiscount)"
+                    [(ngModel)]="promoDiscountPercent"
+                    class="h-2 w-full rounded-lg bg-gray-200 accent-orange-600 cursor-pointer"
+                  />
+                  <div class="flex items-center gap-1 shrink-0">
+                    <input
+                      type="number"
+                      min="1"
+                      [max]="promoMaxSafeDiscount"
+                      [(ngModel)]="promoDiscountPercent"
+                      class="h-9 w-16 rounded-xl border border-gray-200 text-center font-bold text-xs text-gray-900 focus:border-orange-500 focus:outline-hidden"
+                    />
+                    <span class="text-xs font-bold text-gray-600">%</span>
+                  </div>
+                </div>
+
+                <!-- Warning if unsafe -->
+                @if (!promoIsSafe) {
+                  <div class="rounded-xl border border-red-300 bg-red-50 p-3 text-xs text-red-800 flex items-center gap-2">
+                    <span class="text-lg">⚠️</span>
+                    <span>
+                      <strong>Alerta de Seguridad Financiera:</strong> Este descuento deja el precio por debajo del costo unitario (S/ {{ part.purchasePrice | number: '1.2-2' }}). Ajusta el porcentaje a máximo {{ promoMaxSafeDiscount }}%.
+                    </span>
+                  </div>
+                }
+
+                <!-- Complementary Item for Combo -->
+                @if (promoType === 'COMBO_SUGERIDO') {
+                  <div class="space-y-2 pt-2 border-t border-gray-100">
+                    <span class="text-xs font-bold text-gray-900 block">Repuesto complementario para el combo:</span>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      @for (comp of suggestedComplements; track comp.sku) {
+                        <button
+                          type="button"
+                          (click)="onComboComplementSelect(comp.sku)"
+                          [class]="promoComboComplementSku === comp.sku ? 'border-orange-500 bg-orange-50/70 font-bold' : 'border-gray-200 bg-white hover:bg-gray-50'"
+                          class="rounded-xl border p-2.5 text-left text-xs transition cursor-pointer flex items-center justify-between"
+                        >
+                          <div>
+                            <span class="block text-gray-900 font-semibold">{{ comp.name }}</span>
+                            <span class="text-[10px] text-gray-500">{{ comp.sku }} • Regular S/ {{ comp.price | number: '1.2-2' }}</span>
+                          </div>
+                          <span class="text-xs font-bold text-orange-600">+S/ {{ comp.price | number: '1.2-2' }}</span>
+                        </button>
+                      }
+                    </div>
+                  </div>
+                }
+
+                <!-- Real-time Simulation Box -->
+                <div class="rounded-xl border border-emerald-200 bg-emerald-50/40 p-4 space-y-2.5">
+                  <span class="text-[11px] font-bold text-emerald-900 uppercase tracking-wider block">
+                    📊 Simulación Financiera en Tiempo Real
+                  </span>
+                  <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                    <div>
+                      <span class="text-gray-500 block">Precio Oferta</span>
+                      <span class="text-base font-black text-gray-900">S/ {{ promoCalculatedPrice | number: '1.2-2' }}</span>
+                    </div>
+                    <div>
+                      <span class="text-gray-500 block">Ahorro Cliente</span>
+                      <span class="text-base font-bold text-emerald-700">-S/ {{ promoClientSavings | number: '1.2-2' }}</span>
+                    </div>
+                    <div>
+                      <span class="text-gray-500 block">Ganancia Neta c/u</span>
+                      <span class="text-base font-bold text-emerald-900">S/ {{ promoUnitProfit | number: '1.2-2' }}</span>
+                    </div>
+                    <div>
+                      <span class="text-gray-500 block">Margen Conservado</span>
+                      <span class="text-base font-bold text-emerald-800">{{ promoProfitMargin }}%</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Promotion Settings Strip (Quota & Badge) -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                  <div>
+                    <label class="block text-xs font-semibold text-gray-700 mb-1">Cupo de unidades en oferta:</label>
+                    <div class="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min="1"
+                        [max]="part.stockQuantity"
+                        [(ngModel)]="promoUnitsQuota"
+                        class="h-9 w-24 rounded-xl border border-gray-200 px-3 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-hidden"
+                      />
+                      <span class="text-xs text-gray-500">de {{ part.stockQuantity }} und. disponibles</span>
+                    </div>
+                    <span class="text-[10px] text-gray-400 mt-0.5 block">Capital total a recuperar: S/ {{ promoRecoverableCapital | number: '1.2-2' }}</span>
+                  </div>
+
+                  <div>
+                    <label class="block text-xs font-semibold text-gray-700 mb-1">Etiqueta visual en el catálogo:</label>
+                    <select
+                      [(ngModel)]="promoBadgeLabel"
+                      class="h-9 w-full rounded-xl border border-gray-200 bg-white px-3 text-xs font-semibold text-gray-900 focus:border-orange-500 focus:outline-hidden"
+                    >
+                      <option value="OFERTA FLASH">OFERTA FLASH 🔥</option>
+                      <option value="LIQUIDACIÓN DE STOCK">LIQUIDACIÓN DE STOCK 🏷️</option>
+                      <option value="PRECIO TALLER">PRECIO TALLER 🔧</option>
+                      <option value="PROMOCIÓN ESPECIAL">PROMOCIÓN ESPECIAL ⭐</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Action Buttons Footer -->
+              <div class="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-gray-100">
+                @if (promotionService.hasPromotion(part.sku)) {
+                  <button
+                    type="button"
+                    (click)="removeCurrentPromotion()"
+                    class="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-xs font-bold text-red-700 hover:bg-red-100 transition cursor-pointer"
+                  >
+                    🗑️ Desactivar Oferta
+                  </button>
+                } @else {
+                  <div></div>
+                }
+
+                <div class="flex items-center gap-2.5">
+                  <button
+                    type="button"
+                    (click)="closePromotionModal()"
+                    class="rounded-xl border border-gray-200 bg-white px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    (click)="savePromotion()"
+                    [disabled]="!promoIsSafe"
+                    class="rounded-xl bg-orange-600 px-5 py-2 text-xs font-bold text-white shadow-xs hover:bg-orange-700 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    ✓ Guardar y Activar Oferta en Catálogo
+                  </button>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        }
+      }
+
+      <!-- =========================================================================== -->
       <!-- MODAL EDITOR: SPARE PART DETAILS, SMART AUTOCOMPLETE, VEHICLES & PHOTOS     -->
       <!-- =========================================================================== -->
       @if (showPartModal()) {
@@ -3927,6 +4235,7 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
 export class AdminErpPageComponent implements OnInit, OnDestroy {
   readonly complaintsService = inject(ComplaintsService);
   readonly driverRatingService = inject(DriverRatingService);
+  readonly promotionService = inject(PromotionService);
 
   // Libro de Reclamaciones State
   readonly selectedComplaint = signal<ComplaintRecord | null>(null);
@@ -4173,6 +4482,173 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
   lowStockOnlyFilter = false;
 
   // Part Editor Modal State
+  // ---------------------------------------------------------------------------
+  // PROMOTIONS & STOCK ROTATION COMMERCIAL MODAL
+  // ---------------------------------------------------------------------------
+  readonly showPromotionModal = signal<boolean>(false);
+  readonly promoPart = signal<{
+    sku: string;
+    partId?: number;
+    name: string;
+    oemCode?: string;
+    categoryName?: string;
+    stockQuantity: number;
+    salePrice: number;
+    purchasePrice: number;
+    imageUrl?: string;
+  } | null>(null);
+
+  promoDiscountPercent: number = 10;
+  promoType: 'DESCUENTO_DIRECTO' | 'COMBO_SUGERIDO' = 'DESCUENTO_DIRECTO';
+  promoBadgeLabel: string = 'OFERTA FLASH';
+  promoUnitsQuota: number = 5;
+  promoComboComplementSku: string = 'ASU-FIL-001';
+  promoComboComplementName: string = 'Filtro de Aceite Blindado Denso';
+  promoComboComplementPrice: number = 42;
+
+  readonly suggestedComplements = [
+    { sku: 'ASU-FIL-001', name: 'Filtro de Aceite Blindado Denso', price: 42 },
+    { sku: 'ASU-FRE-004', name: 'Líquido de Frenos DOT 4 Bosch 500ml', price: 28 },
+    { sku: 'ASU-REF-003', name: 'Refrigerante 50/50 Prestone Galón', price: 48 },
+    { sku: 'ASU-ELE-002', name: 'Bujía Iridium Power Denso', price: 45 },
+    { sku: 'ASU-FIL-002', name: 'Filtro de Aire Motor Mann Filter', price: 58 },
+  ];
+
+  get promoCalculatedPrice(): number {
+    const p = this.promoPart();
+    if (!p) return 0;
+    return Number((p.salePrice * (1 - this.promoDiscountPercent / 100)).toFixed(2));
+  }
+
+  get promoClientSavings(): number {
+    const p = this.promoPart();
+    if (!p) return 0;
+    return Number((p.salePrice - this.promoCalculatedPrice).toFixed(2));
+  }
+
+  get promoUnitProfit(): number {
+    const p = this.promoPart();
+    if (!p) return 0;
+    return Number((this.promoCalculatedPrice - p.purchasePrice).toFixed(2));
+  }
+
+  get promoProfitMargin(): number {
+    const price = this.promoCalculatedPrice;
+    if (price <= 0) return 0;
+    return Number(((this.promoUnitProfit / price) * 100).toFixed(1));
+  }
+
+  get promoIsSafe(): boolean {
+    const p = this.promoPart();
+    if (!p) return true;
+    return this.promoCalculatedPrice >= p.purchasePrice;
+  }
+
+  get promoMaxSafeDiscount(): number {
+    const p = this.promoPart();
+    if (!p || p.salePrice <= 0) return 0;
+    return Math.max(0, Math.floor(((p.salePrice - p.purchasePrice) / p.salePrice) * 100));
+  }
+
+  get promoRecoverableCapital(): number {
+    return Number((this.promoCalculatedPrice * this.promoUnitsQuota).toFixed(2));
+  }
+
+  openPromotionModal(item: any): void {
+    const fullPart = this.adminParts().find((p: Part) => p.sku === item.sku || p.id === item.partId);
+    
+    // Calculate reliable prices
+    const salePrice = fullPart ? fullPart.salePrice : (item.immobilizedCapital ? Number((item.immobilizedCapital / (item.currentStock || 1) * 1.30).toFixed(2)) : 100);
+    const purchasePrice = fullPart && fullPart.purchasePrice ? fullPart.purchasePrice : (item.immobilizedCapital ? Number((item.immobilizedCapital / (item.currentStock || 1)).toFixed(2)) : Number((salePrice * 0.70).toFixed(2)));
+    const stockQuantity = item.currentStock ?? item.stockQuantity ?? fullPart?.stockQuantity ?? 1;
+
+    this.promoPart.set({
+      sku: item.sku,
+      partId: fullPart?.id ?? item.partId,
+      name: item.name || item.partName || fullPart?.name || 'Repuesto Automotriz',
+      oemCode: item.oemCode || fullPart?.oemCode,
+      categoryName: item.categoryName || fullPart?.categoryName,
+      stockQuantity,
+      salePrice,
+      purchasePrice,
+      imageUrl: fullPart?.primaryImageUrl || '/images/categories/repuesto-default.png',
+    });
+
+    // Check if there is an existing promo
+    const existing = this.promotionService.getPromotion(item.sku);
+    if (existing) {
+      this.promoDiscountPercent = existing.discountPercentage;
+      this.promoType = existing.promoType;
+      this.promoBadgeLabel = existing.badgeLabel;
+      this.promoUnitsQuota = existing.unitsQuota;
+      this.promoComboComplementSku = existing.comboComplementSku || 'ASU-FIL-001';
+      this.promoComboComplementName = existing.comboComplementName || 'Filtro de Aceite Blindado Denso';
+      this.promoComboComplementPrice = existing.comboComplementPrice || 42;
+    } else {
+      this.promoDiscountPercent = Math.min(10, this.promoMaxSafeDiscount || 10);
+      this.promoType = 'DESCUENTO_DIRECTO';
+      this.promoBadgeLabel = 'OFERTA FLASH';
+      this.promoUnitsQuota = Math.min(5, Math.max(1, stockQuantity));
+    }
+
+    this.showPromotionModal.set(true);
+  }
+
+  closePromotionModal(): void {
+    this.showPromotionModal.set(false);
+    this.promoPart.set(null);
+  }
+
+  selectPresetDiscount(pct: number): void {
+    if (pct <= this.promoMaxSafeDiscount) {
+      this.promoDiscountPercent = pct;
+    }
+  }
+
+  onComboComplementSelect(sku: string): void {
+    const comp = this.suggestedComplements.find((c) => c.sku === sku);
+    if (comp) {
+      this.promoComboComplementSku = comp.sku;
+      this.promoComboComplementName = comp.name;
+      this.promoComboComplementPrice = comp.price;
+    }
+  }
+
+  savePromotion(): void {
+    const part = this.promoPart();
+    if (!part || !this.promoIsSafe) return;
+
+    this.promotionService.applyPromotion({
+      sku: part.sku,
+      partId: part.partId,
+      partName: part.name,
+      categoryName: part.categoryName,
+      originalPrice: part.salePrice,
+      purchasePrice: part.purchasePrice,
+      promoPrice: this.promoCalculatedPrice,
+      discountPercentage: this.promoDiscountPercent,
+      badgeLabel: this.promoBadgeLabel,
+      promoType: this.promoType,
+      comboComplementSku: this.promoType === 'COMBO_SUGERIDO' ? this.promoComboComplementSku : undefined,
+      comboComplementName: this.promoType === 'COMBO_SUGERIDO' ? this.promoComboComplementName : undefined,
+      comboComplementPrice: this.promoType === 'COMBO_SUGERIDO' ? this.promoComboComplementPrice : undefined,
+      comboTotalPromoPrice: this.promoType === 'COMBO_SUGERIDO' ? Number((this.promoCalculatedPrice + this.promoComboComplementPrice * 0.85).toFixed(2)) : undefined,
+      unitsQuota: this.promoUnitsQuota,
+      unitsSoldInPromo: 0,
+      active: true,
+      startDate: new Date().toLocaleDateString('es-PE'),
+    });
+
+    this.closePromotionModal();
+  }
+
+  removeCurrentPromotion(): void {
+    const part = this.promoPart();
+    if (!part) return;
+    this.promotionService.removePromotion(part.sku);
+    this.closePromotionModal();
+  }
+
   readonly showPartModal = signal<boolean>(false);
   readonly editingPart = signal<Part | null>(null);
   readonly savingPart = signal<boolean>(false);

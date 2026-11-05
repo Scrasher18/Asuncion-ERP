@@ -2,6 +2,7 @@ import { computed, effect, inject, Injectable, signal } from '@angular/core';
 import { CartItem, Part } from '../models/api.models';
 import { ToastService } from './toast.service';
 import { AuthService } from './auth.service';
+import { PromotionService } from './promotion.service';
 
 const GUEST_CART_KEY = 'asuncion_cart_guest_v2';
 
@@ -9,6 +10,7 @@ const GUEST_CART_KEY = 'asuncion_cart_guest_v2';
 export class CartService {
   private readonly toast = inject(ToastService);
   private readonly authService = inject(AuthService);
+  readonly promotionService = inject(PromotionService);
 
   readonly items = signal<CartItem[]>([]);
   readonly isDrawerOpen = signal<boolean>(false);
@@ -35,14 +37,17 @@ export class CartService {
   readonly igvAmount = computed(() => Number((this.subtotal() - this.netBaseAmount()).toFixed(2)));
 
   effectiveUnitPrice(item: CartItem): number {
+    const promo = this.promotionService.getPromotion(item.part.sku);
+    const basePrice = promo && promo.active ? promo.promoPrice : item.part.salePrice;
+
     if (
       item.part.wholesalePrice &&
       item.part.wholesalePrice > 0 &&
       item.quantity >= 4
     ) {
-      return item.part.wholesalePrice;
+      return Math.min(item.part.wholesalePrice, basePrice);
     }
-    return item.part.salePrice;
+    return basePrice;
   }
 
   openDrawer(): void {

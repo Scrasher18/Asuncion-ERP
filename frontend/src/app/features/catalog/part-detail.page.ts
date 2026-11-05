@@ -9,6 +9,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { CartService } from '../../core/services/cart.service';
 import { CatalogService } from '../../core/services/catalog.service';
 import { ToastService } from '../../core/services/toast.service';
+import { PromotionService } from '../../core/services/promotion.service';
 
 @Component({
   selector: 'app-part-detail-page',
@@ -141,12 +142,34 @@ import { ToastService } from '../../core/services/toast.service';
               <!-- Pricing Box -->
               <div class="rounded-xl border border-gray-200 bg-gray-50/70 p-4 flex flex-wrap items-center justify-between gap-4">
                 <div>
-                  <span class="block text-xs font-medium text-gray-500">
-                    Precio unitario (incluye IGV)
-                  </span>
-                  <span class="mt-0.5 block text-3xl font-bold tracking-tight text-gray-900">
-                    S/ {{ p.salePrice | number: '1.2-2' }}
-                  </span>
+                  @if (promotionService.getPromotion(p.sku); as promo) {
+                    <div class="flex items-center gap-2 mb-1">
+                      <span class="rounded-full bg-red-600 text-white font-extrabold text-[10px] px-2.5 py-0.5 animate-pulse">
+                        🏷️ {{ promo.badgeLabel || 'OFERTA' }} -{{ promo.discountPercentage }}%
+                      </span>
+                      <span class="text-xs text-gray-400 line-through">
+                        Normal: S/ {{ p.salePrice | number: '1.2-2' }}
+                      </span>
+                    </div>
+                    <span class="block text-xs font-bold text-red-600">
+                      Precio de Oferta Especial (incluye IGV)
+                    </span>
+                    <div class="flex items-baseline gap-3">
+                      <span class="mt-0.5 block text-3xl font-black tracking-tight text-red-600">
+                        S/ {{ promo.promoPrice | number: '1.2-2' }}
+                      </span>
+                      <span class="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md px-2 py-0.5">
+                        Ahorras S/ {{ (p.salePrice - promo.promoPrice) | number: '1.2-2' }}
+                      </span>
+                    </div>
+                  } @else {
+                    <span class="block text-xs font-medium text-gray-500">
+                      Precio unitario (incluye IGV)
+                    </span>
+                    <span class="mt-0.5 block text-3xl font-bold tracking-tight text-gray-900">
+                      S/ {{ p.salePrice | number: '1.2-2' }}
+                    </span>
+                  }
                 </div>
 
                 @if (p.wholesalePrice) {
@@ -414,6 +437,7 @@ import { ToastService } from '../../core/services/toast.service';
 export class PartDetailPageComponent implements OnInit {
   readonly auth = inject(AuthService);
   private readonly toast = inject(ToastService);
+  readonly promotionService = inject(PromotionService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly catalogService = inject(CatalogService);

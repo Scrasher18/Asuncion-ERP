@@ -7,6 +7,7 @@ import { Category, Part, VehicleMake, VehicleModel } from '../../core/models/api
 import { ApiConfigService } from '../../core/services/api-config.service';
 import { CartService } from '../../core/services/cart.service';
 import { CatalogService } from '../../core/services/catalog.service';
+import { PromotionService } from '../../core/services/promotion.service';
 
 @Component({
   selector: 'app-catalog-page',
@@ -485,6 +486,13 @@ import { CatalogService } from '../../core/services/catalog.service';
                     </span>
                   }
 
+                  <!-- Promo Badge -->
+                  @if (promotionService.getPromotion(part.sku); as promo) {
+                    <span class="absolute bottom-2.5 left-2.5 rounded-full border border-red-500 bg-red-600 px-2.5 py-0.5 text-[10px] font-extrabold text-white shadow-md animate-pulse z-10">
+                      🏷️ {{ promo.badgeLabel || 'OFERTA' }} -{{ promo.discountPercentage }}%
+                    </span>
+                  }
+
                   <!-- Calm Light-Mode Stock Badge -->
                   <span
                     [class]="
@@ -541,6 +549,16 @@ import { CatalogService } from '../../core/services/catalog.service';
                     }
                   </div>
 
+                  <!-- Combo Badge Banner -->
+                  @if (promotionService.getPromotion(part.sku); as promo) {
+                    @if (promo.promoType === 'COMBO_SUGERIDO' && promo.comboComplementName) {
+                      <div class="rounded-lg bg-orange-50 border border-orange-200 px-2.5 py-1.5 text-[11px] text-orange-950 flex items-center justify-between gap-1">
+                        <span class="font-bold">📦 Combo: + {{ promo.comboComplementName }}</span>
+                        <span class="text-orange-700 font-extrabold text-[10px]">Ahorro S/ {{ ((promo.originalPrice + (promo.comboComplementPrice || 0)) - (promo.comboTotalPromoPrice || (promo.promoPrice + (promo.comboComplementPrice || 0) * 0.85))) | number: '1.2-2' }}</span>
+                      </div>
+                    }
+                  }
+
                   <!-- Vehicle Compatibility Preview -->
                   @if (part.compatibilities && part.compatibilities.length > 0) {
                     <div class="rounded-lg bg-gray-50 border border-gray-200/70 px-2.5 py-1.5 text-[11px] text-gray-600">
@@ -558,10 +576,24 @@ import { CatalogService } from '../../core/services/catalog.service';
                   <div class="mt-auto pt-3 border-t border-gray-100 space-y-3">
                     <div class="flex items-baseline justify-between gap-2">
                       <div>
-                        <span class="block text-[11px] font-medium text-gray-500">Precio unitario</span>
-                        <span class="text-lg font-bold tracking-tight text-gray-900">
-                          S/ {{ part.salePrice | number: '1.2-2' }}
-                        </span>
+                        @if (promotionService.getPromotion(part.sku); as promo) {
+                          <span class="block text-[10px] font-bold text-red-600 uppercase tracking-wide">
+                            {{ promo.badgeLabel || 'OFERTA' }} -{{ promo.discountPercentage }}%
+                          </span>
+                          <div class="flex items-baseline gap-2">
+                            <span class="text-lg font-black tracking-tight text-red-600">
+                              S/ {{ promo.promoPrice | number: '1.2-2' }}
+                            </span>
+                            <span class="text-xs text-gray-400 line-through">
+                              S/ {{ part.salePrice | number: '1.2-2' }}
+                            </span>
+                          </div>
+                        } @else {
+                          <span class="block text-[11px] font-medium text-gray-500">Precio unitario</span>
+                          <span class="text-lg font-bold tracking-tight text-gray-900">
+                            S/ {{ part.salePrice | number: '1.2-2' }}
+                          </span>
+                        }
                       </div>
                       @if (part.wholesalePrice) {
                         <div class="text-right">
@@ -682,6 +714,7 @@ export class CatalogPageComponent implements OnInit {
   private readonly apiConfig = inject(ApiConfigService);
   private readonly router = inject(Router);
   readonly cart = inject(CartService);
+  readonly promotionService = inject(PromotionService);
 
   readonly categories = signal<Category[]>([]);
   readonly makes = signal<VehicleMake[]>([]);
