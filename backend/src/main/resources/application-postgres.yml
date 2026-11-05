@@ -10,8 +10,11 @@ spring:
     username: ${DB_USER:postgres}
     password: ${DB_PASSWORD:admin}
     hikari:
-      maximum-pool-size: 10
+      maximum-pool-size: 5
       minimum-idle: 2
+      idle-timeout: 300000
+      max-lifetime: 600000
+      connection-timeout: 30000
   jpa:
     hibernate:
       ddl-auto: update

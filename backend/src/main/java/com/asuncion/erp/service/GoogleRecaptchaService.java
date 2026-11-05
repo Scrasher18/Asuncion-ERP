@@ -22,13 +22,13 @@ public class GoogleRecaptchaService {
     private static final Logger log = LoggerFactory.getLogger(GoogleRecaptchaService.class);
     private static final String GOOGLE_VERIFY_URL = "https://www.google.com/recaptcha/api/siteverify";
 
-    @Value("${app.recaptcha.site-key:6LfjIg4uAAAAAEl3Io9RcrLpKpNEBPWOu_LrIJ8H}")
+    @Value("${app.recaptcha.site-key:}")
     private String siteKey;
 
-    @Value("${app.recaptcha.secret-key:6LfjIg4uAAAAAM4TsvLmnOanmliSCDfO3V_TKeeH}")
+    @Value("${app.recaptcha.secret-key:}")
     private String secretKey;
 
-    @Value("${app.recaptcha.enabled:true}")
+    @Value("${app.recaptcha.enabled:false}")
     private boolean enabled;
 
     @Value("${app.recaptcha.min-score:0.5}")
@@ -37,19 +37,19 @@ public class GoogleRecaptchaService {
     private final RestClient restClient = RestClient.builder().build();
 
     public String getSiteKey() {
-        return siteKey;
+        return siteKey != null ? siteKey : "";
     }
 
     public boolean isEnabled() {
-        return enabled;
+        return enabled && secretKey != null && !secretKey.isBlank();
     }
 
     /**
      * Valida el token generado por grecaptcha.execute(siteKey, {action})
      */
     public boolean verifyToken(String token, String expectedAction, String remoteIp) {
-        if (!enabled) {
-            log.info("Google reCAPTCHA v3 verificación omitida (disabled por configuración).");
+        if (!enabled || secretKey == null || secretKey.isBlank()) {
+            log.info("Google reCAPTCHA v3 verificación omitida (no configurado o deshabilitado).");
             return true;
         }
 

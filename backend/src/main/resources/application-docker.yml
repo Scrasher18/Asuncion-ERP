@@ -8,8 +8,11 @@ spring:
     username: ${DB_USER:asuncion_admin}
     password: ${DB_PASSWORD:Asuncion2026_SecureDB!}
     hikari:
-      maximum-pool-size: 20
-      minimum-idle: 5
+      maximum-pool-size: 5
+      minimum-idle: 2
+      idle-timeout: 300000
+      max-lifetime: 600000
+      connection-timeout: 30000
   jpa:
     hibernate:
       ddl-auto: ${JPA_DDL_AUTO:update}

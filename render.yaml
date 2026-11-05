@@ -27,3 +27,5 @@ services:
         value: 8080
       - key: APP_SEEDER_ENABLED
         value: 'false'
+      - key: JAVA_TOOL_OPTIONS
+        value: "-XX:+UseContainerSupport -Xmx280m -Xms128m -XX:MaxMetaspaceSize=112m -Xss256k -XX:+UseSerialGC -XX:+ExitOnOutOfMemoryError"

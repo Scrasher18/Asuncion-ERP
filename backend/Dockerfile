@@ -32,7 +32,14 @@ USER asuncion
 
 EXPOSE 8080
 
-ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -Djava.security.egd=file:/dev/./urandom"
+# Optimización de Memoria para Render Free Tier (Límite estricto 512MB RAM)
+# -Xmx280m: Heap máximo controlado de 280MB
+# -Xms128m: Heap inicial bajo
+# -XX:MaxMetaspaceSize=112m: Metaspace acotado para Spring Boot 3 y Hibernate
+# -Xss256k: Hilos ligeros (256KB por hilo en lugar del 1MB por defecto)
+# -XX:+UseSerialGC: Recolector monohilo sin overhead nativo de buffers concurrentes G1
+ENV JAVA_OPTS="-XX:+UseContainerSupport -Xmx280m -Xms128m -XX:MaxMetaspaceSize=112m -Xss256k -XX:+UseSerialGC -XX:+ExitOnOutOfMemoryError -Djava.security.egd=file:/dev/./urandom"
+ENV JAVA_TOOL_OPTIONS="-XX:+UseContainerSupport -Xmx280m -Xms128m -XX:MaxMetaspaceSize=112m -Xss256k -XX:+UseSerialGC -XX:+ExitOnOutOfMemoryError"
 ENV SPRING_PROFILES_ACTIVE=docker
 
 HEALTHCHECK --interval=20s --timeout=5s --start-period=35s --retries=3 \
