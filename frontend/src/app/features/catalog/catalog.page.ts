@@ -343,12 +343,15 @@ import { CatalogService } from '../../core/services/catalog.service';
               (click)="selectCategoryPill(null)"
               [class]="
                 selectedCategoryId === null
-                  ? 'bg-orange-50 text-orange-700 border-orange-200 font-semibold'
+                  ? 'bg-orange-50 text-orange-700 border-orange-300 font-bold shadow-2xs'
                   : 'bg-white text-gray-600 border-gray-200 hover:border-orange-300 hover:text-gray-900 font-medium'
               "
-              class="shrink-0 rounded-full border px-3.5 py-1.5 text-xs transition"
+              class="shrink-0 inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-xs transition cursor-pointer select-none"
             >
-              Todas las categorías
+              @if (selectedCategoryId === null) {
+                <span class="h-2 w-2 rounded-full bg-orange-500 ring-4 ring-orange-500/25 shrink-0 animate-pulse"></span>
+              }
+              <span>Todas las categorías</span>
             </button>
             @for (cat of categories(); track cat.id) {
               <button
@@ -356,12 +359,15 @@ import { CatalogService } from '../../core/services/catalog.service';
                 (click)="selectCategoryPill(cat.id)"
                 [class]="
                   selectedCategoryId === cat.id
-                    ? 'bg-orange-50 text-orange-700 border-orange-200 font-semibold'
+                    ? 'bg-orange-50 text-orange-700 border-orange-300 font-bold shadow-2xs'
                     : 'bg-white text-gray-600 border-gray-200 hover:border-orange-300 hover:text-gray-900 font-medium'
                 "
-                class="shrink-0 rounded-full border px-3.5 py-1.5 text-xs transition"
+                class="shrink-0 inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-xs transition cursor-pointer select-none"
               >
-                {{ cat.name }}
+                @if (selectedCategoryId === cat.id) {
+                  <span class="h-2 w-2 rounded-full bg-orange-500 ring-4 ring-orange-500/25 shrink-0 animate-pulse"></span>
+                }
+                <span>{{ cat.name }}</span>
               </button>
             }
           </div>
@@ -1004,12 +1010,34 @@ export class CatalogPageComponent implements OnInit {
     void this.router.navigate(['/part', id]);
   }
 
+  private normalizeCategoryText(str: string): string {
+    return (str || '')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]/g, '');
+  }
+
+  private readonly categoryCodeMap: Record<string, string[]> = {
+    FRENOS: ['freno', 'frenos', 'pastilla', 'disco', 'zapata', 'catfrenos'],
+    FILTROS: ['filtro', 'filtros', 'lubric', 'aceite', 'catfiltros'],
+    SUSPENSION: ['susp', 'suspens', 'direccion', 'amortiguador', 'catsusp'],
+    MOTOR: ['motor', 'distribuc', 'faja', 'cadena', 'catmotor'],
+    TRANSMISION: ['transm', 'embrague', 'clutch', 'caja', 'cattransm'],
+    ELECTRICO: ['elec', 'electr', 'iluminac', 'encendido', 'bujia', 'catelec'],
+    REFRIGERACION: ['refrig', 'climatiz', 'radiador', 'bombaagua', 'termostato', 'catrefrig'],
+    CARROCERIA: ['carroc', 'faro', 'retrovisor', 'parachoque', 'plumilla', 'catcarroc'],
+  };
+
   selectCategoryByCode(code: string): void {
-    const matching = this.categories().find(
-      (c) =>
-        c.code.toUpperCase().includes(code.toUpperCase()) ||
-        c.name.toUpperCase().includes(code.toUpperCase())
-    );
+    const key = code.toUpperCase();
+    const tokens = this.categoryCodeMap[key] || [this.normalizeCategoryText(code)];
+
+    const matching = this.categories().find((c) => {
+      const norm = this.normalizeCategoryText(`${c.code} ${c.name}`);
+      return tokens.some((t) => norm.includes(t));
+    });
+
     if (matching) {
       if (this.selectedCategoryId === matching.id) {
         this.selectCategoryPill(null);
@@ -1024,12 +1052,14 @@ export class CatalogPageComponent implements OnInit {
 
   isCategoryActive(code: string): boolean {
     if (this.selectedCategoryId === null) return false;
-    const cat = this.categories().find((c) => c.id === this.selectedCategoryId);
-    if (!cat) return false;
-    return (
-      cat.code.toUpperCase().includes(code.toUpperCase()) ||
-      cat.name.toUpperCase().includes(code.toUpperCase())
-    );
+    const activeCat = this.categories().find((c) => c.id === this.selectedCategoryId);
+    if (!activeCat) return false;
+
+    const key = code.toUpperCase();
+    const tokens = this.categoryCodeMap[key] || [this.normalizeCategoryText(code)];
+    const activeNorm = this.normalizeCategoryText(`${activeCat.code} ${activeCat.name}`);
+
+    return tokens.some((t) => activeNorm.includes(t));
   }
 
   hideSuggestionsDelayed(): void {

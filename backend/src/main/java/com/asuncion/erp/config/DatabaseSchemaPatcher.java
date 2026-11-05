@@ -113,7 +113,9 @@ public class DatabaseSchemaPatcher implements CommandLineRunner {
             List<Category> existing = categoryRepository.findAll();
             for (CategorySpec spec : STANDARD_CATEGORIES) {
                 Category found = existing.stream()
-                        .filter(c -> spec.code().equalsIgnoreCase(c.getCode()))
+                        .filter(c -> spec.code().equalsIgnoreCase(c.getCode())
+                                || ("CAT-" + spec.code()).equalsIgnoreCase(c.getCode())
+                                || (c.getCode() != null && c.getCode().toUpperCase().contains(spec.code())))
                         .findFirst()
                         .orElse(null);
                 if (found != null) {
