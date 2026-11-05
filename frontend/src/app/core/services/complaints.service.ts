@@ -25,46 +25,8 @@ export interface ComplaintRecord {
 
 const STORAGE_KEY = 'asuncion_complaints_book_records';
 
-const INITIAL_COMPLAINTS: ComplaintRecord[] = [
-  {
-    id: 'rec-001',
-    sheetNumber: 'LR-2026-1042',
-    createdAt: '03/11/2026 14:20',
-    docType: 'DNI',
-    docNumber: '45892134',
-    fullName: 'Jorge Luis Morales Pardo',
-    address: 'Av. Las Palmas 340, Ate Vitarte',
-    phone: '984512389',
-    email: 'jorge.morales@gmail.com',
-    goodType: 'PRODUCTO',
-    claimedAmount: 235.0,
-    goodDescription: 'Pastillas de freno delanteras cerámicas para Toyota Hilux',
-    claimType: 'RECLAMO',
-    claimDetail: 'Solicité información previa sobre la compatibilidad de pastillas con sensor y tardaron en confirmarme antes del despacho.',
-    claimRequest: 'Que se especifique mejor en la ficha técnica si incluye el sensor de desgaste.',
-    status: 'ATENDIDO',
-    adminResponseNote: 'Estimado Sr. Morales, se actualizó la ficha técnica del repuesto en el catálogo para indicar compatibilidad de sensores y se le ofreció asistencia técnica sin costo.',
-    resolvedAt: '03/11/2026 17:30',
-  },
-  {
-    id: 'rec-002',
-    sheetNumber: 'LR-2026-1088',
-    createdAt: '04/11/2026 09:15',
-    docType: 'DNI',
-    docNumber: '71239845',
-    fullName: 'Ana María Valdivia Cruz',
-    address: 'Jr. Huancavelica 112, Lima Centro',
-    phone: '991283746',
-    email: 'ana.valdivia@outlook.com',
-    goodType: 'SERVICIO',
-    claimedAmount: 0.0,
-    goodDescription: 'Servicio de entrega a domicilio y horario de entrega programada',
-    claimType: 'QUEJA',
-    claimDetail: 'El repartidor llegó 15 minutos fuera del horario estimado por congestión vehicular en la Vía Expresa.',
-    claimRequest: 'Mejorar el sistema de alertas de tráfico en tiempo real para anticipar la hora de llegada.',
-    status: 'PENDIENTE',
-  },
-];
+// No se incluyen reclamaciones ficticias. Las hojas provienen exclusivamente del registro real de clientes.
+const INITIAL_COMPLAINTS: ComplaintRecord[] = [];
 
 @Injectable({
   providedIn: 'root',
@@ -79,23 +41,34 @@ export class ComplaintsService {
 
   loadComplaints(): void {
     if (typeof window === 'undefined') {
-      this.complaints.set(INITIAL_COMPLAINTS);
+      this.complaints.set([]);
       return;
     }
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          this.complaints.set(parsed);
+        if (Array.isArray(parsed)) {
+          // Filtrar y purgar registros ficticios de demostración
+          const realComplaints = parsed.filter(
+            (c: ComplaintRecord) =>
+              c &&
+              c.id &&
+              c.id !== 'rec-001' &&
+              c.id !== 'rec-002' &&
+              c.sheetNumber !== 'LR-2026-1042' &&
+              c.sheetNumber !== 'LR-2026-1088'
+          );
+          this.complaints.set(realComplaints);
+          this.persist(realComplaints);
           return;
         }
       }
     } catch (e) {
       console.warn('Error loading complaints from localStorage:', e);
     }
-    this.complaints.set(INITIAL_COMPLAINTS);
-    this.persist(INITIAL_COMPLAINTS);
+    this.complaints.set([]);
+    this.persist([]);
   }
 
   createComplaint(data: Omit<ComplaintRecord, 'id' | 'sheetNumber' | 'createdAt' | 'status'>): ComplaintRecord {

@@ -658,7 +658,11 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                   <div class="flex items-center gap-2">
                     <span class="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-bold text-amber-800">
                       <span>★</span>
-                      <span>Promedio flota: {{ getDriverRatingStats('Miguel Ángel Flores').averageRating }} / 5.0</span>
+                      @if (getDriverRatingStats('Miguel Ángel Flores').totalReviews > 0) {
+                        <span>Promedio flota: {{ getDriverRatingStats('Miguel Ángel Flores').averageRating }} / 5.0 ({{ getDriverRatingStats('Miguel Ángel Flores').totalReviews }} eval.)</span>
+                      } @else {
+                        <span>Flota: Sin evaluaciones de clientes aún</span>
+                      }
                     </span>
                   </div>
                 </div>
@@ -685,24 +689,36 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                       <div>
                         <span class="text-[11px] text-gray-500 block">Puntuación</span>
                         <div class="flex items-center gap-1">
-                          <span class="text-xl font-black text-amber-600">{{ getDriverRatingStats('Miguel Ángel Flores').averageRating }}</span>
-                          <span class="text-amber-400 text-sm">★★★★★</span>
+                          @if (getDriverRatingStats('Miguel Ángel Flores').totalReviews > 0) {
+                            <span class="text-xl font-black text-amber-600">{{ getDriverRatingStats('Miguel Ángel Flores').averageRating }}</span>
+                            <span class="text-amber-400 text-xs">{{ getDriverRatingStars(getDriverRatingStats('Miguel Ángel Flores').averageRating) }}</span>
+                          } @else {
+                            <span class="text-xs font-bold text-gray-400">Sin calificar</span>
+                            <span class="text-gray-300 text-xs">☆☆☆☆☆</span>
+                          }
                         </div>
                       </div>
                       <div class="text-right">
                         <span class="text-[11px] text-gray-500 block">Entregas evaluadas</span>
-                        <span class="text-base font-bold text-gray-900">{{ getDriverRatingStats('Miguel Ángel Flores').totalReviews }} opiniones</span>
+                        <span class="text-xs font-bold text-gray-900">
+                          {{ getDriverRatingStats('Miguel Ángel Flores').totalReviews }} {{ getDriverRatingStats('Miguel Ángel Flores').totalReviews === 1 ? 'opinión real' : 'opiniones reales' }}
+                        </span>
                       </div>
                     </div>
 
                     <div class="space-y-1">
-                      <span class="text-[10px] font-semibold text-gray-500 uppercase tracking-wider block">Cualidades más votadas</span>
-                      <div class="flex flex-wrap gap-1">
-                        <span class="rounded-md bg-white border border-gray-200 px-1.5 py-0.5 text-[10px] font-medium text-gray-700">✓ Muy puntual</span>
-                        <span class="rounded-md bg-white border border-gray-200 px-1.5 py-0.5 text-[10px] font-medium text-gray-700">✓ Repuesto sellado</span>
-                        <span class="rounded-md bg-white border border-gray-200 px-1.5 py-0.5 text-[10px] font-medium text-gray-700">✓ Cobro con QR fácil</span>
-                        <span class="rounded-md bg-white border border-gray-200 px-1.5 py-0.5 text-[10px] font-medium text-gray-700">✓ Amable</span>
-                      </div>
+                      <span class="text-[10px] font-semibold text-gray-500 uppercase tracking-wider block">Cualidades votadas por clientes</span>
+                      @if (driverRatingService.getTopTagsForDriver('Miguel Ángel Flores').length > 0) {
+                        <div class="flex flex-wrap gap-1">
+                          @for (tag of driverRatingService.getTopTagsForDriver('Miguel Ángel Flores').slice(0, 4); track tag) {
+                            <span class="rounded-md bg-white border border-gray-200 px-1.5 py-0.5 text-[10px] font-medium text-gray-700">
+                              ✓ {{ tag }}
+                            </span>
+                          }
+                        </div>
+                      } @else {
+                        <p class="text-[11px] text-gray-400 italic">Sin cualidades evaluadas todavía</p>
+                      }
                     </div>
 
                     <button
@@ -714,27 +730,46 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                     </button>
                   </div>
 
-                  <!-- Feed de Últimas Reseñas de Clientes -->
+                  <!-- Feed de Reseñas Reales de Clientes -->
                   <div class="md:col-span-2 rounded-xl border border-gray-200 bg-white p-4 space-y-2.5 flex flex-col justify-between">
                     <div>
                       <div class="flex items-center justify-between pb-2 border-b border-gray-100">
-                        <span class="text-xs font-bold text-gray-900">Últimos comentarios de clientes sobre el motorizado</span>
+                        <span class="text-xs font-bold text-gray-900">Comentarios reales de clientes sobre el motorizado</span>
                         <span class="text-[11px] text-gray-500">Actualizado en tiempo real</span>
                       </div>
                       <div class="space-y-2 pt-2 max-h-48 overflow-y-auto pr-1">
-                        @for (rev of driverRatingService.ratings().slice(0, 3); track rev.id) {
-                          <div class="rounded-lg bg-gray-50 p-2.5 text-xs space-y-1 border border-gray-100">
-                            <div class="flex items-center justify-between">
-                              <span class="font-bold text-gray-900">{{ rev.customerName }}</span>
-                              <div class="flex items-center gap-1.5">
-                                <span class="text-amber-500 font-bold text-xs">{{ '★'.repeat(rev.stars) }}</span>
-                                <span class="text-[10px] text-gray-400 font-mono">{{ rev.orderNumber }}</span>
-                              </div>
-                            </div>
-                            @if (rev.comment) {
-                              <p class="text-gray-600 text-[11px] italic">"{{ rev.comment }}"</p>
-                            }
+                        @if (driverRatingService.getRatingsForDriver('Miguel Ángel Flores').length === 0) {
+                          <div class="py-8 px-4 text-center text-gray-400 text-xs space-y-1.5">
+                            <span class="text-2xl block">💬</span>
+                            <p class="font-semibold text-gray-600">Aún no hay comentarios de clientes</p>
+                            <p class="text-[11px] text-gray-400 max-w-sm mx-auto">
+                              Cuando un cliente confirme la recepción de su pedido en la sección de seguimiento y escriba su opinión, se mostrará aquí de manera auténtica.
+                            </p>
                           </div>
+                        } @else {
+                          @for (rev of driverRatingService.getRatingsForDriver('Miguel Ángel Flores').slice(0, 3); track rev.id) {
+                            <div class="rounded-lg bg-gray-50 p-2.5 text-xs space-y-1 border border-gray-100">
+                              <div class="flex items-center justify-between">
+                                <span class="font-bold text-gray-900">{{ rev.customerName }}</span>
+                                <div class="flex items-center gap-1.5">
+                                  <span class="text-amber-500 font-bold text-xs">{{ '★'.repeat(rev.stars) }}{{ '☆'.repeat(5 - rev.stars) }}</span>
+                                  <span class="text-[10px] text-gray-400 font-mono">{{ rev.orderNumber }}</span>
+                                </div>
+                              </div>
+                              @if (rev.comment) {
+                                <p class="text-gray-600 text-[11px] italic">"{{ rev.comment }}"</p>
+                              }
+                              @if (rev.tags.length > 0) {
+                                <div class="flex flex-wrap gap-1 pt-0.5">
+                                  @for (t of rev.tags; track t) {
+                                    <span class="rounded-md bg-white border border-gray-200 px-1.5 py-0.5 text-[9px] text-gray-600">
+                                      {{ t }}
+                                    </span>
+                                  }
+                                </div>
+                              }
+                            </div>
+                          }
                         }
                       </div>
                     </div>
@@ -744,7 +779,7 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                         (click)="openDriverRatingsModal('Miguel Ángel Flores')"
                         class="text-xs font-semibold text-orange-600 hover:text-orange-700 inline-flex items-center gap-1 cursor-pointer"
                       >
-                        <span>Ver todas las calificaciones ({{ driverRatingService.ratings().length }})</span>
+                        <span>Ver todas las calificaciones ({{ driverRatingService.getRatingsForDriver('Miguel Ángel Flores').length }})</span>
                         <span>→</span>
                       </button>
                     </div>
@@ -2184,15 +2219,19 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                               <div class="mt-1.5 flex items-center gap-1.5">
                                 <span class="inline-flex items-center gap-1 rounded-md bg-amber-50 border border-amber-200 px-2 py-0.5 text-[11px] font-bold text-amber-900">
                                   <span>⭐</span>
-                                  <span>{{ getDriverRatingStats(u.fullName).averageRating }}</span>
-                                  <span class="text-amber-700 font-normal">({{ getDriverRatingStats(u.fullName).totalReviews }} op.)</span>
+                                  @if (getDriverRatingStats(u.fullName).totalReviews > 0) {
+                                    <span>{{ getDriverRatingStats(u.fullName).averageRating }}</span>
+                                    <span class="text-amber-700 font-normal">({{ getDriverRatingStats(u.fullName).totalReviews }} op.)</span>
+                                  } @else {
+                                    <span class="text-gray-500 font-normal">Sin calif. (0)</span>
+                                  }
                                 </span>
                                 <button
                                   type="button"
                                   (click)="openDriverRatingsModal(u.fullName)"
                                   class="text-[11px] font-semibold text-orange-600 hover:text-orange-800 hover:underline cursor-pointer"
                                 >
-                                  Ver opiniones
+                                  Ver opiniones ({{ getDriverRatingStats(u.fullName).totalReviews }})
                                 </button>
                               </div>
                             }
@@ -2585,47 +2624,75 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
             <!-- Score Summary Card -->
             <div class="rounded-xl border border-amber-200 bg-amber-50/50 p-4 flex items-center justify-between">
               <div class="flex items-center gap-3">
-                <span class="text-3xl font-black text-amber-900">{{ getDriverRatingStats(driverName).averageRating }}</span>
-                <div>
-                  <div class="text-amber-500 text-sm font-bold">★★★★★</div>
-                  <span class="text-xs text-amber-800 font-medium">
-                    Promedio general basado en {{ getDriverRatingStats(driverName).totalReviews }} entregas
-                  </span>
-                </div>
+                @if (getDriverRatingStats(driverName).totalReviews > 0) {
+                  <span class="text-3xl font-black text-amber-900">{{ getDriverRatingStats(driverName).averageRating }}</span>
+                  <div>
+                    <div class="text-amber-500 text-sm font-bold">
+                      {{ getDriverRatingStars(getDriverRatingStats(driverName).averageRating) }}
+                    </div>
+                    <span class="text-xs text-amber-800 font-medium">
+                      Promedio general basado en {{ getDriverRatingStats(driverName).totalReviews }} {{ getDriverRatingStats(driverName).totalReviews === 1 ? 'entrega evaluada' : 'entregas evaluadas' }}
+                    </span>
+                  </div>
+                } @else {
+                  <span class="text-2xl font-bold text-gray-400">0.0</span>
+                  <div>
+                    <div class="text-gray-300 text-sm font-bold">☆☆☆☆☆</div>
+                    <span class="text-xs text-gray-500 font-medium">
+                      Sin entregas calificadas todavía
+                    </span>
+                  </div>
+                }
               </div>
-              <span class="rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 px-3 py-1 text-xs font-bold">
-                Excelente Servicio
-              </span>
+              @if (getDriverRatingStats(driverName).totalReviews > 0) {
+                <span class="rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 px-3 py-1 text-xs font-bold">
+                  {{ getDriverPerformanceLabel(getDriverRatingStats(driverName).averageRating) }}
+                </span>
+              } @else {
+                <span class="rounded-full bg-gray-100 text-gray-600 border border-gray-300 px-3 py-1 text-xs font-semibold">
+                  Sin calificaciones
+                </span>
+              }
             </div>
 
             <!-- Reviews Feed -->
             <div class="space-y-3">
-              <h4 class="text-xs font-bold text-gray-900 uppercase tracking-wider">Opiniones recientes de clientes</h4>
+              <h4 class="text-xs font-bold text-gray-900 uppercase tracking-wider">Opiniones registradas de clientes</h4>
               <div class="space-y-2.5 max-h-60 overflow-y-auto pr-1">
-                @for (rev of driverRatingService.ratings(); track rev.id) {
-                  <div class="rounded-xl border border-gray-200 bg-[#F8F9FA] p-3 text-xs space-y-1.5">
-                    <div class="flex items-center justify-between">
-                      <div class="flex items-center gap-2">
-                        <span class="font-bold text-gray-900">{{ rev.customerName }}</span>
-                        <span class="text-amber-500 font-bold">
-                          {{ '★'.repeat(rev.stars) }}{{ '☆'.repeat(5 - rev.stars) }}
-                        </span>
-                      </div>
-                      <span class="text-[11px] text-gray-400">{{ rev.createdAt }}</span>
-                    </div>
-                    @if (rev.comment) {
-                      <p class="text-gray-700 italic">"{{ rev.comment }}"</p>
-                    }
-                    @if (rev.tags.length > 0) {
-                      <div class="flex flex-wrap gap-1 pt-0.5">
-                        @for (t of rev.tags; track t) {
-                          <span class="rounded-md bg-white border border-gray-200 px-1.5 py-0.5 text-[10px] font-semibold text-gray-600">
-                            {{ t }}
-                          </span>
-                        }
-                      </div>
-                    }
+                @if (driverRatingService.getRatingsForDriver(driverName).length === 0) {
+                  <div class="p-8 text-center text-gray-400 text-xs space-y-2 rounded-xl bg-gray-50 border border-dashed border-gray-200">
+                    <span class="text-2xl block">💬</span>
+                    <p class="font-medium text-gray-600">No hay opiniones registradas para {{ driverName }}</p>
+                    <p class="text-[11px] text-gray-400 max-w-md mx-auto">
+                      Solo se mostrarán valoraciones cuando los clientes confirmen la entrega de sus compras y califiquen el servicio.
+                    </p>
                   </div>
+                } @else {
+                  @for (rev of driverRatingService.getRatingsForDriver(driverName); track rev.id) {
+                    <div class="rounded-xl border border-gray-200 bg-[#F8F9FA] p-3 text-xs space-y-1.5">
+                      <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                          <span class="font-bold text-gray-900">{{ rev.customerName }}</span>
+                          <span class="text-amber-500 font-bold">
+                            {{ '★'.repeat(rev.stars) }}{{ '☆'.repeat(5 - rev.stars) }}
+                          </span>
+                        </div>
+                        <span class="text-[11px] text-gray-400">{{ rev.createdAt }}</span>
+                      </div>
+                      @if (rev.comment) {
+                        <p class="text-gray-700 italic">"{{ rev.comment }}"</p>
+                      }
+                      @if (rev.tags.length > 0) {
+                        <div class="flex flex-wrap gap-1 pt-0.5">
+                          @for (t of rev.tags; track t) {
+                            <span class="rounded-md bg-white border border-gray-200 px-1.5 py-0.5 text-[10px] font-semibold text-gray-600">
+                              {{ t }}
+                            </span>
+                          }
+                        </div>
+                      }
+                    </div>
+                  }
                 }
               </div>
             </div>
@@ -6189,6 +6256,19 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
 
   getDriverRatingStats(driverName: string = 'Miguel Ángel Flores'): DriverRatingStats {
     return this.driverRatingService.getDriverStats(driverName);
+  }
+
+  getDriverPerformanceLabel(avg: number): string {
+    if (avg >= 4.5) return 'Excelente Servicio';
+    if (avg >= 3.5) return 'Buen Desempeño';
+    if (avg >= 2.5) return 'Regular';
+    if (avg > 0) return 'Requiere Atención';
+    return 'Sin calificaciones';
+  }
+
+  getDriverRatingStars(rating: number): string {
+    const full = Math.max(0, Math.min(5, Math.round(rating)));
+    return '★'.repeat(full) + '☆'.repeat(5 - full);
   }
 
   openDriverRatingsModal(driverName: string): void {

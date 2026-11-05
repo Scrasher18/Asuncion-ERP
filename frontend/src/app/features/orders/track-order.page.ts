@@ -253,12 +253,43 @@ const ORDER_STAGES = [
                   </div>
                 </div>
                 @if (driverRatingService.hasRated(ord.orderNumber)) {
-                  <span class="inline-flex items-center gap-1.5 rounded-full border border-emerald-300 bg-emerald-100/70 px-3 py-1 text-xs font-bold text-emerald-800">
-                    <span>✓</span>
-                    <span>¡Entrega calificada!</span>
-                  </span>
+                  <div class="flex flex-col items-end gap-1">
+                    <span class="inline-flex items-center gap-1.5 rounded-full border border-emerald-300 bg-emerald-100/70 px-3 py-1 text-xs font-bold text-emerald-800">
+                      <span>✓</span>
+                      <span>¡Entrega calificada!</span>
+                    </span>
+                    @if (driverRatingService.getRatingByOrder(ord.orderNumber); as myRating) {
+                      <div class="flex items-center gap-1">
+                        <span class="text-xs font-bold text-amber-500">
+                          {{ '★'.repeat(myRating.stars) }}{{ '☆'.repeat(5 - myRating.stars) }}
+                        </span>
+                        <span class="text-[11px] text-gray-500 font-medium">({{ myRating.stars }}/5)</span>
+                      </div>
+                    }
+                  </div>
                 }
               </div>
+
+              @if (driverRatingService.hasRated(ord.orderNumber)) {
+                @if (driverRatingService.getRatingByOrder(ord.orderNumber); as myRating) {
+                  @if (myRating.comment || (myRating.tags && myRating.tags.length > 0)) {
+                    <div class="rounded-xl bg-white/80 border border-amber-200/80 p-3 text-xs space-y-1.5">
+                      @if (myRating.tags && myRating.tags.length > 0) {
+                        <div class="flex flex-wrap gap-1">
+                          @for (t of myRating.tags; track t) {
+                            <span class="rounded-md bg-amber-50 border border-amber-200 px-2 py-0.5 text-[10px] font-semibold text-amber-800">
+                              ✓ {{ t }}
+                            </span>
+                          }
+                        </div>
+                      }
+                      @if (myRating.comment) {
+                        <p class="text-gray-700 italic text-[11px]">"{{ myRating.comment }}"</p>
+                      }
+                    </div>
+                  }
+                }
+              }
 
               @if (!driverRatingService.hasRated(ord.orderNumber)) {
                 <div class="space-y-3 pt-1">

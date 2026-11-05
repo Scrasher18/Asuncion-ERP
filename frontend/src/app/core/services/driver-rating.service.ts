@@ -22,52 +22,9 @@ export interface DriverRatingStats {
 
 const STORAGE_KEY = 'asuncion_driver_ratings';
 
-const INITIAL_RATINGS: DriverRatingItem[] = [
-  {
-    id: 'rate-1',
-    orderNumber: 'ASN-HIST-101',
-    driverName: 'Miguel Ángel Flores',
-    driverEmail: 'motorizado@asuncion.pe',
-    customerName: 'Ing. Marco Antonio Vera',
-    stars: 5,
-    tags: ['Muy puntual', 'Repuesto sellado', 'Amable'],
-    comment: 'Llegó en menos de 20 minutos con el empaque impecable. Excelente servicio motorizado.',
-    createdAt: '30/10/2026 18:20',
-  },
-  {
-    id: 'rate-2',
-    orderNumber: 'ASN-HIST-102',
-    driverName: 'Miguel Ángel Flores',
-    driverEmail: 'motorizado@asuncion.pe',
-    customerName: 'Roberto Vargas Sánchez',
-    stars: 5,
-    tags: ['Llegó rápido', 'Cobro con QR fácil'],
-    comment: 'Me mostró el QR de Yape desde su celular y pagué en 10 segundos. Muy recomendado.',
-    createdAt: '31/10/2026 19:45',
-  },
-  {
-    id: 'rate-3',
-    orderNumber: 'ASN-HIST-103',
-    driverName: 'Miguel Ángel Flores',
-    driverEmail: 'motorizado@asuncion.pe',
-    customerName: 'Luis Alberto Huerta',
-    stars: 5,
-    tags: ['Entrega con cuidado', 'Puntual'],
-    comment: 'Cuidó muy bien las piezas pesadas de suspensión. Gran profesional.',
-    createdAt: '02/11/2026 15:10',
-  },
-  {
-    id: 'rate-4',
-    orderNumber: 'ASN-HIST-104',
-    driverName: 'Miguel Ángel Flores',
-    driverEmail: 'motorizado@asuncion.pe',
-    customerName: 'Pedro Pablo Quispe',
-    stars: 4,
-    tags: ['Amable', 'Buen trato'],
-    comment: 'Buen servicio, el tráfico demoró un poco pero avisó en todo momento.',
-    createdAt: '03/11/2026 11:30',
-  },
-];
+// No se incluyen calificaciones ni comentarios ficticios.
+// Todas las opiniones deben provenir exclusivamente de clientes reales al recibir su entrega.
+const INITIAL_RATINGS: DriverRatingItem[] = [];
 
 @Injectable({
   providedIn: 'root',
@@ -82,23 +39,40 @@ export class DriverRatingService {
 
   loadRatings(): void {
     if (typeof window === 'undefined') {
-      this.ratings.set(INITIAL_RATINGS);
+      this.ratings.set([]);
       return;
     }
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          this.ratings.set(parsed);
+        if (Array.isArray(parsed)) {
+          // Filtrar y purgar cualquier calificación ficticia o de prueba inicial
+          const realRatings = parsed.filter(
+            (r: DriverRatingItem) =>
+              r &&
+              r.id &&
+              !r.id.startsWith('rate-1') &&
+              !r.id.startsWith('rate-2') &&
+              !r.id.startsWith('rate-3') &&
+              !r.id.startsWith('rate-4') &&
+              r.orderNumber &&
+              !r.orderNumber.startsWith('ASN-HIST-') &&
+              r.customerName !== 'Ing. Marco Antonio Vera' &&
+              r.customerName !== 'Roberto Vargas Sánchez' &&
+              r.customerName !== 'Luis Alberto Huerta' &&
+              r.customerName !== 'Pedro Pablo Quispe'
+          );
+          this.ratings.set(realRatings);
+          this.persist(realRatings);
           return;
         }
       }
     } catch (e) {
       console.warn('Error loading driver ratings from localStorage:', e);
     }
-    this.ratings.set(INITIAL_RATINGS);
-    this.persist(INITIAL_RATINGS);
+    this.ratings.set([]);
+    this.persist([]);
   }
 
   submitRating(data: Omit<DriverRatingItem, 'id' | 'createdAt'>): DriverRatingItem {
@@ -128,15 +102,38 @@ export class DriverRatingService {
     return this.ratings().some((r) => r.orderNumber === orderNumber);
   }
 
-  getDriverStats(driverName: string = 'Miguel Ángel Flores'): DriverRatingStats {
-    const driverReviews = this.ratings().filter(
+  getRatingByOrder(orderNumber: string): DriverRatingItem | undefined {
+    return this.ratings().find((r) => r.orderNumber === orderNumber);
+  }
+
+  getRatingsForDriver(driverName: string = 'Miguel Ángel Flores'): DriverRatingItem[] {
+    return this.ratings().filter(
       (r) => !driverName || r.driverName.toLowerCase().includes(driverName.toLowerCase())
     );
+  }
+
+  getTopTagsForDriver(driverName: string = 'Miguel Ángel Flores'): string[] {
+    const driverReviews = this.getRatingsForDriver(driverName);
+    const tagCounts: { [tag: string]: number } = {};
+    for (const r of driverReviews) {
+      if (Array.isArray(r.tags)) {
+        for (const t of r.tags) {
+          tagCounts[t] = (tagCounts[t] || 0) + 1;
+        }
+      }
+    }
+    return Object.entries(tagCounts)
+      .sort((a, b) => b[1] - a[1])
+      .map(([tag]) => tag);
+  }
+
+  getDriverStats(driverName: string = 'Miguel Ángel Flores'): DriverRatingStats {
+    const driverReviews = this.getRatingsForDriver(driverName);
 
     if (driverReviews.length === 0) {
       return {
         driverName,
-        averageRating: 5.0,
+        averageRating: 0.0,
         totalReviews: 0,
         starDistribution: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 },
       };
