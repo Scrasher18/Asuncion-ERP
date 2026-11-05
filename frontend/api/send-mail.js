@@ -24,9 +24,16 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    const userEmail = (username || process.env.MAIL_USER || 'luisoscarperez322@gmail.com').trim();
-    const appPassword = (pass || process.env.MAIL_APP_PASSWORD || 'chbgdvonuzffgzsg').replace(/\s+/g, '');
+    const userEmail = (username || process.env.MAIL_USER || '').trim();
+    const appPassword = (pass || process.env.MAIL_APP_PASSWORD || '').replace(/\s+/g, '');
     const senderName = fromName || 'Repuestos Asunción';
+
+    if (!userEmail || !appPassword) {
+      return res.status(400).json({
+        success: false,
+        error: 'Credenciales de correo no configuradas'
+      });
+    }
 
     const transporter = nodemailer.createTransport({
       host: 'smtp.gmail.com',
@@ -48,24 +55,16 @@ module.exports = async function handler(req, res) {
       html: html
     });
 
-    console.log(`Email successfully delivered to ${to}. MessageId: ${info.messageId}`);
-
     return res.status(200).json({
       success: true,
       messageId: info.messageId,
-      message: `Correo enviado exitosamente a ${to}`
+      envelope: info.envelope
     });
   } catch (error) {
-    console.error('Mail delivery relay error:', error);
-    const errText = error?.message || String(error);
-    const isAuthError = errText.includes('535') || errText.toLowerCase().includes('badcredentials');
-
-    return res.status(200).json({
+    console.error('Email sending error:', error);
+    return res.status(500).json({
       success: false,
-      isAuthError,
-      error: isAuthError
-        ? 'Google rechazó la contraseña de aplicación (535 BadCredentials).'
-        : `Error de entrega: ${errText}`
+      error: error.message || 'Failed to send email'
     });
   }
 };
