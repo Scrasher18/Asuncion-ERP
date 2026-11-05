@@ -24,8 +24,8 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    const userEmail = (username || process.env.MAIL_USER || '').trim();
-    const appPassword = (pass || process.env.MAIL_APP_PASSWORD || '').replace(/\s+/g, '');
+    const userEmail = (username || process.env.MAIL_USER || process.env.MAIL_USERNAME || 'luisoscarperez322@gmail.com').trim();
+    const appPassword = (pass || process.env.MAIL_APP_PASSWORD || process.env.MAIL_PASSWORD || '').replace(/\s+/g, '');
     const senderName = fromName || 'Repuestos Asunción';
 
     if (!userEmail || !appPassword) {

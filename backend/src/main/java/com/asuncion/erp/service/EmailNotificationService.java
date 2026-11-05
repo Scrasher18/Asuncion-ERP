@@ -69,15 +69,15 @@ public class EmailNotificationService {
             EmailNotificationLogRepository logRepository,
             @Value("${MAIL_HOST:smtp.gmail.com}") String envMailHost,
             @Value("${MAIL_PORT:587}") int envMailPort,
-            @Value("${MAIL_USERNAME:}") String envMailUsername,
-            @Value("${MAIL_PASSWORD:}") String envMailPassword,
+            @Value("${MAIL_USERNAME:${MAIL_USER:luisoscarperez322@gmail.com}}") String envMailUsername,
+            @Value("${MAIL_PASSWORD:${MAIL_APP_PASSWORD:}}") String envMailPassword,
             @Value("${app.mail.frontend-base-url:http://localhost:4200}") String frontendBaseUrl
     ) {
         this.configRepository = configRepository;
         this.logRepository = logRepository;
         this.envMailHost = envMailHost != null && !envMailHost.isBlank() ? envMailHost.trim() : "smtp.gmail.com";
         this.envMailPort = envMailPort > 0 ? envMailPort : 587;
-        this.envMailUsername = envMailUsername != null ? envMailUsername.trim() : "";
+        this.envMailUsername = envMailUsername != null && !envMailUsername.isBlank() ? envMailUsername.trim() : "luisoscarperez322@gmail.com";
         this.envMailPassword = envMailPassword != null ? envMailPassword.trim() : "";
         this.frontendBaseUrl = frontendBaseUrl != null && !frontendBaseUrl.isBlank()
                 ? frontendBaseUrl.replaceAll("/+$", "")
