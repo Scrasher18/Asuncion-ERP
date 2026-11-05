@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer } from '@angular/platform-browser';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import {
   AdminUserResponse,
@@ -374,31 +374,44 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                   </span>
                 </div>
 
-                <div class="rounded-2xl border border-orange-200 bg-white p-5 shadow-2xs">
+                <div class="rounded-2xl border-2 border-red-200 bg-linear-to-br from-red-50/70 to-white p-5 shadow-2xs relative overflow-hidden group hover:border-red-300 transition">
                   <div class="flex items-center justify-between">
-                    <span class="text-xs font-medium text-orange-700">Stock por reponer</span>
-                    <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-50 text-orange-600">
-                      <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                    <div class="flex items-center gap-2">
+                      <span class="text-xs font-bold uppercase tracking-wider text-red-700">🚨 Alerta Stock Crítico</span>
+                      @if ((dash.kpis.lowStockCount ?? dash.kpis.lowStockPartsCount ?? 0) > 0) {
+                        <span class="relative flex h-2.5 w-2.5">
+                          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                          <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-600"></span>
+                        </span>
+                      }
+                    </div>
+                    <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-red-100 text-red-600">
+                      <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
                         <path d="M12 9v4" />
                         <path d="M12 17h.01" />
                       </svg>
                     </span>
                   </div>
-                  <p class="mt-2 text-2xl font-bold tracking-tight tabular-nums text-gray-900">
+                  <p class="mt-2 text-2xl font-black tracking-tight tabular-nums text-red-950">
                     {{ dash.kpis.lowStockCount ?? dash.kpis.lowStockPartsCount ?? 0 }} repuestos
                   </p>
-                  <button
-                    type="button"
-                    (click)="openLowStockParts()"
-                    class="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-orange-600 hover:text-orange-700"
-                  >
-                    <span>Revisar inventario</span>
-                    <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M5 12h14" />
-                      <path d="m12 5 7 7-7 7" />
-                    </svg>
-                  </button>
+                  <div class="mt-2 flex items-center justify-between gap-2">
+                    <button
+                      type="button"
+                      (click)="openLowStockParts()"
+                      class="inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-red-700 shadow-2xs transition cursor-pointer"
+                    >
+                      <span>Ver repuestos críticos (1 clic)</span>
+                      <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M5 12h14" />
+                        <path d="m12 5 7 7-7 7" />
+                      </svg>
+                    </button>
+                    <span class="text-[11px] font-medium text-red-600 hidden sm:inline">
+                      ≤ mín. seguridad
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -994,6 +1007,150 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                   </div>
                 </div>
               </div>
+
+              <!-- 4. Critical Stock Repositioning Alerter (Menor Stock en Almacén) -->
+              <div class="rounded-2xl border-2 border-red-200 bg-white overflow-hidden shadow-2xs">
+                <div class="border-b border-red-100 bg-linear-to-r from-red-50/90 via-red-50/40 to-white px-5 py-4 flex flex-wrap items-center justify-between gap-3">
+                  <div class="flex items-center gap-3">
+                    <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-red-600 text-white shadow-2xs font-bold text-sm">
+                      🚨
+                    </span>
+                    <div>
+                      <div class="flex items-center gap-2">
+                        <h3 class="text-sm font-black text-gray-900">
+                          Repuestos con Menor Stock (Reposición Urgente en Almacén)
+                        </h3>
+                        <span class="rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-black text-white uppercase animate-pulse">
+                          Alerta Roja
+                        </span>
+                      </div>
+                      <p class="text-xs text-gray-500 mt-0.5">
+                        Piezas que han alcanzado o perforado su nivel mínimo de seguridad. Requieren emitir orden de reposición inmediata a proveedores.
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    (click)="openLowStockParts()"
+                    class="inline-flex items-center gap-1.5 rounded-xl border border-red-200 bg-white px-3.5 py-1.5 text-xs font-bold text-red-700 hover:bg-red-50 hover:border-red-300 transition shadow-2xs cursor-pointer"
+                  >
+                    <span>Ver en inventario completo</span>
+                    <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M5 12h14" />
+                      <path d="m12 5 7 7-7 7" />
+                    </svg>
+                  </button>
+                </div>
+
+                <div class="overflow-x-auto">
+                  <table class="min-w-full divide-y divide-gray-200 text-xs">
+                    <thead class="bg-gray-50 text-left font-semibold text-gray-600">
+                      <tr>
+                        <th class="px-4 py-2.5">Repuesto / Marca</th>
+                        <th class="px-4 py-2.5">Código SKU / OEM</th>
+                        <th class="px-4 py-2.5 text-right">Precio Venta</th>
+                        <th class="px-4 py-2.5 text-center">Stock Actual / Mínimo</th>
+                        <th class="px-4 py-2.5 text-center">Nivel de Riesgo</th>
+                        <th class="px-3 py-2.5 text-center">Acción</th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                      @for (p of criticalStockParts(); track p.id) {
+                        <tr class="hover:bg-red-50/30 transition">
+                          <td class="px-4 py-3">
+                            <div class="flex items-center gap-3">
+                              <img
+                                [src]="resolvePartImg(p)"
+                                [alt]="p.name"
+                                (error)="onAdminPartImgError($event, p)"
+                                class="h-10 w-12 rounded-lg border border-gray-200 object-cover bg-gray-50 shrink-0"
+                              />
+                              <div class="min-w-0">
+                                <p class="font-bold text-gray-900 truncate max-w-[200px] sm:max-w-[280px]">
+                                  {{ p.name }}
+                                </p>
+                                <p class="text-[11px] text-gray-500">
+                                  {{ p.manufacturerBrand || 'Original' }} · {{ p.categoryName }}
+                                </p>
+                              </div>
+                            </div>
+                          </td>
+                          <td class="px-4 py-3 font-mono">
+                            <span class="block font-semibold text-gray-900">{{ p.sku }}</span>
+                            @if (p.oemCode) {
+                              <span class="text-[11px] text-gray-500">OEM: {{ p.oemCode }}</span>
+                            }
+                          </td>
+                          <td class="px-4 py-3 text-right tabular-nums font-semibold text-gray-900">
+                            S/ {{ p.salePrice | number: '1.2-2' }}
+                          </td>
+                          <td class="px-4 py-3 text-center">
+                            <div class="inline-flex flex-col items-center">
+                              <span
+                                [class]="
+                                  p.stockQuantity === 0
+                                    ? 'bg-red-600 text-white font-black'
+                                    : 'bg-red-100 text-red-800 font-bold border border-red-300'
+                                "
+                                class="rounded-full px-2.5 py-0.5 text-xs tabular-nums"
+                              >
+                                {{ p.stockQuantity }} un.
+                              </span>
+                              <span class="text-[10px] text-gray-400 mt-0.5">
+                                mín. seguridad: {{ p.minStockLevel ?? 5 }} un.
+                              </span>
+                            </div>
+                          </td>
+                          <td class="px-4 py-3 text-center">
+                            @if (p.stockQuantity === 0) {
+                              <span class="inline-flex items-center gap-1 rounded-full bg-red-100 border border-red-300 px-2.5 py-0.5 text-[11px] font-black text-red-700">
+                                <span class="h-1.5 w-1.5 rounded-full bg-red-600 animate-ping"></span>
+                                AGOTADO (0 UND)
+                              </span>
+                            } @else if (p.stockQuantity === 1) {
+                              <span class="inline-flex items-center gap-1 rounded-full bg-orange-100 border border-orange-300 px-2.5 py-0.5 text-[11px] font-black text-orange-800">
+                                ⚠️ ÚLTIMA UNIDAD
+                              </span>
+                            } @else {
+                              <span class="inline-flex items-center gap-1 rounded-full bg-amber-100 border border-amber-300 px-2.5 py-0.5 text-[11px] font-bold text-amber-800">
+                                BAJO STOCK ({{ p.stockQuantity }} UND)
+                              </span>
+                            }
+                          </td>
+                          <td class="px-3 py-3 text-center">
+                            <button
+                              type="button"
+                              (click)="openEditPartModal(p)"
+                              class="inline-flex items-center gap-1 rounded-lg bg-orange-600 px-2.5 py-1 text-xs font-bold text-white hover:bg-orange-700 transition shadow-2xs cursor-pointer"
+                              title="Reponer unidades en almacén"
+                            >
+                              <span>Reponer</span>
+                              <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                              </svg>
+                            </button>
+                          </td>
+                        </tr>
+                      } @empty {
+                        <tr>
+                          <td colspan="6" class="px-4 py-8 text-center text-gray-500">
+                            <div class="flex flex-col items-center justify-center">
+                              <span class="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 text-lg mb-2">
+                                ✓
+                              </span>
+                              <p class="font-bold text-gray-800 text-xs">Inventario en niveles óptimos</p>
+                              <p class="text-[11px] text-gray-500 mt-0.5">
+                                Todos los repuestos se encuentran por encima de su nivel mínimo de seguridad.
+                              </p>
+                            </div>
+                          </td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             }
           </div>
         }
@@ -1019,14 +1176,22 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                   />
                 </div>
 
-                <label class="inline-flex min-h-[42px] items-center gap-2 cursor-pointer rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-2 text-xs font-medium text-gray-700 hover:bg-gray-100 transition">
+                <label
+                  [class]="lowStockOnlyFilter ? 'border-red-300 bg-red-50 text-red-800 font-bold ring-2 ring-red-200' : 'border-gray-200 bg-gray-50 text-gray-700 font-medium hover:bg-gray-100'"
+                  class="inline-flex min-h-[42px] items-center gap-2 cursor-pointer rounded-xl border px-3.5 py-2 text-xs transition"
+                >
                   <input
                     type="checkbox"
                     [(ngModel)]="lowStockOnlyFilter"
                     (ngModelChange)="loadAdminParts()"
-                    class="h-4 w-4 rounded border-gray-300 accent-orange-600"
+                    class="h-4 w-4 rounded border-gray-300 accent-red-600"
                   />
-                  <span>Solo stock bajo</span>
+                  <span>🚨 Solo stock bajo / crítico</span>
+                  @if (lowStockOnlyFilter) {
+                    <span class="rounded-full bg-red-600 px-1.5 py-0.2 text-[10px] text-white font-black">
+                      ACTIVO
+                    </span>
+                  }
                 </label>
               </div>
 
@@ -1042,6 +1207,31 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                 <span>Nuevo repuesto</span>
               </button>
             </div>
+
+            @if (lowStockOnlyFilter) {
+              <div class="rounded-xl border border-red-200 bg-red-50/80 p-3.5 flex flex-wrap items-center justify-between gap-2 text-xs animate-in fade-in duration-150">
+                <div class="flex items-center gap-2.5">
+                  <span class="flex h-6 w-6 items-center justify-center rounded-md bg-red-600 text-white font-black text-xs shrink-0">
+                    !
+                  </span>
+                  <div>
+                    <span class="font-bold text-red-950">
+                      Filtro de Stock Crítico Activo:
+                    </span>
+                    <span class="text-red-800 ml-1">
+                      Mostrando únicamente piezas con existencia menor o igual al mínimo de seguridad ({{ adminParts().length }} repuestos detectados).
+                    </span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  (click)="lowStockOnlyFilter = false; loadAdminParts()"
+                  class="rounded-lg border border-red-200 bg-white px-2.5 py-1 text-xs font-bold text-red-700 hover:bg-red-100 transition shadow-2xs cursor-pointer"
+                >
+                  Quitar filtro (Ver todos)
+                </button>
+              </div>
+            }
 
             <!-- Parts Table (No Shelf/Warehouse Location Column) -->
             <div class="rounded-2xl border border-gray-200 bg-white overflow-hidden shadow-2xs">
@@ -4267,6 +4457,8 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
   private readonly toast = inject(ToastService);
   private readonly adminUsersService = inject(AdminUsersService);
   private readonly lookupService = inject(LookupService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
 
   readonly Math = Math;
 
@@ -4480,6 +4672,12 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
   readonly compModels = signal<VehicleModel[]>([]);
   partSearchTerm = '';
   lowStockOnlyFilter = false;
+
+  readonly criticalStockParts = computed(() => {
+    return this.adminParts()
+      .filter((p) => (p.stockQuantity ?? 0) <= (p.minStockLevel ?? 5))
+      .sort((a, b) => (a.stockQuantity ?? 0) - (b.stockQuantity ?? 0));
+  });
 
   // Part Editor Modal State
   // ---------------------------------------------------------------------------
@@ -4750,6 +4948,19 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
     this.loadBranches();
     this.loadStorePaymentMethods();
     this.initOrderMonitor();
+
+    // Deep-link routing via query parameters (e.g. from Notifications or direct 1-click links)
+    this.route.queryParams.subscribe((params) => {
+      if (params['tab'] === 'parts') {
+        if (params['lowStock'] === 'true') {
+          this.lowStockOnlyFilter = true;
+        }
+        this.activeTab.set('parts');
+        this.loadAdminParts();
+      } else if (params['tab']) {
+        this.switchTab(params['tab'] as AdminTab);
+      }
+    });
   }
 
   switchTab(tab: AdminTab): void {
@@ -4784,6 +4995,11 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
     this.lowStockOnlyFilter = true;
     this.activeTab.set('parts');
     this.loadAdminParts();
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { tab: 'parts', lowStock: 'true' },
+      queryParamsHandling: 'merge',
+    });
   }
 
   formatRole(role: string | null): string {

@@ -1,9 +1,11 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { Router } from '@angular/router';
+import { catchError, forkJoin, of } from 'rxjs';
 import { AuthService } from './auth.service';
 import { OrdersService } from './orders.service';
 import { ComplaintsService } from './complaints.service';
-import { Order } from '../models/api.models';
+import { CatalogService } from './catalog.service';
+import { Order, Part } from '../models/api.models';
 
 export type NotificationCategory =
   | 'ORDER_STATUS'
@@ -35,6 +37,7 @@ export class NotificationCenterService {
   private readonly auth = inject(AuthService);
   private readonly ordersService = inject(OrdersService);
   private readonly complaintsService = inject(ComplaintsService);
+  private readonly catalogService = inject(CatalogService);
   private readonly router = inject(Router);
 
   readonly notifications = signal<AppNotification[]>([]);
@@ -43,6 +46,14 @@ export class NotificationCenterService {
 
   readonly unreadCount = computed(() => {
     return this.notifications().filter((n) => !n.read).length;
+  });
+
+  readonly unreadStockAlertsCount = computed(() => {
+    return this.notifications().filter((n) => n.category === 'STOCK_ALERT' && !n.read).length;
+  });
+
+  readonly totalStockAlertsCount = computed(() => {
+    return this.notifications().filter((n) => n.category === 'STOCK_ALERT').length;
   });
 
   private pollTimer: any = null;
@@ -108,11 +119,33 @@ export class NotificationCenterService {
   private fetchAdminNotifications(): void {
     const readIds = this.getReadIds();
 
-    this.ordersService.getAllOrders().subscribe({
-      next: (orders) => {
+    forkJoin({
+      orders: this.ordersService.getAllOrders().pipe(catchError(() => of([] as Order[]))),
+      lowStockParts: this.catalogService.getAdminParts(true).pipe(catchError(() => of([] as Part[]))),
+    }).subscribe({
+      next: ({ orders, lowStockParts }) => {
         const notifs: AppNotification[] = [];
 
-        // 1. Process orders for sales, payments, dispatch and driver delivery
+        // 1. Process Low Stock Alerts FIRST (High priority red emergency notifications)
+        for (const part of lowStockParts) {
+          const isAgotado = (part.stockQuantity ?? 0) <= 0;
+          const stockId = `stock-alert-${part.id}-${part.stockQuantity}`;
+          notifs.push({
+            id: stockId,
+            category: 'STOCK_ALERT',
+            title: isAgotado ? `🚨 Stock Agotado: ${part.name}` : `⚠️ Stock Crítico: ${part.name}`,
+            message: `${part.sku}${part.oemCode ? ' (OEM: ' + part.oemCode + ')' : ''}: cuenta con ${part.stockQuantity} un. en almacén (mínimo de seguridad: ${part.minStockLevel || 5} un.). Requiere reposición inmediata.`,
+            timestamp: new Date().toISOString(),
+            relativeTime: isAgotado ? 'Inmediato' : 'Atención hoy',
+            read: readIds.has(stockId),
+            statusBadge: isAgotado ? 'AGOTADO (0 UND)' : `QUEDAN ${part.stockQuantity} UND`,
+            linkUrl: '/admin?tab=parts&lowStock=true',
+            iconType: 'alert',
+            accentColor: 'rose',
+          });
+        }
+
+        // 2. Process orders for sales, payments, dispatch and driver delivery
         const sortedOrders = [...orders].sort(
           (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         );
@@ -192,7 +225,7 @@ export class NotificationCenterService {
           }
         }
 
-        // 2. Process complaints from Complaints Book
+        // 3. Process complaints from Complaints Book
         try {
           const complaints = this.complaintsService.complaints();
           for (const c of complaints.slice(0, 3)) {
@@ -212,10 +245,12 @@ export class NotificationCenterService {
           }
         } catch (e) {}
 
-        // Sort by timestamp desc
-        notifs.sort(
-          (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-        );
+        // Sort with unread stock alerts prioritised at top, followed by chronological
+        notifs.sort((a, b) => {
+          if (a.category === 'STOCK_ALERT' && !a.read && (b.category !== 'STOCK_ALERT' || b.read)) return -1;
+          if (b.category === 'STOCK_ALERT' && !b.read && (a.category !== 'STOCK_ALERT' || a.read)) return 1;
+          return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+        });
 
         this.notifications.set(notifs);
         this.isLoading.set(false);

@@ -114,7 +114,8 @@ import {
                 <!-- Unread Badge with ping animation -->
                 @if (notifService.unreadCount() > 0) {
                   <span
-                    class="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-black text-white shadow-xs"
+                    [class]="notifService.unreadStockAlertsCount() > 0 ? 'bg-red-600 ring-2 ring-red-300' : 'bg-red-600'"
+                    class="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px] font-black text-white shadow-xs"
                   >
                     <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75"></span>
                     <span class="relative">{{ notifService.unreadCount() > 99 ? '99+' : notifService.unreadCount() }}</span>
@@ -216,6 +217,20 @@ import {
                       >
                         Repartos
                       </button>
+                      <button
+                        type="button"
+                        (click)="notifFilter.set('STOCK')"
+                        [class]="notifFilter() === 'STOCK' ? 'bg-red-50 font-bold text-red-700 ring-1 ring-red-200' : 'text-gray-600 hover:text-gray-900 font-medium'"
+                        class="rounded-md px-2.5 py-1 transition inline-flex items-center gap-1"
+                        title="Alertas de stock agotado o por reponer"
+                      >
+                        <span>🚨 Stock</span>
+                        @if (notifService.unreadStockAlertsCount() > 0) {
+                          <span class="rounded-full bg-red-600 px-1.5 py-0.2 text-[10px] font-bold text-white">
+                            {{ notifService.unreadStockAlertsCount() }}
+                          </span>
+                        }
+                      </button>
                     }
                   </div>
 
@@ -224,7 +239,10 @@ import {
                     @for (item of filteredNotifications(); track item.id) {
                       <div
                         (click)="onNotificationClick(item)"
-                        [class.bg-orange-50/50]="!item.read"
+                        [class.bg-red-50/70]="item.category === 'STOCK_ALERT' && !item.read"
+                        [class.border-l-4]="item.category === 'STOCK_ALERT'"
+                        [class.border-l-red-600]="item.category === 'STOCK_ALERT'"
+                        [class.bg-orange-50/50]="item.category !== 'STOCK_ALERT' && !item.read"
                         class="group flex items-start gap-3 p-3.5 hover:bg-gray-50/90 transition cursor-pointer relative"
                       >
                         <!-- Category Icon Badge -->
@@ -264,11 +282,15 @@ import {
                         <!-- Content -->
                         <div class="flex-1 min-w-0 pr-3">
                           <div class="flex items-center justify-between gap-1 mb-0.5">
-                            <span class="text-xs font-bold text-gray-900 truncate">
+                            <span
+                              [class]="item.category === 'STOCK_ALERT' ? 'text-xs font-black text-red-950 truncate' : 'text-xs font-bold text-gray-900 truncate'"
+                            >
                               {{ item.title }}
                             </span>
                             @if (!item.read) {
-                              <span class="h-2 w-2 rounded-full bg-orange-600 shrink-0"></span>
+                              <span
+                                [class]="item.category === 'STOCK_ALERT' ? 'h-2 w-2 rounded-full bg-red-600 shrink-0 animate-pulse' : 'h-2 w-2 rounded-full bg-orange-600 shrink-0'"
+                              ></span>
                             }
                           </div>
                           <p class="text-[11px] text-gray-600 line-clamp-2 leading-relaxed">
@@ -279,7 +301,13 @@ import {
                               {{ item.relativeTime }}
                             </span>
                             @if (item.statusBadge) {
-                              <span class="rounded bg-gray-100 px-1.5 py-0.5 text-[9px] font-semibold text-gray-600 uppercase">
+                              <span
+                                [class]="
+                                  item.category === 'STOCK_ALERT'
+                                    ? 'rounded bg-red-600 text-white font-black px-1.5 py-0.5 text-[9px] uppercase shadow-2xs'
+                                    : 'rounded bg-gray-100 px-1.5 py-0.5 text-[9px] font-semibold text-gray-600 uppercase'
+                                "
+                              >
                                 {{ item.statusBadge }}
                               </span>
                             }
@@ -488,11 +516,18 @@ import {
               </svg>
               <span>Notificaciones</span>
             </div>
-            @if (notifService.unreadCount() > 0) {
-              <span class="rounded-full bg-red-600 px-2 py-0.5 text-xs font-bold text-white">
-                {{ notifService.unreadCount() }}
-              </span>
-            }
+            <div class="flex items-center gap-1.5">
+              @if (notifService.unreadStockAlertsCount() > 0) {
+                <span class="rounded-full bg-red-600 px-2 py-0.5 text-xs font-black text-white animate-pulse">
+                  🚨 {{ notifService.unreadStockAlertsCount() }} Stock
+                </span>
+              }
+              @if (notifService.unreadCount() > 0) {
+                <span class="rounded-full bg-orange-600 px-2 py-0.5 text-xs font-bold text-white">
+                  {{ notifService.unreadCount() }}
+                </span>
+              }
+            </div>
           </button>
 
           <div class="pt-3 mt-2 border-t border-gray-100 flex items-center justify-between gap-2">
@@ -652,7 +687,7 @@ export class NavbarComponent {
 
   readonly mobileOpen = signal(false);
   readonly notifOpen = signal(false);
-  readonly notifFilter = signal<'ALL' | 'UNREAD' | 'SALES' | 'DELIVERY'>('ALL');
+  readonly notifFilter = signal<'ALL' | 'UNREAD' | 'SALES' | 'DELIVERY' | 'STOCK'>('ALL');
 
   readonly filteredNotifications = computed(() => {
     const list = this.notifService.notifications();
@@ -670,6 +705,8 @@ export class NavbarComponent {
         );
       case 'DELIVERY':
         return list.filter((n) => n.category === 'DELIVERY');
+      case 'STOCK':
+        return list.filter((n) => n.category === 'STOCK_ALERT');
       default:
         return list;
     }
@@ -697,6 +734,9 @@ export class NavbarComponent {
   }
 
   getCategoryBadgeClass(item: AppNotification): string {
+    if (item.category === 'STOCK_ALERT') {
+      return 'bg-red-100 text-red-700 border border-red-300 ring-2 ring-red-200/50';
+    }
     switch (item.accentColor) {
       case 'orange':
         return 'bg-orange-100 text-orange-700 border border-orange-200';
