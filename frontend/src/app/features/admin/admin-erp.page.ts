@@ -21,10 +21,12 @@ import {
   PartCompatibilityInput,
   PartUpsertRequest,
   SalespersonMetric,
+  SalesTimelinePoint,
   UpdateStaffUserRequest,
   VehicleMake,
   VehicleModel,
   VehicleModelSuggestion,
+  WeekdaySalesMetric,
 } from '../../core/models/api.models';
 import { AdminUsersService } from '../../core/services/admin-users.service';
 import { AnalyticsService } from '../../core/services/analytics.service';
@@ -142,17 +144,17 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
             </div>
           </div>
 
-          <!-- Horizontal Underline Navigation Tabs -->
-          <nav class="-mb-px flex gap-5 sm:gap-7 overflow-x-auto" aria-label="Secciones de administración">
+          <!-- Horizontal Modern Tabs Navigation Bar -->
+          <nav class="-mb-px flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-1 scrollbar-none" aria-label="Secciones de administración">
             <button
               type="button"
               (click)="switchTab('analytics')"
               [class]="
                 activeTab() === 'analytics'
-                  ? 'border-orange-600 text-orange-600 font-semibold'
-                  : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-900 font-medium'
+                  ? 'border-orange-600 text-orange-600 font-bold bg-orange-50/70 shadow-2xs'
+                  : 'border-transparent text-gray-600 hover:border-gray-200 hover:bg-gray-50/80 hover:text-gray-900 font-medium'
               "
-              class="inline-flex min-h-[44px] shrink-0 items-center gap-2 border-b-2 px-1 py-3 text-sm transition"
+              class="inline-flex min-h-[40px] shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-xs sm:text-sm whitespace-nowrap transition cursor-pointer"
             >
               <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
                 <line x1="18" y1="20" x2="18" y2="10" />
@@ -167,10 +169,10 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
               (click)="switchTab('parts')"
               [class]="
                 activeTab() === 'parts'
-                  ? 'border-orange-600 text-orange-600 font-semibold'
-                  : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-900 font-medium'
+                  ? 'border-orange-600 text-orange-600 font-bold bg-orange-50/70 shadow-2xs'
+                  : 'border-transparent text-gray-600 hover:border-gray-200 hover:bg-gray-50/80 hover:text-gray-900 font-medium'
               "
-              class="inline-flex min-h-[44px] shrink-0 items-center gap-2 border-b-2 px-1 py-3 text-sm transition"
+              class="inline-flex min-h-[40px] shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-xs sm:text-sm whitespace-nowrap transition cursor-pointer"
             >
               <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
@@ -184,10 +186,10 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                 (click)="switchTab('branches')"
                 [class]="
                   activeTab() === 'branches'
-                    ? 'border-orange-600 text-orange-600 font-semibold'
-                    : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-900 font-medium'
+                    ? 'border-orange-600 text-orange-600 font-bold bg-orange-50/70 shadow-2xs'
+                    : 'border-transparent text-gray-600 hover:border-gray-200 hover:bg-gray-50/80 hover:text-gray-900 font-medium'
                 "
-                class="inline-flex min-h-[44px] shrink-0 items-center gap-2 border-b-2 px-1 py-3 text-sm transition"
+                class="inline-flex min-h-[40px] shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-xs sm:text-sm whitespace-nowrap transition cursor-pointer"
               >
                 <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
@@ -202,10 +204,10 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
               (click)="switchTab('orders')"
               [class]="
                 activeTab() === 'orders'
-                  ? 'border-orange-600 text-orange-600 font-semibold'
-                  : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-900 font-medium'
+                  ? 'border-orange-600 text-orange-600 font-bold bg-orange-50/70 shadow-2xs'
+                  : 'border-transparent text-gray-600 hover:border-gray-200 hover:bg-gray-50/80 hover:text-gray-900 font-medium'
               "
-              class="inline-flex min-h-[44px] shrink-0 items-center gap-2 border-b-2 px-1 py-3 text-sm transition"
+              class="inline-flex min-h-[40px] shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-xs sm:text-sm whitespace-nowrap transition cursor-pointer"
             >
               <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
@@ -222,10 +224,10 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                 (click)="switchTab('notifications')"
                 [class]="
                   activeTab() === 'notifications'
-                    ? 'border-orange-600 text-orange-600 font-semibold'
-                    : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-900 font-medium'
+                    ? 'border-orange-600 text-orange-600 font-bold bg-orange-50/70 shadow-2xs'
+                    : 'border-transparent text-gray-600 hover:border-gray-200 hover:bg-gray-50/80 hover:text-gray-900 font-medium'
                 "
-                class="inline-flex min-h-[44px] shrink-0 items-center gap-2 border-b-2 px-1 py-3 text-sm transition"
+                class="inline-flex min-h-[40px] shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-xs sm:text-sm whitespace-nowrap transition cursor-pointer"
               >
                 <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
                   <rect width="20" height="16" x="2" y="4" rx="2" />
@@ -241,10 +243,10 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                 (click)="switchTab('payments')"
                 [class]="
                   activeTab() === 'payments'
-                    ? 'border-orange-600 text-orange-600 font-semibold'
-                    : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-900 font-medium'
+                    ? 'border-orange-600 text-orange-600 font-bold bg-orange-50/70 shadow-2xs'
+                    : 'border-transparent text-gray-600 hover:border-gray-200 hover:bg-gray-50/80 hover:text-gray-900 font-medium'
                 "
-                class="inline-flex min-h-[44px] shrink-0 items-center gap-2 border-b-2 px-1 py-3 text-sm transition"
+                class="inline-flex min-h-[40px] shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-xs sm:text-sm whitespace-nowrap transition cursor-pointer"
               >
                 <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
                   <rect x="2" y="5" width="20" height="14" rx="2" />
@@ -260,10 +262,10 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                 (click)="switchTab('users')"
                 [class]="
                   activeTab() === 'users'
-                    ? 'border-orange-600 text-orange-600 font-semibold'
-                    : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-900 font-medium'
+                    ? 'border-orange-600 text-orange-600 font-bold bg-orange-50/70 shadow-2xs'
+                    : 'border-transparent text-gray-600 hover:border-gray-200 hover:bg-gray-50/80 hover:text-gray-900 font-medium'
                 "
-                class="inline-flex min-h-[44px] shrink-0 items-center gap-2 border-b-2 px-1 py-3 text-sm transition"
+                class="inline-flex min-h-[40px] shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-xs sm:text-sm whitespace-nowrap transition cursor-pointer"
               >
                 <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
@@ -374,10 +376,10 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                   </span>
                 </div>
 
-                <div class="rounded-2xl border-2 border-red-200 bg-linear-to-br from-red-50/70 to-white p-5 shadow-2xs relative overflow-hidden group hover:border-red-300 transition">
+                <div class="rounded-2xl border-2 border-red-200 bg-linear-to-br from-red-50/80 via-white to-white p-5 shadow-2xs relative overflow-hidden group hover:border-red-300 transition">
                   <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-2">
-                      <span class="text-xs font-bold uppercase tracking-wider text-red-700">🚨 Alerta Stock Crítico</span>
+                    <div class="flex items-center gap-1.5">
+                      <span class="text-xs font-bold uppercase tracking-wider text-red-700">Stock Crítico</span>
                       @if ((dash.kpis.lowStockCount ?? dash.kpis.lowStockPartsCount ?? 0) > 0) {
                         <span class="relative flex h-2.5 w-2.5">
                           <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
@@ -385,30 +387,26 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                         </span>
                       }
                     </div>
-                    <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-red-100 text-red-600">
-                      <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
-                        <path d="M12 9v4" />
-                        <path d="M12 17h.01" />
-                      </svg>
+                    <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-red-50 border border-red-200 shadow-2xs">
+                      <img src="/images/icons/alarma.png" alt="Alerta Stock" class="h-5 w-5 object-contain" />
                     </span>
                   </div>
                   <p class="mt-2 text-2xl font-black tracking-tight tabular-nums text-red-950">
                     {{ dash.kpis.lowStockCount ?? dash.kpis.lowStockPartsCount ?? 0 }} repuestos
                   </p>
-                  <div class="mt-2 flex items-center justify-between gap-2">
+                  <div class="mt-2 flex flex-wrap items-center justify-between gap-2">
                     <button
                       type="button"
                       (click)="openLowStockParts()"
                       class="inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-red-700 shadow-2xs transition cursor-pointer"
                     >
-                      <span>Ver repuestos críticos (1 clic)</span>
+                      <span>Ver repuestos (1 clic)</span>
                       <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M5 12h14" />
                         <path d="m12 5 7 7-7 7" />
                       </svg>
                     </button>
-                    <span class="text-[11px] font-medium text-red-600 hidden sm:inline">
+                    <span class="text-[11px] font-semibold text-red-700">
                       ≤ mín. seguridad
                     </span>
                   </div>
@@ -417,6 +415,8 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
 
               <!-- 1. Interactive Time-Series Sales Chart (Día / Semana / Año) -->
               <app-sales-chart
+                [hourlySales]="computedHourlySales()"
+                [weekdaySales]="computedWeekdaySales()"
                 [dailySales]="dash.dailySales || []"
                 [weeklySales]="dash.weeklySales || []"
                 [monthlySales]="dash.monthlySales || []"
@@ -1012,8 +1012,8 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
               <div class="rounded-2xl border-2 border-red-200 bg-white overflow-hidden shadow-2xs">
                 <div class="border-b border-red-100 bg-linear-to-r from-red-50/90 via-red-50/40 to-white px-5 py-4 flex flex-wrap items-center justify-between gap-3">
                   <div class="flex items-center gap-3">
-                    <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-red-600 text-white shadow-2xs font-bold text-sm">
-                      🚨
+                    <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-red-50 border border-red-200 shadow-2xs">
+                      <img src="/images/icons/alarma.png" alt="Alerta Stock" class="h-5 w-5 object-contain" />
                     </span>
                     <div>
                       <div class="flex items-center gap-2">
@@ -1211,8 +1211,8 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
             @if (lowStockOnlyFilter) {
               <div class="rounded-xl border border-red-200 bg-red-50/80 p-3.5 flex flex-wrap items-center justify-between gap-2 text-xs animate-in fade-in duration-150">
                 <div class="flex items-center gap-2.5">
-                  <span class="flex h-6 w-6 items-center justify-center rounded-md bg-red-600 text-white font-black text-xs shrink-0">
-                    !
+                  <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-red-50 border border-red-200 p-1 shadow-2xs shrink-0">
+                    <img src="/images/icons/alarma.png" alt="Alerta Stock" class="h-4 w-4 object-contain" />
                   </span>
                   <div>
                     <span class="font-bold text-red-950">
@@ -4898,6 +4898,134 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
   // Global Orders State
   readonly globalOrders = signal<Order[]>([]);
 
+  readonly computedHourlySales = computed<SalesTimelinePoint[]>(() => {
+    const orders = this.globalOrders();
+    const hours = [
+      { h: 8, label: '08:00' },
+      { h: 9, label: '09:00' },
+      { h: 10, label: '10:00' },
+      { h: 11, label: '11:00' },
+      { h: 12, label: '12:00' },
+      { h: 13, label: '13:00' },
+      { h: 14, label: '14:00' },
+      { h: 15, label: '15:00' },
+      { h: 16, label: '16:00' },
+      { h: 17, label: '17:00' },
+      { h: 18, label: '18:00' },
+      { h: 19, label: '19:00' },
+      { h: 20, label: '20:00' },
+    ];
+
+    const map = new Map<number, { sales: number; profit: number; count: number; units: number }>();
+    hours.forEach(({ h }) => map.set(h, { sales: 0, profit: 0, count: 0, units: 0 }));
+
+    for (const ord of orders) {
+      if (ord.status === 'CANCELADO') continue;
+      const d = new Date(ord.createdAt);
+      let h = d.getHours();
+      if (h < 8) h = 8;
+      if (h > 20) h = 20;
+
+      const existing = map.get(h) || { sales: 0, profit: 0, count: 0, units: 0 };
+      const total = ord.totalAmount ?? ord.total ?? ord.subtotal ?? 0;
+      existing.sales += total;
+      existing.count += 1;
+
+      let profit = 0;
+      let units = 0;
+      if (ord.items && ord.items.length > 0) {
+        for (const it of ord.items) {
+          const qty = it.quantity || 1;
+          units += qty;
+          const saleP = it.unitPrice || 0;
+          const costP = Number((saleP * 0.65).toFixed(2));
+          profit += (saleP - costP) * qty;
+        }
+      } else {
+        units += 1;
+        profit += total * 0.35;
+      }
+      existing.profit += profit;
+      existing.units += units;
+      map.set(h, existing);
+    }
+
+    return hours.map(({ h, label }) => {
+      const data = map.get(h)!;
+      return {
+        periodKey: `hour-${h}`,
+        label,
+        subLabel: `${label} - ${h + 1 < 10 ? '0' + (h + 1) : h + 1}:00`,
+        totalSales: Number(data.sales.toFixed(2)),
+        grossProfit: Number(data.profit.toFixed(2)),
+        ordersCount: data.count,
+        unitsSold: data.units,
+      };
+    });
+  });
+
+  readonly computedWeekdaySales = computed<SalesTimelinePoint[]>(() => {
+    const weekdayData = this.dashboard()?.weekdaySales;
+    const daysInfo = [
+      { dow: 1, name: 'Lunes' },
+      { dow: 2, name: 'Martes' },
+      { dow: 3, name: 'Miércoles' },
+      { dow: 4, name: 'Jueves' },
+      { dow: 5, name: 'Viernes' },
+      { dow: 6, name: 'Sábado' },
+      { dow: 7, name: 'Domingo' },
+    ];
+
+    if (weekdayData && weekdayData.length > 0) {
+      return daysInfo.map(({ dow, name }) => {
+        const found = weekdayData.find((w) => w.dayOfWeek === dow);
+        const sales = found ? Number(found.totalAmount) : 0;
+        const count = found ? found.ordersCount : 0;
+        const share = found ? found.sharePercent : 0;
+        return {
+          periodKey: `weekday-${dow}`,
+          label: name,
+          subLabel: `${share}% facturación`,
+          totalSales: sales,
+          grossProfit: Number((sales * 0.35).toFixed(2)),
+          ordersCount: count,
+          unitsSold: count * 2,
+        };
+      });
+    }
+
+    const orders = this.globalOrders();
+    const map = new Map<number, { sales: number; count: number; profit: number; units: number }>();
+    daysInfo.forEach(({ dow }) => map.set(dow, { sales: 0, count: 0, profit: 0, units: 0 }));
+
+    for (const ord of orders) {
+      if (ord.status === 'CANCELADO') continue;
+      const d = new Date(ord.createdAt);
+      let dow = d.getDay();
+      dow = dow === 0 ? 7 : dow;
+      const total = ord.totalAmount ?? ord.total ?? ord.subtotal ?? 0;
+      const existing = map.get(dow) || { sales: 0, count: 0, profit: 0, units: 0 };
+      existing.sales += total;
+      existing.count += 1;
+      existing.profit += total * 0.35;
+      existing.units += 2;
+      map.set(dow, existing);
+    }
+
+    return daysInfo.map(({ dow, name }) => {
+      const data = map.get(dow)!;
+      return {
+        periodKey: `weekday-${dow}`,
+        label: name,
+        subLabel: `${name}`,
+        totalSales: Number(data.sales.toFixed(2)),
+        grossProfit: Number(data.profit.toFixed(2)),
+        ordersCount: data.count,
+        unitsSold: data.units,
+      };
+    });
+  });
+
   // Motorizados & Dispatch
   readonly drivers = signal<DriverSummary[]>([]);
   readonly loadingDrivers = signal<boolean>(false);
@@ -4948,6 +5076,7 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
     this.loadBranches();
     this.loadStorePaymentMethods();
     this.initOrderMonitor();
+    this.loadGlobalOrders();
 
     // Deep-link routing via query parameters (e.g. from Notifications or direct 1-click links)
     this.route.queryParams.subscribe((params) => {

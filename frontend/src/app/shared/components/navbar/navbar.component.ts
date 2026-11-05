@@ -221,10 +221,11 @@ import {
                         type="button"
                         (click)="notifFilter.set('STOCK')"
                         [class]="notifFilter() === 'STOCK' ? 'bg-red-50 font-bold text-red-700 ring-1 ring-red-200' : 'text-gray-600 hover:text-gray-900 font-medium'"
-                        class="rounded-md px-2.5 py-1 transition inline-flex items-center gap-1"
+                        class="rounded-md px-2.5 py-1 transition inline-flex items-center gap-1.5"
                         title="Alertas de stock agotado o por reponer"
                       >
-                        <span>🚨 Stock</span>
+                        <img src="/images/icons/alarma.png" alt="Stock" class="h-3.5 w-3.5 object-contain inline-block" />
+                        <span>Stock</span>
                         @if (notifService.unreadStockAlertsCount() > 0) {
                           <span class="rounded-full bg-red-600 px-1.5 py-0.2 text-[10px] font-bold text-white">
                             {{ notifService.unreadStockAlertsCount() }}
@@ -272,9 +273,13 @@ import {
                               </svg>
                             }
                             @default {
-                              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
-                              </svg>
+                              @if (item.category === 'STOCK_ALERT') {
+                                <img src="/images/icons/alarma.png" alt="Alerta Stock" class="h-5 w-5 object-contain" />
+                              } @else {
+                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                                </svg>
+                              }
                             }
                           }
                         </div>

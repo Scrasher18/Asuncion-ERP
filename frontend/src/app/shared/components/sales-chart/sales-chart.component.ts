@@ -40,7 +40,7 @@ export type ChartGranularity = 'day' | 'week' | 'year';
             "
             class="min-h-[34px] rounded-lg px-3 py-1 text-xs transition"
           >
-            Por Día
+            Por Día (Horas)
           </button>
           <button
             type="button"
@@ -52,7 +52,7 @@ export type ChartGranularity = 'day' | 'week' | 'year';
             "
             class="min-h-[34px] rounded-lg px-3 py-1 text-xs transition"
           >
-            Por Semana
+            Por Semana (Días)
           </button>
           <button
             type="button"
@@ -284,6 +284,8 @@ export type ChartGranularity = 'day' | 'week' | 'year';
   `,
 })
 export class SalesChartComponent {
+  @Input() hourlySales: SalesTimelinePoint[] = [];
+  @Input() weekdaySales: SalesTimelinePoint[] = [];
   @Input() dailySales: SalesTimelinePoint[] = [];
   @Input() weeklySales: SalesTimelinePoint[] = [];
   @Input() monthlySales: SalesTimelinePoint[] = [];
@@ -294,9 +296,13 @@ export class SalesChartComponent {
   readonly activePoints = computed<SalesTimelinePoint[]>(() => {
     switch (this.granularity()) {
       case 'day':
-        return this.dailySales || [];
+        return this.hourlySales && this.hourlySales.length > 0
+          ? this.hourlySales
+          : (this.dailySales || []);
       case 'week':
-        return this.weeklySales || [];
+        return this.weekdaySales && this.weekdaySales.length > 0
+          ? this.weekdaySales
+          : (this.weeklySales || []);
       case 'year':
         return this.monthlySales || [];
     }
@@ -331,11 +337,11 @@ export class SalesChartComponent {
   readonly chartDescription = computed<string>(() => {
     switch (this.granularity()) {
       case 'day':
-        return 'Comportamiento diario de ingresos en soles por boletas y facturas comerciales.';
+        return 'Ventas por horas del día (distribución de 08:00 a 20:00 hrs para identificar horas pico).';
       case 'week':
-        return 'Tendencia consolidada semana a semana con margen de utilidad bruta.';
+        return 'Ventas por días de la semana (Lunes, Martes, Miércoles, Jueves, Viernes, Sábado y Domingo).';
       case 'year':
-        return 'Desempeño mensual a lo largo del año calendario con estacionalidad.';
+        return 'Facturación y margen bruto mensual a lo largo del año calendario.';
     }
   });
 
@@ -348,7 +354,7 @@ export class SalesChartComponent {
 
   barWidth(): number {
     const count = this.activePoints().length;
-    if (count <= 7) return 48;
+    if (count <= 7) return 50;
     if (count <= 14) return 32;
     if (count <= 31) return 18;
     return 12;
@@ -383,8 +389,8 @@ export class SalesChartComponent {
 
   shouldShowXLabel(index: number): boolean {
     const count = this.activePoints().length;
-    if (count <= 12) return true;
-    if (count <= 20) return index % 2 === 0;
+    if (count <= 14) return true;
+    if (count <= 24) return index % 2 === 0;
     return index % 3 === 0 || index === count - 1;
   }
 
