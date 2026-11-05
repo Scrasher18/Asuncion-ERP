@@ -213,7 +213,7 @@ public class PaymentGatewayService {
         SystemPaymentConfig config = getOrCreateConfig();
         String secretKey = config.getCulqiSecretKey();
         if (secretKey == null || secretKey.isBlank()) {
-            secretKey = "sk_test_VZapTGBxNs8wpDg0";
+            secretKey = System.getenv("CULQI_SECRET_KEY") != null ? System.getenv("CULQI_SECRET_KEY") : "";
         }
 
         String customerEmail = req.email() != null && !req.email().isBlank()

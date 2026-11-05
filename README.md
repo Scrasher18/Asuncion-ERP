@@ -79,7 +79,7 @@ docker compose up --build -d
 Servicios levantados automáticamente:
 - **Frontend Angular (Nginx Reverse Proxy)**: http://localhost
 - **Backend Spring Boot 3 (Perfil `docker`)**: http://localhost:8080/swagger-ui.html
-- **Consola MinIO Object Storage (`asuncion-media`)**: http://localhost:9001 (`minioadmin` / `AsuncionMinio2026!`)
+- **Consola MinIO Object Storage (`asuncion-media`)**: http://localhost:9001 (`minioadmin` / `local_dev_minio_secret`)
 - **PostgreSQL 16 + PostGIS 3.4**: `localhost:5432` (inicializado con `01_schema_3fn_postgis.sql` + `02_seed_asuncion.sql`)
 
 ---

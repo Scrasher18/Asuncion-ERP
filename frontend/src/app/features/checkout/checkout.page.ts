@@ -425,7 +425,7 @@ export class CheckoutPageComponent implements OnInit, OnDestroy {
     this.isProcessingPayment.set(true);
     const email = this.auth.currentUser()?.email || 'cliente@asuncion.pe';
 
-    let activeKey = 'pk_test_E1MAjdXpMaux0f3u';
+    let activeKey = '';
     try {
       const cfg = await firstValueFrom(this.paymentService.getPublicConfig());
       if (cfg?.culqiPublicKey) {

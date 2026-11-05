@@ -86,7 +86,7 @@ public class DatabaseSchemaPatcher implements CommandLineRunner {
             """);
             jdbcTemplate.execute("""
                 INSERT INTO system_payment_config (id, culqi_enabled, culqi_public_key, culqi_secret_key, pagoefectivo_enabled, pagoefectivo_service_id, pagoefectivo_secret_key, environment)
-                VALUES (1, TRUE, 'pk_test_E1MAjdXpMaux0f3u', 'sk_test_VZapTGBxNs8wpDg0', FALSE, 'PE_ASUNCION_REPUESTOS', 'pe_sec_asuncion_2026', 'SANDBOX')
+                VALUES (1, FALSE, '', '', FALSE, '', '', 'SANDBOX')
                 ON CONFLICT (id) DO NOTHING
             """);
         } catch (Exception e) {

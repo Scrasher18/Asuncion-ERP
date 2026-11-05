@@ -20,7 +20,7 @@ services:
     environment:
       POSTGRES_DB: ${DB_NAME:-asuncion_erp}
       POSTGRES_USER: ${DB_USER:-asuncion_admin}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-Asuncion2026_SecureDB!}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-local_dev_postgres_password}
       TZ: America/Lima
     ports:
       - "${DB_PORT:-5432}:5432"
@@ -47,7 +47,7 @@ services:
     command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: ${S3_ACCESS_KEY:-minioadmin}
-      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:-AsuncionMinio2026!}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:-local_dev_minio_secret}
     ports:
       - "9000:9000"
       - "9001:9001"
@@ -73,7 +73,7 @@ services:
         condition: service_healthy
     entrypoint: >
       /bin/sh -c "
-      mc alias set local http://minio:9000 $${S3_ACCESS_KEY:-minioadmin} $${S3_SECRET_KEY:-AsuncionMinio2026!};
+      mc alias set local http://minio:9000 $${S3_ACCESS_KEY:-minioadmin} $${S3_SECRET_KEY:-local_dev_minio_secret};
       mc mb --ignore-existing local/$${S3_BUCKET:-asuncion-media};
       mc anonymous set download local/$${S3_BUCKET:-asuncion-media};
       echo 'Bucket S3/MinIO asuncion-media configurado exitosamente en modo public-read.';
@@ -81,7 +81,7 @@ services:
       "
     environment:
       S3_ACCESS_KEY: ${S3_ACCESS_KEY:-minioadmin}
-      S3_SECRET_KEY: ${S3_SECRET_KEY:-AsuncionMinio2026!}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-local_dev_minio_secret}
       S3_BUCKET: ${S3_BUCKET:-asuncion-media}
     networks:
       - asuncion-cloud-net
@@ -110,15 +110,15 @@ services:
       DB_PORT: 5432
       DB_NAME: ${DB_NAME:-asuncion_erp}
       DB_USER: ${DB_USER:-asuncion_admin}
-      DB_PASSWORD: ${DB_PASSWORD:-Asuncion2026_SecureDB!}
+      DB_PASSWORD: ${DB_PASSWORD:-local_dev_postgres_password}
       STORAGE_TYPE: ${STORAGE_TYPE:-s3}
       S3_ENDPOINT: http://minio:9000
       S3_REGION: us-east-1
       S3_BUCKET: ${S3_BUCKET:-asuncion-media}
       S3_PUBLIC_URL: ${S3_PUBLIC_URL:-http://localhost:9000/asuncion-media}
       S3_ACCESS_KEY: ${S3_ACCESS_KEY:-minioadmin}
-      S3_SECRET_KEY: ${S3_SECRET_KEY:-AsuncionMinio2026!}
-      JWT_SECRET: ${JWT_SECRET:-AsuncionCloudErpSuperSecretHmacKey2026EnterpriseSecurityKeyForStatelessJwtTokens987654321}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-local_dev_minio_secret}
+      JWT_SECRET: ${JWT_SECRET:-DevDefaultJwtSecretKeyForLocalTestingOnly32BytesMinLength1234567890}
       JWT_EXPIRATION_SECONDS: ${JWT_EXPIRATION_SECONDS:-86400}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost,http://localhost:80,http://localhost:4200,http://127.0.0.1:4200}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}

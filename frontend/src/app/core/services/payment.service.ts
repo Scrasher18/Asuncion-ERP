@@ -370,7 +370,7 @@ export class PaymentService {
       }
 
       const Culqi = win.Culqi;
-      Culqi.publicKey = options.publicKey || 'pk_test_E1MAjdXpMaux0f3u';
+      Culqi.publicKey = options.publicKey || '';
 
       Culqi.settings({
         title: options.title || 'Autopartes Asunción',

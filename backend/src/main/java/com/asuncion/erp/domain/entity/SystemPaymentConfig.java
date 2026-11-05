@@ -18,19 +18,19 @@ public class SystemPaymentConfig {
     private boolean culqiEnabled = true;
 
     @Column(name = "culqi_public_key", length = 150)
-    private String culqiPublicKey = "pk_test_E1MAjdXpMaux0f3u";
+    private String culqiPublicKey = "";
 
     @Column(name = "culqi_secret_key", length = 150)
-    private String culqiSecretKey = "sk_test_VZapTGBxNs8wpDg0";
+    private String culqiSecretKey = "";
 
     @Column(name = "pagoefectivo_enabled", nullable = false)
     private boolean pagoefectivoEnabled = false;
 
     @Column(name = "pagoefectivo_service_id", length = 100)
-    private String pagoefectivoServiceId = "PE_ASUNCION_REPUESTOS";
+    private String pagoefectivoServiceId = "";
 
     @Column(name = "pagoefectivo_secret_key", length = 150)
-    private String pagoefectivoSecretKey = "pe_sec_asuncion_2026";
+    private String pagoefectivoSecretKey = "";
 
     @Column(name = "niubiz_enabled", nullable = false)
     private boolean niubizEnabled = false;

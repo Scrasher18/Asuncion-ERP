@@ -12,15 +12,15 @@ services:
       - key: SPRING_PROFILES_ACTIVE
         value: postgres
       - key: DB_URL
-        value: jdbc:postgresql://ep-jolly-poetry-bdy5732e.c-8.us-east-2.aws.neon.tech:5432/neondb?sslmode=require
+        sync: false
       - key: DB_USER
-        value: neondb_owner
+        sync: false
       - key: DB_PASSWORD
-        value: npg_6ECfmD0ISONo
+        sync: false
       - key: CORS_ALLOWED_ORIGINS
         value: '*'
       - key: JWT_SECRET
-        value: AsuncionCloudErpSuperSecretHmacKey2026EnterpriseSecurityKeyForStatelessJwtTokens987654321
+        sync: false
       - key: STORAGE_TYPE
         value: local
       - key: SERVER_PORT

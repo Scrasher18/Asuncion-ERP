@@ -33,7 +33,7 @@ public class S3StorageService implements StorageService {
             @Value("${app.storage.s3.bucket:asuncion-media}") String bucket,
             @Value("${app.storage.s3.public-url:http://localhost:9000/asuncion-media}") String publicUrl,
             @Value("${app.storage.s3.access-key:minioadmin}") String accessKey,
-            @Value("${app.storage.s3.secret-key:AsuncionMinio2026!}") String secretKey
+            @Value("${app.storage.s3.secret-key:}") String secretKey
     ) {
         this.bucket = bucket;
         this.publicBaseUrl = publicUrl.endsWith("/")
