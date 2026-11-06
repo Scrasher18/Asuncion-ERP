@@ -200,7 +200,7 @@ import {
                         <button
                           type="button"
                           (click)="notifService.markAllAsRead()"
-                          class="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-gray-600 hover:bg-white hover:text-orange-600 hover:shadow-2xs transition"
+                          class="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-gray-600 hover:bg-white hover:text-orange-600 hover:shadow-2xs transition cursor-pointer"
                           title="Marcar todas como leídas"
                         >
                           <svg class="h-3.5 w-3.5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
@@ -209,10 +209,20 @@ import {
                           <span class="hidden sm:inline">Leer todas</span>
                         </button>
                       }
+                      @if (notifService.notifications().length > 0) {
+                        <button
+                          type="button"
+                          (click)="notifService.clearAll()"
+                          class="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-gray-500 hover:bg-white hover:text-red-600 hover:shadow-2xs transition cursor-pointer"
+                          title="Vaciar bandeja de notificaciones"
+                        >
+                          <span>Limpiar</span>
+                        </button>
+                      }
                       <button
                         type="button"
                         (click)="notifService.refresh()"
-                        class="rounded-lg p-1.5 text-xs text-gray-600 hover:bg-white hover:text-orange-600 hover:shadow-2xs transition"
+                        class="rounded-lg p-1.5 text-xs text-gray-600 hover:bg-white hover:text-orange-600 hover:shadow-2xs transition cursor-pointer"
                         title="Actualizar ahora"
                       >
                         <svg class="h-4 w-4" [class.animate-spin]="notifService.isLoading()" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -335,7 +345,7 @@ import {
                         </div>
 
                         <!-- Content -->
-                        <div class="flex-1 min-w-0 pr-3">
+                        <div class="flex-1 min-w-0 pr-5">
                           <div class="flex items-center justify-between gap-1 mb-0.5">
                             <span
                               [class]="item.category === 'STOCK_ALERT' ? 'text-xs font-black text-red-950 truncate' : 'text-xs font-bold text-gray-900 truncate'"
@@ -368,6 +378,16 @@ import {
                             }
                           </div>
                         </div>
+
+                        <!-- Dismiss single notification button -->
+                        <button
+                          type="button"
+                          (click)="notifService.dismissNotification(item.id, $event)"
+                          class="absolute top-2.5 right-2.5 rounded-md p-1 text-[11px] text-gray-400 opacity-0 group-hover:opacity-100 hover:bg-gray-200/70 hover:text-gray-700 transition cursor-pointer"
+                          title="Descartar aviso"
+                        >
+                          ✕
+                        </button>
                       </div>
                     } @empty {
                       <div class="flex flex-col items-center justify-center p-8 text-center text-gray-500">
@@ -385,7 +405,10 @@ import {
                   </div>
 
                   <!-- Popover Footer -->
-                  <div class="border-t border-gray-100 bg-gray-50/70 p-2.5 text-center">
+                  <div class="border-t border-gray-100 bg-gray-50/70 p-2.5 text-center space-y-1">
+                    <span class="block text-[10px] text-gray-400">
+                      Auto-limpieza activa: los avisos completados se archivan tras 7 días (o 24 h de leídos).
+                    </span>
                     @if (auth.hasAnyRole(['ADMIN', 'VENDEDOR'])) {
                       <a
                         routerLink="/admin"

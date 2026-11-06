@@ -58,6 +58,15 @@ export class NotificationCenterService {
 
   private pollTimer: any = null;
 
+  /** Ventana máxima de retención para notificaciones operativas (14 días) */
+  private static readonly MAX_ACTIVE_DAYS = 14;
+  /** Ventana máxima para pedidos ya entregados o cancelados (7 días) */
+  private static readonly COMPLETED_ORDER_TTL_DAYS = 7;
+  /** Ventana máxima para notificaciones ya leídas de pedidos finalizados (24 horas) */
+  private static readonly READ_COMPLETED_TTL_HOURS = 24;
+  /** Limpieza automática de metadatos en localStorage (30 días) */
+  private static readonly STORAGE_PURGE_DAYS = 30;
+
   constructor() {
     this.initService();
   }
@@ -93,31 +102,117 @@ export class NotificationCenterService {
     }
   }
 
-  private getReadIds(): Set<string> {
-    if (typeof window === 'undefined') return new Set();
+  private getReadMap(): Record<string, number> {
+    if (typeof window === 'undefined') return {};
     const email = this.auth.currentUser()?.email || 'guest';
     try {
-      const stored = localStorage.getItem(`asuncion_read_notifs_${email}`);
+      const stored = localStorage.getItem(`asuncion_read_notifs_v2_${email}`);
       if (stored) {
-        return new Set(JSON.parse(stored));
+        const parsed = JSON.parse(stored) as Record<string, number>;
+        const cutoff = Date.now() - NotificationCenterService.STORAGE_PURGE_DAYS * 86400_000;
+        const cleaned: Record<string, number> = {};
+        for (const [k, ts] of Object.entries(parsed)) {
+          if (typeof ts === 'number' && ts >= cutoff) {
+            cleaned[k] = ts;
+          }
+        }
+        return cleaned;
+      }
+      // Migrate legacy array format if present
+      const legacy = localStorage.getItem(`asuncion_read_notifs_${email}`);
+      if (legacy) {
+        const arr = JSON.parse(legacy);
+        if (Array.isArray(arr)) {
+          const now = Date.now();
+          const migrated: Record<string, number> = {};
+          arr.forEach((id: string) => (migrated[id] = now));
+          localStorage.removeItem(`asuncion_read_notifs_${email}`);
+          this.saveReadMap(migrated);
+          return migrated;
+        }
       }
     } catch (e) {}
-    return new Set();
+    return {};
   }
 
-  private saveReadIds(readIds: Set<string>): void {
+  private saveReadMap(map: Record<string, number>): void {
     if (typeof window === 'undefined') return;
     const email = this.auth.currentUser()?.email || 'guest';
     try {
-      localStorage.setItem(
-        `asuncion_read_notifs_${email}`,
-        JSON.stringify(Array.from(readIds))
-      );
+      localStorage.setItem(`asuncion_read_notifs_v2_${email}`, JSON.stringify(map));
     } catch (e) {}
   }
 
+  private getDismissedMap(): Record<string, number> {
+    if (typeof window === 'undefined') return {};
+    const email = this.auth.currentUser()?.email || 'guest';
+    try {
+      const stored = localStorage.getItem(`asuncion_dismissed_notifs_${email}`);
+      if (stored) {
+        const parsed = JSON.parse(stored) as Record<string, number>;
+        const cutoff = Date.now() - NotificationCenterService.STORAGE_PURGE_DAYS * 86400_000;
+        const cleaned: Record<string, number> = {};
+        for (const [k, ts] of Object.entries(parsed)) {
+          if (typeof ts === 'number' && ts >= cutoff) {
+            cleaned[k] = ts;
+          }
+        }
+        return cleaned;
+      }
+    } catch (e) {}
+    return {};
+  }
+
+  private saveDismissedMap(map: Record<string, number>): void {
+    if (typeof window === 'undefined') return;
+    const email = this.auth.currentUser()?.email || 'guest';
+    try {
+      localStorage.setItem(`asuncion_dismissed_notifs_${email}`, JSON.stringify(map));
+    } catch (e) {}
+  }
+
+  /**
+   * Determina si una notificación ha expirado por antigüedad para evitar que se acumulen
+   * notificaciones de hace meses o un año.
+   */
+  private isNotificationExpired(
+    dateStr: string | undefined,
+    isCompletedOrder: boolean,
+    readTimestamp?: number
+  ): boolean {
+    if (!dateStr) return false;
+    const eventTime = new Date(dateStr).getTime();
+    if (Number.isNaN(eventTime)) return false;
+
+    const now = Date.now();
+    const ageMs = now - eventTime;
+
+    // 1. Ninguna notificación de pedido/venta mayor a 14 días permanece en la campana
+    if (ageMs > NotificationCenterService.MAX_ACTIVE_DAYS * 86400_000) {
+      return true;
+    }
+
+    // 2. Si el pedido ya está ENTREGADO o CANCELADO:
+    if (isCompletedOrder) {
+      // Expira a los 7 días de haberse entregado/cancelado
+      if (ageMs > NotificationCenterService.COMPLETED_ORDER_TTL_DAYS * 86400_000) {
+        return true;
+      }
+      // Si además el usuario ya leyó la notificación hace más de 24 horas, se auto-archiva
+      if (
+        readTimestamp &&
+        now - readTimestamp > NotificationCenterService.READ_COMPLETED_TTL_HOURS * 3600_000
+      ) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
   private fetchAdminNotifications(): void {
-    const readIds = this.getReadIds();
+    const readMap = this.getReadMap();
+    const dismissedMap = this.getDismissedMap();
 
     forkJoin({
       orders: this.ordersService.getAllOrders().pipe(catchError(() => of([] as Order[]))),
@@ -130,6 +225,7 @@ export class NotificationCenterService {
         for (const part of lowStockParts) {
           const isAgotado = (part.stockQuantity ?? 0) <= 0;
           const stockId = `stock-alert-${part.id}-${part.stockQuantity}`;
+          if (dismissedMap[stockId]) continue;
           notifs.push({
             id: stockId,
             category: 'STOCK_ALERT',
@@ -137,7 +233,7 @@ export class NotificationCenterService {
             message: `${part.sku}${part.oemCode ? ' (OEM: ' + part.oemCode + ')' : ''}: cuenta con ${part.stockQuantity} un. en almacén (mínimo de seguridad: ${part.minStockLevel || 5} un.). Requiere reposición inmediata.`,
             timestamp: new Date().toISOString(),
             relativeTime: isAgotado ? 'Inmediato' : 'Atención hoy',
-            read: readIds.has(stockId),
+            read: Boolean(readMap[stockId]),
             statusBadge: isAgotado ? 'AGOTADO (0 UND)' : `QUEDAN ${part.stockQuantity} UND`,
             linkUrl: '/admin?tab=parts&lowStock=true',
             iconType: 'alert',
@@ -145,102 +241,121 @@ export class NotificationCenterService {
           });
         }
 
-        // 2. Process orders for sales, payments, dispatch and driver delivery
+        // 2. Process orders for sales, payments, dispatch and driver delivery (filtered by TTL)
         const sortedOrders = [...orders].sort(
           (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         );
 
         for (const ord of sortedOrders.slice(0, 15)) {
+          const isCompleted = ord.status === 'ENTREGADO' || ord.status === 'CANCELADO';
           const totalVal = (ord.totalAmount ?? ord.total ?? ord.subtotal ?? 0).toFixed(2);
           const clientName = ord.customerName || ord.recipientName || 'Cliente';
           const isFactura = ord.invoiceType === 'FACTURA';
 
           // A. Venta Registrada
           const saleId = `sale-${ord.id}-${ord.orderNumber}`;
-          notifs.push({
-            id: saleId,
-            category: 'NEW_SALE',
-            title: `Venta: Pedido #${ord.orderNumber}`,
-            message: `${clientName} generó una ${isFactura ? 'Factura' : 'Boleta'} por S/ ${totalVal} (${(ord.paymentMethod || 'CONTADO').replace(/_/g, ' ')}).`,
-            timestamp: ord.createdAt,
-            relativeTime: this.formatRelativeTime(ord.createdAt),
-            read: readIds.has(saleId),
-            orderNumber: ord.orderNumber,
-            orderId: ord.id,
-            statusBadge: ord.status,
-            linkUrl: '/admin',
-            iconType: 'shopping-bag',
-            accentColor: 'orange',
-          });
+          if (
+            !dismissedMap[saleId] &&
+            !this.isNotificationExpired(ord.createdAt, isCompleted, readMap[saleId])
+          ) {
+            notifs.push({
+              id: saleId,
+              category: 'NEW_SALE',
+              title: `Venta: Pedido #${ord.orderNumber}`,
+              message: `${clientName} generó una ${isFactura ? 'Factura' : 'Boleta'} por S/ ${totalVal} (${(ord.paymentMethod || 'CONTADO').replace(/_/g, ' ')}).`,
+              timestamp: ord.createdAt,
+              relativeTime: this.formatRelativeTime(ord.createdAt),
+              read: Boolean(readMap[saleId]),
+              orderNumber: ord.orderNumber,
+              orderId: ord.id,
+              statusBadge: ord.status,
+              linkUrl: '/admin',
+              iconType: 'shopping-bag',
+              accentColor: 'orange',
+            });
+          }
 
           // B. Pago en línea o confirmado
           if (ord.paymentMethod === 'TARJETA_CREDITO' || ord.paymentMethod === 'TARJETA_DEBITO' || ord.paymentMethod === 'CULQI') {
             const payId = `pay-${ord.id}-${ord.orderNumber}`;
-            notifs.push({
-              id: payId,
-              category: 'PAYMENT',
-              title: `Pago Tarjeta Aprobado: #${ord.orderNumber}`,
-              message: `Cobro en línea de S/ ${totalVal} procesado y liquidado vía Culqi Checkout v4.`,
-              timestamp: ord.updatedAt || ord.createdAt,
-              relativeTime: this.formatRelativeTime(ord.updatedAt || ord.createdAt),
-              read: readIds.has(payId),
-              orderNumber: ord.orderNumber,
-              orderId: ord.id,
-              statusBadge: 'APROBADO',
-              linkUrl: '/admin',
-              iconType: 'cash',
-              accentColor: 'emerald',
-            });
+            const payTs = ord.updatedAt || ord.createdAt;
+            if (
+              !dismissedMap[payId] &&
+              !this.isNotificationExpired(payTs, isCompleted, readMap[payId])
+            ) {
+              notifs.push({
+                id: payId,
+                category: 'PAYMENT',
+                title: `Pago Tarjeta Aprobado: #${ord.orderNumber}`,
+                message: `Cobro en línea de S/ ${totalVal} procesado y liquidado vía Culqi Checkout v4.`,
+                timestamp: payTs,
+                relativeTime: this.formatRelativeTime(payTs),
+                read: Boolean(readMap[payId]),
+                orderNumber: ord.orderNumber,
+                orderId: ord.id,
+                statusBadge: 'APROBADO',
+                linkUrl: '/admin',
+                iconType: 'cash',
+                accentColor: 'emerald',
+              });
+            }
           }
 
           // C. Repartidor asignado o en camino
           if (ord.assignedDriverName) {
             const driverId = `driver-${ord.id}-${ord.status}`;
-            const isEnRuta = ord.status === 'EN_RUTA';
-            const isEntregado = ord.status === 'ENTREGADO';
+            const drvTs = ord.updatedAt || ord.createdAt;
+            if (
+              !dismissedMap[driverId] &&
+              !this.isNotificationExpired(drvTs, isCompleted, readMap[driverId])
+            ) {
+              const isEnRuta = ord.status === 'EN_RUTA';
+              const isEntregado = ord.status === 'ENTREGADO';
 
-            notifs.push({
-              id: driverId,
-              category: 'DELIVERY',
-              title: isEntregado
-                ? `Entrega Concluida: #${ord.orderNumber}`
-                : isEnRuta
-                  ? `Motorizado en Ruta: #${ord.orderNumber}`
-                  : `Repartidor Asignado: #${ord.orderNumber}`,
-              message: isEntregado
-                ? `El repartidor ${ord.assignedDriverName} entregó el pedido exitosamente a ${clientName}.`
-                : isEnRuta
-                  ? `${ord.assignedDriverName} va en camino a ${ord.deliveryAddress || 'dirección de entrega'}.`
-                  : `Se asignó a ${ord.assignedDriverName} para preparar el reparto.`,
-              timestamp: ord.updatedAt || ord.createdAt,
-              relativeTime: this.formatRelativeTime(ord.updatedAt || ord.createdAt),
-              read: readIds.has(driverId),
-              orderNumber: ord.orderNumber,
-              orderId: ord.id,
-              statusBadge: ord.status,
-              linkUrl: isEnRuta || isEntregado ? `/track?order=${ord.orderNumber}` : '/admin',
-              iconType: isEntregado ? 'check-circle' : 'truck',
-              accentColor: isEntregado ? 'emerald' : isEnRuta ? 'purple' : 'blue',
-            });
+              notifs.push({
+                id: driverId,
+                category: 'DELIVERY',
+                title: isEntregado
+                  ? `Entrega Concluida: #${ord.orderNumber}`
+                  : isEnRuta
+                    ? `Motorizado en Ruta: #${ord.orderNumber}`
+                    : `Repartidor Asignado: #${ord.orderNumber}`,
+                message: isEntregado
+                  ? `El repartidor ${ord.assignedDriverName} entregó el pedido exitosamente a ${clientName}.`
+                  : isEnRuta
+                    ? `${ord.assignedDriverName} va en camino a ${ord.deliveryAddress || 'dirección de entrega'}.`
+                    : `Se asignó a ${ord.assignedDriverName} para preparar el reparto.`,
+                timestamp: drvTs,
+                relativeTime: this.formatRelativeTime(drvTs),
+                read: Boolean(readMap[driverId]),
+                orderNumber: ord.orderNumber,
+                orderId: ord.id,
+                statusBadge: ord.status,
+                linkUrl: isEnRuta || isEntregado ? `/track?order=${ord.orderNumber}` : '/admin',
+                iconType: isEntregado ? 'check-circle' : 'truck',
+                accentColor: isEntregado ? 'emerald' : isEnRuta ? 'purple' : 'blue',
+              });
+            }
           }
         }
 
-        // 3. Process complaints from Complaints Book
+        // 3. Process complaints from Complaints Book (only PENDIENTE complaints stay active in bell)
         try {
           const complaints = this.complaintsService.complaints();
-          for (const c of complaints.slice(0, 3)) {
+          for (const c of complaints.filter((item) => item.status === 'PENDIENTE').slice(0, 5)) {
             const compId = `complaint-${c.sheetNumber}`;
+            if (dismissedMap[compId]) continue;
             notifs.push({
               id: compId,
               category: 'COMPLAINT',
-              title: `Reclamación: ${c.sheetNumber}`,
+              title: `Reclamación Pendiente: ${c.sheetNumber}`,
               message: `Reclamo de ${c.fullName} sobre ${c.goodDescription} (${c.status}).`,
               timestamp: new Date().toISOString(),
-              relativeTime: c.createdAt || 'Hoy',
-              read: readIds.has(compId),
-              linkUrl: '/complaints-book',
+              relativeTime: c.createdAt || 'Pendiente',
+              read: Boolean(readMap[compId]),
+              linkUrl: '/admin?tab=claims',
               iconType: 'alert',
-              accentColor: c.status === 'PENDIENTE' ? 'rose' : 'emerald',
+              accentColor: 'rose',
             });
           }
         } catch (e) {}
@@ -263,7 +378,8 @@ export class NotificationCenterService {
   }
 
   private fetchClientNotifications(): void {
-    const readIds = this.getReadIds();
+    const readMap = this.getReadMap();
+    const dismissedMap = this.getDismissedMap();
 
     this.ordersService.getMyOrders().subscribe({
       next: (orders) => {
@@ -276,15 +392,26 @@ export class NotificationCenterService {
         for (const ord of sortedOrders) {
           const totalVal = (ord.totalAmount ?? ord.total ?? ord.subtotal ?? 0).toFixed(2);
           const status = ord.status;
+          const isCompleted = status === 'ENTREGADO' || status === 'CANCELADO';
+          const eventTs = ord.updatedAt || ord.createdAt;
 
           // Notification for current status
           const notifId = `client-order-${ord.id}-${status}`;
+          if (dismissedMap[notifId]) continue;
+          if (this.isNotificationExpired(eventTs, isCompleted, readMap[notifId])) continue;
+
           let title = `Pedido #${ord.orderNumber}`;
           let message = `Estado actual: ${status}`;
           let iconType: AppNotification['iconType'] = 'shopping-bag';
           let accentColor: AppNotification['accentColor'] = 'orange';
 
           switch (status) {
+            case 'RESERVADO':
+              title = `Stock Reservado #${ord.orderNumber}`;
+              message = `Tus repuestos están reservados por S/ ${totalVal} en espera de confirmación de pago.`;
+              iconType = 'shopping-bag';
+              accentColor = 'amber';
+              break;
             case 'CONFIRMADO':
               title = `¡Pedido Confirmado! #${ord.orderNumber}`;
               message = `Tu compra por S/ ${totalVal} ha sido confirmada. En breve pasará al área de preparación.`;
@@ -333,9 +460,9 @@ export class NotificationCenterService {
             category: 'ORDER_STATUS',
             title,
             message,
-            timestamp: ord.updatedAt || ord.createdAt,
-            relativeTime: this.formatRelativeTime(ord.updatedAt || ord.createdAt),
-            read: readIds.has(notifId),
+            timestamp: eventTs,
+            relativeTime: this.formatRelativeTime(eventTs),
+            read: Boolean(readMap[notifId]),
             orderNumber: ord.orderNumber,
             orderId: ord.id,
             statusBadge: status,
@@ -371,24 +498,41 @@ export class NotificationCenterService {
     );
     this.notifications.set(list);
 
-    const readIds = this.getReadIds();
-    readIds.add(id);
-    this.saveReadIds(readIds);
+    const readMap = this.getReadMap();
+    readMap[id] = Date.now();
+    this.saveReadMap(readMap);
   }
 
   markAllAsRead(): void {
     const list = this.notifications().map((n) => ({ ...n, read: true }));
     this.notifications.set(list);
 
-    const readIds = this.getReadIds();
-    list.forEach((n) => readIds.add(n.id));
-    this.saveReadIds(readIds);
+    const readMap = this.getReadMap();
+    const now = Date.now();
+    list.forEach((n) => (readMap[n.id] = now));
+    this.saveReadMap(readMap);
+  }
+
+  dismissNotification(id: string, event?: Event): void {
+    if (event) {
+      event.stopPropagation();
+    }
+    const dismissedMap = this.getDismissedMap();
+    dismissedMap[id] = Date.now();
+    this.saveDismissedMap(dismissedMap);
+    this.notifications.set(this.notifications().filter((n) => n.id !== id));
   }
 
   clearAll(): void {
-    const readIds = this.getReadIds();
-    this.notifications().forEach((n) => readIds.add(n.id));
-    this.saveReadIds(readIds);
+    const readMap = this.getReadMap();
+    const dismissedMap = this.getDismissedMap();
+    const now = Date.now();
+    this.notifications().forEach((n) => {
+      readMap[n.id] = now;
+      dismissedMap[n.id] = now;
+    });
+    this.saveReadMap(readMap);
+    this.saveDismissedMap(dismissedMap);
     this.notifications.set([]);
   }
 

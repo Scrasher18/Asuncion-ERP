@@ -783,6 +783,11 @@ public class EmailNotificationService {
             String deliveryStatus,
             String errorMessage
     ) {
+        try {
+            // Auto-purge notification logs older than 30 days to prevent unbounded table growth
+            logRepository.deleteByCreatedAtBefore(Instant.now().minus(java.time.Duration.ofDays(30)));
+        } catch (Exception ignored) {
+        }
         EmailNotificationLog entry = new EmailNotificationLog();
         entry.setEventType(eventType);
         entry.setRecipientEmail(recipientEmail);
