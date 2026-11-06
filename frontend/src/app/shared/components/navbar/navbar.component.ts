@@ -32,15 +32,15 @@ import {
           </a>
 
           <!-- Desktop Navigation -->
-          <nav class="hidden lg:flex items-center gap-1">
+          <nav class="hidden lg:flex items-center gap-1 shrink-0">
             @if (auth.canAccessCatalog()) {
               <a
                 routerLink="/"
                 routerLinkActive="bg-orange-50 text-orange-700 border-orange-200 font-bold"
                 [routerLinkActiveOptions]="{ exact: true }"
-                class="inline-flex items-center gap-1.5 rounded-xl border border-transparent px-3.5 py-2 text-xs sm:text-sm font-semibold text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition"
+                class="inline-flex shrink-0 whitespace-nowrap items-center gap-1.5 rounded-xl border border-transparent px-2.5 xl:px-3 py-2 text-xs xl:text-[13px] font-semibold text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition"
               >
-                <svg class="h-4 w-4 text-orange-600/80" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <svg class="h-4 w-4 shrink-0 text-orange-600/80" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
                 </svg>
                 <span>Catálogo</span>
@@ -51,9 +51,9 @@ import {
               <a
                 routerLink="/track"
                 routerLinkActive="bg-orange-50 text-orange-700 border-orange-200 font-bold"
-                class="inline-flex items-center gap-1.5 rounded-xl border border-transparent px-3.5 py-2 text-xs sm:text-sm font-semibold text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition"
+                class="inline-flex shrink-0 whitespace-nowrap items-center gap-1.5 rounded-xl border border-transparent px-2.5 xl:px-3 py-2 text-xs xl:text-[13px] font-semibold text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition"
               >
-                <svg class="h-4 w-4 text-orange-600/80" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <svg class="h-4 w-4 shrink-0 text-orange-600/80" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
                   <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
                 </svg>
@@ -65,9 +65,9 @@ import {
               <a
                 routerLink="/my-orders"
                 routerLinkActive="bg-orange-50 text-orange-700 border-orange-200 font-bold"
-                class="inline-flex items-center gap-1.5 rounded-xl border border-transparent px-3.5 py-2 text-xs sm:text-sm font-semibold text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition"
+                class="inline-flex shrink-0 whitespace-nowrap items-center gap-1.5 rounded-xl border border-transparent px-2.5 xl:px-3 py-2 text-xs xl:text-[13px] font-semibold text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition"
               >
-                <svg class="h-4 w-4 text-orange-600/80" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <svg class="h-4 w-4 shrink-0 text-orange-600/80" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
                 </svg>
                 <span>Mis pedidos</span>
@@ -78,9 +78,9 @@ import {
               <a
                 routerLink="/admin"
                 routerLinkActive="bg-orange-50 text-orange-700 border-orange-200 font-bold"
-                class="inline-flex items-center gap-1.5 rounded-xl border border-transparent px-3.5 py-2 text-xs sm:text-sm font-semibold text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition"
+                class="inline-flex shrink-0 whitespace-nowrap items-center gap-1.5 rounded-xl border border-transparent px-2.5 xl:px-3 py-2 text-xs xl:text-[13px] font-semibold text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition"
               >
-                <svg class="h-4 w-4 text-orange-600/80" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <svg class="h-4 w-4 shrink-0 text-orange-600/80" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
                 </svg>
                 <span>{{ auth.primaryRole() === 'VENDEDOR' ? 'Panel de Ventas' : 'Administración' }}</span>
@@ -89,9 +89,9 @@ import {
               <a
                 routerLink="/pos"
                 routerLinkActive="bg-orange-50 text-orange-700 border-orange-200 font-bold"
-                class="inline-flex items-center gap-1.5 rounded-xl border border-transparent px-3.5 py-2 text-xs sm:text-sm font-semibold text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition"
+                class="inline-flex shrink-0 whitespace-nowrap items-center gap-1.5 rounded-xl border border-transparent px-2.5 xl:px-3 py-2 text-xs xl:text-[13px] font-semibold text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition"
               >
-                <svg class="h-4 w-4 text-orange-600/80" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <svg class="h-4 w-4 shrink-0 text-orange-600/80" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z" />
                 </svg>
                 <span>Caja / Punto de Venta</span>
@@ -102,9 +102,9 @@ import {
               <a
                 routerLink="/delivery"
                 routerLinkActive="bg-orange-50 text-orange-700 border-orange-200 font-bold"
-                class="inline-flex items-center gap-1.5 rounded-xl border border-transparent px-3.5 py-2 text-xs sm:text-sm font-semibold text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition"
+                class="inline-flex shrink-0 whitespace-nowrap items-center gap-1.5 rounded-xl border border-transparent px-2.5 xl:px-3 py-2 text-xs xl:text-[13px] font-semibold text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition"
               >
-                <svg class="h-4 w-4 text-orange-600/80" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <svg class="h-4 w-4 shrink-0 text-orange-600/80" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.25V4.5A2.25 2.25 0 0012 2.25H4.5A2.25 2.25 0 002.25 4.5v9.75m12 0H2.25" />
                 </svg>
                 <span>Reparto</span>
@@ -427,9 +427,9 @@ import {
               <button
                 type="button"
                 (click)="cart.toggleDrawer()"
-                class="relative inline-flex min-h-[40px] items-center gap-2 rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-xs font-bold text-gray-800 shadow-2xs hover:border-orange-300 hover:bg-orange-50/40 hover:text-gray-950 transition cursor-pointer"
+                class="relative inline-flex shrink-0 whitespace-nowrap min-h-[40px] items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-bold text-gray-800 shadow-2xs hover:border-orange-300 hover:bg-orange-50/40 hover:text-gray-950 transition cursor-pointer"
               >
-                <svg class="h-4 w-4 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <svg class="h-4 w-4 shrink-0 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
                 </svg>
                 <span class="hidden sm:inline">Carrito</span>
@@ -443,12 +443,12 @@ import {
 
             <!-- 3. User Session -->
             @if (auth.isAuthenticated()) {
-              <div class="hidden sm:flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50/90 pl-2 pr-1.5 py-1">
+              <div class="hidden sm:flex shrink-0 items-center gap-2 rounded-xl border border-gray-200 bg-gray-50/90 pl-2 pr-1.5 py-1">
                 <div class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gray-900 text-[11px] font-extrabold text-white">
                   {{ getUserInitials() }}
                 </div>
                 <div class="text-left leading-tight pr-1">
-                  <span class="block text-xs font-bold text-gray-900 max-w-[130px] truncate">
+                  <span class="block text-xs font-bold text-gray-900 max-w-[120px] truncate">
                     {{ auth.currentUser()?.fullName }}
                   </span>
                   <span class="inline-block text-[10px] font-bold uppercase tracking-wider text-orange-600">
@@ -460,7 +460,7 @@ import {
                   <a
                     routerLink="/my-orders"
                     [queryParams]="{ tab: 'profile' }"
-                    class="inline-flex h-8 items-center rounded-lg border border-gray-200 bg-white px-2.5 text-[11px] font-semibold text-gray-700 hover:border-orange-300 hover:text-orange-700 transition"
+                    class="inline-flex h-8 shrink-0 whitespace-nowrap items-center rounded-lg border border-gray-200 bg-white px-2.5 text-[11px] font-semibold text-gray-700 hover:border-orange-300 hover:text-orange-700 transition"
                     title="Editar mis datos de cliente"
                   >
                     Mis datos

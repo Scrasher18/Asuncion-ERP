@@ -161,16 +161,6 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                 <span>Nuevo repuesto</span>
               </button>
 
-              <a
-                routerLink="/pos"
-                class="inline-flex min-h-[38px] items-center gap-2 rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-xs font-bold text-gray-700 shadow-2xs hover:border-orange-300 hover:bg-orange-50/40 hover:text-orange-700 transition"
-              >
-                <svg class="h-4 w-4 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z" />
-                </svg>
-                <span>Ir a Caja / Punto de Venta</span>
-              </a>
-
               <button
                 type="button"
                 (click)="switchTab('orders')"
@@ -184,7 +174,7 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
           </div>
 
           <!-- Horizontal Modern Tabs Navigation Bar -->
-          <nav class="-mb-px flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-1 scrollbar-none" aria-label="Secciones de administración">
+          <nav class="-mb-px flex items-center gap-1.5 overflow-x-auto pb-2.5" aria-label="Secciones de administración">
             <button
               type="button"
               (click)="switchTab('analytics')"
@@ -193,7 +183,7 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                   ? 'border-orange-600 text-orange-700 font-bold bg-orange-50/80 shadow-2xs'
                   : 'border-transparent text-gray-600 hover:border-gray-200 hover:bg-gray-50/80 hover:text-gray-900 font-medium'
               "
-              class="inline-flex min-h-[40px] shrink-0 items-center gap-2 rounded-xl border px-3.5 py-2 text-xs sm:text-sm whitespace-nowrap transition cursor-pointer"
+              class="inline-flex min-h-[40px] shrink-0 items-center gap-1.5 rounded-xl border px-3 py-2 text-xs sm:text-[13px] whitespace-nowrap transition cursor-pointer"
             >
               <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <line x1="18" y1="20" x2="18" y2="10" />
@@ -211,7 +201,7 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                   ? 'border-orange-600 text-orange-700 font-bold bg-orange-50/80 shadow-2xs'
                   : 'border-transparent text-gray-600 hover:border-gray-200 hover:bg-gray-50/80 hover:text-gray-900 font-medium'
               "
-              class="inline-flex min-h-[40px] shrink-0 items-center gap-2 rounded-xl border px-3.5 py-2 text-xs sm:text-sm whitespace-nowrap transition cursor-pointer"
+              class="inline-flex min-h-[40px] shrink-0 items-center gap-1.5 rounded-xl border px-3 py-2 text-xs sm:text-[13px] whitespace-nowrap transition cursor-pointer"
             >
               <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
@@ -232,7 +222,7 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                   ? 'border-orange-600 text-orange-700 font-bold bg-orange-50/80 shadow-2xs'
                   : 'border-transparent text-gray-600 hover:border-gray-200 hover:bg-gray-50/80 hover:text-gray-900 font-medium'
               "
-              class="inline-flex min-h-[40px] shrink-0 items-center gap-2 rounded-xl border px-3.5 py-2 text-xs sm:text-sm whitespace-nowrap transition cursor-pointer"
+              class="inline-flex min-h-[40px] shrink-0 items-center gap-1.5 rounded-xl border px-3 py-2 text-xs sm:text-[13px] whitespace-nowrap transition cursor-pointer"
             >
               <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
@@ -257,7 +247,7 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                     ? 'border-orange-600 text-orange-700 font-bold bg-orange-50/80 shadow-2xs'
                     : 'border-transparent text-gray-600 hover:border-gray-200 hover:bg-gray-50/80 hover:text-gray-900 font-medium'
                 "
-                class="inline-flex min-h-[40px] shrink-0 items-center gap-2 rounded-xl border px-3.5 py-2 text-xs sm:text-sm whitespace-nowrap transition cursor-pointer"
+                class="inline-flex min-h-[40px] shrink-0 items-center gap-1.5 rounded-xl border px-3 py-2 text-xs sm:text-[13px] whitespace-nowrap transition cursor-pointer"
               >
                 <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
@@ -274,7 +264,7 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                     ? 'border-orange-600 text-orange-700 font-bold bg-orange-50/80 shadow-2xs'
                     : 'border-transparent text-gray-600 hover:border-gray-200 hover:bg-gray-50/80 hover:text-gray-900 font-medium'
                 "
-                class="inline-flex min-h-[40px] shrink-0 items-center gap-2 rounded-xl border px-3.5 py-2 text-xs sm:text-sm whitespace-nowrap transition cursor-pointer"
+                class="inline-flex min-h-[40px] shrink-0 items-center gap-1.5 rounded-xl border px-3 py-2 text-xs sm:text-[13px] whitespace-nowrap transition cursor-pointer"
               >
                 <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <rect width="20" height="16" x="2" y="4" rx="2" />
@@ -291,7 +281,7 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                     ? 'border-orange-600 text-orange-700 font-bold bg-orange-50/80 shadow-2xs'
                     : 'border-transparent text-gray-600 hover:border-gray-200 hover:bg-gray-50/80 hover:text-gray-900 font-medium'
                 "
-                class="inline-flex min-h-[40px] shrink-0 items-center gap-2 rounded-xl border px-3.5 py-2 text-xs sm:text-sm whitespace-nowrap transition cursor-pointer"
+                class="inline-flex min-h-[40px] shrink-0 items-center gap-1.5 rounded-xl border px-3 py-2 text-xs sm:text-[13px] whitespace-nowrap transition cursor-pointer"
               >
                 <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <rect x="2" y="5" width="20" height="14" rx="2" />
@@ -308,7 +298,7 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                     ? 'border-orange-600 text-orange-700 font-bold bg-orange-50/80 shadow-2xs'
                     : 'border-transparent text-gray-600 hover:border-gray-200 hover:bg-gray-50/80 hover:text-gray-900 font-medium'
                 "
-                class="inline-flex min-h-[40px] shrink-0 items-center gap-2 rounded-xl border px-3.5 py-2 text-xs sm:text-sm whitespace-nowrap transition cursor-pointer"
+                class="inline-flex min-h-[40px] shrink-0 items-center gap-1.5 rounded-xl border px-3 py-2 text-xs sm:text-[13px] whitespace-nowrap transition cursor-pointer"
               >
                 <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
@@ -328,7 +318,7 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                   ? 'border-orange-600 text-orange-700 font-bold bg-orange-50/80 shadow-2xs'
                   : 'border-transparent text-gray-600 hover:border-gray-200 hover:bg-gray-50/80 hover:text-gray-900 font-medium'
               "
-              class="inline-flex min-h-[40px] shrink-0 items-center gap-2 rounded-xl border px-3.5 py-2 text-xs sm:text-sm whitespace-nowrap transition cursor-pointer"
+              class="inline-flex min-h-[40px] shrink-0 items-center gap-1.5 rounded-xl border px-3 py-2 text-xs sm:text-[13px] whitespace-nowrap transition cursor-pointer"
             >
               <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />

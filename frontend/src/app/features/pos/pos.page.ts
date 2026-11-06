@@ -19,18 +19,18 @@ import { ToastService } from '../../core/services/toast.service';
   imports: [CommonModule, FormsModule, RouterLink],
   template: `
     <div class="min-h-screen bg-[#F8F9FA] text-gray-900 pb-16">
-      <!-- Dedicated POS / Caja Header with Direct Switch Back to ERP -->
+      <!-- Dedicated POS Header + Module Navigation Bar -->
       <div class="border-b border-gray-200 bg-white">
-        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-5">
-          <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-6">
+          <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 pb-5">
             <div class="space-y-1">
               <div class="flex flex-wrap items-center gap-2">
                 <span class="inline-flex items-center gap-1.5 rounded-full border border-orange-200 bg-orange-50 px-3 py-0.5 text-xs font-bold text-orange-700">
                   <span class="h-1.5 w-1.5 rounded-full bg-orange-600"></span>
-                  Terminal de Caja & Facturación Directa
+                  Facturación Directa en Tienda
                 </span>
                 <span class="inline-flex items-center rounded-full border border-gray-200 bg-gray-100 px-3 py-0.5 text-xs font-semibold text-gray-700">
-                  Cajero(a): {{ auth.currentUser()?.fullName || 'Asesor Comercial' }}
+                  Atendido por: {{ auth.currentUser()?.fullName || 'Asesor Comercial' }}
                 </span>
                 <span class="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
                   <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
@@ -38,29 +38,18 @@ import { ToastService } from '../../core/services/toast.service';
                 </span>
               </div>
               <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight text-gray-900">
-                Punto de Venta en Tienda (Caja)
+                Caja / Punto de Venta
               </h1>
               <p class="text-xs sm:text-sm text-gray-500">
-                Emisión rápida de Boletas y Facturas en mostrador con descuento automático de inventario y protección de reservas online.
+                Emisión rápida de Boletas y Facturas con descuento automático de inventario y protección de reservas online.
               </p>
             </div>
 
-            <!-- Navigation Switcher to go back and forth between ERP and Caja -->
             <div class="flex flex-wrap items-center gap-2.5">
-              <a
-                routerLink="/admin"
-                class="inline-flex min-h-[42px] items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2 text-xs sm:text-sm font-bold text-gray-700 shadow-2xs hover:border-orange-300 hover:bg-orange-50/50 hover:text-orange-700 transition"
-              >
-                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
-                </svg>
-                <span>Volver al Centro de Control ERP</span>
-              </a>
-
               <button
                 type="button"
                 (click)="refreshPosData()"
-                class="inline-flex min-h-[42px] items-center gap-2 rounded-xl border border-orange-200 bg-orange-50 px-4 py-2 text-xs sm:text-sm font-bold text-orange-700 hover:bg-orange-100 transition cursor-pointer"
+                class="inline-flex min-h-[38px] items-center gap-2 rounded-xl border border-orange-200 bg-orange-50 px-4 py-2 text-xs sm:text-sm font-bold text-orange-700 hover:bg-orange-100 transition cursor-pointer"
               >
                 <svg class="h-4 w-4" [class.animate-spin]="loadingParts()" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
@@ -70,45 +59,154 @@ import { ToastService } from '../../core/services/toast.service';
             </div>
           </div>
 
-          <!-- Quick Caja KPIs -->
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-5 pt-5 border-t border-gray-100">
-            <div class="rounded-xl border border-gray-200 bg-gray-50/70 p-3.5 flex items-center justify-between">
-              <div>
-                <span class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Comprobantes Emitidos en Caja</span>
-                <span class="font-mono text-xl font-extrabold text-gray-900 mt-0.5 block">{{ counterOrders().length }}</span>
-              </div>
-              <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-50 border border-orange-200 text-orange-600 font-bold">
-                🧾
-              </span>
-            </div>
+          <!-- Barra de Navegación hacia los demás Módulos del ERP -->
+          <nav class="-mb-px flex items-center gap-1.5 overflow-x-auto pb-2.5" aria-label="Módulos del sistema">
+            <a
+              routerLink="/admin"
+              [queryParams]="{ tab: 'analytics' }"
+              class="inline-flex min-h-[40px] shrink-0 items-center gap-1.5 rounded-xl border border-transparent px-3 py-2 text-xs sm:text-[13px] font-medium text-gray-600 hover:border-gray-200 hover:bg-gray-50/80 hover:text-gray-900 whitespace-nowrap transition"
+            >
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="20" x2="18" y2="10" />
+                <line x1="12" y1="20" x2="12" y2="4" />
+                <line x1="6" y1="20" x2="6" y2="14" />
+              </svg>
+              <span>Resumen y ventas</span>
+            </a>
 
-            <div class="rounded-xl border border-gray-200 bg-gray-50/70 p-3.5 flex items-center justify-between">
-              <div>
-                <span class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Total Recaudado en Caja</span>
-                <span class="font-mono text-xl font-extrabold text-emerald-700 mt-0.5 block">
-                  S/ {{ totalCounterRevenue() | number: '1.2-2' }}
+            <a
+              routerLink="/admin"
+              [queryParams]="{ tab: 'parts' }"
+              class="inline-flex min-h-[40px] shrink-0 items-center gap-1.5 rounded-xl border border-transparent px-3 py-2 text-xs sm:text-[13px] font-medium text-gray-600 hover:border-gray-200 hover:bg-gray-50/80 hover:text-gray-900 whitespace-nowrap transition"
+            >
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+              </svg>
+              <span>Inventario de repuestos</span>
+              @if (parts().length > 0) {
+                <span class="rounded-full bg-gray-100 px-2 py-0.5 font-mono text-[10px] font-bold text-gray-700">
+                  {{ parts().length }}
                 </span>
-              </div>
-              <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-600 font-bold">
-                S/
-              </span>
-            </div>
+              }
+            </a>
 
-            <div class="rounded-xl border border-gray-200 bg-gray-50/70 p-3.5 flex items-center justify-between">
-              <div>
-                <span class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Repuestos Disponibles en Almacén</span>
-                <span class="font-mono text-xl font-extrabold text-gray-900 mt-0.5 block">{{ parts().length }}</span>
-              </div>
-              <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-gray-100 border border-gray-200 text-gray-700 font-bold">
-                📦
-              </span>
-            </div>
-          </div>
+            <a
+              routerLink="/admin"
+              [queryParams]="{ tab: 'orders' }"
+              class="inline-flex min-h-[40px] shrink-0 items-center gap-1.5 rounded-xl border border-transparent px-3 py-2 text-xs sm:text-[13px] font-medium text-gray-600 hover:border-gray-200 hover:bg-gray-50/80 hover:text-gray-900 whitespace-nowrap transition"
+            >
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
+                <rect width="6" height="4" x="9" y="3" rx="1" />
+                <path d="M9 12h6" />
+                <path d="M9 16h6" />
+              </svg>
+              <span>Pedidos y Despacho</span>
+            </a>
+
+            @if (auth.hasAnyRole(['ADMIN'])) {
+              <a
+                routerLink="/admin"
+                [queryParams]="{ tab: 'branches' }"
+                class="inline-flex min-h-[40px] shrink-0 items-center gap-1.5 rounded-xl border border-transparent px-3 py-2 text-xs sm:text-[13px] font-medium text-gray-600 hover:border-gray-200 hover:bg-gray-50/80 hover:text-gray-900 whitespace-nowrap transition"
+              >
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+                  <circle cx="12" cy="10" r="3" />
+                </svg>
+                <span>Zonas de reparto</span>
+              </a>
+
+              <a
+                routerLink="/admin"
+                [queryParams]="{ tab: 'notifications' }"
+                class="inline-flex min-h-[40px] shrink-0 items-center gap-1.5 rounded-xl border border-transparent px-3 py-2 text-xs sm:text-[13px] font-medium text-gray-600 hover:border-gray-200 hover:bg-gray-50/80 hover:text-gray-900 whitespace-nowrap transition"
+              >
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect width="20" height="16" x="2" y="4" rx="2" />
+                  <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+                </svg>
+                <span>Correo y notificaciones</span>
+              </a>
+
+              <a
+                routerLink="/admin"
+                [queryParams]="{ tab: 'payments' }"
+                class="inline-flex min-h-[40px] shrink-0 items-center gap-1.5 rounded-xl border border-transparent px-3 py-2 text-xs sm:text-[13px] font-medium text-gray-600 hover:border-gray-200 hover:bg-gray-50/80 hover:text-gray-900 whitespace-nowrap transition"
+              >
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="2" y="5" width="20" height="14" rx="2" />
+                  <line x1="2" y1="10" x2="22" y2="10" />
+                </svg>
+                <span>Pasarelas y Pagos</span>
+              </a>
+
+              <a
+                routerLink="/admin"
+                [queryParams]="{ tab: 'users' }"
+                class="inline-flex min-h-[40px] shrink-0 items-center gap-1.5 rounded-xl border border-transparent px-3 py-2 text-xs sm:text-[13px] font-medium text-gray-600 hover:border-gray-200 hover:bg-gray-50/80 hover:text-gray-900 whitespace-nowrap transition"
+              >
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                  <circle cx="9" cy="7" r="4" />
+                  <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                </svg>
+                <span>Personal y Trabajadores</span>
+              </a>
+            }
+
+            <a
+              routerLink="/admin"
+              [queryParams]="{ tab: 'claims' }"
+              class="inline-flex min-h-[40px] shrink-0 items-center gap-1.5 rounded-xl border border-transparent px-3 py-2 text-xs sm:text-[13px] font-medium text-gray-600 hover:border-gray-200 hover:bg-gray-50/80 hover:text-gray-900 whitespace-nowrap transition"
+            >
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+              </svg>
+              <span>Reclamaciones</span>
+            </a>
+          </nav>
         </div>
       </div>
 
       <!-- Main POS Workspace Grid -->
-      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-6 space-y-8">
+      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-6 space-y-6">
+        <!-- Quick Summary KPIs -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div class="rounded-2xl border border-gray-200 bg-white p-4 flex items-center justify-between shadow-2xs">
+            <div>
+              <span class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Comprobantes Emitidos</span>
+              <span class="font-mono text-xl font-extrabold text-gray-900 mt-0.5 block">{{ counterOrders().length }}</span>
+            </div>
+            <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-50 border border-orange-200 text-orange-600 font-bold">
+              🧾
+            </span>
+          </div>
+
+          <div class="rounded-2xl border border-gray-200 bg-white p-4 flex items-center justify-between shadow-2xs">
+            <div>
+              <span class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Total Recaudado</span>
+              <span class="font-mono text-xl font-extrabold text-emerald-700 mt-0.5 block">
+                S/ {{ totalCounterRevenue() | number: '1.2-2' }}
+              </span>
+            </div>
+            <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-600 font-bold">
+              S/
+            </span>
+          </div>
+
+          <div class="rounded-2xl border border-gray-200 bg-white p-4 flex items-center justify-between shadow-2xs">
+            <div>
+              <span class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Repuestos Disponibles</span>
+              <span class="font-mono text-xl font-extrabold text-gray-900 mt-0.5 block">{{ parts().length }}</span>
+            </div>
+            <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-gray-100 border border-gray-200 text-gray-700 font-bold">
+              📦
+            </span>
+          </div>
+        </div>
+
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           <!-- LEFT COLUMN (7 cols): PRODUCT SEARCH & LIVE INVENTORY GRID -->
           <div class="lg:col-span-7 space-y-4">
@@ -119,7 +217,7 @@ import { ToastService } from '../../core/services/toast.service';
                     1. Selección de Repuestos en Almacén
                   </h2>
                   <p class="text-xs text-gray-500">
-                    Haz clic en cualquier repuesto para agregarlo al ticket de caja. Llevando 4+ unidades se aplica tarifa mayorista.
+                    Haz clic en cualquier repuesto para agregarlo al ticket. Llevando 4+ unidades se aplica tarifa mayorista.
                   </p>
                 </div>
               </div>
@@ -138,9 +236,9 @@ import { ToastService } from '../../core/services/toast.service';
                 />
               </div>
 
-              <!-- Category Pills -->
+              <!-- Category Pills with visible horizontal scrollbar -->
               @if (categories().length > 0) {
-                <div class="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+                <div class="flex items-center gap-1.5 overflow-x-auto pb-2">
                   <button
                     type="button"
                     (click)="selectedCategoryName.set(null)"
@@ -258,7 +356,7 @@ import { ToastService } from '../../core/services/toast.service';
               <div class="flex items-center justify-between border-b border-gray-100 pb-3.5">
                 <div>
                   <h2 class="text-base font-extrabold text-gray-900">
-                    2. Ticket de Venta en Caja ({{ totalTicketUnits() }} und.)
+                    2. Ticket de Venta ({{ totalTicketUnits() }} und.)
                   </h2>
                   <p class="text-xs text-gray-500">
                     Verificación inmediata de stock y cálculo de IGV (18%).
@@ -270,7 +368,7 @@ import { ToastService } from '../../core/services/toast.service';
                     (click)="clearTicket()"
                     class="rounded-lg border border-red-200 bg-red-50 px-2.5 py-1 text-xs font-bold text-red-700 hover:bg-red-100 transition cursor-pointer"
                   >
-                    Vaciar caja
+                    Vaciar ticket
                   </button>
                 }
               </div>
@@ -278,9 +376,9 @@ import { ToastService } from '../../core/services/toast.service';
               <!-- Ticket Items List -->
               @if (ticketItems().length === 0) {
                 <div class="rounded-xl border border-dashed border-gray-200 bg-gray-50/70 p-8 text-center space-y-1.5">
-                  <p class="text-xs font-bold text-gray-700">El ticket de caja está vacío</p>
+                  <p class="text-xs font-bold text-gray-700">El ticket está vacío</p>
                   <p class="text-[11px] text-gray-500">
-                    Selecciona los repuestos en el panel izquierdo para registrar la venta en tienda.
+                    Selecciona los repuestos en el panel izquierdo para registrar la venta.
                   </p>
                 </div>
               } @else {
@@ -402,14 +500,14 @@ import { ToastService } from '../../core/services/toast.service';
                 <!-- Payment Method & Cash Received -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label class="block text-xs font-bold text-gray-700 mb-1">Medio de Cobro en Caja</label>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">Medio de Pago</label>
                     <select
                       [(ngModel)]="paymentMethod"
                       class="w-full min-h-[40px] rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-900 focus:border-orange-600 focus:outline-none"
                     >
-                      <option value="MOSTRADOR_EFECTIVO">💵 Efectivo en Caja</option>
-                      <option value="MOSTRADOR_YAPE_PLIN">📱 Yape / Plin en Tienda</option>
-                      <option value="MOSTRADOR_POS_TARJETA">💳 POS Físico (Tarjeta)</option>
+                      <option value="MOSTRADOR_EFECTIVO">💵 Efectivo</option>
+                      <option value="MOSTRADOR_YAPE_PLIN">📱 Yape / Plin</option>
+                      <option value="MOSTRADOR_POS_TARJETA">💳 Tarjeta (POS)</option>
                     </select>
                   </div>
 
@@ -468,21 +566,21 @@ import { ToastService } from '../../core/services/toast.service';
                 (click)="submitCounterSale()"
                 class="w-full min-h-[48px] rounded-xl bg-orange-600 py-3 px-5 text-sm font-extrabold text-white shadow-sm hover:bg-orange-700 active:scale-[0.99] disabled:bg-gray-200 disabled:text-gray-400 transition cursor-pointer"
               >
-                {{ submitting() ? 'Procesando cobro y descontando stock...' : '✓ Cobrar en Caja y Emitir Comprobante PDF' }}
+                {{ submitting() ? 'Procesando cobro y descontando stock...' : '✓ Registrar Venta y Emitir Comprobante PDF' }}
               </button>
             </div>
           </div>
         </div>
 
-        <!-- BOTTOM SECTION: HISTORIAL DE VENTAS REALIZADAS EN CAJA -->
+        <!-- BOTTOM SECTION: HISTORIAL DE VENTAS -->
         <div class="rounded-2xl border border-gray-200 bg-white overflow-hidden shadow-2xs">
           <div class="border-b border-gray-200 px-5 py-4 flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 class="text-base font-bold text-gray-900">
-                Historial de Ventas en Caja ({{ counterOrders().length }})
+                Historial de Ventas Registradas ({{ counterOrders().length }})
               </h2>
               <p class="text-xs text-gray-500">
-                Registro exclusivo de ventas en tienda física (no genera alertas en la campana de pedidos online).
+                Registro exclusivo de ventas directas (no genera alertas en la campana de pedidos online).
               </p>
             </div>
           </div>
@@ -802,13 +900,13 @@ export class PosPageComponent implements OnInit {
   formatPosPaymentMethod(method?: string): string {
     switch (method) {
       case 'MOSTRADOR_EFECTIVO':
-        return 'Efectivo en Caja';
+        return 'Efectivo';
       case 'MOSTRADOR_YAPE_PLIN':
         return 'Yape / Plin';
       case 'MOSTRADOR_POS_TARJETA':
-        return 'POS Tarjeta';
+        return 'Tarjeta (POS)';
       default:
-        return (method || 'Caja').replace(/^MOSTRADOR_/, '').replace(/_/g, ' ');
+        return (method || 'Efectivo').replace(/^MOSTRADOR_/, '').replace(/_/g, ' ');
     }
   }
 
