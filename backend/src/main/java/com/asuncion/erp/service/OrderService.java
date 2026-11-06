@@ -114,11 +114,17 @@ public class OrderService {
             requestedQuantities.merge(itemReq.partId(), itemReq.quantity(), Integer::sum);
         }
 
+        String rawDeliveryType = req.deliveryType() != null ? req.deliveryType().trim().toUpperCase() : "";
+        boolean isCounterSale = rawDeliveryType.contains("MOSTRADOR") || rawDeliveryType.contains("PRESENCIAL")
+                || (req.paymentMethod() != null && req.paymentMethod().trim().toUpperCase().startsWith("MOSTRADOR"));
+
         String paymentMethod = req.paymentMethod() != null && !req.paymentMethod().isBlank()
                 ? req.paymentMethod().trim().toUpperCase()
                 : "TARJETA";
-        boolean isOnlinePayment = isOnlinePaymentMethod(paymentMethod);
-        OrderStatus initialStatus = isOnlinePayment ? OrderStatus.RESERVADO : OrderStatus.CONFIRMADO;
+        boolean isOnlinePayment = !isCounterSale && isOnlinePaymentMethod(paymentMethod);
+        OrderStatus initialStatus = isCounterSale
+                ? OrderStatus.ENTREGADO
+                : (isOnlinePayment ? OrderStatus.RESERVADO : OrderStatus.CONFIRMADO);
 
         CustomerOrder order = new CustomerOrder();
         order.setOrderNumber(generateNextOrderNumber());
@@ -128,7 +134,9 @@ public class OrderService {
         order.setDeliveryType(deliveryType);
         order.setDeliveryAddress(req.deliveryAddress() != null && !req.deliveryAddress().isBlank()
                 ? req.deliveryAddress().trim()
-                : ("PICKUP".equals(deliveryType) ? "Recojo en tienda: " + branch.getAddress() : null));
+                : (isCounterSale
+                    ? "Venta presencial en mostrador: " + branch.getName()
+                    : ("PICKUP".equals(deliveryType) ? "Recojo en tienda: " + branch.getName() : null)));
         order.setDeliveryReference(req.deliveryReference() != null ? req.deliveryReference().trim() : null);
         order.setDeliveryLocation(deliveryPoint);
         order.setCalculatedDistanceMeters(calculatedDistance);
@@ -147,7 +155,7 @@ public class OrderService {
 
         if (req.salespersonId() != null) {
             userRepository.findById(req.salespersonId()).ifPresent(order::setSalesperson);
-        } else if (hasRole(currentUser, RoleName.VENDEDOR)) {
+        } else if (hasRole(currentUser, RoleName.VENDEDOR) || (isCounterSale && hasRole(currentUser, RoleName.ADMIN))) {
             order.setSalesperson(currentUser);
         }
 
@@ -198,7 +206,7 @@ public class OrderService {
             item.setQuantity(qty);
             item.setUnitPurchaseCost(part.getPurchasePrice());
             item.setUnitSalePrice(effectiveUnitPrice);
-            item.setPicked(false);
+            item.setPicked(isCounterSale);
             order.getItems().add(item);
 
             BigDecimal lineSubtotal = effectiveUnitPrice.multiply(BigDecimal.valueOf(qty)).setScale(2, RoundingMode.HALF_UP);
@@ -217,12 +225,14 @@ public class OrderService {
         order.setDeliveryFee(deliveryFee);
         order.setTotalAmount(totalAmount);
 
-        String historyComment = isOnlinePayment
-                ? "Pedido registrado en espera de confirmación y autorización de pago en pasarela online Culqi."
-                : ("DELIVERY".equals(deliveryType)
-                    ? String.format("Pedido confirmado con validación geoespacial aprobada (%.2f km desde %s).",
-                    calculatedDistance / 1000.0, branch.getName())
-                    : "Pedido confirmado para recojo presencial en " + branch.getName() + ".");
+        String historyComment = isCounterSale
+                ? "Venta presencial en mostrador (" + branch.getName() + "). Stock descontado en tiempo real y repuestos entregados al cliente."
+                : (isOnlinePayment
+                    ? "Pedido registrado en espera de confirmación y autorización de pago en pasarela online Culqi."
+                    : ("DELIVERY".equals(deliveryType)
+                        ? String.format("Pedido confirmado con validación geoespacial aprobada (%.2f km desde %s).",
+                        calculatedDistance / 1000.0, branch.getName())
+                        : "Pedido confirmado para recojo presencial en " + branch.getName() + "."));
 
         order.getStatusHistory().add(new OrderStatusHistory(
                 order,
@@ -787,7 +797,7 @@ public class OrderService {
             return "DELIVERY";
         }
         String u = raw.trim().toUpperCase();
-        if (u.contains("PICKUP") || u.contains("RECOJO") || u.contains("TIENDA")) {
+        if (u.contains("PICKUP") || u.contains("RECOJO") || u.contains("TIENDA") || u.contains("MOSTRADOR") || u.contains("PRESENCIAL")) {
             return "PICKUP";
         }
         return "DELIVERY";

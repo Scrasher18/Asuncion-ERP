@@ -264,7 +264,7 @@ export interface CartItem {
   quantity: number;
 }
 
-export type DeliveryType = 'DELIVERY' | 'PICKUP';
+export type DeliveryType = 'DELIVERY' | 'PICKUP' | 'MOSTRADOR';
 export type InvoiceType = 'BOLETA' | 'FACTURA';
 
 export interface CreateOrderItemInput {
