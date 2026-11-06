@@ -4,7 +4,6 @@ import { Router } from '@angular/router';
 import { Observable, tap } from 'rxjs';
 import {
   AuthResponse,
-  DemoAccount,
   LoginRequest,
   RegisterRequest,
   RoleName,
@@ -15,49 +14,6 @@ import { ToastService } from './toast.service';
 
 const TOKEN_KEY = 'asuncion_jwt_token';
 const USER_KEY = 'asuncion_user_profile';
-
-export const DEMO_ACCOUNTS: DemoAccount[] = [
-  {
-    role: 'ADMIN',
-    badgeColor: 'bg-orange-50 text-orange-700 border-orange-200',
-    title: 'Administrador General',
-    fullName: 'Carlos Mendoza',
-    email: 'admin@asuncion.pe',
-    password: '',
-    targetRoute: '/admin',
-    description: 'Gestión comercial, inventario de repuestos, zonas de reparto y supervisión de pedidos.',
-  },
-  {
-    role: 'VENDEDOR',
-    badgeColor: 'bg-orange-50 text-orange-700 border-orange-200',
-    title: 'Asesor de Ventas',
-    fullName: 'Lucía Paredes',
-    email: 'ventas1@asuncion.pe',
-    password: '',
-    targetRoute: '/admin',
-    description: 'Consulta de catálogo, metas de ventas, rotación de inventario y atención de pedidos.',
-  },
-  {
-    role: 'MOTORIZADO',
-    badgeColor: 'bg-orange-50 text-orange-700 border-orange-200',
-    title: 'Repartidor',
-    fullName: 'Miguel Ángel Soto',
-    email: 'motorizado@asuncion.pe',
-    password: '',
-    targetRoute: '/delivery',
-    description: 'Entregas asignadas con ruta en Google Maps, contacto al cliente y foto de recepción.',
-  },
-  {
-    role: 'CLIENTE',
-    badgeColor: 'bg-gray-100 text-gray-700 border-gray-200',
-    title: 'Cliente',
-    fullName: 'Martín Torres · Flotas Andinas SAC',
-    email: 'cliente@empresa.pe',
-    password: '',
-    targetRoute: '/',
-    description: 'Compra de repuestos con boleta o factura, cálculo de envío y seguimiento de pedido.',
-  },
-];
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {

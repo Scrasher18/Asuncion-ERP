@@ -4599,7 +4599,7 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
     documentType: 'DNI',
     documentNumber: '',
     role: 'VENDEDOR',
-    password: 'Asuncion2026!',
+    password: '',
     newPassword: '',
     active: true,
     employeeCode: '',
@@ -6956,13 +6956,14 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
       documentType: 'DNI',
       documentNumber: '',
       role: 'VENDEDOR',
-      password: 'Asuncion2026!',
+      password: '',
       newPassword: '',
       active: true,
       employeeCode: `VEN-${count.toString().padStart(3, '0')}`,
       licenseNumber: '',
       vehiclePlate: '',
     };
+    this.generateRandomPassword();
     this.showUserPassword = false;
     this.showUserModal.set(true);
   }
@@ -7097,7 +7098,7 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
       const payload: CreateStaffUserRequest = {
         fullName: this.userForm.fullName.trim(),
         email: this.userForm.email.trim(),
-        password: this.userForm.password.trim() || 'Asuncion2026!',
+        password: this.userForm.password.trim(),
         phone: this.userForm.phone.trim() || undefined,
         documentType: this.userForm.documentType,
         documentNumber: this.userForm.documentNumber.trim() || undefined,
