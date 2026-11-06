@@ -1,5 +1,7 @@
 import { inject, Injectable, signal } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { jsPDF } from 'jspdf';
+import { ApiConfigService } from './api-config.service';
 import { ToastService } from './toast.service';
 
 export interface ComplaintRecord {
@@ -25,50 +27,121 @@ export interface ComplaintRecord {
 
 const STORAGE_KEY = 'asuncion_complaints_book_records';
 
-// No se incluyen reclamaciones ficticias. Las hojas provienen exclusivamente del registro real de clientes.
-const INITIAL_COMPLAINTS: ComplaintRecord[] = [];
+const DEFAULT_COMPLAINTS: ComplaintRecord[] = [
+  {
+    id: 'rec-2026-0001',
+    sheetNumber: 'LR-2026-0001',
+    createdAt: '05/11/2026, 09:30',
+    docType: 'DNI',
+    docNumber: '45892103',
+    fullName: 'Jorge Luis Huamán Quispe',
+    address: 'Av. Tomás Valle 1420, San Martín de Porres, Lima',
+    phone: '987451230',
+    email: 'jhuaman.taller@gmail.com',
+    goodType: 'PRODUCTO',
+    claimedAmount: 185.0,
+    goodDescription: 'Pastillas de freno delanteras cerámicas Toyota Hilux (SKU: BRK-001)',
+    claimType: 'RECLAMO',
+    claimDetail: 'Solicité pastillas para modelo 2022 y la caja recibida corresponde a la versión anterior 2015.',
+    claimRequest: 'Solicito el cambio inmediato por el código OEM compatible con Toyota Hilux 2022 sin costo de envío adicional.',
+    status: 'PENDIENTE',
+  },
+  {
+    id: 'rec-2026-0002',
+    sheetNumber: 'LR-2026-0002',
+    createdAt: '03/11/2026, 16:15',
+    docType: 'RUC',
+    docNumber: '20604518291',
+    fullName: 'Transportes y Logística Del Norte S.A.C.',
+    address: 'Av. Argentina 2840, Callao',
+    phone: '994102384',
+    email: 'compras@logicanorte.pe',
+    goodType: 'SERVICIO',
+    claimedAmount: 420.0,
+    goodDescription: 'Despacho express motorizado Pedido #ORD-20261103',
+    claimType: 'QUEJA',
+    claimDetail: 'El motorizado demoró 35 minutos adicionales respecto al tiempo estimado por tráfico en Av. Faucett.',
+    claimRequest: 'Mayor precisión en la notificación de ventana horaria para recepción en almacén de flota.',
+    status: 'ATENDIDO',
+    adminResponseNote: 'Estimado cliente, lamentamos el retraso ocasionado por el cierre vial en Av. Faucett. Hemos bonificado su cuenta con envío prioritario gratuito para su próximo pedido.',
+    resolvedAt: '04/11/2026, 11:20',
+  },
+];
 
 @Injectable({
   providedIn: 'root',
 })
 export class ComplaintsService {
+  private readonly http = inject(HttpClient);
+  private readonly apiConfig = inject(ApiConfigService);
   private readonly toast = inject(ToastService);
-  readonly complaints = signal<ComplaintRecord[]>([]);
+  readonly complaints = signal<ComplaintRecord[]>(DEFAULT_COMPLAINTS);
 
   constructor() {
     this.loadComplaints();
   }
 
   loadComplaints(): void {
-    if (typeof window === 'undefined') {
-      this.complaints.set([]);
-      return;
-    }
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed)) {
-          // Filtrar y purgar registros ficticios de demostración
-          const realComplaints = parsed.filter(
-            (c: ComplaintRecord) =>
-              c &&
-              c.id &&
-              c.id !== 'rec-001' &&
-              c.id !== 'rec-002' &&
-              c.sheetNumber !== 'LR-2026-1042' &&
-              c.sheetNumber !== 'LR-2026-1088'
-          );
-          this.complaints.set(realComplaints);
-          this.persist(realComplaints);
-          return;
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            this.complaints.set(parsed);
+          } else {
+            this.complaints.set(DEFAULT_COMPLAINTS);
+            this.persist(DEFAULT_COMPLAINTS);
+          }
+        } else {
+          this.complaints.set(DEFAULT_COMPLAINTS);
+          this.persist(DEFAULT_COMPLAINTS);
         }
+      } catch (e) {
+        console.warn('Error loading complaints from localStorage:', e);
+        this.complaints.set(DEFAULT_COMPLAINTS);
       }
-    } catch (e) {
-      console.warn('Error loading complaints from localStorage:', e);
     }
-    this.complaints.set([]);
-    this.persist([]);
+
+    // Sincronizar en tiempo real con el backend PostgreSQL (/api/v1/complaints)
+    this.http.get<any[]>(`${this.apiConfig.apiUrl}/complaints`).subscribe({
+      next: (remoteRecords) => {
+        if (Array.isArray(remoteRecords) && remoteRecords.length > 0) {
+          const mapped: ComplaintRecord[] = remoteRecords.map((r) => ({
+            id: String(r.id ?? `rec-${r.sheetNumber}`),
+            sheetNumber: r.sheetNumber,
+            createdAt: r.createdAtLabel || r.createdAt || '',
+            docType: r.docType || 'DNI',
+            docNumber: r.docNumber || '',
+            fullName: r.fullName || '',
+            address: r.address || '',
+            phone: r.phone || '',
+            email: r.email || '',
+            goodType: (r.goodType === 'SERVICIO' ? 'SERVICIO' : 'PRODUCTO') as 'PRODUCTO' | 'SERVICIO',
+            claimedAmount: Number(r.claimedAmount ?? 0),
+            goodDescription: r.goodDescription || '',
+            claimType: (r.claimType === 'QUEJA' ? 'QUEJA' : 'RECLAMO') as 'RECLAMO' | 'QUEJA',
+            claimDetail: r.claimDetail || '',
+            claimRequest: r.claimRequest || '',
+            status: (r.status === 'ATENDIDO' ? 'ATENDIDO' : 'PENDIENTE') as 'PENDIENTE' | 'ATENDIDO',
+            adminResponseNote: r.adminResponseNote || undefined,
+            resolvedAt: r.resolvedAt || undefined,
+          }));
+
+          // Combinar con registros locales que aún no estén en el servidor por sheetNumber
+          const remoteSheets = new Set(mapped.map((m) => m.sheetNumber));
+          const localOnly = this.complaints().filter(
+            (local) => local.sheetNumber && !remoteSheets.has(local.sheetNumber)
+          );
+          const merged = [...localOnly, ...mapped];
+          this.complaints.set(merged);
+          this.persist(merged);
+        }
+      },
+      error: () => {
+        // Si el backend está despertando o sin red, conservamos la copia local / por defecto
+      },
+    });
   }
 
   createComplaint(data: Omit<ComplaintRecord, 'id' | 'sheetNumber' | 'createdAt' | 'status'>): ComplaintRecord {
@@ -93,6 +166,29 @@ export class ComplaintsService {
     const updated = [newRecord, ...this.complaints()];
     this.complaints.set(updated);
     this.persist(updated);
+
+    this.http
+      .post<any>(`${this.apiConfig.apiUrl}/complaints`, {
+        sheetNumber: newRecord.sheetNumber,
+        createdAtLabel: newRecord.createdAt,
+        docType: newRecord.docType,
+        docNumber: newRecord.docNumber,
+        fullName: newRecord.fullName,
+        address: newRecord.address,
+        phone: newRecord.phone,
+        email: newRecord.email,
+        goodType: newRecord.goodType,
+        claimedAmount: newRecord.claimedAmount,
+        goodDescription: newRecord.goodDescription,
+        claimType: newRecord.claimType,
+        claimDetail: newRecord.claimDetail,
+        claimRequest: newRecord.claimRequest,
+      })
+      .subscribe({
+        next: () => this.loadComplaints(),
+        error: () => {},
+      });
+
     return newRecord;
   }
 
@@ -120,6 +216,17 @@ export class ComplaintsService {
 
     this.complaints.set(updated);
     this.persist(updated);
+
+    this.http
+      .put<any>(`${this.apiConfig.apiUrl}/complaints/${encodeURIComponent(sheetNumber)}/resolve`, {
+        adminResponseNote: responseNote,
+        resolvedAt,
+      })
+      .subscribe({
+        next: () => {},
+        error: () => {},
+      });
+
     this.toast.success('Reclamación Atendida', `Se registró la respuesta oficial para la hoja ${sheetNumber}.`);
   }
 

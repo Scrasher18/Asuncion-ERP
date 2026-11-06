@@ -104,6 +104,8 @@ export interface Part {
   salePrice: number;
   wholesalePrice?: number | null;
   stockQuantity: number;
+  reservedQuantity?: number;
+  availableStock?: number;
   minStockLevel?: number;
   lowStockAlert?: boolean;
   active?: boolean;
@@ -286,7 +288,28 @@ export interface CreateOrderRequest {
   recipientPhone: string;
   paymentMethod: string;
   notes?: string;
+  reservationSessionId?: string;
   items: CreateOrderItemInput[];
+}
+
+export interface ReservedItemStatusDto {
+  partId: number;
+  sku: string;
+  name: string;
+  requestedQuantity: number;
+  reservedQuantity: number;
+  physicalStock: number;
+  reservedByOthers: number;
+  availableForYou: number;
+  status: 'RESERVADO' | 'AJUSTADO_POR_RESERVA' | 'AGOTADO_EN_RESERVA' | 'AGOTADO';
+  message: string;
+}
+
+export interface ReservationSyncResponse {
+  sessionId: string;
+  expiresAt: string;
+  ttlSeconds: number;
+  items: ReservedItemStatusDto[];
 }
 
 export interface OrderItem {

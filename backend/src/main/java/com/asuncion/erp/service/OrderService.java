@@ -38,6 +38,7 @@ public class OrderService {
     private final ImageOptimizationService imageOptimizationService;
     private final StorageService storageService;
     private final EmailNotificationService emailNotificationService;
+    private final StockReservationService stockReservationService;
 
     public OrderService(
             CustomerOrderRepository orderRepository,
@@ -48,7 +49,8 @@ public class OrderService {
             CatalogService catalogService,
             ImageOptimizationService imageOptimizationService,
             StorageService storageService,
-            EmailNotificationService emailNotificationService
+            EmailNotificationService emailNotificationService,
+            StockReservationService stockReservationService
     ) {
         this.orderRepository = orderRepository;
         this.partRepository = partRepository;
@@ -59,6 +61,7 @@ public class OrderService {
         this.imageOptimizationService = imageOptimizationService;
         this.storageService = storageService;
         this.emailNotificationService = emailNotificationService;
+        this.stockReservationService = stockReservationService;
     }
 
     @Transactional
@@ -105,8 +108,8 @@ public class OrderService {
             deliveryFee = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
         }
 
-        // Consolidate duplicate partIds in request
-        Map<Long, Integer> requestedQuantities = new LinkedHashMap<>();
+        // Consolidate duplicate partIds in request and sort by partId ASC to prevent DB lock deadlocks
+        Map<Long, Integer> requestedQuantities = new TreeMap<>();
         for (OrderItemRequest itemReq : req.items()) {
             requestedQuantities.merge(itemReq.partId(), itemReq.quantity(), Integer::sum);
         }
@@ -115,7 +118,7 @@ public class OrderService {
                 ? req.paymentMethod().trim().toUpperCase()
                 : "TARJETA";
         boolean isOnlinePayment = isOnlinePaymentMethod(paymentMethod);
-        OrderStatus initialStatus = isOnlinePayment ? OrderStatus.PENDIENTE : OrderStatus.CONFIRMADO;
+        OrderStatus initialStatus = isOnlinePayment ? OrderStatus.RESERVADO : OrderStatus.CONFIRMADO;
 
         CustomerOrder order = new CustomerOrder();
         order.setOrderNumber(generateNextOrderNumber());
@@ -150,35 +153,60 @@ public class OrderService {
 
         BigDecimal subtotal = BigDecimal.ZERO;
         for (Map.Entry<Long, Integer> entry : requestedQuantities.entrySet()) {
-            Part part = partRepository.findById(entry.getKey())
+            // Acquire PESSIMISTIC_WRITE lock on Part row so two simultaneous checkouts cannot oversell stock
+            Part part = partRepository.findByIdForUpdate(entry.getKey())
                     .orElseThrow(() -> new ResourceNotFoundException("Repuesto no encontrado con ID: " + entry.getKey()));
             int qty = entry.getValue();
 
             if (!part.isActive()) {
                 throw new BadRequestException("El repuesto '" + part.getName() + "' (" + part.getSku() + ") no se encuentra disponible.");
             }
-            if (part.getStockQuantity() < qty) {
+
+            int reservedByOthers = stockReservationService.getReservedQuantityExcludingSession(
+                    part.getId(),
+                    req.reservationSessionId()
+            );
+            int effectiveAvailable = Math.max(0, part.getStockQuantity() - reservedByOthers);
+
+            if (effectiveAvailable < qty) {
+                if (reservedByOthers > 0 && part.getStockQuantity() >= qty) {
+                    throw new BadRequestException(
+                            String.format(
+                                    "Stock en reserva para '%s' (%s): de las %d und. físicas en almacén, %d están en estado RESERVADO por otro cliente en proceso de pago (disponible ahora: %d, solicitado: %d).",
+                                    part.getName(), part.getSku(), part.getStockQuantity(), reservedByOthers, effectiveAvailable, qty
+                            )
+                    );
+                }
                 throw new BadRequestException(
                         "Stock insuficiente para '" + part.getName() + "' (" + part.getSku() + "). Disponible: "
-                                + part.getStockQuantity() + ", solicitado: " + qty
+                                + effectiveAvailable + ", solicitado: " + qty
                 );
             }
 
             part.setStockQuantity(part.getStockQuantity() - qty);
             partRepository.save(part);
 
+            BigDecimal effectiveUnitPrice = part.getSalePrice();
+            if (qty >= 4 && part.getWholesalePrice() != null && part.getWholesalePrice().compareTo(BigDecimal.ZERO) > 0
+                    && part.getWholesalePrice().compareTo(part.getSalePrice()) < 0) {
+                effectiveUnitPrice = part.getWholesalePrice();
+            }
+
             OrderItem item = new OrderItem();
             item.setOrder(order);
             item.setPart(part);
             item.setQuantity(qty);
             item.setUnitPurchaseCost(part.getPurchasePrice());
-            item.setUnitSalePrice(part.getSalePrice());
+            item.setUnitSalePrice(effectiveUnitPrice);
             item.setPicked(false);
             order.getItems().add(item);
 
-            BigDecimal lineSubtotal = part.getSalePrice().multiply(BigDecimal.valueOf(qty)).setScale(2, RoundingMode.HALF_UP);
+            BigDecimal lineSubtotal = effectiveUnitPrice.multiply(BigDecimal.valueOf(qty)).setScale(2, RoundingMode.HALF_UP);
             subtotal = subtotal.add(lineSubtotal);
         }
+
+        // Release temporary cart reservation now that order stock is locked and committed
+        stockReservationService.releaseSession(req.reservationSessionId());
 
         subtotal = subtotal.setScale(2, RoundingMode.HALF_UP);
         BigDecimal taxAmount = subtotal.multiply(IGV_RATE).setScale(2, RoundingMode.HALF_UP);

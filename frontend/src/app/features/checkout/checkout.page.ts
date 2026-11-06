@@ -124,6 +124,10 @@ export class CheckoutPageComponent implements OnInit, OnDestroy {
       this.prefillFromUser();
     }
 
+    if (this.cart.items().length > 0) {
+      this.cart.syncReservationWithServer(true);
+    }
+
     this.walletConfig.set(this.paymentService.getStoreWalletConfig());
     this.paymentService.fetchStoreWalletConfig().subscribe({
       next: (cfg) => this.walletConfig.set(cfg),
@@ -535,6 +539,7 @@ export class CheckoutPageComponent implements OnInit, OnDestroy {
       recipientPhone: this.recipientPhone.trim(),
       paymentMethod: this.paymentMethod,
       notes: this.notes.trim(),
+      reservationSessionId: this.cart.reservationSessionId,
       items: this.cart.items().map((i) => ({
         partId: i.part.id,
         quantity: i.quantity,
@@ -573,45 +578,70 @@ export class CheckoutPageComponent implements OnInit, OnDestroy {
     }
 
     this.geospatialRejectionAlert.set('');
-    const payload = this.buildCreateOrderPayload();
-
     this.isSubmitting.set(true);
-    this.ordersService
-      .createOrder(payload)
-      .pipe(finalize(() => this.isSubmitting.set(false)))
-      .subscribe({
-        next: (createdOrder) => {
-          // Flow 1: TARJETA DE CREDITO / DEBITO (CULQI)
-          if (this.paymentMethod === 'TARJETA_CREDITO') {
-            this.executeCardPaymentForOrder(createdOrder.id, createdOrder.orderNumber);
-            return;
-          }
 
-          // Flow 2: Standard orders (YAPE, TRANSFERENCIA, CONTRA_ENTREGA)
-          this.cart.clear();
-          const emailTarget = this.auth.currentUser()?.email || 'tu correo electrónico';
-          this.toast.success(
-            `Pedido ${createdOrder.orderNumber} registrado`,
-            `Enviamos los detalles de tu compra a ${emailTarget}.`
+    // Pre-verify concurrent stock reservation before creating the order
+    this.cart.syncReservationObservable(true).subscribe({
+      next: (syncRes) => {
+        if (
+          syncRes &&
+          syncRes.items.some(
+            (it) => it.status === 'AJUSTADO_POR_RESERVA' || it.status === 'AGOTADO_EN_RESERVA' || it.status === 'AGOTADO'
+          )
+        ) {
+          this.isSubmitting.set(false);
+          this.geospatialRejectionAlert.set(
+            'El stock de uno de tus repuestos cambió porque otro cliente reservó unidades al mismo tiempo. Revisa las cantidades actualizadas en tu resumen antes de confirmar.'
           );
-          void this.router.navigate(['/track'], {
-            queryParams: { order: createdOrder.orderNumber, notified: '1' },
+          return;
+        }
+        if (this.cart.items().length === 0) {
+          this.isSubmitting.set(false);
+          return;
+        }
+
+        const payload = this.buildCreateOrderPayload();
+        this.ordersService
+          .createOrder(payload)
+          .pipe(finalize(() => this.isSubmitting.set(false)))
+          .subscribe({
+            next: (createdOrder) => {
+              // Flow 1: TARJETA DE CREDITO / DEBITO (CULQI)
+              if (this.paymentMethod === 'TARJETA_CREDITO') {
+                this.executeCardPaymentForOrder(createdOrder.id, createdOrder.orderNumber);
+                return;
+              }
+
+              // Flow 2: Standard orders (YAPE, TRANSFERENCIA, CONTRA_ENTREGA)
+              this.cart.clear();
+              const emailTarget = this.auth.currentUser()?.email || 'tu correo electrónico';
+              this.toast.success(
+                `Pedido ${createdOrder.orderNumber} registrado`,
+                `Enviamos los detalles de tu compra a ${emailTarget}.`
+              );
+              void this.router.navigate(['/track'], {
+                queryParams: { order: createdOrder.orderNumber, notified: '1' },
+              });
+            },
+            error: (err: HttpErrorResponse) => {
+              const serverMsg =
+                err?.error?.message ||
+                err?.error?.detail ||
+                err?.error?.error ||
+                'No se pudo procesar el pedido.';
+              if (err.status === 422 || err.status === 400) {
+                this.geospatialRejectionAlert.set(serverMsg);
+                this.toast.error('No se pudo procesar el pedido', serverMsg);
+              } else {
+                this.toast.error('Error al registrar el pedido', serverMsg);
+              }
+            },
           });
-        },
-        error: (err: HttpErrorResponse) => {
-          const serverMsg =
-            err?.error?.message ||
-            err?.error?.detail ||
-            err?.error?.error ||
-            'No se pudo procesar el pedido.';
-          if (err.status === 422 || err.status === 400) {
-            this.geospatialRejectionAlert.set(serverMsg);
-            this.toast.error('Dirección fuera de cobertura', serverMsg);
-          } else {
-            this.toast.error('Error al registrar el pedido', serverMsg);
-          }
-        },
-      });
+      },
+      error: () => {
+        this.isSubmitting.set(false);
+      },
+    });
   }
 
   private executeCardPaymentForOrder(orderId: number, orderNumber: string): void {

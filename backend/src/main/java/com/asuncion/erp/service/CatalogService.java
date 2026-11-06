@@ -33,6 +33,7 @@ public class CatalogService {
     private final PartImageRepository partImageRepository;
     private final ImageOptimizationService imageOptimizationService;
     private final StorageService storageService;
+    private final StockReservationService stockReservationService;
 
     public CatalogService(
             CategoryRepository categoryRepository,
@@ -42,7 +43,8 @@ public class CatalogService {
             PartRepository partRepository,
             PartImageRepository partImageRepository,
             ImageOptimizationService imageOptimizationService,
-            StorageService storageService
+            StorageService storageService,
+            StockReservationService stockReservationService
     ) {
         this.categoryRepository = categoryRepository;
         this.manufacturerBrandRepository = manufacturerBrandRepository;
@@ -52,6 +54,7 @@ public class CatalogService {
         this.partImageRepository = partImageRepository;
         this.imageOptimizationService = imageOptimizationService;
         this.storageService = storageService;
+        this.stockReservationService = stockReservationService;
     }
 
     @Transactional(readOnly = true)
@@ -366,7 +369,10 @@ public class CatalogService {
                 ))
                 .toList();
 
-        boolean lowStock = part.getStockQuantity() <= part.getMinStockLevel();
+        int physicalStock = part.getStockQuantity() != null ? part.getStockQuantity() : 0;
+        int reservedQty = stockReservationService.getReservedQuantity(part.getId());
+        int availableStock = Math.max(0, physicalStock - reservedQty);
+        boolean lowStock = physicalStock <= part.getMinStockLevel();
 
         return new PartResponse(
                 part.getId(),
@@ -380,7 +386,9 @@ public class CatalogService {
                 part.getPurchasePrice(),
                 part.getSalePrice(),
                 part.getWholesalePrice(),
-                part.getStockQuantity(),
+                physicalStock,
+                reservedQty,
+                availableStock,
                 part.getMinStockLevel(),
                 lowStock,
                 part.getWarehouseLocation(),

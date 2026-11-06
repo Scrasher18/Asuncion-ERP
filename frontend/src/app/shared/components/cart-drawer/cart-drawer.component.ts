@@ -56,6 +56,24 @@ import { ToastService } from '../../../core/services/toast.service';
               <span><strong>Beneficio Mayorista:</strong> Llevando 4+ unidades de un repuesto aplicamos tarifa por mayor automáticamente.</span>
             </div>
 
+            @if (cart.items().length > 0) {
+              <!-- Live Stock Reservation Hold Strip (Estado RESERVADO) -->
+              <div class="border-b border-amber-200 bg-amber-50/80 px-5 py-2.5 flex items-center justify-between gap-2 text-xs text-amber-950">
+                <div class="flex items-center gap-2">
+                  <span class="relative flex h-2 w-2 shrink-0">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-amber-600"></span>
+                  </span>
+                  <span>
+                    Estado: <strong class="font-extrabold text-amber-900 uppercase">RESERVADO</strong> para tu compra
+                  </span>
+                </div>
+                <span class="rounded-md border border-amber-300 bg-white px-2 py-0.5 font-mono text-[11px] font-extrabold text-amber-800 tabular-nums">
+                  ⏳ {{ cart.reservationFormattedTimer() }}
+                </span>
+              </div>
+            }
+
             <!-- Items Body -->
             <div class="flex-1 overflow-y-auto p-5 space-y-3 bg-[#F8F9FA]">
               @if (cart.items().length === 0) {
@@ -97,6 +115,9 @@ import { ToastService } from '../../../core/services/toast.service';
                       </div>
 
                       <div class="mt-1 flex flex-wrap gap-1.5">
+                        <span class="rounded border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold text-amber-800">
+                          RESERVADO ({{ item.quantity }} und.)
+                        </span>
                         @if (item.part.oemCode) {
                           <span class="rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-mono text-[10px] font-medium text-gray-600">
                             OEM {{ item.part.oemCode }}

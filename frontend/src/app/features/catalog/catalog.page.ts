@@ -532,29 +532,41 @@ import { PromotionService } from '../../core/services/promotion.service';
                     </span>
                   }
 
-                  <!-- Calm Light-Mode Stock Badge -->
-                  <span
-                    [class]="
-                      part.stockQuantity <= 0
-                        ? 'bg-red-50 text-red-700 border-red-200'
-                        : part.lowStockAlert
-                          ? 'bg-orange-50 text-orange-700 border-orange-200'
-                          : 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                    "
-                    class="absolute top-2.5 right-2.5 inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-bold shadow-2xs"
-                  >
+                  <!-- Calm Light-Mode Stock & Reservation Badge -->
+                  <div class="absolute top-2.5 right-2.5 flex flex-col items-end gap-1">
                     <span
-                      class="h-1.5 w-1.5 rounded-full"
-                      [class]="part.stockQuantity <= 0 ? 'bg-red-500' : part.lowStockAlert ? 'bg-orange-500' : 'bg-emerald-500'"
-                    ></span>
-                    @if (part.stockQuantity <= 0) {
-                      Agotado
-                    } @else if (part.lowStockAlert) {
-                      Últimas {{ part.stockQuantity }} und.
-                    } @else {
-                      Stock: {{ part.stockQuantity }}
+                      [class]="
+                        (part.availableStock ?? part.stockQuantity) <= 0
+                          ? 'bg-red-50 text-red-700 border-red-200'
+                          : part.lowStockAlert || (part.availableStock ?? part.stockQuantity) <= 5
+                            ? 'bg-orange-50 text-orange-700 border-orange-200'
+                            : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                      "
+                      class="inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-bold shadow-2xs"
+                    >
+                      <span
+                        class="h-1.5 w-1.5 rounded-full"
+                        [class]="(part.availableStock ?? part.stockQuantity) <= 0 ? 'bg-red-500' : (part.lowStockAlert || (part.availableStock ?? part.stockQuantity) <= 5) ? 'bg-orange-500' : 'bg-emerald-500'"
+                      ></span>
+                      @if ((part.availableStock ?? part.stockQuantity) <= 0) {
+                        @if ((part.reservedQuantity ?? 0) > 0) {
+                          En reserva ({{ part.reservedQuantity }})
+                        } @else {
+                          Agotado
+                        }
+                      } @else if (part.lowStockAlert || (part.availableStock ?? part.stockQuantity) <= 5) {
+                        Últimas {{ part.availableStock ?? part.stockQuantity }} disp.
+                      } @else {
+                        Disp: {{ part.availableStock ?? part.stockQuantity }}
+                      }
+                    </span>
+
+                    @if ((part.reservedQuantity ?? 0) > 0 && (part.availableStock ?? part.stockQuantity) > 0) {
+                      <span class="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50/95 px-2 py-0.5 text-[10px] font-bold text-amber-800 shadow-2xs">
+                        ⏳ {{ part.reservedQuantity }} en reserva
+                      </span>
                     }
-                  </span>
+                  </div>
                 </a>
 
                 <!-- Card Body -->
@@ -659,14 +671,14 @@ import { PromotionService } from '../../core/services/promotion.service';
                       </a>
                       <button
                         type="button"
-                        [disabled]="part.stockQuantity <= 0"
+                        [disabled]="(part.availableStock ?? part.stockQuantity) <= 0"
                         (click)="cart.addPart(part, 1, true)"
                         class="col-span-3 min-h-[40px] flex items-center justify-center gap-1.5 rounded-xl bg-orange-600 px-3 text-xs font-bold text-white shadow-2xs hover:bg-orange-700 active:scale-[0.98] disabled:bg-gray-200 disabled:text-gray-400 transition-all duration-150 ease-out select-none cursor-pointer"
                       >
                         <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
                           <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                         </svg>
-                        <span>Agregar</span>
+                        <span>{{ (part.availableStock ?? part.stockQuantity) <= 0 && (part.reservedQuantity ?? 0) > 0 ? 'En reserva' : 'Agregar' }}</span>
                       </button>
                     </div>
                   </div>

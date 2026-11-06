@@ -308,28 +308,28 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                 </svg>
                 <span>Personal y Trabajadores</span>
               </button>
-
-              <button
-                type="button"
-                (click)="switchTab('claims')"
-                [class]="
-                  activeTab() === 'claims'
-                    ? 'border-orange-600 text-orange-700 font-bold bg-orange-50/80 shadow-2xs'
-                    : 'border-transparent text-gray-600 hover:border-gray-200 hover:bg-gray-50/80 hover:text-gray-900 font-medium'
-                "
-                class="inline-flex min-h-[40px] shrink-0 items-center gap-2 rounded-xl border px-3.5 py-2 text-xs sm:text-sm whitespace-nowrap transition cursor-pointer"
-              >
-                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
-                </svg>
-                <span>Reclamaciones</span>
-                @if (pendingClaimsCount() > 0) {
-                  <span class="rounded-full bg-red-600 px-1.5 py-0.5 font-mono text-[10px] font-bold text-white">
-                    {{ pendingClaimsCount() }}
-                  </span>
-                }
-              </button>
             }
+
+            <button
+              type="button"
+              (click)="switchTab('claims')"
+              [class]="
+                activeTab() === 'claims'
+                  ? 'border-orange-600 text-orange-700 font-bold bg-orange-50/80 shadow-2xs'
+                  : 'border-transparent text-gray-600 hover:border-gray-200 hover:bg-gray-50/80 hover:text-gray-900 font-medium'
+              "
+              class="inline-flex min-h-[40px] shrink-0 items-center gap-2 rounded-xl border px-3.5 py-2 text-xs sm:text-sm whitespace-nowrap transition cursor-pointer"
+            >
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+              </svg>
+              <span>Reclamaciones</span>
+              @if (pendingClaimsCount() > 0) {
+                <span class="rounded-full bg-red-600 px-1.5 py-0.5 font-mono text-[10px] font-bold text-white">
+                  {{ pendingClaimsCount() }}
+                </span>
+              }
+            </button>
           </nav>
         </div>
       </div>
@@ -1347,16 +1347,23 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                           </span>
                         </td>
                         <td class="px-4 py-3.5 text-center">
-                          <span
-                            [class]="
-                              p.stockQuantity <= (p.minStockLevel ?? 5)
-                                ? 'border-red-200 bg-red-50 text-red-700'
-                                : 'border-emerald-200 bg-emerald-50 text-emerald-700'
-                            "
-                            class="inline-block rounded-full border px-2.5 py-0.5 text-[11px] font-semibold tabular-nums"
-                          >
-                            {{ p.stockQuantity }} / mín. {{ p.minStockLevel ?? 5 }}
-                          </span>
+                          <div class="inline-flex flex-col items-center gap-1">
+                            <span
+                              [class]="
+                                p.stockQuantity <= (p.minStockLevel ?? 5)
+                                  ? 'border-red-200 bg-red-50 text-red-700'
+                                  : 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                              "
+                              class="inline-block rounded-full border px-2.5 py-0.5 text-[11px] font-semibold tabular-nums"
+                            >
+                              {{ p.stockQuantity }} / mín. {{ p.minStockLevel ?? 5 }}
+                            </span>
+                            @if ((p.reservedQuantity ?? 0) > 0) {
+                              <span class="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-800">
+                                ⏳ {{ p.reservedQuantity }} en reserva (disp: {{ p.availableStock ?? (p.stockQuantity - (p.reservedQuantity ?? 0)) }})
+                              </span>
+                            }
+                          </div>
                         </td>
                         <td class="px-4 py-3.5 text-right whitespace-nowrap space-x-1.5">
                           <button
@@ -2628,7 +2635,7 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
         <!-- ========================================================================= -->
         <!-- TAB 8: LIBRO DE RECLAMACIONES VIRTUAL (INDECOPI - LEY 29571)              -->
         <!-- ========================================================================= -->
-        @if (activeTab() === 'claims' && auth.hasAnyRole(['ADMIN'])) {
+        @if (activeTab() === 'claims') {
           <div class="space-y-6">
             <!-- KPI Summary Cards -->
             <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
@@ -2723,6 +2730,17 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                       Atendidos
                     </button>
                   </div>
+
+                  <button
+                    type="button"
+                    (click)="complaintsService.loadComplaints()"
+                    class="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-xs font-bold text-gray-700 hover:border-orange-300 hover:text-orange-700 transition cursor-pointer shadow-2xs"
+                  >
+                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                    </svg>
+                    <span>Sincronizar</span>
+                  </button>
                 </div>
               </div>
 
@@ -5264,6 +5282,9 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
     if (tab === 'users' && this.auth.hasAnyRole(['ADMIN'])) {
       this.loadStaffUsers();
     }
+    if (tab === 'claims') {
+      this.complaintsService.loadComplaints();
+    }
   }
 
   openLowStockParts(): void {
@@ -5299,7 +5320,9 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
 
   formatOrderStatus(status?: string): string {
     const labels: Record<string, string> = {
+      RESERVADO: 'Stock reservado',
       PENDING: 'Pendiente',
+      PENDIENTE: 'Pendiente',
       CONFIRMED: 'Confirmado',
       CONFIRMADO: 'Confirmado',
       PICKING: 'En preparación',
@@ -5318,6 +5341,8 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
 
   statusBadgeClass(status?: string): string {
     switch (status) {
+      case 'RESERVADO':
+        return 'border-amber-200 bg-amber-50 text-amber-800';
       case 'DELIVERED':
       case 'ENTREGADO':
         return 'border-emerald-200 bg-emerald-50 text-emerald-700';

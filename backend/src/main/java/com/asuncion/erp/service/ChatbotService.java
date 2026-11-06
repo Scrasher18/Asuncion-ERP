@@ -290,6 +290,7 @@ public class ChatbotService {
                     OrderResponse dto = orderService.toOrderResponse(order);
                     String statusLabel = switch (order.getStatus()) {
                         case PENDIENTE -> "Pendiente de validación";
+                        case RESERVADO -> "Stock reservado en espera de confirmación de pago";
                         case CONFIRMADO -> "Confirmado (en cola de almacén)";
                         case EN_PREPARACION -> "En preparación y picking en almacén";
                         case LISTO_PARA_DESPACHO -> "Embalado y listo para despacho";

@@ -774,6 +774,22 @@
             </span>
           </div>
 
+          <!-- Stock Reservation Banner (Estado RESERVADO) -->
+          <div class="rounded-xl border border-amber-200 bg-amber-50/80 px-3.5 py-2.5 flex items-center justify-between gap-2 text-xs text-amber-950">
+            <div class="flex items-center gap-2">
+              <span class="relative flex h-2 w-2 shrink-0">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-2 w-2 bg-amber-600"></span>
+              </span>
+              <span>
+                Stock <strong class="font-extrabold text-amber-900">RESERVADO</strong> para ti
+              </span>
+            </div>
+            <span class="rounded-md border border-amber-300 bg-white px-2 py-0.5 font-mono text-[11px] font-extrabold text-amber-800 tabular-nums">
+              ⏳ {{ cart.reservationFormattedTimer() }}
+            </span>
+          </div>
+
           <div class="max-h-64 overflow-y-auto divide-y divide-gray-100 pr-1">
             @for (item of cart.items(); track item.part.id) {
               <div class="py-2.5 flex items-center justify-between gap-2 text-xs">

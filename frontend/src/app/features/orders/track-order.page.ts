@@ -679,6 +679,8 @@ export class TrackOrderPageComponent implements OnInit, OnDestroy {
   formatStatus(status?: string): string {
     if (!status) return 'Actualización del pedido';
     switch (status) {
+      case 'RESERVADO':
+        return 'Stock reservado';
       case 'PENDIENTE':
         return 'Pendiente de pago';
       case 'CONFIRMADO':
@@ -700,6 +702,8 @@ export class TrackOrderPageComponent implements OnInit, OnDestroy {
 
   statusBadgeClass(status: string): string {
     switch (status) {
+      case 'RESERVADO':
+        return 'bg-amber-50 text-amber-800 border-amber-200';
       case 'ENTREGADO':
         return 'bg-emerald-50 text-emerald-700 border-emerald-200';
       case 'CANCELADO':

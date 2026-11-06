@@ -16,6 +16,8 @@ public record PartResponse(
         BigDecimal salePrice,
         BigDecimal wholesalePrice,
         Integer stockQuantity,
+        Integer reservedQuantity,
+        Integer availableStock,
         Integer minStockLevel,
         boolean lowStockAlert,
         String warehouseLocation,
@@ -24,4 +26,32 @@ public record PartResponse(
         List<PartImageDto> images,
         List<PartCompatibilityDto> compatibilities
 ) {
+    public PartResponse(
+            Long id,
+            String sku,
+            String oemCode,
+            String name,
+            String technicalDescription,
+            String manufacturerBrand,
+            Long categoryId,
+            String categoryName,
+            BigDecimal purchasePrice,
+            BigDecimal salePrice,
+            BigDecimal wholesalePrice,
+            Integer stockQuantity,
+            Integer minStockLevel,
+            boolean lowStockAlert,
+            String warehouseLocation,
+            boolean active,
+            String primaryImageUrl,
+            List<PartImageDto> images,
+            List<PartCompatibilityDto> compatibilities
+    ) {
+        this(
+                id, sku, oemCode, name, technicalDescription, manufacturerBrand,
+                categoryId, categoryName, purchasePrice, salePrice, wholesalePrice,
+                stockQuantity, 0, stockQuantity, minStockLevel, lowStockAlert,
+                warehouseLocation, active, primaryImageUrl, images, compatibilities
+        );
+    }
 }

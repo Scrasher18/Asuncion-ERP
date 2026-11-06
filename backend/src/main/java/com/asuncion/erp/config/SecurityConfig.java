@@ -72,8 +72,10 @@ public class SecurityConfig {
                         // Public Auth & Google reCAPTCHA Config
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/login", "/api/v1/auth/register", "/api/v1/auth/forgot-password", "/api/v1/auth/reset-password").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/auth/recaptcha-config").permitAll()
-                        // Public Catalog & Media
+                        // Public Catalog, Stock Reservations & Media
                         .requestMatchers(HttpMethod.GET, "/api/v1/catalog/**").permitAll()
+                        .requestMatchers("/api/v1/catalog/reservations/**").permitAll()
+                        .requestMatchers("/api/v1/complaints/**").permitAll()
                         .requestMatchers("/api/v1/media/**").permitAll()
                         // Public Logistics & Coverage Validation
                         .requestMatchers(HttpMethod.GET, "/api/v1/logistics/branches").permitAll()
