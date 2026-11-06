@@ -86,6 +86,12 @@ export class NotificationCenterService {
   }
 
   refresh(isSilent = false): void {
+    if (!this.auth.isAuthenticated()) {
+      this.notifications.set([]);
+      this.isLoading.set(false);
+      return;
+    }
+
     if (!isSilent) {
       this.isLoading.set(true);
     }
@@ -98,7 +104,8 @@ export class NotificationCenterService {
     } else if (user) {
       this.fetchClientNotifications();
     } else {
-      this.fetchGuestNotifications();
+      this.notifications.set([]);
+      this.isLoading.set(false);
     }
   }
 

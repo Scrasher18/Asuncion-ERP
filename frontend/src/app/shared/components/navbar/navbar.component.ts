@@ -114,15 +114,16 @@ import {
 
           <!-- Right Action Controls -->
           <div class="flex items-center gap-2">
-            <!-- 1. NOTIFICATIONS BELL & DROPDOWN (Accessible for Admin and Regular Users) -->
-            <div class="relative notif-dropdown-container">
-              <button
-                type="button"
-                (click)="toggleNotifications($event)"
-                class="relative inline-flex min-h-[40px] min-w-[40px] items-center justify-center rounded-xl border border-gray-200 bg-white p-2 text-xs font-semibold text-gray-700 shadow-2xs hover:border-orange-300 hover:text-orange-600 transition cursor-pointer"
-                title="Historial de notificaciones y actualizaciones en vivo"
-                aria-label="Notificaciones"
-              >
+            <!-- 1. NOTIFICATIONS BELL & DROPDOWN (Only when authenticated) -->
+            @if (auth.isAuthenticated()) {
+              <div class="relative notif-dropdown-container">
+                <button
+                  type="button"
+                  (click)="toggleNotifications($event)"
+                  class="relative inline-flex min-h-[40px] min-w-[40px] items-center justify-center rounded-xl border border-gray-200 bg-white p-2 text-xs font-semibold text-gray-700 shadow-2xs hover:border-orange-300 hover:text-orange-600 transition cursor-pointer"
+                  title="Historial de notificaciones y actualizaciones en vivo"
+                  aria-label="Notificaciones"
+                >
                 <!-- Bell SVG -->
                 <svg
                   class="h-5 w-5 text-gray-600 transition-transform group-hover:scale-110"
@@ -420,7 +421,8 @@ import {
                   </div>
                 </div>
               }
-            </div>
+              </div>
+            }
 
             <!-- 2. Cart Drawer Button -->
             @if (auth.canAccessCart()) {
@@ -571,31 +573,33 @@ import {
             </a>
           }
 
-          <!-- Notifications shortcut on mobile menu -->
-          <button
-            type="button"
-            (click)="toggleNotifications($event); mobileOpen.set(false);"
-            class="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-orange-50 hover:text-orange-700"
-          >
-            <div class="flex items-center gap-2">
-              <svg class="h-4 w-4 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
-              </svg>
-              <span>Notificaciones</span>
-            </div>
-            <div class="flex items-center gap-1.5">
-              @if (notifService.unreadStockAlertsCount() > 0) {
-                <span class="rounded-full bg-red-600 px-2 py-0.5 text-xs font-black text-white animate-pulse">
-                  🚨 {{ notifService.unreadStockAlertsCount() }} Stock
-                </span>
-              }
-              @if (notifService.unreadCount() > 0) {
-                <span class="rounded-full bg-orange-600 px-2 py-0.5 text-xs font-bold text-white">
-                  {{ notifService.unreadCount() }}
-                </span>
-              }
-            </div>
-          </button>
+          <!-- Notifications shortcut on mobile menu (only when authenticated) -->
+          @if (auth.isAuthenticated()) {
+            <button
+              type="button"
+              (click)="toggleNotifications($event); mobileOpen.set(false);"
+              class="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-orange-50 hover:text-orange-700"
+            >
+              <div class="flex items-center gap-2">
+                <svg class="h-4 w-4 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+                </svg>
+                <span>Notificaciones</span>
+              </div>
+              <div class="flex items-center gap-1.5">
+                @if (notifService.unreadStockAlertsCount() > 0) {
+                  <span class="rounded-full bg-red-600 px-2 py-0.5 text-xs font-black text-white animate-pulse">
+                    🚨 {{ notifService.unreadStockAlertsCount() }} Stock
+                  </span>
+                }
+                @if (notifService.unreadCount() > 0) {
+                  <span class="rounded-full bg-orange-600 px-2 py-0.5 text-xs font-bold text-white">
+                    {{ notifService.unreadCount() }}
+                  </span>
+                }
+              </div>
+            </button>
+          }
 
           <div class="pt-3 mt-2 border-t border-gray-100 flex items-center justify-between gap-2">
             @if (auth.isAuthenticated()) {

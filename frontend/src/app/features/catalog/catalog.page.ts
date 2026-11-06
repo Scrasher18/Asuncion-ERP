@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
@@ -536,9 +536,9 @@ import { PromotionService } from '../../core/services/promotion.service';
                   <div class="absolute top-2.5 right-2.5 flex flex-col items-end gap-1">
                     <span
                       [class]="
-                        (part.availableStock ?? part.stockQuantity) <= 0
+                        cart.getRemainingStockToAdd(part) <= 0
                           ? 'bg-red-50 text-red-700 border-red-200'
-                          : part.lowStockAlert || (part.availableStock ?? part.stockQuantity) <= 5
+                          : part.lowStockAlert || cart.getRemainingStockToAdd(part) <= 5
                             ? 'bg-orange-50 text-orange-700 border-orange-200'
                             : 'bg-emerald-50 text-emerald-700 border-emerald-200'
                       "
@@ -546,24 +546,26 @@ import { PromotionService } from '../../core/services/promotion.service';
                     >
                       <span
                         class="h-1.5 w-1.5 rounded-full"
-                        [class]="(part.availableStock ?? part.stockQuantity) <= 0 ? 'bg-red-500' : (part.lowStockAlert || (part.availableStock ?? part.stockQuantity) <= 5) ? 'bg-orange-500' : 'bg-emerald-500'"
+                        [class]="cart.getRemainingStockToAdd(part) <= 0 ? 'bg-red-500' : (part.lowStockAlert || cart.getRemainingStockToAdd(part) <= 5) ? 'bg-orange-500' : 'bg-emerald-500'"
                       ></span>
-                      @if ((part.availableStock ?? part.stockQuantity) <= 0) {
-                        @if ((part.reservedQuantity ?? 0) > 0) {
-                          En reserva ({{ part.reservedQuantity }})
+                      @if (cart.getRemainingStockToAdd(part) <= 0) {
+                        @if (cart.getTotalReservedDisplay(part) > 0) {
+                          En reserva ({{ cart.getTotalReservedDisplay(part) }})
+                        } @else if (cart.getMyCartQuantity(part.id) > 0) {
+                          En tu carrito ({{ cart.getMyCartQuantity(part.id) }})
                         } @else {
                           Agotado
                         }
-                      } @else if (part.lowStockAlert || (part.availableStock ?? part.stockQuantity) <= 5) {
-                        Últimas {{ part.availableStock ?? part.stockQuantity }} disp.
+                      } @else if (part.lowStockAlert || cart.getRemainingStockToAdd(part) <= 5) {
+                        Últimas {{ cart.getRemainingStockToAdd(part) }} disp.
                       } @else {
-                        Disp: {{ part.availableStock ?? part.stockQuantity }}
+                        Disp: {{ cart.getRemainingStockToAdd(part) }}
                       }
                     </span>
 
-                    @if ((part.reservedQuantity ?? 0) > 0 && (part.availableStock ?? part.stockQuantity) > 0) {
+                    @if (cart.getTotalReservedDisplay(part) > 0 && cart.getRemainingStockToAdd(part) > 0) {
                       <span class="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50/95 px-2 py-0.5 text-[10px] font-bold text-amber-800 shadow-2xs">
-                        ⏳ {{ part.reservedQuantity }} en reserva
+                        ⏳ {{ cart.getTotalReservedDisplay(part) }} en reserva
                       </span>
                     }
                   </div>
@@ -671,14 +673,14 @@ import { PromotionService } from '../../core/services/promotion.service';
                       </a>
                       <button
                         type="button"
-                        [disabled]="(part.availableStock ?? part.stockQuantity) <= 0"
+                        [disabled]="cart.getRemainingStockToAdd(part) <= 0"
                         (click)="cart.addPart(part, 1, true)"
                         class="col-span-3 min-h-[40px] flex items-center justify-center gap-1.5 rounded-xl bg-orange-600 px-3 text-xs font-bold text-white shadow-2xs hover:bg-orange-700 active:scale-[0.98] disabled:bg-gray-200 disabled:text-gray-400 transition-all duration-150 ease-out select-none cursor-pointer"
                       >
                         <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
                           <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                         </svg>
-                        <span>{{ (part.availableStock ?? part.stockQuantity) <= 0 && (part.reservedQuantity ?? 0) > 0 ? 'En reserva' : 'Agregar' }}</span>
+                        <span>{{ cart.getRemainingStockToAdd(part) <= 0 ? (cart.getTotalReservedDisplay(part) > 0 ? 'En reserva' : (cart.getMyCartQuantity(part.id) > 0 ? 'Máx. en carrito' : 'Agotado')) : 'Agregar' }}</span>
                       </button>
                     </div>
                   </div>
@@ -766,12 +768,13 @@ import { PromotionService } from '../../core/services/promotion.service';
     </div>
   `,
 })
-export class CatalogPageComponent implements OnInit {
+export class CatalogPageComponent implements OnInit, OnDestroy {
   private readonly catalogService = inject(CatalogService);
   private readonly apiConfig = inject(ApiConfigService);
   private readonly router = inject(Router);
   readonly cart = inject(CartService);
   readonly promotionService = inject(PromotionService);
+  private stockRefreshInterval: ReturnType<typeof setInterval> | null = null;
 
   readonly categories = signal<Category[]>([]);
   readonly makes = signal<VehicleMake[]>([]);
@@ -924,8 +927,41 @@ export class CatalogPageComponent implements OnInit {
   readonly predictiveResults = computed(() => this.parts().slice(0, 6));
 
   ngOnInit(): void {
+    this.cart.refreshPosHoldsAndReconcile();
     this.loadMetadata();
     this.applyFilters();
+    if (typeof window !== 'undefined') {
+      this.stockRefreshInterval = setInterval(() => {
+        this.cart.refreshPosHoldsAndReconcile();
+        this.silentRefreshParts();
+      }, 10000);
+    }
+  }
+
+  ngOnDestroy(): void {
+    if (this.stockRefreshInterval) {
+      clearInterval(this.stockRefreshInterval);
+      this.stockRefreshInterval = null;
+    }
+  }
+
+  private silentRefreshParts(): void {
+    this.catalogService
+      .searchParts({
+        q: this.searchQuery,
+        categoryId: this.selectedCategoryId,
+        makeId: this.selectedMakeId,
+        modelId: this.selectedModelId,
+        year: this.selectedYear,
+        onlyInStock: this.onlyInStock,
+      })
+      .subscribe({
+        next: (data) => {
+          this.backendOffline.set(false);
+          this.parts.set(data);
+        },
+        error: () => {},
+      });
   }
 
   selectViscosity(v: string | null): void {

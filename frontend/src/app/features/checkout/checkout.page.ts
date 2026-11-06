@@ -125,6 +125,7 @@ export class CheckoutPageComponent implements OnInit, OnDestroy {
     }
 
     if (this.cart.items().length > 0) {
+      this.cart.refreshPosHoldsAndReconcile();
       this.cart.syncReservationWithServer(true);
     }
 
@@ -409,6 +410,11 @@ export class CheckoutPageComponent implements OnInit, OnDestroy {
   }
 
   async payWithCulqiCheckoutModal(): Promise<void> {
+    this.cart.refreshPosHoldsAndReconcile();
+    if (this.cart.items().length === 0) {
+      this.toast.warning('Carrito vacío', 'Los productos seleccionados ya no están disponibles.');
+      return;
+    }
     if (!this.auth.isAuthenticated()) {
       this.toast.warning('Inicia sesión primero', 'Ingresa a tu cuenta para confirmar el pedido.');
       return;
@@ -548,6 +554,11 @@ export class CheckoutPageComponent implements OnInit, OnDestroy {
   }
 
   submitOrder(): void {
+    this.cart.refreshPosHoldsAndReconcile();
+    if (this.cart.items().length === 0) {
+      this.toast.warning('Carrito vacío', 'Los productos seleccionados ya no están disponibles.');
+      return;
+    }
     if (!this.auth.isAuthenticated()) {
       this.toast.warning('Inicia sesión primero', 'Ingresa a tu cuenta para confirmar el pedido.');
       return;

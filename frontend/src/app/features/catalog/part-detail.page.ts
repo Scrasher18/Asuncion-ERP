@@ -225,24 +225,26 @@ import { PromotionService } from '../../core/services/promotion.service';
                   <span class="block text-gray-500 font-medium">Disponibilidad en tiempo real</span>
                   <div class="mt-1 flex flex-wrap items-center gap-1.5">
                     <span
-                      [class]="(p.availableStock ?? p.stockQuantity) > 0 ? 'bg-emerald-500' : 'bg-red-500'"
+                      [class]="cart.getRemainingStockToAdd(p) > 0 ? 'bg-emerald-500' : 'bg-red-500'"
                       class="h-2 w-2 rounded-full"
                     ></span>
                     <span
-                      [class]="(p.availableStock ?? p.stockQuantity) > 0 ? 'text-emerald-700' : 'text-red-600'"
+                      [class]="cart.getRemainingStockToAdd(p) > 0 ? 'text-emerald-700' : 'text-red-600'"
                       class="font-bold text-sm"
                     >
-                      @if ((p.availableStock ?? p.stockQuantity) > 0) {
-                        {{ p.availableStock ?? p.stockQuantity }} disponibles
-                      } @else if ((p.reservedQuantity ?? 0) > 0) {
-                        En reserva ({{ p.reservedQuantity }} und.)
+                      @if (cart.getRemainingStockToAdd(p) > 0) {
+                        {{ cart.getRemainingStockToAdd(p) }} disponibles
+                      } @else if (cart.getTotalReservedDisplay(p) > 0) {
+                        En reserva ({{ cart.getTotalReservedDisplay(p) }} und.)
+                      } @else if (cart.getMyCartQuantity(p.id) > 0) {
+                        En tu carrito ({{ cart.getMyCartQuantity(p.id) }} und.)
                       } @else {
                         Agotado temporalmente
                       }
                     </span>
-                    @if ((p.reservedQuantity ?? 0) > 0) {
+                    @if (cart.getTotalReservedDisplay(p) > 0) {
                       <span class="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-800">
-                        ⏳ {{ p.reservedQuantity }} en reserva
+                        ⏳ {{ cart.getTotalReservedDisplay(p) }} en reserva
                       </span>
                     }
                   </div>
@@ -273,8 +275,8 @@ import { PromotionService } from '../../core/services/promotion.service';
                   <span class="font-mono text-sm font-extrabold text-gray-900">{{ quantity() }}</span>
                   <button
                     type="button"
-                    [disabled]="quantity() >= (p.availableStock ?? p.stockQuantity)"
-                    (click)="incrementQty(p.availableStock ?? p.stockQuantity)"
+                    [disabled]="quantity() >= cart.getRemainingStockToAdd(p)"
+                    (click)="incrementQty(cart.getRemainingStockToAdd(p))"
                     class="h-9 w-9 rounded-lg text-base font-bold text-gray-600 hover:bg-gray-50 hover:text-gray-900 disabled:opacity-40 cursor-pointer"
                   >
                     +
@@ -283,19 +285,19 @@ import { PromotionService } from '../../core/services/promotion.service';
 
                 <button
                   type="button"
-                  [disabled]="(p.availableStock ?? p.stockQuantity) <= 0"
+                  [disabled]="cart.getRemainingStockToAdd(p) <= 0"
                   (click)="addToCart(p)"
                   class="flex-1 min-h-[46px] inline-flex items-center justify-center gap-2 rounded-xl bg-orange-600 py-3 px-5 text-sm font-bold text-white shadow-xs hover:bg-orange-700 active:scale-[0.98] disabled:bg-gray-200 disabled:text-gray-400 transition-all duration-150 ease-out select-none cursor-pointer"
                 >
                   <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
                   </svg>
-                  <span>Agregar al carrito</span>
+                  <span>{{ cart.getRemainingStockToAdd(p) <= 0 ? (cart.getTotalReservedDisplay(p) > 0 ? 'En reserva' : 'Sin stock disp.') : 'Agregar al carrito' }}</span>
                 </button>
 
                 <button
                   type="button"
-                  [disabled]="(p.availableStock ?? p.stockQuantity) <= 0"
+                  [disabled]="cart.getRemainingStockToAdd(p) <= 0"
                   (click)="buyNow(p)"
                   class="flex-1 min-h-[46px] rounded-xl border border-orange-200 bg-orange-50 py-3 px-5 text-sm font-bold text-orange-700 hover:bg-orange-100 active:scale-[0.98] disabled:opacity-40 transition-all duration-150 ease-out select-none cursor-pointer"
                 >
@@ -416,7 +418,7 @@ export class PartDetailPageComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly catalogService = inject(CatalogService);
   private readonly apiConfig = inject(ApiConfigService);
-  private readonly cart = inject(CartService);
+  readonly cart = inject(CartService);
 
   readonly part = signal<Part | null>(null);
   readonly isLoading = signal<boolean>(true);
@@ -449,6 +451,7 @@ export class PartDetailPageComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    this.cart.refreshPosHoldsAndReconcile();
     this.route.paramMap.subscribe((params) => {
       const id = Number(params.get('id'));
       if (id) {

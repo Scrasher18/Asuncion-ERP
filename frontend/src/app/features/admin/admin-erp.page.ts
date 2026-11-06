@@ -5039,9 +5039,9 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
     ).length
   );
 
-  readonly filteredGlobalOrders = computed<Order[]>(() => {
+  filteredGlobalOrders(): Order[] {
     const statusFilter = this.orderStatusFilter();
-    const q = this.orderSearchQuery.trim().toLowerCase();
+    const q = this.orderSearchQuery.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
     return this.globalOrders().filter((o) => {
       if (statusFilter === 'PENDING') {
         if (o.status === 'ENTREGADO' || o.status === 'CANCELADO' || o.status === 'EN_RUTA') {
@@ -5053,14 +5053,13 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
         if (o.status !== 'ENTREGADO') return false;
       }
       if (!q) return true;
-      return (
-        o.orderNumber.toLowerCase().includes(q) ||
-        (o.recipientName || '').toLowerCase().includes(q) ||
-        (o.customerName || '').toLowerCase().includes(q) ||
-        (o.customerTaxId || '').toLowerCase().includes(q)
-      );
+      const haystack = `${o.orderNumber} ${o.recipientName || ''} ${o.customerName || ''} ${o.customerTaxId || ''}`
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
+      return haystack.includes(q);
     });
-  });
+  }
 
   readonly computedHourlySales = computed<SalesTimelinePoint[]>(() => {
     const orders = this.globalOrders();
@@ -5220,18 +5219,19 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
   readonly safeEmailPreviewHtml = signal<string>('');
   private mailConfigLoaded = false;
 
-  readonly filteredAdminParts = computed<Part[]>(() => {
-    const q = this.partSearchTerm.trim().toLowerCase();
+  filteredAdminParts(): Part[] {
+    const q = this.partSearchTerm.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
     const list = this.adminParts();
     if (!q) return list;
-    return list.filter(
-      (p) =>
-        p.name.toLowerCase().includes(q) ||
-        (p.sku || '').toLowerCase().includes(q) ||
-        (p.oemCode || '').toLowerCase().includes(q) ||
-        (p.manufacturerBrand || '').toLowerCase().includes(q)
-    );
-  });
+    const tokens = q.split(/\s+/).filter(Boolean);
+    return list.filter((p) => {
+      const haystack = `${p.name} ${p.sku || ''} ${p.oemCode || ''} ${p.manufacturerBrand || ''} ${p.categoryName || ''}`
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
+      return tokens.every((t) => haystack.includes(t));
+    });
+  }
 
   ngOnInit(): void {
     this.loadAnalytics(30);

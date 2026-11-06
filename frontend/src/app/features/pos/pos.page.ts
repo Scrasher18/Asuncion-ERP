@@ -1,17 +1,25 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { Branch, Category, Order, Part } from '../../core/models/api.models';
 import { ApiConfigService } from '../../core/services/api-config.service';
 import { AuthService } from '../../core/services/auth.service';
+import {
+  ONLINE_ACTIVE_HOLDS_KEY,
+  POS_ACTIVE_HOLDS_KEY,
+} from '../../core/services/cart.service';
 import { CatalogService } from '../../core/services/catalog.service';
 import { LogisticsService } from '../../core/services/logistics.service';
 import { LookupService } from '../../core/services/lookup.service';
 import { OrdersService } from '../../core/services/orders.service';
 import { PdfInvoiceService } from '../../core/services/pdf-invoice.service';
 import { ToastService } from '../../core/services/toast.service';
+
+const POS_SESSION_KEY = 'asuncion_pos_reservation_session_id';
+const POS_TICKET_STORAGE_KEY = 'asuncion_pos_ticket_v1';
+const POS_HOLD_TTL_MS = 15 * 60 * 1000;
 
 @Component({
   selector: 'app-pos-page',
@@ -32,30 +40,13 @@ import { ToastService } from '../../core/services/toast.service';
                 <span class="inline-flex items-center rounded-full border border-gray-200 bg-gray-100 px-3 py-0.5 text-xs font-semibold text-gray-700">
                   Atendido por: {{ auth.currentUser()?.fullName || 'Asesor Comercial' }}
                 </span>
-                <span class="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
-                  <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
-                  Stock Sincronizado en Tiempo Real
-                </span>
               </div>
               <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight text-gray-900">
                 Caja / Punto de Venta
               </h1>
               <p class="text-xs sm:text-sm text-gray-500">
-                Emisión rápida de Boletas y Facturas con descuento automático de inventario y protección de reservas online.
+                Emisión rápida de Boletas y Facturas con bloqueo inmediato de stock omnicanal (Tienda ↔ Web).
               </p>
-            </div>
-
-            <div class="flex flex-wrap items-center gap-2.5">
-              <button
-                type="button"
-                (click)="refreshPosData()"
-                class="inline-flex min-h-[38px] items-center gap-2 rounded-xl border border-orange-200 bg-orange-50 px-4 py-2 text-xs sm:text-sm font-bold text-orange-700 hover:bg-orange-100 transition cursor-pointer"
-              >
-                <svg class="h-4 w-4" [class.animate-spin]="loadingParts()" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
-                </svg>
-                <span>Sincronizar Stock</span>
-              </button>
             </div>
           </div>
 
@@ -229,11 +220,25 @@ import { ToastService } from '../../core/services/toast.service';
                   <path d="m21 21-4.3-4.3" />
                 </svg>
                 <input
-                  type="search"
+                  type="text"
                   [(ngModel)]="searchQuery"
+                  (ngModelChange)="onSearchInput($event)"
+                  (input)="onSearchInput($any($event.target).value)"
                   placeholder="Buscar por nombre del repuesto, código SKU, código OEM o marca..."
-                  class="min-h-[44px] w-full rounded-xl border border-gray-200 bg-gray-50/60 pl-10 pr-4 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-orange-600 focus:bg-white focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
+                  class="min-h-[44px] w-full rounded-xl border border-gray-200 bg-gray-50/60 pl-10 pr-10 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-orange-600 focus:bg-white focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
                 />
+                @if (searchQuery) {
+                  <button
+                    type="button"
+                    (click)="clearSearch()"
+                    class="absolute right-2.5 top-1/2 -translate-y-1/2 inline-flex h-7 w-7 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-700 cursor-pointer"
+                    aria-label="Limpiar búsqueda"
+                  >
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                }
               </div>
 
               <!-- Category Pills with visible horizontal scrollbar -->
@@ -312,19 +317,24 @@ import { ToastService } from '../../core/services/toast.service';
                         <div class="flex flex-wrap items-center gap-1.5 mt-0.5">
                           <span
                             [class]="
-                              (part.availableStock ?? part.stockQuantity) <= 0
+                              getRemainingPosStock(part) <= 0
                                 ? 'text-red-600 font-bold'
-                                : (part.availableStock ?? part.stockQuantity) <= 5
+                                : getRemainingPosStock(part) <= 5
                                   ? 'text-orange-600 font-bold'
                                   : 'text-emerald-700 font-semibold'
                             "
                             class="text-[11px]"
                           >
-                            Disp: {{ part.availableStock ?? part.stockQuantity }} und.
+                            Disp: {{ getRemainingPosStock(part) }} und.
                           </span>
-                          @if ((part.reservedQuantity ?? 0) > 0) {
+                          @if (getTicketQtyForPart(part.id) > 0) {
+                            <span class="rounded-full bg-orange-50 border border-orange-200 px-1.5 py-0.2 text-[9px] font-bold text-orange-700">
+                              🛒 {{ getTicketQtyForPart(part.id) }} en ticket
+                            </span>
+                          }
+                          @if (getOnlineReservedForPart(part) > 0) {
                             <span class="rounded-full bg-amber-50 border border-amber-200 px-1.5 py-0.2 text-[9px] font-bold text-amber-800">
-                              ⏳ {{ part.reservedQuantity }} reservado web
+                              ⏳ {{ getOnlineReservedForPart(part) }} reservado web
                             </span>
                           }
                         </div>
@@ -332,11 +342,11 @@ import { ToastService } from '../../core/services/toast.service';
 
                       <button
                         type="button"
-                        [disabled]="(part.availableStock ?? part.stockQuantity) <= 0"
+                        [disabled]="getRemainingPosStock(part) <= 0"
                         (click)="addToTicket(part)"
                         class="inline-flex min-h-[36px] items-center gap-1 rounded-xl bg-orange-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-2xs hover:bg-orange-700 active:scale-[0.98] disabled:bg-gray-200 disabled:text-gray-400 transition cursor-pointer"
                       >
-                        <span>+ Agregar</span>
+                        <span>{{ getRemainingPosStock(part) <= 0 ? (getOnlineReservedForPart(part) > 0 ? 'Reservado Web' : 'Sin stock') : '+ Agregar' }}</span>
                       </button>
                     </div>
                   </div>
@@ -410,7 +420,7 @@ import { ToastService } from '../../core/services/toast.service';
                         <span class="w-7 text-center font-mono font-extrabold text-gray-900">{{ item.quantity }}</span>
                         <button
                           type="button"
-                          [disabled]="item.quantity >= (item.part.availableStock ?? item.part.stockQuantity)"
+                          [disabled]="getRemainingPosStock(item.part) <= 0"
                           (click)="updateItemQty(item.part.id, item.quantity + 1)"
                           class="h-7 w-7 rounded-lg border border-gray-200 bg-gray-50 font-bold text-gray-700 hover:bg-gray-100 disabled:opacity-40 cursor-pointer"
                         >
@@ -648,7 +658,7 @@ import { ToastService } from '../../core/services/toast.service';
     </div>
   `,
 })
-export class PosPageComponent implements OnInit {
+export class PosPageComponent implements OnInit, OnDestroy {
   readonly auth = inject(AuthService);
   private readonly catalogService = inject(CatalogService);
   private readonly ordersService = inject(OrdersService);
@@ -665,9 +675,15 @@ export class PosPageComponent implements OnInit {
   readonly loadingParts = signal<boolean>(false);
 
   searchQuery = '';
+  readonly searchQuerySignal = signal<string>('');
   readonly selectedCategoryName = signal<string | null>(null);
 
-  readonly ticketItems = signal<{ part: Part; quantity: number }[]>([]);
+  readonly posReservationSessionId = this.initOrLoadPosSessionId();
+  readonly ticketItems = signal<{ part: Part; quantity: number }[]>(this.loadStoredPosTicket());
+  readonly onlineHolds = signal<Record<number, number>>(this.loadOnlineHoldsMap());
+  private autoSyncTimer: ReturnType<typeof setInterval> | null = null;
+  private storageListener: ((e: StorageEvent) => void) | null = null;
+
   invoiceType: 'BOLETA' | 'FACTURA' = 'BOLETA';
   customerDoc = '';
   customerName = 'Cliente en Caja';
@@ -678,20 +694,39 @@ export class PosPageComponent implements OnInit {
   readonly lookingUpDoc = signal<boolean>(false);
   readonly submitting = signal<boolean>(false);
 
-  readonly filteredParts = computed<Part[]>(() => {
-    const q = this.searchQuery.trim().toLowerCase();
+  private normalizeSearchText(value: string): string {
+    return (value || '')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim();
+  }
+
+  onSearchInput(val: string): void {
+    this.searchQuery = val ?? '';
+    this.searchQuerySignal.set(this.searchQuery);
+  }
+
+  clearSearch(): void {
+    this.searchQuery = '';
+    this.searchQuerySignal.set('');
+  }
+
+  filteredParts(): Part[] {
+    const rawQuery = this.searchQuerySignal() || this.searchQuery || '';
+    const q = this.normalizeSearchText(rawQuery);
+    const tokens = q ? q.split(/\s+/).filter(Boolean) : [];
     const cat = this.selectedCategoryName();
+
     return this.parts().filter((p) => {
       if (cat && p.categoryName !== cat) return false;
-      if (!q) return true;
-      return (
-        p.name.toLowerCase().includes(q) ||
-        (p.sku || '').toLowerCase().includes(q) ||
-        (p.oemCode || '').toLowerCase().includes(q) ||
-        (p.manufacturerBrand || '').toLowerCase().includes(q)
+      if (tokens.length === 0) return true;
+      const haystack = this.normalizeSearchText(
+        `${p.name} ${p.sku || ''} ${p.oemCode || ''} ${p.manufacturerBrand || ''} ${p.categoryName || ''}`
       );
+      return tokens.every((t) => haystack.includes(t));
     });
-  });
+  }
 
   readonly totalTicketUnits = computed<number>(() =>
     this.ticketItems().reduce((acc, i) => acc + i.quantity, 0)
@@ -713,27 +748,219 @@ export class PosPageComponent implements OnInit {
   );
 
   ngOnInit(): void {
+    this.onlineHolds.set(this.loadOnlineHoldsMap());
     this.refreshPosData();
+    this.syncPosTicketReservations();
+
     this.catalogService.getCategories().subscribe({
       next: (cats) => this.categories.set(cats),
     });
     this.logisticsService.getBranches().subscribe({
       next: (brs) => this.branches.set(brs),
     });
+
+    if (typeof window !== 'undefined') {
+      this.storageListener = (event: StorageEvent) => {
+        if (event.key === ONLINE_ACTIVE_HOLDS_KEY || event.key === 'asuncion_cart_v1') {
+          this.onlineHolds.set(this.loadOnlineHoldsMap());
+          this.reconcileTicketWithAvailableStock();
+        }
+      };
+      window.addEventListener('storage', this.storageListener);
+
+      this.autoSyncTimer = setInterval(() => {
+        this.onlineHolds.set(this.loadOnlineHoldsMap());
+        this.silentRefreshParts();
+        if (this.ticketItems().length > 0) {
+          this.syncPosTicketReservations();
+        }
+      }, 8000);
+    }
+  }
+
+  ngOnDestroy(): void {
+    if (this.autoSyncTimer) {
+      clearInterval(this.autoSyncTimer);
+      this.autoSyncTimer = null;
+    }
+    if (typeof window !== 'undefined' && this.storageListener) {
+      window.removeEventListener('storage', this.storageListener);
+      this.storageListener = null;
+    }
+  }
+
+  private silentRefreshParts(): void {
+    this.catalogService.getAdminParts(false).subscribe({
+      next: (list) => {
+        this.parts.set(list);
+        this.reconcileTicketWithAvailableStock();
+      },
+      error: () => {},
+    });
   }
 
   refreshPosData(): void {
     this.loadingParts.set(true);
+    this.onlineHolds.set(this.loadOnlineHoldsMap());
     this.catalogService
       .getAdminParts(false)
       .pipe(finalize(() => this.loadingParts.set(false)))
       .subscribe({
-        next: (list) => this.parts.set(list),
+        next: (list) => {
+          this.parts.set(list);
+          this.reconcileTicketWithAvailableStock();
+        },
       });
 
     this.ordersService.getAllOrders().subscribe({
       next: (ords) => this.allOrders.set(ords),
     });
+  }
+
+  getTicketQtyForPart(partId: number): number {
+    const found = this.ticketItems().find((i) => i.part.id === partId);
+    return found ? found.quantity : 0;
+  }
+
+  getOnlineReservedForPart(part: Part): number {
+    const posQty = this.getTicketQtyForPart(part.id);
+    const backendTotalReserved = Math.max(0, part.reservedQuantity ?? 0);
+    const backendOnlineReserved = Math.max(0, backendTotalReserved - posQty);
+    const localOnlineQty = Math.max(0, this.onlineHolds()[part.id] ?? 0);
+    return Math.max(backendOnlineReserved, localOnlineQty);
+  }
+
+  getMaxSellableInPos(part: Part): number {
+    const physicalStock = Math.max(0, part.stockQuantity ?? 0);
+    const onlineReserved = this.getOnlineReservedForPart(part);
+    return Math.max(0, physicalStock - onlineReserved);
+  }
+
+  getRemainingPosStock(part: Part): number {
+    return Math.max(0, this.getMaxSellableInPos(part) - this.getTicketQtyForPart(part.id));
+  }
+
+  private reconcileTicketWithAvailableStock(): void {
+    const currentTicket = this.ticketItems();
+    if (currentTicket.length === 0) return;
+
+    const partsMap = new Map(this.parts().map((p) => [p.id, p]));
+    let modified = false;
+    const nextTicket: { part: Part; quantity: number }[] = [];
+
+    for (const item of currentTicket) {
+      const latestPart = partsMap.get(item.part.id) ?? item.part;
+      const maxAllowed = this.getMaxSellableInPos(latestPart);
+      if (maxAllowed <= 0) {
+        modified = true;
+        this.toast.warning(
+          'Producto reservado en tienda online',
+          `«${latestPart.name}» fue reservado o adquirido por un cliente web y se retiró del ticket.`
+        );
+      } else if (item.quantity > maxAllowed) {
+        modified = true;
+        nextTicket.push({ part: latestPart, quantity: maxAllowed });
+        this.toast.warning(
+          'Cantidad ajustada por reserva web',
+          `«${latestPart.name}» se ajustó a ${maxAllowed} und. disponibles.`
+        );
+      } else {
+        nextTicket.push({ part: latestPart, quantity: item.quantity });
+      }
+    }
+
+    if (modified) {
+      this.ticketItems.set(nextTicket);
+      this.syncPosTicketReservations();
+    }
+  }
+
+  private syncPosTicketReservations(): void {
+    const items = this.ticketItems();
+    this.saveStoredPosTicket(items);
+    this.savePosActiveHolds(items);
+
+    const payload = items.map((i) => ({ partId: i.part.id, quantity: i.quantity }));
+    this.catalogService.syncReservations(this.posReservationSessionId, payload).subscribe({
+      error: () => {},
+    });
+  }
+
+  private initOrLoadPosSessionId(): string {
+    if (typeof window === 'undefined') return 'pos-ssr-session';
+    let existing = localStorage.getItem(POS_SESSION_KEY);
+    if (!existing) {
+      existing = 'pos-rsv-' + Math.random().toString(36).substring(2, 11) + '-' + Date.now().toString(36);
+      localStorage.setItem(POS_SESSION_KEY, existing);
+    }
+    return existing;
+  }
+
+  private loadStoredPosTicket(): { part: Part; quantity: number }[] {
+    if (typeof window === 'undefined') return [];
+    const raw = localStorage.getItem(POS_TICKET_STORAGE_KEY);
+    if (!raw) return [];
+    try {
+      const parsed = JSON.parse(raw) as { items: { part: Part; quantity: number }[]; expiresAt: number };
+      if (!parsed || typeof parsed.expiresAt !== 'number' || Date.now() > parsed.expiresAt) {
+        localStorage.removeItem(POS_TICKET_STORAGE_KEY);
+        localStorage.removeItem(POS_ACTIVE_HOLDS_KEY);
+        return [];
+      }
+      return Array.isArray(parsed.items) ? parsed.items : [];
+    } catch {
+      return [];
+    }
+  }
+
+  private saveStoredPosTicket(items: { part: Part; quantity: number }[]): void {
+    if (typeof window === 'undefined') return;
+    if (items.length === 0) {
+      localStorage.removeItem(POS_TICKET_STORAGE_KEY);
+      return;
+    }
+    localStorage.setItem(
+      POS_TICKET_STORAGE_KEY,
+      JSON.stringify({
+        items,
+        expiresAt: Date.now() + POS_HOLD_TTL_MS,
+      })
+    );
+  }
+
+  private savePosActiveHolds(items: { part: Part; quantity: number }[]): void {
+    if (typeof window === 'undefined') return;
+    if (items.length === 0) {
+      localStorage.removeItem(POS_ACTIVE_HOLDS_KEY);
+      return;
+    }
+    const holds: Record<number, number> = {};
+    for (const item of items) {
+      holds[item.part.id] = item.quantity;
+    }
+    localStorage.setItem(
+      POS_ACTIVE_HOLDS_KEY,
+      JSON.stringify({
+        holds,
+        expiresAt: Date.now() + POS_HOLD_TTL_MS,
+      })
+    );
+  }
+
+  private loadOnlineHoldsMap(): Record<number, number> {
+    if (typeof window === 'undefined') return {};
+    const raw = localStorage.getItem(ONLINE_ACTIVE_HOLDS_KEY);
+    if (!raw) return {};
+    try {
+      const parsed = JSON.parse(raw) as { holds: Record<number, number>; expiresAt: number };
+      if (!parsed || typeof parsed.expiresAt !== 'number' || Date.now() > parsed.expiresAt) {
+        localStorage.removeItem(ONLINE_ACTIVE_HOLDS_KEY);
+        return {};
+      }
+      return parsed.holds || {};
+    } catch {
+      return {};
+    }
   }
 
   private isCounterOrder(ord: Order): boolean {
@@ -767,16 +994,25 @@ export class PosPageComponent implements OnInit {
   }
 
   addToTicket(part: Part): void {
-    const maxAvail = part.availableStock ?? part.stockQuantity;
+    this.onlineHolds.set(this.loadOnlineHoldsMap());
+    const maxAvail = this.getMaxSellableInPos(part);
     if (maxAvail <= 0) {
-      this.toast.warning('Sin stock disponible', 'Este repuesto está agotado o reservado online.');
+      this.toast.warning(
+        'Sin stock disponible',
+        this.getOnlineReservedForPart(part) > 0
+          ? 'Las unidades de este repuesto están reservadas por un cliente en la tienda online.'
+          : 'Este repuesto se encuentra agotado.'
+      );
       return;
     }
     const list = [...this.ticketItems()];
     const idx = list.findIndex((i) => i.part.id === part.id);
     if (idx >= 0) {
       if (list[idx].quantity >= maxAvail) {
-        this.toast.warning('Stock máximo alcanzado', `Solo hay ${maxAvail} unidades disponibles.`);
+        this.toast.warning(
+          'Stock máximo disponible',
+          `Solo hay ${maxAvail} unidades disponibles para venta en tienda.`
+        );
         return;
       }
       list[idx] = { ...list[idx], quantity: list[idx].quantity + 1 };
@@ -784,27 +1020,32 @@ export class PosPageComponent implements OnInit {
       list.push({ part, quantity: 1 });
     }
     this.ticketItems.set(list);
+    this.syncPosTicketReservations();
   }
 
   updateItemQty(partId: number, newQty: number): void {
+    this.onlineHolds.set(this.loadOnlineHoldsMap());
     if (newQty <= 0) {
       this.ticketItems.set(this.ticketItems().filter((i) => i.part.id !== partId));
+      this.syncPosTicketReservations();
       return;
     }
     this.ticketItems.set(
       this.ticketItems().map((i) => {
         if (i.part.id === partId) {
-          const maxAvail = i.part.availableStock ?? i.part.stockQuantity;
+          const maxAvail = this.getMaxSellableInPos(i.part);
           return { ...i, quantity: Math.min(newQty, maxAvail) };
         }
         return i;
       })
     );
+    this.syncPosTicketReservations();
   }
 
   clearTicket(): void {
     this.ticketItems.set([]);
     this.cashReceived = null;
+    this.syncPosTicketReservations();
   }
 
   setInvoiceType(type: 'BOLETA' | 'FACTURA'): void {
@@ -867,6 +1108,7 @@ export class PosPageComponent implements OnInit {
         customerBusinessName: cleanName,
         paymentMethod: this.paymentMethod,
         notes: 'Venta directa en Caja',
+        reservationSessionId: this.posReservationSessionId,
         items: items.map((i) => ({ partId: i.part.id, quantity: i.quantity })),
       })
       .pipe(finalize(() => this.submitting.set(false)))

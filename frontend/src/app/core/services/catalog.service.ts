@@ -6,6 +6,7 @@ import {
   Part,
   PartAutocompleteSuggestion,
   PartUpsertRequest,
+  ReservationSyncResponse,
   VehicleMake,
   VehicleModel,
   VehicleModelSuggestion,
@@ -70,6 +71,16 @@ export class CatalogService {
 
   getPartById(id: number): Observable<Part> {
     return this.http.get<Part>(`${this.apiConfig.apiUrl}/catalog/parts/${id}`);
+  }
+
+  syncReservations(
+    sessionId: string,
+    items: { partId: number; quantity: number }[]
+  ): Observable<ReservationSyncResponse> {
+    return this.http.post<ReservationSyncResponse>(
+      `${this.apiConfig.apiUrl}/catalog/reservations/sync`,
+      { sessionId, items }
+    );
   }
 
   // ===================== ADMIN ERP ENDPOINTS =====================

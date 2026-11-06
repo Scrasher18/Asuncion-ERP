@@ -10,6 +10,8 @@ import { PromotionService } from './promotion.service';
 
 const GUEST_CART_KEY = 'asuncion_cart_guest_v2';
 const RESERVATION_SESSION_KEY = 'asuncion_reservation_session_id';
+export const POS_ACTIVE_HOLDS_KEY = 'asuncion_pos_active_holds';
+export const ONLINE_ACTIVE_HOLDS_KEY = 'asuncion_online_active_holds';
 
 @Injectable({ providedIn: 'root' })
 export class CartService {
@@ -27,6 +29,7 @@ export class CartService {
   readonly reservationExpiresAt = signal<number | null>(null);
   readonly reservationRemainingSeconds = signal<number>(0);
   readonly reservedByOthersMap = signal<Record<number, number>>({});
+  readonly posActiveHolds = signal<Record<number, number>>(this.loadPosActiveHolds());
   readonly isSyncingReservation = signal<boolean>(false);
 
   readonly hasActiveReservation = computed(() =>
@@ -47,13 +50,26 @@ export class CartService {
       const storageKey = user && user.id ? `asuncion_cart_user_${user.id}_v2` : GUEST_CART_KEY;
       const loaded = this.loadCartFromKey(storageKey);
       this.items.set(loaded);
+      this.publishOnlineHolds(loaded);
       if (loaded.length > 0) {
         this.syncReservationWithServer(false);
       }
     }, { allowSignalWrites: true });
 
     if (typeof window !== 'undefined') {
+      // Listen for POS holds or cross-tab changes in real time
+      window.addEventListener('storage', (evt) => {
+        if (evt.key === POS_ACTIVE_HOLDS_KEY) {
+          this.refreshPosHoldsAndReconcile();
+        }
+      });
+
+      window.addEventListener('asuncion-pos-holds-updated', () => {
+        this.refreshPosHoldsAndReconcile();
+      });
+
       setInterval(() => {
+        this.refreshPosHoldsAndReconcile(false);
         const exp = this.reservationExpiresAt();
         if (!exp || this.items().length === 0) {
           if (this.reservationRemainingSeconds() !== 0) {
@@ -64,6 +80,89 @@ export class CartService {
         const diff = Math.max(0, Math.floor((exp - Date.now()) / 1000));
         this.reservationRemainingSeconds.set(diff);
       }, 1000);
+    }
+  }
+
+  private loadPosActiveHolds(): Record<number, number> {
+    if (typeof window === 'undefined') return {};
+    try {
+      const raw = localStorage.getItem(POS_ACTIVE_HOLDS_KEY);
+      if (!raw) return {};
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object') {
+        if (parsed.expiresAt && typeof parsed.expiresAt === 'number' && parsed.expiresAt < Date.now()) {
+          localStorage.removeItem(POS_ACTIVE_HOLDS_KEY);
+          return {};
+        }
+        return parsed.holds || parsed;
+      }
+      return {};
+    } catch {
+      return {};
+    }
+  }
+
+  private publishOnlineHolds(cartItems: CartItem[]): void {
+    if (typeof window === 'undefined') return;
+    try {
+      if (!cartItems || cartItems.length === 0) {
+        localStorage.removeItem(ONLINE_ACTIVE_HOLDS_KEY);
+      } else {
+        const holds: Record<number, number> = {};
+        for (const item of cartItems) {
+          holds[item.part.id] = (holds[item.part.id] ?? 0) + item.quantity;
+        }
+        localStorage.setItem(
+          ONLINE_ACTIVE_HOLDS_KEY,
+          JSON.stringify({
+            sessionId: this.reservationSessionId,
+            expiresAt: Date.now() + 600_000,
+            holds,
+          })
+        );
+      }
+      window.dispatchEvent(new CustomEvent('asuncion-online-holds-updated'));
+    } catch {
+      // ignore storage errors
+    }
+  }
+
+  refreshPosHoldsAndReconcile(showToast = true): void {
+    const latestPos = this.loadPosActiveHolds();
+    this.posActiveHolds.set(latestPos);
+
+    const current = this.items();
+    if (current.length === 0) return;
+
+    let adjusted = false;
+    const nextList: CartItem[] = [];
+    for (const item of current) {
+      const posQty = latestPos[item.part.id] ?? 0;
+      const serverOthers = this.reservedByOthersMap()[item.part.id] ?? 0;
+      const reservedByOthers = Math.max(posQty, serverOthers);
+      const maxAvail = Math.max(0, item.part.stockQuantity - reservedByOthers);
+      if (item.quantity > maxAvail) {
+        adjusted = true;
+        if (showToast) {
+          this.toast.warning(
+            'Stock reservado en Punto de Venta',
+            maxAvail > 0
+              ? `Solo quedan ${maxAvail} und. disponibles de ${item.part.name} (el resto está reservado en Caja).`
+              : `Las unidades de ${item.part.name} acaban de ser reservadas en Caja / Punto de Venta.`
+          );
+        }
+        if (maxAvail > 0) {
+          nextList.push({ ...item, quantity: maxAvail });
+        }
+      } else {
+        nextList.push(item);
+      }
+    }
+
+    if (adjusted) {
+      this.items.set(nextList);
+      this.persist();
+      this.syncReservationWithServer(false);
     }
   }
 
@@ -103,13 +202,38 @@ export class CartService {
     return basePrice;
   }
 
+  getMyCartQuantity(partId: number): number {
+    return this.items().find((i) => i.part.id === partId)?.quantity ?? 0;
+  }
+
+  getReservedByOthersForPart(part: Part): number {
+    const posHold = this.posActiveHolds()[part.id] ?? 0;
+    const myQty = this.getMyCartQuantity(part.id);
+    const serverOthers =
+      this.reservedByOthersMap()[part.id] ?? Math.max(0, (part.reservedQuantity ?? 0) - myQty);
+    return Math.max(posHold, serverOthers);
+  }
+
   getAvailableStockForPart(part: Part): number {
-    const reservedByOthers = this.reservedByOthersMap()[part.id] ?? 0;
+    const reservedByOthers = this.getReservedByOthersForPart(part);
     return Math.max(0, part.stockQuantity - reservedByOthers);
+  }
+
+  getRemainingStockToAdd(part: Part): number {
+    const availForCart = this.getAvailableStockForPart(part);
+    const myQty = this.getMyCartQuantity(part.id);
+    return Math.max(0, availForCart - myQty);
+  }
+
+  getTotalReservedDisplay(part: Part): number {
+    const others = this.getReservedByOthersForPart(part);
+    const myQty = this.getMyCartQuantity(part.id);
+    return Math.max(part.reservedQuantity ?? 0, others + myQty);
   }
 
   openDrawer(): void {
     this.isDrawerOpen.set(true);
+    this.refreshPosHoldsAndReconcile(false);
     if (this.items().length > 0) {
       this.syncReservationWithServer(false);
     }
@@ -124,12 +248,23 @@ export class CartService {
   }
 
   addPart(part: Part, quantity = 1, openDrawerAfter = false): void {
+    this.refreshPosHoldsAndReconcile(false);
     const maxAvail = this.getAvailableStockForPart(part);
-    if (part.stockQuantity <= 0 || maxAvail <= 0) {
+    const remainingToAdd = this.getRemainingStockToAdd(part);
+
+    if (part.stockQuantity <= 0 || maxAvail <= 0 || remainingToAdd <= 0) {
       if (part.stockQuantity > 0 && maxAvail <= 0) {
+        const posHold = this.posActiveHolds()[part.id] ?? 0;
         this.toast.warning(
           'Stock en estado RESERVADO',
-          `Las ${part.stockQuantity} und. de ${part.name} están reservadas temporalmente por otro cliente en proceso de compra.`
+          posHold > 0
+            ? `Las unidades de ${part.name} están siendo atendidas en Caja / Punto de Venta en este momento.`
+            : `Las ${part.stockQuantity} und. de ${part.name} están reservadas temporalmente por otro cliente en proceso de compra.`
+        );
+      } else if (remainingToAdd <= 0 && maxAvail > 0) {
+        this.toast.warning(
+          'Máximo stock disponible en tu carrito',
+          `Ya tienes las ${maxAvail} und. disponibles de ${part.name} en tu carrito.`
         );
       } else {
         this.toast.warning('Sin stock disponible', `El repuesto ${part.sku} se encuentra agotado.`);
@@ -310,6 +445,7 @@ export class CartService {
     if (typeof window !== 'undefined') {
       const key = this.getStorageKey();
       localStorage.setItem(key, JSON.stringify(this.items()));
+      this.publishOnlineHolds(this.items());
     }
   }
 
