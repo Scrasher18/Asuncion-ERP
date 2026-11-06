@@ -161,6 +161,16 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                 <span>Nuevo repuesto</span>
               </button>
 
+              <a
+                routerLink="/pos"
+                class="inline-flex min-h-[38px] items-center gap-2 rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-xs font-bold text-gray-700 shadow-2xs hover:border-orange-300 hover:bg-orange-50/40 hover:text-orange-700 transition"
+              >
+                <svg class="h-4 w-4 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z" />
+                </svg>
+                <span>Ir a Caja / Punto de Venta</span>
+              </a>
+
               <button
                 type="button"
                 (click)="switchTab('orders')"
@@ -1257,27 +1267,17 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                 </label>
               </div>
 
-              <div class="flex flex-wrap items-center gap-2.5">
-                <button
-                  type="button"
-                  (click)="openPosModal()"
-                  class="inline-flex min-h-[42px] items-center gap-2 rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-2.5 text-sm font-bold text-emerald-800 shadow-2xs hover:bg-emerald-100 transition cursor-pointer"
-                >
-                  <span>🏪 Venta Presencial (Mostrador)</span>
-                </button>
-
-                <button
-                  type="button"
-                  (click)="openCreatePartModal()"
-                  class="inline-flex min-h-[42px] items-center gap-2 rounded-xl bg-orange-600 px-4 py-2.5 text-sm font-semibold text-white shadow-2xs hover:bg-orange-700 transition cursor-pointer"
-                >
-                  <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M5 12h14" />
-                    <path d="M12 5v14" />
-                  </svg>
-                  <span>Nuevo repuesto</span>
-                </button>
-              </div>
+              <button
+                type="button"
+                (click)="openCreatePartModal()"
+                class="inline-flex min-h-[42px] items-center gap-2 rounded-xl bg-orange-600 px-4 py-2.5 text-sm font-semibold text-white shadow-2xs hover:bg-orange-700 transition cursor-pointer"
+              >
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M5 12h14" />
+                  <path d="M12 5v14" />
+                </svg>
+                <span>Nuevo repuesto</span>
+              </button>
             </div>
 
             @if (lowStockOnlyFilter) {
@@ -1597,14 +1597,6 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                     <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
                   </svg>
                 </div>
-
-                <button
-                  type="button"
-                  (click)="openPosModal()"
-                  class="inline-flex min-h-[38px] items-center gap-1.5 rounded-xl bg-orange-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-2xs hover:bg-orange-700 transition cursor-pointer"
-                >
-                  <span>🏪 Registrar Venta Presencial</span>
-                </button>
 
                 <button
                   type="button"
@@ -4570,271 +4562,6 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
         </div>
       }
 
-      <!-- ========================================================================= -->
-      <!-- MODAL: PUNTO DE VENTA PRESENCIAL (MOSTRADOR / TIENDA FÍSICA)              -->
-      <!-- ========================================================================= -->
-      @if (showPosModal()) {
-        <div class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/50 backdrop-blur-xs p-3 sm:p-4 overflow-y-auto">
-          <div class="relative w-full max-w-4xl rounded-2xl border border-gray-200 bg-white shadow-2xl overflow-hidden my-6">
-            <!-- Header -->
-            <div class="border-b border-gray-200 bg-gray-50 px-6 py-4 flex items-center justify-between gap-4">
-              <div>
-                <div class="flex items-center gap-2">
-                  <span class="rounded-lg bg-orange-600 px-2.5 py-0.5 text-[11px] font-extrabold text-white uppercase tracking-wider">
-                    POS Mostrador
-                  </span>
-                  <h3 class="text-base font-extrabold text-gray-900">
-                    Registro de Venta Presencial en Tienda
-                  </h3>
-                </div>
-                <p class="text-xs text-gray-500 mt-0.5">
-                  Descuenta el stock físico en tiempo real en PostgreSQL, respeta las unidades en estado RESERVADO online y emite Boleta/Factura PDF.
-                </p>
-              </div>
-              <button
-                type="button"
-                (click)="closePosModal()"
-                class="rounded-xl border border-gray-200 bg-white p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-800 cursor-pointer"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div class="p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 max-h-[80vh] overflow-y-auto">
-              <!-- Left Column: Catalog Search & Stock Selection -->
-              <div class="lg:col-span-7 space-y-4">
-                <div>
-                  <label class="block text-xs font-bold text-gray-700 mb-1.5">
-                    1. Buscar repuesto en almacén (Nombre, SKU u OEM)
-                  </label>
-                  <input
-                    type="search"
-                    [(ngModel)]="posSearchQuery"
-                    placeholder="Ej: Pastillas Hilux, BRK-001, 04465-0K240..."
-                    class="w-full min-h-[42px] rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-orange-600 focus:outline-none"
-                  />
-                </div>
-
-                <!-- Filtered Parts List -->
-                <div class="rounded-xl border border-gray-200 divide-y divide-gray-100 max-h-60 overflow-y-auto bg-white">
-                  @for (part of filteredPosParts(); track part.id) {
-                    <div class="p-3 flex items-center justify-between gap-3 hover:bg-gray-50 transition text-xs">
-                      <div class="min-w-0 flex-1">
-                        <p class="font-bold text-gray-900 truncate">{{ part.name }}</p>
-                        <div class="flex flex-wrap items-center gap-2 mt-0.5 text-[11px] text-gray-500">
-                          <span class="font-mono font-semibold text-gray-700">{{ part.sku }}</span>
-                          @if (part.oemCode) {
-                            <span class="font-mono">OEM: {{ part.oemCode }}</span>
-                          }
-                          <span class="font-bold text-emerald-700">
-                            Disp: {{ part.availableStock ?? part.stockQuantity }} und.
-                          </span>
-                          @if ((part.reservedQuantity ?? 0) > 0) {
-                            <span class="rounded-full bg-amber-50 border border-amber-200 px-2 py-0.2 text-[10px] font-bold text-amber-800">
-                              ⏳ {{ part.reservedQuantity }} reservado online
-                            </span>
-                          }
-                        </div>
-                      </div>
-                      <div class="flex items-center gap-3 shrink-0">
-                        <div class="text-right">
-                          <span class="block font-mono font-extrabold text-gray-900">
-                            S/ {{ part.salePrice | number: '1.2-2' }}
-                          </span>
-                          @if (part.wholesalePrice) {
-                            <span class="block font-mono text-[10px] text-emerald-700 font-semibold">
-                              May(4+): S/ {{ part.wholesalePrice | number: '1.2-2' }}
-                            </span>
-                          }
-                        </div>
-                        <button
-                          type="button"
-                          [disabled]="(part.availableStock ?? part.stockQuantity) <= 0"
-                          (click)="addPartToPosCart(part)"
-                          class="rounded-lg bg-orange-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-orange-700 disabled:bg-gray-200 disabled:text-gray-400 transition cursor-pointer"
-                        >
-                          + Agregar
-                        </button>
-                      </div>
-                    </div>
-                  }
-                </div>
-
-                <!-- Selected Items in Counter Ticket -->
-                <div class="space-y-2">
-                  <div class="flex items-center justify-between">
-                    <span class="text-xs font-bold text-gray-700">
-                      2. Repuestos en ticket de mostrador ({{ posCart().length }})
-                    </span>
-                    @if (posCart().length > 0) {
-                      <button
-                        type="button"
-                        (click)="posCart.set([])"
-                        class="text-[11px] font-semibold text-red-600 hover:underline cursor-pointer"
-                      >
-                        Vaciar ticket
-                      </button>
-                    }
-                  </div>
-
-                  @if (posCart().length === 0) {
-                    <div class="rounded-xl border border-dashed border-gray-200 bg-gray-50 p-6 text-center text-xs text-gray-500">
-                      Selecciona repuestos de la lista superior para armar la venta presencial.
-                    </div>
-                  } @else {
-                    <div class="rounded-xl border border-gray-200 divide-y divide-gray-100 bg-white">
-                      @for (item of posCart(); track item.part.id) {
-                        <div class="p-3 flex items-center justify-between gap-3 text-xs">
-                          <div class="min-w-0 flex-1">
-                            <p class="font-bold text-gray-900 truncate">{{ item.part.name }}</p>
-                            <span class="font-mono text-[11px] text-gray-500">
-                              {{ item.part.sku }} · S/ {{ getPosUnitPrice(item) | number: '1.2-2' }} c/u
-                              @if (item.quantity >= 4 && item.part.wholesalePrice) {
-                                <span class="text-emerald-700 font-bold">(Tarifa Mayorista)</span>
-                              }
-                            </span>
-                          </div>
-                          <div class="flex items-center gap-2">
-                            <button
-                              type="button"
-                              (click)="updatePosItemQty(item.part.id, item.quantity - 1)"
-                              class="h-7 w-7 rounded-lg border border-gray-200 bg-gray-50 font-bold text-gray-700 hover:bg-gray-100 cursor-pointer"
-                            >
-                              −
-                            </button>
-                            <span class="w-7 text-center font-mono font-bold text-gray-900">{{ item.quantity }}</span>
-                            <button
-                              type="button"
-                              [disabled]="item.quantity >= (item.part.availableStock ?? item.part.stockQuantity)"
-                              (click)="updatePosItemQty(item.part.id, item.quantity + 1)"
-                              class="h-7 w-7 rounded-lg border border-gray-200 bg-gray-50 font-bold text-gray-700 hover:bg-gray-100 disabled:opacity-40 cursor-pointer"
-                            >
-                              +
-                            </button>
-                          </div>
-                          <div class="w-20 text-right font-mono font-bold text-gray-900">
-                            S/ {{ (getPosUnitPrice(item) * item.quantity) | number: '1.2-2' }}
-                          </div>
-                        </div>
-                      }
-                    </div>
-                  }
-                </div>
-              </div>
-
-              <!-- Right Column: Customer Billing & Payment -->
-              <div class="lg:col-span-5 space-y-4 rounded-2xl border border-gray-200 bg-gray-50/70 p-4">
-                <h4 class="text-xs font-extrabold uppercase tracking-wider text-gray-700">
-                  3. Datos del Cliente y Comprobante
-                </h4>
-
-                <!-- Boleta / Factura Switch -->
-                <div class="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    (click)="posInvoiceType = 'BOLETA'"
-                    [class]="posInvoiceType === 'BOLETA' ? 'border-orange-600 bg-orange-50 text-orange-700 font-bold' : 'border-gray-200 bg-white text-gray-600'"
-                    class="rounded-xl border py-2 text-xs transition cursor-pointer"
-                  >
-                    Boleta (DNI)
-                  </button>
-                  <button
-                    type="button"
-                    (click)="posInvoiceType = 'FACTURA'"
-                    [class]="posInvoiceType === 'FACTURA' ? 'border-orange-600 bg-orange-50 text-orange-700 font-bold' : 'border-gray-200 bg-white text-gray-600'"
-                    class="rounded-xl border py-2 text-xs transition cursor-pointer"
-                  >
-                    Factura (RUC 11 díg.)
-                  </button>
-                </div>
-
-                <div>
-                  <label class="block text-xs font-bold text-gray-700 mb-1">
-                    {{ posInvoiceType === 'FACTURA' ? 'Número de RUC *' : 'DNI del Cliente' }}
-                  </label>
-                  <div class="flex gap-2">
-                    <input
-                      type="text"
-                      [(ngModel)]="posCustomerDoc"
-                      [placeholder]="posInvoiceType === 'FACTURA' ? '20601234567' : '71234567'"
-                      class="flex-1 min-h-[38px] rounded-xl border border-gray-200 bg-white px-3 py-1.5 font-mono text-xs text-gray-900 focus:border-orange-600 focus:outline-none"
-                    />
-                    <button
-                      type="button"
-                      [disabled]="posLookingUpDoc()"
-                      (click)="lookupPosCustomerDoc()"
-                      class="rounded-xl border border-orange-200 bg-orange-50 px-3 py-1.5 text-xs font-bold text-orange-700 hover:bg-orange-100 cursor-pointer"
-                    >
-                      {{ posLookingUpDoc() ? '...' : 'RENIEC/SUNAT' }}
-                    </button>
-                  </div>
-                </div>
-
-                <div>
-                  <label class="block text-xs font-bold text-gray-700 mb-1">
-                    {{ posInvoiceType === 'FACTURA' ? 'Razón Social *' : 'Nombre del Cliente *' }}
-                  </label>
-                  <input
-                    type="text"
-                    [(ngModel)]="posCustomerName"
-                    placeholder="Nombre completo o razón social"
-                    class="w-full min-h-[38px] rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-900 focus:border-orange-600 focus:outline-none"
-                  />
-                </div>
-
-                <div class="grid grid-cols-2 gap-2">
-                  <div>
-                    <label class="block text-xs font-bold text-gray-700 mb-1">Celular (Opcional)</label>
-                    <input
-                      type="text"
-                      [(ngModel)]="posCustomerPhone"
-                      placeholder="987654321"
-                      class="w-full min-h-[38px] rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-900 focus:border-orange-600 focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label class="block text-xs font-bold text-gray-700 mb-1">Medio de Pago en Caja</label>
-                    <select
-                      [(ngModel)]="posPaymentMethod"
-                      class="w-full min-h-[38px] rounded-xl border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-gray-900 focus:border-orange-600 focus:outline-none"
-                    >
-                      <option value="MOSTRADOR_EFECTIVO">Efectivo en Caja</option>
-                      <option value="MOSTRADOR_YAPE_PLIN">Yape / Plin en Tienda</option>
-                      <option value="MOSTRADOR_POS_TARJETA">POS Físico (Tarjeta)</option>
-                    </select>
-                  </div>
-                </div>
-
-                <!-- Totals Breakdown -->
-                <div class="rounded-xl border border-gray-200 bg-white p-3.5 space-y-1.5 text-xs">
-                  <div class="flex justify-between text-gray-600">
-                    <span>Subtotal repuestos:</span>
-                    <span class="font-mono font-semibold">S/ {{ posSubtotal() | number: '1.2-2' }}</span>
-                  </div>
-                  <div class="flex justify-between text-gray-600">
-                    <span>IGV (18%):</span>
-                    <span class="font-mono font-semibold">S/ {{ (posSubtotal() * 0.18) | number: '1.2-2' }}</span>
-                  </div>
-                  <div class="flex justify-between text-sm font-extrabold text-gray-900 pt-1.5 border-t border-gray-100">
-                    <span>Total a cobrar en caja:</span>
-                    <span class="font-mono text-orange-600">S/ {{ (posSubtotal() * 1.18) | number: '1.2-2' }}</span>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  [disabled]="posCart().length === 0 || posSubmitting()"
-                  (click)="submitPosSale()"
-                  class="w-full min-h-[44px] rounded-xl bg-orange-600 py-2.5 px-4 text-xs sm:text-sm font-extrabold text-white shadow-sm hover:bg-orange-700 disabled:bg-gray-200 disabled:text-gray-400 transition cursor-pointer"
-                >
-                  {{ posSubmitting() ? 'Registrando y descontando stock...' : '✓ Emitir Venta Presencial y Descargar PDF' }}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      }
-
     </div>
   `,
 })
@@ -4858,35 +4585,6 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
 
   // Driver Ratings Modal State
   readonly selectedDriverForRatings = signal<string | null>(null);
-
-  // Punto de Venta Presencial (POS Mostrador) State
-  readonly showPosModal = signal<boolean>(false);
-  posSearchQuery = '';
-  readonly posCart = signal<{ part: Part; quantity: number }[]>([]);
-  posInvoiceType: 'BOLETA' | 'FACTURA' = 'BOLETA';
-  posCustomerDoc = '';
-  posCustomerName = 'Cliente de Mostrador';
-  posCustomerPhone = '';
-  posPaymentMethod = 'MOSTRADOR_EFECTIVO';
-  readonly posLookingUpDoc = signal<boolean>(false);
-  readonly posSubmitting = signal<boolean>(false);
-
-  readonly filteredPosParts = computed<Part[]>(() => {
-    const q = this.posSearchQuery.trim().toLowerCase();
-    const all = this.adminParts();
-    if (!q) return all.slice(0, 25);
-    return all.filter(
-      (p) =>
-        p.name.toLowerCase().includes(q) ||
-        (p.sku || '').toLowerCase().includes(q) ||
-        (p.oemCode || '').toLowerCase().includes(q) ||
-        (p.manufacturerBrand || '').toLowerCase().includes(q)
-    );
-  });
-
-  readonly posSubtotal = computed<number>(() =>
-    this.posCart().reduce((sum, item) => sum + this.getPosUnitPrice(item) * item.quantity, 0)
-  );
 
   readonly auth = inject(AuthService);
   readonly notifService = inject(NotificationCenterService);
@@ -6875,9 +6573,27 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
 
   // ===================== GLOBAL ORDERS & MOTORIZADOS =====================
 
+  private isCounterSaleOrder(ord: Order): boolean {
+    const pm = (ord.paymentMethod || '').toUpperCase();
+    const notes = (ord.notes || '').toUpperCase();
+    const addr = (ord.deliveryAddress || '').toUpperCase();
+    const client = (ord.customerName || ord.recipientName || '').toUpperCase();
+    const delType = (ord.deliveryType || '').toUpperCase();
+    return (
+      delType === 'MOSTRADOR' ||
+      pm.startsWith('MOSTRADOR') ||
+      notes.includes('MOSTRADOR') ||
+      notes.includes('PRESENCIAL') ||
+      addr.includes('MOSTRADOR') ||
+      addr.includes('VENTA PRESENCIAL') ||
+      client === 'CLIENTE DE MOSTRADOR' ||
+      client === 'CLIENTE EN CAJA'
+    );
+  }
+
   loadGlobalOrders(): void {
     this.ordersService.getAllOrders().subscribe({
-      next: (list) => this.globalOrders.set(list),
+      next: (list) => this.globalOrders.set(list.filter((o) => !this.isCounterSaleOrder(o))),
       error: () => this.globalOrders.set([]),
     });
   }
@@ -7585,146 +7301,6 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
   }
 
   // ---------------------------------------------------------------------------
-  // PUNTO DE VENTA PRESENCIAL (MOSTRADOR / TIENDA FÍSICA)
-  // ---------------------------------------------------------------------------
-  openPosModal(): void {
-    if (this.adminParts().length === 0) {
-      this.loadAdminParts();
-    }
-    this.showPosModal.set(true);
-  }
-
-  closePosModal(): void {
-    this.showPosModal.set(false);
-  }
-
-  getPosUnitPrice(item: { part: Part; quantity: number }): number {
-    if (item.quantity >= 4 && item.part.wholesalePrice && item.part.wholesalePrice < item.part.salePrice) {
-      return item.part.wholesalePrice;
-    }
-    return item.part.salePrice;
-  }
-
-  addPartToPosCart(part: Part): void {
-    const maxAvail = part.availableStock ?? part.stockQuantity;
-    if (maxAvail <= 0) {
-      this.toast.warning('Sin stock disponible', 'Este repuesto está agotado o reservado por un cliente en línea.');
-      return;
-    }
-    const current = [...this.posCart()];
-    const idx = current.findIndex((i) => i.part.id === part.id);
-    if (idx >= 0) {
-      if (current[idx].quantity >= maxAvail) {
-        this.toast.warning('Límite disponible', `Solo hay ${maxAvail} unidades libres para venta en mostrador.`);
-        return;
-      }
-      current[idx] = { ...current[idx], quantity: current[idx].quantity + 1 };
-    } else {
-      current.push({ part, quantity: 1 });
-    }
-    this.posCart.set(current);
-  }
-
-  updatePosItemQty(partId: number, newQty: number): void {
-    if (newQty <= 0) {
-      this.posCart.set(this.posCart().filter((i) => i.part.id !== partId));
-      return;
-    }
-    this.posCart.set(
-      this.posCart().map((i) => {
-        if (i.part.id === partId) {
-          const maxAvail = i.part.availableStock ?? i.part.stockQuantity;
-          return { ...i, quantity: Math.min(newQty, maxAvail) };
-        }
-        return i;
-      })
-    );
-  }
-
-  lookupPosCustomerDoc(): void {
-    const doc = (this.posCustomerDoc || '').trim();
-    if (!doc) {
-      this.toast.info('Documento', 'Ingresa un DNI (8 dígitos) o RUC (11 dígitos).');
-      return;
-    }
-    this.posLookingUpDoc.set(true);
-    this.lookupService
-      .lookupDocument(doc)
-      .pipe(finalize(() => this.posLookingUpDoc.set(false)))
-      .subscribe({
-        next: (res) => {
-          const resolved = (res.businessName || res.fullName || '').trim();
-          if (res.found && resolved) {
-            this.posCustomerName = resolved;
-            if (res.documentType === 'RUC' || doc.length === 11) {
-              this.posInvoiceType = 'FACTURA';
-            } else {
-              this.posInvoiceType = 'BOLETA';
-            }
-            this.toast.success('Padrón verificado', resolved);
-          } else {
-            this.toast.info('Consulta manual', 'Ingresa el nombre o razón social manualmente.');
-          }
-        },
-        error: () => {
-          this.toast.info('Consulta manual', 'Ingresa el nombre o razón social manualmente.');
-        },
-      });
-  }
-
-  submitPosSale(): void {
-    const items = this.posCart();
-    if (items.length === 0) return;
-
-    const customerName = (this.posCustomerName || '').trim() || 'Cliente de Mostrador';
-    const docNum = (this.posCustomerDoc || '').trim();
-    if (this.posInvoiceType === 'FACTURA' && docNum.length !== 11) {
-      this.toast.warning('RUC requerido', 'Para emitir Factura Electrónica debes ingresar un RUC de 11 dígitos.');
-      return;
-    }
-
-    this.posSubmitting.set(true);
-    this.ordersService
-      .createOrder({
-        deliveryType: 'MOSTRADOR',
-        branchId: this.branches()[0]?.id ?? 1,
-        recipientName: customerName,
-        recipientPhone: (this.posCustomerPhone || '').trim() || '999999999',
-        invoiceType: this.posInvoiceType,
-        customerTaxId: docNum || '00000000',
-        customerBusinessName: customerName,
-        paymentMethod: this.posPaymentMethod,
-        notes: 'Venta presencial en mostrador de tienda física',
-        items: items.map((i) => ({ partId: i.part.id, quantity: i.quantity })),
-      })
-      .pipe(finalize(() => this.posSubmitting.set(false)))
-      .subscribe({
-        next: (createdOrder) => {
-          this.toast.success(
-            '¡Venta Presencial Registrada!',
-            `Orden #${createdOrder.orderNumber} emitida y stock descontado en tiempo real.`
-          );
-          this.posCart.set([]);
-          this.posCustomerDoc = '';
-          this.posCustomerName = 'Cliente de Mostrador';
-          this.posCustomerPhone = '';
-          this.closePosModal();
-          this.loadAdminParts();
-          this.loadGlobalOrders();
-          this.loadAnalytics(this.analyticsDays());
-          this.pdfInvoiceService.generateInvoicePdf(createdOrder, true);
-        },
-        error: (err) => {
-          this.toast.error(
-            'No se pudo registrar la venta',
-            err?.error?.message || 'Verifica el stock disponible e inténtalo nuevamente.'
-          );
-          this.loadAdminParts();
-        },
-      });
-  }
-
-  // ---------------------------------------------------------------------------
   // REAL-TIME ORDER MONITOR & WEB AUDIO API CHIME (DING-DONG)
   // ---------------------------------------------------------------------------
   initOrderMonitor(): void {
@@ -7740,15 +7316,18 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
       next: (orders: Order[]) => {
         if (!orders || orders.length === 0) return;
 
+        // Only monitor online orders (counter sales in Caja do not trigger notifications/chimes)
+        const onlineOrders = orders.filter((o) => !this.isCounterSaleOrder(o));
+
         if (!this.hasInitializedOrderMonitor) {
           // First run: populate known IDs without chiming
-          orders.forEach((o) => this.knownOrderNumbers.add(o.orderNumber));
+          onlineOrders.forEach((o) => this.knownOrderNumbers.add(o.orderNumber));
           this.hasInitializedOrderMonitor = true;
           return;
         }
 
-        // Check for any newly arrived order
-        const newOrders = orders.filter((o) => !this.knownOrderNumbers.has(o.orderNumber));
+        // Check for any newly arrived online order
+        const newOrders = onlineOrders.filter((o) => !this.knownOrderNumbers.has(o.orderNumber));
         if (newOrders.length > 0) {
           const latest = newOrders[0];
           newOrders.forEach((o) => this.knownOrderNumbers.add(o.orderNumber));

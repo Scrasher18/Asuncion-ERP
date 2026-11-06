@@ -13,40 +13,6 @@ import {
   standalone: true,
   imports: [CommonModule, RouterLink, RouterLinkActive],
   template: `
-    <!-- Top Institutional & Logistics Utility Bar -->
-    <div class="hidden md:block bg-gray-950 text-gray-300 border-b border-gray-800/80 text-[11px]">
-      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 flex h-8 items-center justify-between gap-4">
-        <div class="flex items-center gap-4 truncate">
-          <span class="inline-flex items-center gap-1.5 font-semibold text-white">
-            <span class="h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
-            RUC 20608899114 · Negociaciones Asunción S.A.C.
-          </span>
-          <span class="text-gray-700">|</span>
-          <span class="inline-flex items-center gap-1 text-gray-400">
-            <svg class="h-3.5 w-3.5 text-orange-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-              <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-            </svg>
-            Av. Sta. Ana 441 - Santa Anita, Lima
-          </span>
-        </div>
-
-        <div class="flex items-center gap-4 shrink-0">
-          <span class="hidden xl:inline-flex items-center gap-1.5 rounded-full bg-orange-500/15 border border-orange-500/30 px-2.5 py-0.5 text-[10px] font-bold text-orange-300">
-            <span>Precio Mayorista automático llevando 4+ unidades</span>
-          </span>
-          @if (auth.canAccessTracking()) {
-            <a routerLink="/track" class="hover:text-orange-400 transition font-medium">
-              Rastrear Pedido
-            </a>
-          }
-          <a routerLink="/libro-reclamaciones" class="hover:text-orange-400 transition font-medium">
-            Libro de Reclamaciones
-          </a>
-        </div>
-      </div>
-    </div>
-
     <header class="sticky top-0 z-40 border-b border-gray-200/90 bg-white/95 text-gray-900 backdrop-blur-md shadow-2xs">
       <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div class="flex h-16 items-center justify-between gap-3">
@@ -118,6 +84,17 @@ import {
                   <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
                 </svg>
                 <span>{{ auth.primaryRole() === 'VENDEDOR' ? 'Panel de Ventas' : 'Administración' }}</span>
+              </a>
+
+              <a
+                routerLink="/pos"
+                routerLinkActive="bg-orange-50 text-orange-700 border-orange-200 font-bold"
+                class="inline-flex items-center gap-1.5 rounded-xl border border-transparent px-3.5 py-2 text-xs sm:text-sm font-semibold text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition"
+              >
+                <svg class="h-4 w-4 text-orange-600/80" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z" />
+                </svg>
+                <span>Caja / Punto de Venta</span>
               </a>
             }
 
@@ -575,6 +552,13 @@ import {
               class="block rounded-lg px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-orange-50 hover:text-orange-700"
             >
               {{ auth.primaryRole() === 'VENDEDOR' ? 'Panel de Ventas' : 'Administración' }}
+            </a>
+            <a
+              routerLink="/pos"
+              (click)="mobileOpen.set(false)"
+              class="block rounded-lg px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-orange-50 hover:text-orange-700"
+            >
+              Caja / Punto de Venta
             </a>
           }
           @if (auth.canAccessDelivery()) {

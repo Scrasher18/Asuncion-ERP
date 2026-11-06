@@ -245,7 +245,7 @@ public class OrderService {
 
         CustomerOrder saved = orderRepository.save(order);
         OrderResponse response = toOrderResponse(saved);
-        if (!isOnlinePayment) {
+        if (!isOnlinePayment && !isCounterSale) {
             emailNotificationService.notifyOrderCreated(response);
         }
         return response;

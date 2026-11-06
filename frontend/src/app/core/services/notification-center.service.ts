@@ -210,6 +210,27 @@ export class NotificationCenterService {
     return false;
   }
 
+  /**
+   * Las compras presenciales en caja (Mostrador) no generan notificaciones en la campana;
+   * las notificaciones son exclusivamente para pedidos online.
+   */
+  private isCounterSaleOrder(ord: Order): boolean {
+    const pm = (ord.paymentMethod || '').toUpperCase();
+    const notes = (ord.notes || '').toUpperCase();
+    const addr = (ord.deliveryAddress || '').toUpperCase();
+    const client = (ord.customerName || ord.recipientName || '').toUpperCase();
+    const delType = (ord.deliveryType || '').toUpperCase();
+    return (
+      delType === 'MOSTRADOR' ||
+      pm.startsWith('MOSTRADOR') ||
+      notes.includes('MOSTRADOR') ||
+      notes.includes('PRESENCIAL') ||
+      addr.includes('MOSTRADOR') ||
+      addr.includes('VENTA PRESENCIAL') ||
+      client === 'CLIENTE DE MOSTRADOR'
+    );
+  }
+
   private fetchAdminNotifications(): void {
     const readMap = this.getReadMap();
     const dismissedMap = this.getDismissedMap();
@@ -241,8 +262,9 @@ export class NotificationCenterService {
           });
         }
 
-        // 2. Process orders for sales, payments, dispatch and driver delivery (filtered by TTL)
-        const sortedOrders = [...orders].sort(
+        // 2. Process ONLINE orders for sales, payments, dispatch and driver delivery (filtered by TTL)
+        const onlineOrders = orders.filter((o) => !this.isCounterSaleOrder(o));
+        const sortedOrders = [...onlineOrders].sort(
           (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         );
 
@@ -385,7 +407,8 @@ export class NotificationCenterService {
       next: (orders) => {
         const notifs: AppNotification[] = [];
 
-        const sortedOrders = [...orders].sort(
+        const onlineOrders = orders.filter((o) => !this.isCounterSaleOrder(o));
+        const sortedOrders = [...onlineOrders].sort(
           (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         );
 

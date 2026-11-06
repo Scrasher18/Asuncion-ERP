@@ -51,6 +51,13 @@ export const routes: Routes = [
       import('./features/admin/admin-erp.page').then((m) => m.AdminErpPageComponent),
   },
   {
+    path: 'pos',
+    title: 'Punto de Venta (Caja) | Repuestos Asunción',
+    canActivate: [roleGuard(['ADMIN', 'VENDEDOR'])],
+    loadComponent: () =>
+      import('./features/pos/pos.page').then((m) => m.PosPageComponent),
+  },
+  {
     path: 'delivery',
     title: 'Reparto y entregas | Repuestos Asunción',
     canActivate: [roleGuard(['ADMIN', 'MOTORIZADO'])],
