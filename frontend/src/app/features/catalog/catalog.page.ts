@@ -24,26 +24,29 @@ import { PromotionService } from '../../core/services/promotion.service';
             alt="Taller y repuestos automotrices Asunción"
             class="h-full w-full object-cover object-center filter brightness-50 contrast-125"
           />
-          <div class="absolute inset-0 bg-gradient-to-r from-gray-950/95 via-gray-950/85 to-gray-900/60"></div>
+          <div class="absolute inset-0 bg-gradient-to-r from-gray-950/95 via-gray-950/85 to-gray-900/65"></div>
         </div>
 
-        <div class="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-6">
+        <div class="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 sm:py-11 space-y-6">
           <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
             <div class="space-y-3 max-w-2xl">
-              <div class="inline-flex items-center gap-2 rounded-full border border-orange-500/30 bg-orange-500/20 px-3.5 py-1 text-xs font-semibold text-orange-300 backdrop-blur-md">
+              <div class="inline-flex items-center gap-2 rounded-full border border-orange-500/30 bg-orange-500/20 px-3.5 py-1 text-xs font-bold text-orange-300 backdrop-blur-md">
                 <span class="h-2 w-2 rounded-full bg-orange-400 animate-pulse"></span>
-                <span>Repuestos originales y alternativos garantizados · Asunción S.A.C.</span>
+                <span>Repuestos Originales y Alternativos Garantizados · Asunción S.A.C.</span>
               </div>
               <h1 class="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-white leading-tight">
                 Encuentra el repuesto exacto para tu vehículo
               </h1>
               <p class="text-sm sm:text-base text-gray-300 leading-relaxed max-w-xl">
-                Selecciona marca, modelo y año para ver piezas compatibles con despacho express motorizado en Lima o recojo en almacén central.
+                Filtra por marca, modelo y año con compatibilidad verificada OEM, precios mayoristas automáticos desde 4 unidades y despacho express en Lima.
               </p>
             </div>
 
             <!-- Predictive Search Box -->
             <div class="relative w-full lg:w-96">
+              <label class="block text-[11px] font-bold uppercase tracking-wider text-orange-300 mb-1.5">
+                Búsqueda rápida por Código OEM, SKU o Pieza
+              </label>
               <div class="relative">
                 <input
                   type="text"
@@ -51,10 +54,10 @@ import { PromotionService } from '../../core/services/promotion.service';
                   (ngModelChange)="onSearchInputChange()"
                   (focus)="showSuggestions.set(true)"
                   (blur)="hideSuggestionsDelayed()"
-                  placeholder="Buscar por nombre, código OEM o SKU..."
-                  class="w-full min-h-[48px] rounded-xl border border-gray-300 bg-white/95 backdrop-blur-md pl-10 pr-9 py-2.5 text-base sm:text-sm text-gray-900 placeholder-gray-500 shadow-xl focus:border-orange-600 focus:ring-2 focus:ring-orange-500/30 focus:outline-none"
+                  placeholder="Ej: Pastilla de freno, 04465, 15W-40..."
+                  class="w-full min-h-[48px] rounded-xl border border-gray-300 bg-white/95 backdrop-blur-md pl-10 pr-9 py-2.5 text-base sm:text-sm font-medium text-gray-900 placeholder-gray-500 shadow-xl focus:border-orange-600 focus:ring-2 focus:ring-orange-500/30 focus:outline-none"
                 />
-                <svg class="absolute left-3.5 top-3.5 h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <svg class="absolute left-3.5 top-3.5 h-4 w-4 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
                 </svg>
                 @if (searchQuery) {
@@ -73,15 +76,15 @@ import { PromotionService } from '../../core/services/promotion.service';
 
               <!-- Predictive Suggestions Popover -->
               @if (showSuggestions() && searchQuery.trim().length >= 2 && predictiveResults().length > 0) {
-                <div class="absolute left-0 right-0 mt-1.5 z-30 rounded-xl border border-gray-200 bg-white shadow-xl overflow-hidden divide-y divide-gray-100">
+                <div class="absolute left-0 right-0 mt-1.5 z-30 rounded-xl border border-gray-200 bg-white shadow-2xl overflow-hidden divide-y divide-gray-100">
                   @for (item of predictiveResults(); track item.id) {
                     <button
                       type="button"
                       (mousedown)="goToPart(item.id)"
-                      class="w-full px-3.5 py-2.5 text-left hover:bg-orange-50/50 flex items-center justify-between gap-3 transition"
+                      class="w-full px-3.5 py-2.5 text-left hover:bg-orange-50/60 flex items-center justify-between gap-3 transition cursor-pointer"
                     >
                       <div class="min-w-0">
-                        <p class="truncate text-xs font-semibold text-gray-900">{{ item.name }}</p>
+                        <p class="truncate text-xs font-bold text-gray-900">{{ item.name }}</p>
                         <p class="font-mono text-[11px] text-gray-500">
                           @if (item.oemCode) {
                             OEM {{ item.oemCode }} ·
@@ -89,7 +92,7 @@ import { PromotionService } from '../../core/services/promotion.service';
                           {{ item.sku }}
                         </p>
                       </div>
-                      <span class="shrink-0 text-xs font-bold text-gray-900">
+                      <span class="shrink-0 font-mono text-xs font-extrabold text-orange-600">
                         S/ {{ item.salePrice | number: '1.2-2' }}
                       </span>
                     </button>
@@ -101,16 +104,30 @@ import { PromotionService } from '../../core/services/promotion.service';
 
           <!-- Horizontal Vehicle Selector Card -->
           <div class="rounded-2xl border border-white/20 bg-white/95 backdrop-blur-md p-4 sm:p-5 shadow-2xl text-gray-900">
+            <div class="flex flex-wrap items-center justify-between gap-2 pb-3 mb-3 border-b border-gray-200/80">
+              <div class="flex items-center gap-2">
+                <span class="flex h-6 w-6 items-center justify-center rounded-lg bg-orange-600 text-white text-xs font-extrabold">
+                  ✓
+                </span>
+                <span class="text-xs sm:text-sm font-extrabold text-gray-900">
+                  Selector de Compatibilidad Vehicular
+                </span>
+              </div>
+              <span class="text-[11px] text-gray-500 font-medium">
+                Filtra repuestos exactos para camiones, pickups y autos livianos
+              </span>
+            </div>
+
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-end">
-              <!-- Marca -->
+              <!-- 1. Marca -->
               <div class="lg:col-span-2">
-                <label class="block text-xs font-semibold text-gray-700 mb-1">
-                  Marca
+                <label class="block text-[11px] font-bold uppercase tracking-wider text-gray-600 mb-1">
+                  1. Marca
                 </label>
                 <select
                   [(ngModel)]="selectedMakeId"
                   (ngModelChange)="onMakeChange()"
-                  class="w-full min-h-[42px] rounded-lg border border-gray-300 bg-white px-3 py-2 text-base sm:text-xs font-medium text-gray-900 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
+                  class="w-full min-h-[42px] rounded-xl border border-gray-300 bg-white px-3 py-2 text-base sm:text-xs font-semibold text-gray-900 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
                 >
                   <option [ngValue]="null">Todas las marcas</option>
                   @for (make of makes(); track make.id) {
@@ -119,16 +136,16 @@ import { PromotionService } from '../../core/services/promotion.service';
                 </select>
               </div>
 
-              <!-- Modelo -->
+              <!-- 2. Modelo -->
               <div class="lg:col-span-3">
-                <label class="block text-xs font-semibold text-gray-700 mb-1">
-                  Modelo
+                <label class="block text-[11px] font-bold uppercase tracking-wider text-gray-600 mb-1">
+                  2. Modelo
                 </label>
                 <select
                   [(ngModel)]="selectedModelId"
                   (ngModelChange)="applyFilters()"
                   [disabled]="!selectedMakeId && models().length === 0"
-                  class="w-full min-h-[42px] rounded-lg border border-gray-300 bg-white px-3 py-2 text-base sm:text-xs font-medium text-gray-900 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none disabled:bg-gray-100 disabled:text-gray-400"
+                  class="w-full min-h-[42px] rounded-xl border border-gray-300 bg-white px-3 py-2 text-base sm:text-xs font-semibold text-gray-900 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none disabled:bg-gray-100 disabled:text-gray-400"
                 >
                   <option [ngValue]="null">Todos los modelos</option>
                   @for (model of models(); track model.id) {
@@ -139,15 +156,15 @@ import { PromotionService } from '../../core/services/promotion.service';
                 </select>
               </div>
 
-              <!-- Año -->
+              <!-- 3. Año -->
               <div class="lg:col-span-2">
-                <label class="block text-xs font-semibold text-gray-700 mb-1">
-                  Año
+                <label class="block text-[11px] font-bold uppercase tracking-wider text-gray-600 mb-1">
+                  3. Año
                 </label>
                 <select
                   [(ngModel)]="selectedYear"
                   (ngModelChange)="applyFilters()"
-                  class="w-full min-h-[42px] rounded-lg border border-gray-300 bg-white px-3 py-2 text-base sm:text-xs font-medium text-gray-900 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
+                  class="w-full min-h-[42px] rounded-xl border border-gray-300 bg-white px-3 py-2 text-base sm:text-xs font-semibold text-gray-900 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
                 >
                   <option [ngValue]="null">Cualquier año</option>
                   @for (yr of years; track yr) {
@@ -156,17 +173,17 @@ import { PromotionService } from '../../core/services/promotion.service';
                 </select>
               </div>
 
-              <!-- Categoría -->
+              <!-- 4. Categoría -->
               <div class="lg:col-span-2">
-                <label class="block text-xs font-semibold text-gray-700 mb-1">
-                  Categoría
+                <label class="block text-[11px] font-bold uppercase tracking-wider text-gray-600 mb-1">
+                  4. Sistema
                 </label>
                 <select
                   [(ngModel)]="selectedCategoryId"
                   (ngModelChange)="onCategoryFilterChange()"
-                  class="w-full min-h-[42px] rounded-lg border border-gray-300 bg-white px-3 py-2 text-base sm:text-xs font-medium text-gray-900 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
+                  class="w-full min-h-[42px] rounded-xl border border-gray-300 bg-white px-3 py-2 text-base sm:text-xs font-semibold text-gray-900 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
                 >
-                  <option [ngValue]="null">Todas las categorías</option>
+                  <option [ngValue]="null">Todos los sistemas</option>
                   @for (cat of categories(); track cat.id) {
                     <option [ngValue]="cat.id">{{ cat.name }}</option>
                   }
@@ -175,7 +192,7 @@ import { PromotionService } from '../../core/services/promotion.service';
 
               <!-- Stock & Action Buttons -->
               <div class="sm:col-span-2 lg:col-span-3 flex flex-wrap sm:flex-nowrap items-center gap-2.5">
-                <label class="inline-flex items-center gap-2 cursor-pointer select-none text-xs font-semibold text-gray-700 mr-1">
+                <label class="inline-flex min-h-[42px] items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3 cursor-pointer select-none text-xs font-bold text-gray-700 hover:bg-gray-100 transition">
                   <input
                     type="checkbox"
                     [(ngModel)]="onlyInStock"
@@ -188,16 +205,16 @@ import { PromotionService } from '../../core/services/promotion.service';
                 <button
                   type="button"
                   (click)="applyFilters()"
-                  class="flex-1 min-h-[42px] rounded-lg bg-orange-600 py-2 px-4 text-xs font-semibold text-white shadow-sm hover:bg-orange-700 active:scale-[0.98] transition-all duration-150 ease-out select-none"
+                  class="flex-1 min-h-[42px] rounded-xl bg-orange-600 py-2 px-4 text-xs font-bold text-white shadow-sm hover:bg-orange-700 active:scale-[0.98] transition-all duration-150 ease-out select-none cursor-pointer"
                 >
-                  Buscar repuestos
+                  Filtrar repuestos
                 </button>
 
                 @if (hasActiveFilters()) {
                   <button
                     type="button"
                     (click)="resetAllFilters()"
-                    class="min-h-[42px] rounded-lg border border-gray-300 bg-white py-2 px-3 text-xs font-medium text-gray-700 hover:bg-gray-100 transition"
+                    class="min-h-[42px] rounded-xl border border-gray-300 bg-white py-2 px-3 text-xs font-bold text-gray-700 hover:bg-gray-100 transition cursor-pointer"
                     title="Limpiar filtros"
                   >
                     Limpiar
@@ -213,7 +230,7 @@ import { PromotionService } from '../../core/services/promotion.service';
       <section class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-8">
         <div class="flex items-center justify-between gap-4 mb-3">
           <div>
-            <h2 class="text-base sm:text-lg font-bold tracking-tight text-gray-950 flex items-center gap-2">
+            <h2 class="text-base sm:text-lg font-extrabold tracking-tight text-gray-950 flex items-center gap-2">
               <svg class="h-4 w-4 text-orange-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" />
               </svg>
@@ -227,9 +244,9 @@ import { PromotionService } from '../../core/services/promotion.service';
             <button
               type="button"
               (click)="selectedMakeId = null; searchQuery = ''; onMakeChange()"
-              class="text-xs font-semibold text-orange-600 hover:text-orange-700 flex items-center gap-1 cursor-pointer"
+              class="text-xs font-bold text-orange-600 hover:text-orange-700 flex items-center gap-1 cursor-pointer"
             >
-              <span>Quitar filtro</span>
+              <span>Quitar filtro de marca</span>
               <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
@@ -273,18 +290,18 @@ import { PromotionService } from '../../core/services/promotion.service';
       <section class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-8">
         <div class="flex items-center justify-between gap-4 mb-4">
           <div>
-            <h2 class="text-lg sm:text-xl font-bold tracking-tight text-gray-950">
+            <h2 class="text-base sm:text-lg font-extrabold tracking-tight text-gray-950">
               Explorar por Sistema del Vehículo
             </h2>
             <p class="text-xs text-gray-500">
-              Fotografías y componentes reales de cada sistema automotriz. Haz clic en cualquiera para filtrar de inmediato.
+              Componentes reales de cada sistema automotriz. Haz clic en cualquiera para filtrar el inventario al instante.
             </p>
           </div>
           @if (selectedCategoryId !== null) {
             <button
               type="button"
               (click)="selectCategoryPill(null)"
-              class="text-xs font-semibold text-orange-600 hover:text-orange-700 flex items-center gap-1 cursor-pointer"
+              class="text-xs font-bold text-orange-600 hover:text-orange-700 flex items-center gap-1 cursor-pointer"
             >
               <span>Ver todas las categorías</span>
               <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -338,7 +355,7 @@ import { PromotionService } from '../../core/services/promotion.service';
       <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-8 space-y-5">
         <!-- Quick Category Pills -->
         @if (categories().length > 0) {
-          <div class="flex items-center gap-2 overflow-x-auto pb-1">
+          <div class="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
             <button
               type="button"
               (click)="selectCategoryPill(null)"
@@ -410,57 +427,79 @@ import { PromotionService } from '../../core/services/promotion.service';
           </div>
         }
 
-        <!-- Results Summary Bar -->
-        <div class="flex flex-wrap items-center justify-between gap-2">
-          <div class="text-xs text-gray-600">
-            Mostrando <strong class="font-semibold text-gray-900">{{ displayedParts().length }}</strong> repuestos disponibles
+        <!-- Results Summary & Sort Toolbar -->
+        <div class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gray-200/80 bg-white px-4 py-3 shadow-2xs">
+          <div class="text-xs text-gray-600 flex flex-wrap items-center gap-2">
+            <span>
+              Mostrando <strong class="font-mono font-extrabold text-gray-900">{{ displayedParts().length }}</strong> repuestos disponibles
+            </span>
             @if (selectedViscosity()) {
-              <span> · Viscosidad <strong class="text-amber-900">SAE {{ selectedViscosity() }}</strong></span>
+              <span class="rounded-md bg-amber-50 border border-amber-200 px-2 py-0.5 font-bold text-amber-900">
+                SAE {{ selectedViscosity() }}
+              </span>
             }
             @if (selectedYear) {
-              <span> · Compatibles con modelo año <strong class="text-gray-900">{{ selectedYear }}</strong></span>
+              <span class="rounded-md bg-orange-50 border border-orange-200 px-2 py-0.5 font-bold text-orange-800">
+                Año {{ selectedYear }}
+              </span>
             }
           </div>
 
-          @if (backendOffline()) {
-            <div class="inline-flex items-center gap-2 rounded-lg border border-orange-200 bg-orange-50 px-3 py-1.5 text-xs font-medium text-orange-800">
-              <svg class="h-4 w-4 text-orange-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
-              </svg>
-              <span>El servidor de catálogo no está conectado en este momento.</span>
+          <div class="flex items-center gap-3">
+            @if (backendOffline()) {
+              <div class="inline-flex items-center gap-2 rounded-lg border border-orange-200 bg-orange-50 px-3 py-1.5 text-xs font-medium text-orange-800">
+                <svg class="h-4 w-4 text-orange-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                </svg>
+                <span>Conectando con el servidor de catálogo...</span>
+              </div>
+            }
+
+            <div class="flex items-center gap-2 text-xs">
+              <label class="text-gray-500 font-semibold hidden sm:inline">Ordenar por:</label>
+              <select
+                [ngModel]="sortBy()"
+                (ngModelChange)="sortBy.set($event)"
+                class="rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-1.5 text-xs font-bold text-gray-800 focus:border-orange-500 focus:outline-none"
+              >
+                <option value="RELEVANCE">Relevancia</option>
+                <option value="PRICE_ASC">Precio: Menor a Mayor</option>
+                <option value="PRICE_DESC">Precio: Mayor a Menor</option>
+                <option value="STOCK_DESC">Mayor Stock Disponible</option>
+              </select>
             </div>
-          }
+          </div>
         </div>
 
         <!-- Loading Skeleton -->
         @if (isLoading()) {
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
             @for (s of [1, 2, 3, 4, 5, 6, 7, 8]; track s) {
-              <div class="rounded-xl border border-gray-200 bg-white p-4 space-y-3 animate-pulse">
-                <div class="aspect-4/3 rounded-lg bg-gray-100"></div>
+              <div class="rounded-2xl border border-gray-200 bg-white p-4 space-y-3 animate-pulse">
+                <div class="aspect-4/3 rounded-xl bg-gray-100"></div>
                 <div class="h-4 w-2/3 rounded bg-gray-100"></div>
                 <div class="h-3 w-full rounded bg-gray-100"></div>
-                <div class="h-9 w-full rounded-lg bg-gray-100"></div>
+                <div class="h-10 w-full rounded-xl bg-gray-100"></div>
               </div>
             }
           </div>
         } @else if (displayedParts().length === 0) {
-          <div class="rounded-2xl border border-gray-200 bg-white p-12 text-center space-y-3 shadow-2xs">
+          <div class="rounded-2xl border border-gray-200 bg-white p-12 text-center space-y-3 shadow-xs">
             <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-xl border border-gray-200 bg-gray-50 text-gray-400">
               <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
               </svg>
             </div>
-            <h3 class="text-base font-bold text-gray-900">
+            <h3 class="text-base font-extrabold text-gray-900">
               No encontramos repuestos con esos filtros
             </h3>
             <p class="text-xs text-gray-500 max-w-md mx-auto leading-relaxed">
-              Prueba quitando algún filtro del vehículo o escríbenos en el asistente de consultas para ayudarte a ubicar la pieza.
+              Prueba quitando algún filtro del vehículo o escríbenos en el asistente técnico para ayudarte a ubicar la pieza por código OEM.
             </p>
             <button
               type="button"
               (click)="resetAllFilters()"
-              class="rounded-lg bg-orange-600 px-4 py-2.5 text-xs font-semibold text-white hover:bg-orange-700 transition"
+              class="rounded-xl bg-orange-600 px-5 py-2.5 text-xs font-bold text-white hover:bg-orange-700 transition cursor-pointer"
             >
               Ver todo el catálogo
             </button>
@@ -469,19 +508,19 @@ import { PromotionService } from '../../core/services/promotion.service';
           <!-- Spare Parts Grid -->
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
             @for (part of displayedParts(); track part.id) {
-              <article class="group flex flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-2xs hover:border-orange-300 hover:shadow-md transition duration-200">
+              <article class="group flex flex-col overflow-hidden rounded-2xl border border-gray-200/90 bg-white shadow-xs hover:border-orange-300 hover:shadow-md transition-all duration-200">
                 <!-- Product Image Container -->
                 <a [routerLink]="['/part', part.id]" class="relative aspect-4/3 overflow-hidden bg-gray-50 border-b border-gray-100 block">
                   <img
                     [src]="resolveImage(part)"
                     [alt]="part.name"
                     (error)="onPartImageError($event, part)"
-                    class="h-full w-full object-cover transition duration-300 group-hover:scale-103"
+                    class="h-full w-full object-cover transition duration-300 group-hover:scale-105"
                   />
 
                   <!-- Manufacturer Brand Pill -->
                   @if (part.manufacturerBrand) {
-                    <span class="absolute top-2.5 left-2.5 rounded-md border border-gray-200 bg-white/95 px-2 py-0.5 text-[11px] font-semibold text-gray-700 shadow-2xs">
+                    <span class="absolute top-2.5 left-2.5 rounded-lg border border-gray-200/80 bg-white/95 px-2.5 py-0.5 text-[11px] font-extrabold text-gray-800 shadow-2xs">
                       {{ part.manufacturerBrand }}
                     </span>
                   }
@@ -502,8 +541,12 @@ import { PromotionService } from '../../core/services/promotion.service';
                           ? 'bg-orange-50 text-orange-700 border-orange-200'
                           : 'bg-emerald-50 text-emerald-700 border-emerald-200'
                     "
-                    class="absolute top-2.5 right-2.5 rounded-full border px-2.5 py-0.5 text-[11px] font-medium shadow-2xs"
+                    class="absolute top-2.5 right-2.5 inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-bold shadow-2xs"
                   >
+                    <span
+                      class="h-1.5 w-1.5 rounded-full"
+                      [class]="part.stockQuantity <= 0 ? 'bg-red-500' : part.lowStockAlert ? 'bg-orange-500' : 'bg-emerald-500'"
+                    ></span>
                     @if (part.stockQuantity <= 0) {
                       Agotado
                     } @else if (part.lowStockAlert) {
@@ -515,36 +558,38 @@ import { PromotionService } from '../../core/services/promotion.service';
                 </a>
 
                 <!-- Card Body -->
-                <div class="flex flex-1 flex-col p-4 space-y-2">
-                  @if (part.categoryName) {
-                    <span class="text-xs font-medium text-orange-600">
-                      {{ part.categoryName }}
-                    </span>
-                  }
+                <div class="flex flex-1 flex-col p-4 space-y-2.5">
+                  <div class="flex items-center justify-between gap-2">
+                    @if (part.categoryName) {
+                      <span class="text-[11px] font-bold uppercase tracking-wider text-orange-600 truncate">
+                        {{ part.categoryName }}
+                      </span>
+                    }
+                    @if (getPartViscosity(part); as visc) {
+                      <span class="inline-flex items-center gap-1 rounded-md border border-amber-300 bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold text-amber-900 shrink-0">
+                        🛢️ SAE {{ visc }}
+                      </span>
+                    }
+                  </div>
 
                   <a
                     [routerLink]="['/part', part.id]"
                     [title]="part.name"
-                    class="text-sm font-semibold text-gray-900 line-clamp-3 leading-snug group-hover:text-orange-600 transition min-h-[2.75rem]"
+                    class="text-sm font-extrabold text-gray-900 line-clamp-2 leading-snug group-hover:text-orange-600 transition min-h-[2.5rem]"
                   >
                     {{ part.name }}
                   </a>
 
                   <!-- Discreet OEM & SKU Codes -->
-                  <div class="flex flex-wrap items-center gap-1.5 pt-0.5">
+                  <div class="flex flex-wrap items-center gap-1.5">
                     @if (part.oemCode) {
-                      <span class="rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-mono text-[10px] font-medium text-gray-600">
+                      <span class="rounded-md border border-gray-200 bg-gray-50 px-2 py-0.5 font-mono text-[10px] font-semibold text-gray-700">
                         OEM {{ part.oemCode }}
                       </span>
                     }
                     @if (part.sku) {
                       <span class="font-mono text-[10px] text-gray-400">
                         {{ part.sku }}
-                      </span>
-                    }
-                    @if (getPartViscosity(part); as visc) {
-                      <span class="inline-flex items-center gap-1 rounded-md border border-amber-300 bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-900 shadow-2xs">
-                        <span>🛢️ SAE {{ visc }}</span>
                       </span>
                     }
                   </div>
@@ -561,12 +606,12 @@ import { PromotionService } from '../../core/services/promotion.service';
 
                   <!-- Vehicle Compatibility Preview -->
                   @if (part.compatibilities && part.compatibilities.length > 0) {
-                    <div class="rounded-lg bg-gray-50 border border-gray-200/70 px-2.5 py-1.5 text-[11px] text-gray-600">
-                      <span class="font-medium text-gray-700">Compatible:</span>
+                    <div class="rounded-lg bg-gray-50 border border-gray-200/70 px-2.5 py-1.5 text-[11px] text-gray-600 truncate">
+                      <span class="font-semibold text-gray-700">Aplica:</span>
                       {{ formatFirstCompatibility(part) }}
                       @if (part.compatibilities.length > 1) {
-                        <span class="font-semibold text-orange-600">
-                          +{{ part.compatibilities.length - 1 }} más
+                        <span class="font-bold text-orange-600">
+                          +{{ part.compatibilities.length - 1 }}
                         </span>
                       }
                     </div>
@@ -574,31 +619,31 @@ import { PromotionService } from '../../core/services/promotion.service';
 
                   <!-- Pricing & CTA Footer -->
                   <div class="mt-auto pt-3 border-t border-gray-100 space-y-3">
-                    <div class="flex items-baseline justify-between gap-2">
+                    <div class="flex items-stretch justify-between gap-2">
                       <div>
                         @if (promotionService.getPromotion(part.sku); as promo) {
                           <span class="block text-[10px] font-bold text-red-600 uppercase tracking-wide">
                             {{ promo.badgeLabel || 'OFERTA' }} -{{ promo.discountPercentage }}%
                           </span>
-                          <div class="flex items-baseline gap-2">
-                            <span class="text-lg font-black tracking-tight text-red-600">
+                          <div class="flex items-baseline gap-1.5">
+                            <span class="font-mono text-lg font-black tracking-tight text-red-600">
                               S/ {{ promo.promoPrice | number: '1.2-2' }}
                             </span>
-                            <span class="text-xs text-gray-400 line-through">
+                            <span class="font-mono text-xs text-gray-400 line-through">
                               S/ {{ part.salePrice | number: '1.2-2' }}
                             </span>
                           </div>
                         } @else {
-                          <span class="block text-[11px] font-medium text-gray-500">Precio unitario</span>
-                          <span class="text-lg font-bold tracking-tight text-gray-900">
+                          <span class="block text-[10px] font-bold uppercase tracking-wider text-gray-400">Unitario</span>
+                          <span class="font-mono text-lg font-extrabold tracking-tight text-gray-900">
                             S/ {{ part.salePrice | number: '1.2-2' }}
                           </span>
                         }
                       </div>
                       @if (part.wholesalePrice) {
-                        <div class="text-right">
-                          <span class="block text-[10px] font-medium text-emerald-700">Por mayor (4+)</span>
-                          <span class="text-xs font-bold text-emerald-700">
+                        <div class="rounded-lg border border-emerald-200/80 bg-emerald-50/70 px-2.5 py-1 text-right flex flex-col justify-center">
+                          <span class="block text-[10px] font-bold text-emerald-800">Mayorista (4+)</span>
+                          <span class="font-mono text-xs font-extrabold text-emerald-700">
                             S/ {{ part.wholesalePrice | number: '1.2-2' }}
                           </span>
                         </div>
@@ -608,17 +653,17 @@ import { PromotionService } from '../../core/services/promotion.service';
                     <div class="grid grid-cols-5 gap-2">
                       <a
                         [routerLink]="['/part', part.id]"
-                        class="col-span-2 min-h-[40px] flex items-center justify-center rounded-lg border border-gray-200 bg-white px-2 text-xs font-medium text-gray-700 hover:border-gray-300 hover:bg-gray-50 active:scale-[0.98] transition-all duration-150 ease-out select-none"
+                        class="col-span-2 min-h-[40px] flex items-center justify-center rounded-xl border border-gray-200 bg-white px-2 text-xs font-bold text-gray-700 hover:border-gray-300 hover:bg-gray-50 active:scale-[0.98] transition-all duration-150 ease-out select-none"
                       >
-                        Detalle
+                        Ver ficha
                       </a>
                       <button
                         type="button"
                         [disabled]="part.stockQuantity <= 0"
                         (click)="cart.addPart(part, 1, true)"
-                        class="col-span-3 min-h-[40px] flex items-center justify-center gap-1.5 rounded-lg bg-orange-600 px-3 text-xs font-semibold text-white shadow-2xs hover:bg-orange-700 active:scale-[0.98] disabled:bg-gray-200 disabled:text-gray-400 transition-all duration-150 ease-out select-none"
+                        class="col-span-3 min-h-[40px] flex items-center justify-center gap-1.5 rounded-xl bg-orange-600 px-3 text-xs font-bold text-white shadow-2xs hover:bg-orange-700 active:scale-[0.98] disabled:bg-gray-200 disabled:text-gray-400 transition-all duration-150 ease-out select-none cursor-pointer"
                       >
-                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
                           <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                         </svg>
                         <span>Agregar</span>
@@ -650,11 +695,11 @@ import { PromotionService } from '../../core/services/promotion.service';
                   <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
                   <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
                 </svg>
-                <span>Rastreo GPS en tiempo real</span>
+                <span>Despacho Express en Lima</span>
               </div>
-              <h3 class="text-sm font-bold text-gray-900">Envíos Express y Despacho en Lima</h3>
+              <h3 class="text-sm font-bold text-gray-900">Envíos Motorizados y Constancia Digital</h3>
               <p class="text-xs text-gray-600 leading-relaxed">
-                Seguimiento en vivo del motorizado en el mapa con firma digital y foto de entrega en tu taller o domicilio.
+                Seguimiento de tu pedido en ruta y constancia fotográfica de entrega en tu taller o domicilio.
               </p>
             </div>
           </div>
@@ -675,7 +720,7 @@ import { PromotionService } from '../../core/services/promotion.service';
                 </svg>
                 <span>Stock Físico Inmediato</span>
               </div>
-              <h3 class="text-sm font-bold text-gray-900">Almacén Centralizado en La Victoria</h3>
+              <h3 class="text-sm font-bold text-gray-900">Almacén Central en Santa Anita</h3>
               <p class="text-xs text-gray-600 leading-relaxed">
                 Inventario sincronizado para compras al por menor y mayor (4+ unidades con descuento por volumen automático).
               </p>
@@ -723,6 +768,7 @@ export class CatalogPageComponent implements OnInit {
   readonly isLoading = signal<boolean>(true);
   readonly backendOffline = signal<boolean>(false);
   readonly showSuggestions = signal<boolean>(false);
+  readonly sortBy = signal<'RELEVANCE' | 'PRICE_ASC' | 'PRICE_DESC' | 'STOCK_DESC'>('RELEVANCE');
 
   readonly featuredCategories: {
     code: string;
@@ -839,14 +885,25 @@ export class CatalogPageComponent implements OnInit {
   readonly selectedViscosity = signal<string | null>(null);
 
   readonly displayedParts = computed(() => {
-    const list = this.parts();
+    let list = [...this.parts()];
     const v = this.selectedViscosity();
-    if (!v) return list;
-    const target = v.replace('-', '').toUpperCase();
-    return list.filter((p) => {
-      const text = `${p.name} ${p.technicalDescription || ''}`.replace('-', '').toUpperCase();
-      return text.includes(target);
-    });
+    if (v) {
+      const target = v.replace('-', '').toUpperCase();
+      list = list.filter((p) => {
+        const text = `${p.name} ${p.technicalDescription || ''}`.replace('-', '').toUpperCase();
+        return text.includes(target);
+      });
+    }
+
+    const sort = this.sortBy();
+    if (sort === 'PRICE_ASC') {
+      list.sort((a, b) => a.salePrice - b.salePrice);
+    } else if (sort === 'PRICE_DESC') {
+      list.sort((a, b) => b.salePrice - a.salePrice);
+    } else if (sort === 'STOCK_DESC') {
+      list.sort((a, b) => b.stockQuantity - a.stockQuantity);
+    }
+    return list;
   });
 
   readonly years: number[] = Array.from({ length: 33 }, (_, i) => 2026 - i);
@@ -938,7 +995,6 @@ export class CatalogPageComponent implements OnInit {
       return false;
     }
 
-    // When viewing general catalog without category filter, show if query relates to oils/filters
     const q = (this.searchQuery || '').toLowerCase();
     return (
       q.includes('aceite') ||

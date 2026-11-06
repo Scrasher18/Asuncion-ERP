@@ -114,28 +114,57 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
           </div>
         }
           <div class="flex flex-wrap items-start justify-between gap-4 pb-5">
-            <div class="space-y-1">
-              <div class="flex items-center gap-2">
-                <span class="inline-flex items-center rounded-full border border-orange-200 bg-orange-50 px-2.5 py-0.5 text-xs font-medium text-orange-700">
-                  Gestión comercial
+            <div class="space-y-1.5">
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="inline-flex items-center gap-1.5 rounded-full border border-orange-200 bg-orange-50 px-3 py-0.5 text-xs font-bold text-orange-700">
+                  <span class="h-1.5 w-1.5 rounded-full bg-orange-500"></span>
+                  {{ auth.primaryRole() === 'VENDEDOR' ? 'Consola Comercial de Ventas y Almacén' : 'Dirección & Control ERP' }}
                 </span>
-                <span class="inline-flex items-center rounded-full border border-gray-200 bg-gray-50 px-2.5 py-0.5 text-xs font-medium text-gray-600">
+                <span class="inline-flex items-center rounded-full border border-gray-200 bg-gray-50 px-2.5 py-0.5 text-xs font-semibold text-gray-700">
                   Perfil: {{ formatRole(auth.primaryRole()) }}
                 </span>
+                <span class="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-emerald-700">
+                  <span class="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                  Almacén Santa Anita Activo
+                </span>
               </div>
-              <h1 class="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">
-                Administración comercial
+              <h1 class="text-xl sm:text-2xl font-extrabold text-gray-900 tracking-tight">
+                {{ auth.primaryRole() === 'VENDEDOR' ? 'Panel Operativo de Ventas, Inventario y Despacho' : 'Centro de Control ERP & Administración' }}
               </h1>
-              <p class="text-sm text-gray-500">
-                Resumen de ventas, inventario de repuestos, zonas de reparto, pedidos y notificaciones.
+              <p class="text-xs sm:text-sm text-gray-500">
+                {{ auth.primaryRole() === 'VENDEDOR'
+                  ? 'Gestiona pedidos entrantes, emite comprobantes PDF, asigna motorizados GPS y actualiza el stock de repuestos.'
+                  : 'Supervisión integral de facturación, inventario, cobertura logística PostGIS, pasarelas de pago, personal y reclamos.' }}
               </p>
             </div>
 
-            <div class="flex items-center gap-2">
+            <div class="flex flex-wrap items-center gap-2">
+              @if (pendingDispatchOrdersCount() > 0) {
+                <button
+                  type="button"
+                  (click)="orderStatusFilter.set('PENDING'); switchTab('orders')"
+                  class="inline-flex min-h-[38px] items-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-3.5 py-2 text-xs font-bold text-amber-900 shadow-2xs hover:bg-amber-100 transition cursor-pointer"
+                >
+                  <span class="flex h-2 w-2 rounded-full bg-amber-500 animate-ping"></span>
+                  <span>{{ pendingDispatchOrdersCount() }} por despachar</span>
+                </button>
+              }
+
+              <button
+                type="button"
+                (click)="switchTab('parts'); openCreatePartModal()"
+                class="inline-flex min-h-[38px] items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-xs font-bold text-gray-700 shadow-2xs hover:border-orange-300 hover:text-orange-700 transition cursor-pointer"
+              >
+                <svg class="h-3.5 w-3.5 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                </svg>
+                <span>Nuevo repuesto</span>
+              </button>
+
               <button
                 type="button"
                 (click)="switchTab('orders')"
-                class="inline-flex items-center gap-2 rounded-xl border border-orange-200 bg-orange-50/80 px-3.5 py-2 text-xs font-bold text-orange-900 shadow-2xs hover:bg-orange-100 transition"
+                class="inline-flex min-h-[38px] items-center gap-2 rounded-xl border border-orange-200 bg-orange-50/90 px-3.5 py-2 text-xs font-bold text-orange-900 shadow-2xs hover:bg-orange-100 transition cursor-pointer"
                 title="Ver pedidos y ventas activas"
               >
                 <span class="flex h-2 w-2 rounded-full bg-orange-600 animate-pulse"></span>
@@ -151,12 +180,12 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
               (click)="switchTab('analytics')"
               [class]="
                 activeTab() === 'analytics'
-                  ? 'border-orange-600 text-orange-600 font-bold bg-orange-50/70 shadow-2xs'
+                  ? 'border-orange-600 text-orange-700 font-bold bg-orange-50/80 shadow-2xs'
                   : 'border-transparent text-gray-600 hover:border-gray-200 hover:bg-gray-50/80 hover:text-gray-900 font-medium'
               "
-              class="inline-flex min-h-[40px] shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-xs sm:text-sm whitespace-nowrap transition cursor-pointer"
+              class="inline-flex min-h-[40px] shrink-0 items-center gap-2 rounded-xl border px-3.5 py-2 text-xs sm:text-sm whitespace-nowrap transition cursor-pointer"
             >
-              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <line x1="18" y1="20" x2="18" y2="10" />
                 <line x1="12" y1="20" x2="12" y2="4" />
                 <line x1="6" y1="20" x2="6" y2="14" />
@@ -169,15 +198,44 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
               (click)="switchTab('parts')"
               [class]="
                 activeTab() === 'parts'
-                  ? 'border-orange-600 text-orange-600 font-bold bg-orange-50/70 shadow-2xs'
+                  ? 'border-orange-600 text-orange-700 font-bold bg-orange-50/80 shadow-2xs'
                   : 'border-transparent text-gray-600 hover:border-gray-200 hover:bg-gray-50/80 hover:text-gray-900 font-medium'
               "
-              class="inline-flex min-h-[40px] shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-xs sm:text-sm whitespace-nowrap transition cursor-pointer"
+              class="inline-flex min-h-[40px] shrink-0 items-center gap-2 rounded-xl border px-3.5 py-2 text-xs sm:text-sm whitespace-nowrap transition cursor-pointer"
             >
-              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
               </svg>
               <span>Inventario de repuestos</span>
+              @if (adminParts().length > 0) {
+                <span class="rounded-full bg-gray-100 px-2 py-0.5 font-mono text-[10px] font-bold text-gray-700">
+                  {{ adminParts().length }}
+                </span>
+              }
+            </button>
+
+            <button
+              type="button"
+              (click)="switchTab('orders')"
+              [class]="
+                activeTab() === 'orders'
+                  ? 'border-orange-600 text-orange-700 font-bold bg-orange-50/80 shadow-2xs'
+                  : 'border-transparent text-gray-600 hover:border-gray-200 hover:bg-gray-50/80 hover:text-gray-900 font-medium'
+              "
+              class="inline-flex min-h-[40px] shrink-0 items-center gap-2 rounded-xl border px-3.5 py-2 text-xs sm:text-sm whitespace-nowrap transition cursor-pointer"
+            >
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
+                <rect width="6" height="4" x="9" y="3" rx="1" />
+                <path d="M9 12h6" />
+                <path d="M9 16h6" />
+              </svg>
+              <span>Pedidos y Despacho</span>
+              @if (globalOrders().length > 0) {
+                <span class="rounded-full bg-orange-100 px-2 py-0.5 font-mono text-[10px] font-bold text-orange-700">
+                  {{ globalOrders().length }}
+                </span>
+              }
             </button>
 
             @if (auth.hasAnyRole(['ADMIN'])) {
@@ -186,94 +244,90 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                 (click)="switchTab('branches')"
                 [class]="
                   activeTab() === 'branches'
-                    ? 'border-orange-600 text-orange-600 font-bold bg-orange-50/70 shadow-2xs'
+                    ? 'border-orange-600 text-orange-700 font-bold bg-orange-50/80 shadow-2xs'
                     : 'border-transparent text-gray-600 hover:border-gray-200 hover:bg-gray-50/80 hover:text-gray-900 font-medium'
                 "
-                class="inline-flex min-h-[40px] shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-xs sm:text-sm whitespace-nowrap transition cursor-pointer"
+                class="inline-flex min-h-[40px] shrink-0 items-center gap-2 rounded-xl border px-3.5 py-2 text-xs sm:text-sm whitespace-nowrap transition cursor-pointer"
               >
-                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
                   <circle cx="12" cy="10" r="3" />
                 </svg>
                 <span>Zonas de reparto</span>
               </button>
-            }
 
-            <button
-              type="button"
-              (click)="switchTab('orders')"
-              [class]="
-                activeTab() === 'orders'
-                  ? 'border-orange-600 text-orange-600 font-bold bg-orange-50/70 shadow-2xs'
-                  : 'border-transparent text-gray-600 hover:border-gray-200 hover:bg-gray-50/80 hover:text-gray-900 font-medium'
-              "
-              class="inline-flex min-h-[40px] shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-xs sm:text-sm whitespace-nowrap transition cursor-pointer"
-            >
-              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
-                <rect width="6" height="4" x="9" y="3" rx="1" />
-                <path d="M9 12h6" />
-                <path d="M9 16h6" />
-              </svg>
-              <span>Pedidos</span>
-            </button>
-
-            @if (auth.hasAnyRole(['ADMIN'])) {
               <button
                 type="button"
                 (click)="switchTab('notifications')"
                 [class]="
                   activeTab() === 'notifications'
-                    ? 'border-orange-600 text-orange-600 font-bold bg-orange-50/70 shadow-2xs'
+                    ? 'border-orange-600 text-orange-700 font-bold bg-orange-50/80 shadow-2xs'
                     : 'border-transparent text-gray-600 hover:border-gray-200 hover:bg-gray-50/80 hover:text-gray-900 font-medium'
                 "
-                class="inline-flex min-h-[40px] shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-xs sm:text-sm whitespace-nowrap transition cursor-pointer"
+                class="inline-flex min-h-[40px] shrink-0 items-center gap-2 rounded-xl border px-3.5 py-2 text-xs sm:text-sm whitespace-nowrap transition cursor-pointer"
               >
-                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <rect width="20" height="16" x="2" y="4" rx="2" />
                   <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
                 </svg>
                 <span>Correo y notificaciones</span>
               </button>
-            }
 
-            @if (auth.hasAnyRole(['ADMIN'])) {
               <button
                 type="button"
                 (click)="switchTab('payments')"
                 [class]="
                   activeTab() === 'payments'
-                    ? 'border-orange-600 text-orange-600 font-bold bg-orange-50/70 shadow-2xs'
+                    ? 'border-orange-600 text-orange-700 font-bold bg-orange-50/80 shadow-2xs'
                     : 'border-transparent text-gray-600 hover:border-gray-200 hover:bg-gray-50/80 hover:text-gray-900 font-medium'
                 "
-                class="inline-flex min-h-[40px] shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-xs sm:text-sm whitespace-nowrap transition cursor-pointer"
+                class="inline-flex min-h-[40px] shrink-0 items-center gap-2 rounded-xl border px-3.5 py-2 text-xs sm:text-sm whitespace-nowrap transition cursor-pointer"
               >
-                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <rect x="2" y="5" width="20" height="14" rx="2" />
                   <line x1="2" y1="10" x2="22" y2="10" />
                 </svg>
                 <span>Pasarelas y Pagos</span>
               </button>
-            }
 
-            @if (auth.hasAnyRole(['ADMIN'])) {
               <button
                 type="button"
                 (click)="switchTab('users')"
                 [class]="
                   activeTab() === 'users'
-                    ? 'border-orange-600 text-orange-600 font-bold bg-orange-50/70 shadow-2xs'
+                    ? 'border-orange-600 text-orange-700 font-bold bg-orange-50/80 shadow-2xs'
                     : 'border-transparent text-gray-600 hover:border-gray-200 hover:bg-gray-50/80 hover:text-gray-900 font-medium'
                 "
-                class="inline-flex min-h-[40px] shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-xs sm:text-sm whitespace-nowrap transition cursor-pointer"
+                class="inline-flex min-h-[40px] shrink-0 items-center gap-2 rounded-xl border px-3.5 py-2 text-xs sm:text-sm whitespace-nowrap transition cursor-pointer"
               >
-                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
                   <circle cx="9" cy="7" r="4" />
                   <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
                   <path d="M16 3.13a4 4 0 0 1 0 7.75" />
                 </svg>
                 <span>Personal y Trabajadores</span>
+              </button>
+
+              <button
+                type="button"
+                (click)="switchTab('claims')"
+                [class]="
+                  activeTab() === 'claims'
+                    ? 'border-orange-600 text-orange-700 font-bold bg-orange-50/80 shadow-2xs'
+                    : 'border-transparent text-gray-600 hover:border-gray-200 hover:bg-gray-50/80 hover:text-gray-900 font-medium'
+                "
+                class="inline-flex min-h-[40px] shrink-0 items-center gap-2 rounded-xl border px-3.5 py-2 text-xs sm:text-sm whitespace-nowrap transition cursor-pointer"
+              >
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+                </svg>
+                <span>Reclamaciones</span>
+                @if (pendingClaimsCount() > 0) {
+                  <span class="rounded-full bg-red-600 px-1.5 py-0.5 font-mono text-[10px] font-bold text-white">
+                    {{ pendingClaimsCount() }}
+                  </span>
+                }
               </button>
             }
           </nav>
@@ -321,62 +375,70 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
             } @else if (dashboard(); as dash) {
               <!-- KPI Cards -->
               <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-2xs">
+                <div class="relative rounded-2xl border border-gray-200 bg-white p-5 shadow-2xs overflow-hidden hover:border-orange-200 transition">
+                  <div class="absolute inset-x-0 top-0 h-1 bg-orange-600"></div>
                   <div class="flex items-center justify-between">
-                    <span class="text-xs font-medium text-gray-500">Ventas totales</span>
-                    <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-50 text-orange-600">
-                      <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-gray-500">Ventas totales</span>
+                    <span class="flex h-9 w-9 items-center justify-center rounded-xl border border-orange-100 bg-orange-50 text-orange-600">
+                      <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round">
                         <line x1="12" y1="1" x2="12" y2="23" />
                         <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
                       </svg>
                     </span>
                   </div>
-                  <p class="mt-2 text-2xl font-bold tracking-tight tabular-nums text-gray-900">
+                  <p class="mt-2.5 text-2xl font-extrabold tracking-tight tabular-nums text-gray-900">
                     S/ {{ (dash.kpis.totalRevenue ?? dash.kpis.totalSales ?? 0) | number: '1.2-2' }}
                   </p>
-                  <span class="mt-1 inline-block text-xs font-medium text-emerald-700">
-                    Últimos {{ analyticsDays() }} días
-                  </span>
+                  <div class="mt-2 flex items-center gap-1.5">
+                    <span class="inline-flex items-center rounded-md bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+                      Últimos {{ analyticsDays() }} días
+                    </span>
+                  </div>
                 </div>
 
-                <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-2xs">
+                <div class="relative rounded-2xl border border-gray-200 bg-white p-5 shadow-2xs overflow-hidden hover:border-emerald-200 transition">
+                  <div class="absolute inset-x-0 top-0 h-1 bg-emerald-600"></div>
                   <div class="flex items-center justify-between">
-                    <span class="text-xs font-medium text-gray-500">Pedidos registrados</span>
-                    <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-50 text-orange-600">
-                      <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-gray-500">Pedidos registrados</span>
+                    <span class="flex h-9 w-9 items-center justify-center rounded-xl border border-emerald-100 bg-emerald-50 text-emerald-600">
+                      <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" />
                         <path d="M3 6h18" />
                         <path d="M16 10a4 4 0 0 1-8 0" />
                       </svg>
                     </span>
                   </div>
-                  <p class="mt-2 text-2xl font-bold tracking-tight tabular-nums text-gray-900">
+                  <p class="mt-2.5 text-2xl font-extrabold tracking-tight tabular-nums text-gray-900">
                     {{ dash.kpis.totalOrders ?? dash.kpis.completedOrders ?? 0 }}
                   </p>
-                  <span class="mt-1 inline-block text-xs text-gray-500">
-                    Entregados: {{ dash.kpis.deliveredOrders ?? dash.kpis.completedOrders ?? 0 }}
-                  </span>
+                  <div class="mt-2 flex items-center justify-between text-xs">
+                    <span class="text-gray-500">
+                      Entregados: <strong class="font-bold text-emerald-700 tabular-nums">{{ dash.kpis.deliveredOrders ?? dash.kpis.completedOrders ?? 0 }}</strong>
+                    </span>
+                  </div>
                 </div>
 
-                <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-2xs">
+                <div class="relative rounded-2xl border border-gray-200 bg-white p-5 shadow-2xs overflow-hidden hover:border-amber-200 transition">
+                  <div class="absolute inset-x-0 top-0 h-1 bg-amber-500"></div>
                   <div class="flex items-center justify-between">
-                    <span class="text-xs font-medium text-gray-500">Ticket promedio</span>
-                    <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-50 text-orange-600">
-                      <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-gray-500">Ticket promedio</span>
+                    <span class="flex h-9 w-9 items-center justify-center rounded-xl border border-amber-100 bg-amber-50 text-amber-600">
+                      <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round">
                         <rect width="20" height="14" x="2" y="5" rx="2" />
                         <line x1="2" y1="10" x2="22" y2="10" />
                       </svg>
                     </span>
                   </div>
-                  <p class="mt-2 text-2xl font-bold tracking-tight tabular-nums text-gray-900">
+                  <p class="mt-2.5 text-2xl font-extrabold tracking-tight tabular-nums text-gray-900">
                     S/ {{ (dash.kpis.averageTicket ?? 0) | number: '1.2-2' }}
                   </p>
-                  <span class="mt-1 inline-block text-xs text-gray-500">
+                  <span class="mt-2 inline-block text-xs text-gray-500">
                     Boletas y facturas comerciales
                   </span>
                 </div>
 
                 <div class="rounded-2xl border-2 border-red-200 bg-linear-to-br from-red-50/80 via-white to-white p-5 shadow-2xs relative overflow-hidden group hover:border-red-300 transition">
+                  <div class="absolute inset-x-0 top-0 h-1 bg-red-600"></div>
                   <div class="flex items-center justify-between">
                     <div class="flex items-center gap-1.5">
                       <span class="text-xs font-bold uppercase tracking-wider text-red-700">Stock Crítico</span>
@@ -391,7 +453,7 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                       <img src="/images/icons/alarma.png" alt="Alerta Stock" class="h-5 w-5 object-contain" />
                     </span>
                   </div>
-                  <p class="mt-2 text-2xl font-black tracking-tight tabular-nums text-red-950">
+                  <p class="mt-2.5 text-2xl font-black tracking-tight tabular-nums text-red-950">
                     {{ dash.kpis.lowStockCount ?? dash.kpis.lowStockPartsCount ?? 0 }} repuestos
                   </p>
                   <div class="mt-2 flex flex-wrap items-center justify-between gap-2">
@@ -1461,25 +1523,77 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
         <!-- ========================================================================= -->
         @if (activeTab() === 'orders') {
           <div class="rounded-2xl border border-gray-200 bg-white overflow-hidden shadow-2xs">
-            <div class="border-b border-gray-200 px-5 py-4 flex flex-wrap items-center justify-between gap-3">
+            <div class="border-b border-gray-200 px-5 py-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
               <div>
                 <h2 class="text-base font-bold text-gray-900">
-                  Pedidos registrados ({{ globalOrders().length }})
+                  Centro de Despacho y Pedidos ({{ filteredGlobalOrders().length }} de {{ globalOrders().length }})
                 </h2>
-                <p class="text-xs text-gray-500">Seguimiento completo desde la confirmación hasta la entrega final.</p>
+                <p class="text-xs text-gray-500">Seguimiento operativo desde la confirmación del pago hasta la entrega verificada.</p>
               </div>
-              <button
-                type="button"
-                (click)="loadGlobalOrders()"
-                class="inline-flex min-h-[38px] items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-gray-700 hover:border-orange-300 hover:text-orange-700 transition"
-              >
-                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M3 3v5h5" />
-                  <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
-                  <path d="M16 16h5v5" />
-                </svg>
-                <span>Actualizar</span>
-              </button>
+
+              <div class="flex flex-wrap items-center gap-2">
+                <!-- Status filter pills -->
+                <div class="inline-flex items-center rounded-xl border border-gray-200 bg-gray-50 p-1 text-xs">
+                  <button
+                    type="button"
+                    (click)="orderStatusFilter.set('ALL')"
+                    [class]="orderStatusFilter() === 'ALL' ? 'bg-white text-gray-900 font-bold shadow-2xs' : 'text-gray-600 hover:text-gray-900 font-medium'"
+                    class="rounded-lg px-2.5 py-1.5 transition cursor-pointer"
+                  >
+                    Todos ({{ globalOrders().length }})
+                  </button>
+                  <button
+                    type="button"
+                    (click)="orderStatusFilter.set('PENDING')"
+                    [class]="orderStatusFilter() === 'PENDING' ? 'bg-orange-600 text-white font-bold shadow-2xs' : 'text-gray-600 hover:text-gray-900 font-medium'"
+                    class="rounded-lg px-2.5 py-1.5 transition cursor-pointer"
+                  >
+                    Por despachar ({{ pendingDispatchOrdersCount() }})
+                  </button>
+                  <button
+                    type="button"
+                    (click)="orderStatusFilter.set('EN_RUTA')"
+                    [class]="orderStatusFilter() === 'EN_RUTA' ? 'bg-amber-600 text-white font-bold shadow-2xs' : 'text-gray-600 hover:text-gray-900 font-medium'"
+                    class="rounded-lg px-2.5 py-1.5 transition cursor-pointer"
+                  >
+                    En ruta
+                  </button>
+                  <button
+                    type="button"
+                    (click)="orderStatusFilter.set('ENTREGADO')"
+                    [class]="orderStatusFilter() === 'ENTREGADO' ? 'bg-emerald-600 text-white font-bold shadow-2xs' : 'text-gray-600 hover:text-gray-900 font-medium'"
+                    class="rounded-lg px-2.5 py-1.5 transition cursor-pointer"
+                  >
+                    Entregados
+                  </button>
+                </div>
+
+                <!-- Search input -->
+                <div class="relative">
+                  <input
+                    type="search"
+                    [(ngModel)]="orderSearchQuery"
+                    placeholder="Buscar N.° pedido, cliente o RUC..."
+                    class="min-h-[38px] w-56 rounded-xl border border-gray-200 bg-gray-50/70 pl-8 pr-3 py-1.5 text-xs text-gray-900 placeholder:text-gray-400 focus:border-orange-500 focus:bg-white focus:outline-none"
+                  />
+                  <svg class="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                  </svg>
+                </div>
+
+                <button
+                  type="button"
+                  (click)="loadGlobalOrders()"
+                  class="inline-flex min-h-[38px] items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-gray-700 hover:border-orange-300 hover:text-orange-700 transition cursor-pointer"
+                >
+                  <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 3v5h5" />
+                    <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
+                    <path d="M16 16h5v5" />
+                  </svg>
+                  <span>Actualizar</span>
+                </button>
+              </div>
             </div>
 
             <div class="overflow-x-auto">
@@ -1496,7 +1610,7 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100">
-                  @for (ord of globalOrders(); track ord.id) {
+                  @for (ord of filteredGlobalOrders(); track ord.id) {
                     <tr class="hover:bg-gray-50/70 transition">
                       <td class="px-4 py-3.5 font-mono font-semibold text-gray-900">
                         {{ ord.orderNumber }}
@@ -1563,23 +1677,24 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                       <td class="px-4 py-3.5 text-right font-bold tabular-nums text-gray-900">
                         S/ {{ (ord.totalAmount ?? ord.total ?? ord.subtotal) | number: '1.2-2' }}
                       </td>
-                      <td class="px-4 py-3.5 text-right whitespace-nowrap space-x-1.5">
-                        @if (ord.deliveryType === 'DELIVERY' && !ord.assignedDriverName && ord.status !== 'ENTREGADO' && ord.status !== 'CANCELADO') {
-                          <button
-                            type="button"
-                            (click)="openDriverAssignmentModal(ord)"
-                            class="font-bold text-orange-600 hover:text-orange-700 cursor-pointer text-xs"
-                          >
-                            Asignar
-                          </button>
-                          <span class="text-gray-300">·</span>
-                        }
+                      <td class="px-4 py-3.5 text-right whitespace-nowrap space-x-2">
+                        <button
+                          type="button"
+                          (click)="downloadOrderPdf(ord)"
+                          title="Descargar Comprobante PDF"
+                          class="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-2 py-1 text-[11px] font-semibold text-gray-700 hover:border-orange-300 hover:text-orange-700 transition cursor-pointer"
+                        >
+                          <svg class="h-3.5 w-3.5 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                          <span>PDF</span>
+                        </button>
                         <a
                           routerLink="/track"
                           [queryParams]="{ order: ord.orderNumber }"
-                          class="font-semibold text-orange-600 hover:text-orange-700"
+                          class="inline-flex items-center gap-1 rounded-lg border border-orange-200 bg-orange-50 px-2.5 py-1 text-[11px] font-bold text-orange-700 hover:bg-orange-100 transition"
                         >
-                          Ver seguimiento
+                          <span>{{ ord.status === 'ENTREGADO' ? 'Constancia' : 'Seguimiento' }}</span>
                         </a>
                       </td>
                     </tr>
@@ -4897,6 +5012,37 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
 
   // Global Orders State
   readonly globalOrders = signal<Order[]>([]);
+  readonly orderStatusFilter = signal<'ALL' | 'PENDING' | 'EN_RUTA' | 'ENTREGADO'>('ALL');
+  orderSearchQuery = '';
+
+  readonly pendingDispatchOrdersCount = computed(() =>
+    this.globalOrders().filter(
+      (o) => o.status !== 'ENTREGADO' && o.status !== 'CANCELADO' && o.status !== 'EN_RUTA'
+    ).length
+  );
+
+  readonly filteredGlobalOrders = computed<Order[]>(() => {
+    const statusFilter = this.orderStatusFilter();
+    const q = this.orderSearchQuery.trim().toLowerCase();
+    return this.globalOrders().filter((o) => {
+      if (statusFilter === 'PENDING') {
+        if (o.status === 'ENTREGADO' || o.status === 'CANCELADO' || o.status === 'EN_RUTA') {
+          return false;
+        }
+      } else if (statusFilter === 'EN_RUTA') {
+        if (o.status !== 'EN_RUTA') return false;
+      } else if (statusFilter === 'ENTREGADO') {
+        if (o.status !== 'ENTREGADO') return false;
+      }
+      if (!q) return true;
+      return (
+        o.orderNumber.toLowerCase().includes(q) ||
+        (o.recipientName || '').toLowerCase().includes(q) ||
+        (o.customerName || '').toLowerCase().includes(q) ||
+        (o.customerTaxId || '').toLowerCase().includes(q)
+      );
+    });
+  });
 
   readonly computedHourlySales = computed<SalesTimelinePoint[]>(() => {
     const orders = this.globalOrders();
@@ -5040,7 +5186,7 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
     smtpHost: 'smtp.gmail.com',
     smtpPort: 587,
     username: 'scrasher322@gmail.com',
-    password: 'yive lgtb kmgj pcxx',
+    password: '',
     fromName: 'Repuestos Asunción',
     adminNotificationEmail: 'scrasher322@gmail.com',
   };

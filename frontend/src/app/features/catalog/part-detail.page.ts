@@ -18,32 +18,47 @@ import { PromotionService } from '../../core/services/promotion.service';
   template: `
     <div class="min-h-screen bg-[#F8F9FA] pt-6 pb-24 lg:pb-14 px-4 sm:px-6 lg:px-8">
       <div class="mx-auto max-w-7xl space-y-6">
-        <!-- Breadcrumb -->
-        <nav class="flex flex-wrap items-center gap-2 text-xs font-medium text-gray-500">
-          <a routerLink="/" class="hover:text-orange-600 transition">Catálogo</a>
-          <span>/</span>
-          @if (part(); as p) {
-            <span class="text-gray-600">{{ p.categoryName || 'Repuestos' }}</span>
+        <!-- Breadcrumb & Back Bar -->
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <nav class="flex flex-wrap items-center gap-2 text-xs font-medium text-gray-500">
+            <a routerLink="/" class="hover:text-orange-600 font-semibold transition">Catálogo</a>
             <span>/</span>
-            <span class="font-mono text-gray-900 font-semibold">{{ p.oemCode || p.sku }}</span>
-          }
-        </nav>
+            @if (part(); as p) {
+              <span class="text-gray-600">{{ p.categoryName || 'Repuestos' }}</span>
+              <span>/</span>
+              <span class="font-mono text-gray-900 font-bold">{{ p.oemCode || p.sku }}</span>
+            }
+          </nav>
+
+          <a
+            routerLink="/"
+            class="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3.5 py-1.5 text-xs font-bold text-gray-700 hover:border-orange-300 hover:text-orange-700 transition shadow-2xs"
+          >
+            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+            </svg>
+            <span>Volver al catálogo</span>
+          </a>
+        </div>
 
         @if (isLoading()) {
-          <div class="rounded-2xl border border-gray-200 bg-white p-12 text-center text-sm text-gray-500">
-            Cargando información del repuesto...
+          <div class="rounded-2xl border border-gray-200 bg-white p-12 text-center space-y-3 shadow-xs">
+            <div class="mx-auto h-7 w-7 animate-spin rounded-full border-2 border-orange-600 border-t-transparent"></div>
+            <p class="text-xs font-medium text-gray-500">Cargando ficha técnica y compatibilidad del repuesto...</p>
           </div>
         } @else if (!part()) {
-          <div class="rounded-2xl border border-gray-200 bg-white p-12 text-center space-y-3">
-            <h2 class="text-lg font-bold text-gray-900">Repuesto no encontrado</h2>
+          <div class="rounded-2xl border border-gray-200 bg-white p-12 text-center space-y-3 shadow-xs">
+            <h2 class="text-lg font-extrabold text-gray-900">Repuesto no encontrado</h2>
             <p class="text-xs text-gray-500">Es posible que el producto ya no esté disponible en el catálogo.</p>
-            <a routerLink="/" class="inline-block rounded-lg bg-orange-600 px-4 py-2.5 text-xs font-semibold text-white hover:bg-orange-700">
+            <a routerLink="/" class="inline-block rounded-xl bg-orange-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-orange-700">
               Volver al catálogo
             </a>
           </div>
         } @else if (part(); as p) {
           <!-- Main 2-Column E-Commerce Product Card -->
-          <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 rounded-2xl border border-gray-200 bg-white p-5 sm:p-8 shadow-2xs">
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 rounded-2xl border border-gray-200/90 bg-white p-5 sm:p-8 shadow-xs relative overflow-hidden">
+            <div class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-orange-600 via-orange-500 to-amber-500"></div>
+
             <!-- Left: Gallery with Interactive Hover Lens Zoom -->
             <div class="lg:col-span-6 space-y-3">
               <div
@@ -51,7 +66,7 @@ import { PromotionService } from '../../core/services/promotion.service';
                 (mouseenter)="isZooming.set(true)"
                 (mouseleave)="isZooming.set(false)"
                 [class.border-orange-400]="isZooming()"
-                class="relative aspect-4/3 w-full overflow-hidden rounded-xl border border-gray-200 bg-gray-50 cursor-zoom-in select-none transition-colors"
+                class="relative aspect-4/3 w-full overflow-hidden rounded-2xl border border-gray-200 bg-gray-50 cursor-zoom-in select-none transition-colors"
               >
                 <img
                   [src]="activeImageUrl()"
@@ -62,11 +77,11 @@ import { PromotionService } from '../../core/services/promotion.service';
                   class="h-full w-full object-cover transition-transform duration-100 ease-out"
                 />
 
-                <div class="pointer-events-none absolute bottom-3 left-3 inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white/95 px-2.5 py-1 text-[11px] font-medium text-gray-600 shadow-2xs">
-                  <svg class="h-3.5 w-3.5 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+                <div class="pointer-events-none absolute bottom-3 left-3 inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white/95 px-2.5 py-1 text-[11px] font-semibold text-gray-600 shadow-2xs">
+                  <svg class="h-3.5 w-3.5 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607zM10.5 7.5v6m3-3h-6" />
                   </svg>
-                  <span>Pasa el cursor para ampliar</span>
+                  <span>Pasa el cursor para inspección a detalle</span>
                 </div>
               </div>
 
@@ -82,7 +97,7 @@ import { PromotionService } from '../../core/services/promotion.service';
                           ? 'ring-2 ring-orange-500 border-orange-400'
                           : 'border-gray-200 opacity-75 hover:opacity-100 hover:border-gray-300'
                       "
-                      class="h-18 w-22 shrink-0 overflow-hidden rounded-lg border bg-gray-50 transition"
+                      class="h-18 w-22 shrink-0 overflow-hidden rounded-xl border bg-gray-50 transition cursor-pointer"
                     >
                       <img [src]="imgUrl" alt="Miniatura del repuesto" width="88" height="72" loading="lazy" class="h-full w-full object-cover" />
                     </button>
@@ -93,28 +108,39 @@ import { PromotionService } from '../../core/services/promotion.service';
 
             <!-- Right: Product Info & Purchase Box -->
             <div class="lg:col-span-6 flex flex-col space-y-5">
-              <div class="space-y-2.5">
+              <div class="space-y-3">
                 <div class="flex flex-wrap items-center gap-2">
                   @if (p.manufacturerBrand) {
-                    <span class="rounded-md border border-orange-200 bg-orange-50 px-2.5 py-0.5 text-xs font-semibold text-orange-700">
+                    <span class="rounded-lg border border-orange-200 bg-orange-50 px-2.5 py-0.5 text-xs font-extrabold text-orange-700">
                       {{ p.manufacturerBrand }}
                     </span>
                   }
-                  @if (p.oemCode) {
-                    <span class="rounded-md border border-gray-200 bg-gray-50 px-2.5 py-0.5 font-mono text-xs font-medium text-gray-700">
-                      OEM {{ p.oemCode }}
-                    </span>
-                  }
-                  @if (p.sku) {
-                    <span class="rounded-md border border-gray-200 bg-gray-50 px-2.5 py-0.5 font-mono text-xs text-gray-500">
-                      SKU {{ p.sku }}
+                  @if (p.categoryName) {
+                    <span class="rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-0.5 text-xs font-semibold text-gray-700">
+                      {{ p.categoryName }}
                     </span>
                   }
                 </div>
 
-                <h1 class="text-xl sm:text-2xl font-bold text-gray-900 leading-snug">
+                <h1 class="text-xl sm:text-2xl font-extrabold text-gray-900 leading-snug tracking-tight">
                   {{ p.name }}
                 </h1>
+
+                <!-- Technical Specs Micro-Grid -->
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-1">
+                  <div class="rounded-xl border border-gray-200/80 bg-gray-50/70 px-3 py-2">
+                    <span class="block text-[10px] font-bold uppercase tracking-wider text-gray-400">Código OEM</span>
+                    <span class="font-mono text-xs font-extrabold text-gray-900">{{ p.oemCode || 'Estándar' }}</span>
+                  </div>
+                  <div class="rounded-xl border border-gray-200/80 bg-gray-50/70 px-3 py-2">
+                    <span class="block text-[10px] font-bold uppercase tracking-wider text-gray-400">Código SKU</span>
+                    <span class="font-mono text-xs font-bold text-gray-800">{{ p.sku }}</span>
+                  </div>
+                  <div class="col-span-2 sm:col-span-1 rounded-xl border border-gray-200/80 bg-gray-50/70 px-3 py-2">
+                    <span class="block text-[10px] font-bold uppercase tracking-wider text-gray-400">Procedencia / Marca</span>
+                    <span class="text-xs font-bold text-gray-800">{{ p.manufacturerBrand || 'Certificado OEM' }}</span>
+                  </div>
+                </div>
 
                 <!-- SAE Viscosity Badge if present -->
                 @if (getPartViscosity(p); as visc) {
@@ -139,15 +165,15 @@ import { PromotionService } from '../../core/services/promotion.service';
                 }
               </div>
 
-              <!-- Pricing Box -->
-              <div class="rounded-xl border border-gray-200 bg-gray-50/70 p-4 flex flex-wrap items-center justify-between gap-4">
+              <!-- Pricing Box (Retail vs Interactive Wholesale) -->
+              <div class="rounded-2xl border border-gray-200 bg-gray-50/70 p-4 flex flex-wrap items-center justify-between gap-4">
                 <div>
                   @if (promotionService.getPromotion(p.sku); as promo) {
                     <div class="flex items-center gap-2 mb-1">
                       <span class="rounded-full bg-red-600 text-white font-extrabold text-[10px] px-2.5 py-0.5 animate-pulse">
                         🏷️ {{ promo.badgeLabel || 'OFERTA' }} -{{ promo.discountPercentage }}%
                       </span>
-                      <span class="text-xs text-gray-400 line-through">
+                      <span class="font-mono text-xs text-gray-400 line-through">
                         Normal: S/ {{ p.salePrice | number: '1.2-2' }}
                       </span>
                     </div>
@@ -155,39 +181,48 @@ import { PromotionService } from '../../core/services/promotion.service';
                       Precio de Oferta Especial (incluye IGV)
                     </span>
                     <div class="flex items-baseline gap-3">
-                      <span class="mt-0.5 block text-3xl font-black tracking-tight text-red-600">
+                      <span class="mt-0.5 block font-mono text-3xl font-black tracking-tight text-red-600">
                         S/ {{ promo.promoPrice | number: '1.2-2' }}
                       </span>
-                      <span class="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md px-2 py-0.5">
+                      <span class="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md px-2 py-0.5">
                         Ahorras S/ {{ (p.salePrice - promo.promoPrice) | number: '1.2-2' }}
                       </span>
                     </div>
                   } @else {
-                    <span class="block text-xs font-medium text-gray-500">
+                    <span class="block text-xs font-semibold text-gray-500">
                       Precio unitario (incluye IGV)
                     </span>
-                    <span class="mt-0.5 block text-3xl font-bold tracking-tight text-gray-900">
+                    <span class="mt-0.5 block font-mono text-3xl font-extrabold tracking-tight text-gray-900">
                       S/ {{ p.salePrice | number: '1.2-2' }}
                     </span>
                   }
                 </div>
 
                 @if (p.wholesalePrice) {
-                  <div class="rounded-lg border border-emerald-200 bg-emerald-50 px-3.5 py-2 text-right">
-                    <span class="block text-[11px] font-semibold text-emerald-800">
-                      Precio por mayor (desde 4 und.)
+                  <button
+                    type="button"
+                    (click)="quantity.set(Math.min(p.stockQuantity || 4, Math.max(4, quantity())))"
+                    [class]="quantity() >= 4 ? 'ring-2 ring-emerald-500 border-emerald-400 bg-emerald-50' : 'border-emerald-200 bg-emerald-50/80 hover:bg-emerald-100/70'"
+                    class="rounded-xl border px-3.5 py-2.5 text-right transition cursor-pointer"
+                    title="Haz clic para seleccionar 4 unidades y activar tarifa mayorista"
+                  >
+                    <span class="block text-[11px] font-bold text-emerald-800">
+                      Precio Mayorista (4+ und.)
                     </span>
-                    <span class="text-lg font-bold tracking-tight text-emerald-700">
+                    <span class="font-mono text-lg font-extrabold tracking-tight text-emerald-700">
                       S/ {{ p.wholesalePrice | number: '1.2-2' }} c/u
                     </span>
-                  </div>
+                    <span class="block text-[10px] font-semibold text-emerald-600">
+                      {{ quantity() >= 4 ? '✓ Tarifa mayorista activa' : 'Clic para llevar 4 und.' }}
+                    </span>
+                  </button>
                 }
               </div>
 
               <!-- Availability & Delivery Info -->
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                 <div class="rounded-xl border border-gray-200 bg-white p-3.5">
-                  <span class="block text-gray-500 font-medium">Disponibilidad</span>
+                  <span class="block text-gray-500 font-medium">Disponibilidad física</span>
                   <div class="mt-1 flex items-center gap-1.5">
                     <span
                       [class]="p.stockQuantity > 0 ? 'bg-emerald-500' : 'bg-red-500'"
@@ -195,7 +230,7 @@ import { PromotionService } from '../../core/services/promotion.service';
                     ></span>
                     <span
                       [class]="p.stockQuantity > 0 ? 'text-emerald-700' : 'text-red-600'"
-                      class="font-semibold text-sm"
+                      class="font-bold text-sm"
                     >
                       {{ p.stockQuantity > 0 ? p.stockQuantity + ' unidades en stock' : 'Agotado temporalmente' }}
                     </span>
@@ -206,8 +241,8 @@ import { PromotionService } from '../../core/services/promotion.service';
                     <img src="/images/icons/casa.png" alt="Despacho" class="h-5 w-5 object-contain" />
                   </div>
                   <div>
-                    <span class="block text-gray-500 font-medium">Despacho y entrega</span>
-                    <span class="block font-semibold text-gray-900 text-sm">
+                    <span class="block text-gray-500 font-medium">Modalidades de entrega</span>
+                    <span class="block font-bold text-gray-900 text-sm">
                       Envío en Lima o recojo gratis
                     </span>
                   </div>
@@ -220,16 +255,16 @@ import { PromotionService } from '../../core/services/promotion.service';
                   <button
                     type="button"
                     (click)="decrementQty()"
-                    class="h-9 w-9 rounded-lg text-base font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                    class="h-9 w-9 rounded-lg text-base font-bold text-gray-600 hover:bg-gray-50 hover:text-gray-900 cursor-pointer"
                   >
                     −
                   </button>
-                  <span class="text-sm font-bold text-gray-900">{{ quantity() }}</span>
+                  <span class="font-mono text-sm font-extrabold text-gray-900">{{ quantity() }}</span>
                   <button
                     type="button"
                     [disabled]="quantity() >= p.stockQuantity"
                     (click)="incrementQty(p.stockQuantity)"
-                    class="h-9 w-9 rounded-lg text-base font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 disabled:opacity-40"
+                    class="h-9 w-9 rounded-lg text-base font-bold text-gray-600 hover:bg-gray-50 hover:text-gray-900 disabled:opacity-40 cursor-pointer"
                   >
                     +
                   </button>
@@ -239,7 +274,7 @@ import { PromotionService } from '../../core/services/promotion.service';
                   type="button"
                   [disabled]="p.stockQuantity <= 0"
                   (click)="addToCart(p)"
-                  class="flex-1 min-h-[46px] inline-flex items-center justify-center gap-2 rounded-xl bg-orange-600 py-3 px-5 text-sm font-semibold text-white shadow-xs hover:bg-orange-700 active:scale-[0.98] disabled:bg-gray-200 disabled:text-gray-400 transition-all duration-150 ease-out select-none"
+                  class="flex-1 min-h-[46px] inline-flex items-center justify-center gap-2 rounded-xl bg-orange-600 py-3 px-5 text-sm font-bold text-white shadow-xs hover:bg-orange-700 active:scale-[0.98] disabled:bg-gray-200 disabled:text-gray-400 transition-all duration-150 ease-out select-none cursor-pointer"
                 >
                   <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
@@ -251,7 +286,7 @@ import { PromotionService } from '../../core/services/promotion.service';
                   type="button"
                   [disabled]="p.stockQuantity <= 0"
                   (click)="buyNow(p)"
-                  class="flex-1 min-h-[46px] rounded-xl border border-orange-200 bg-orange-50 py-3 px-5 text-sm font-semibold text-orange-700 hover:bg-orange-100 active:scale-[0.98] disabled:opacity-40 transition-all duration-150 ease-out select-none"
+                  class="flex-1 min-h-[46px] rounded-xl border border-orange-200 bg-orange-50 py-3 px-5 text-sm font-bold text-orange-700 hover:bg-orange-100 active:scale-[0.98] disabled:opacity-40 transition-all duration-150 ease-out select-none cursor-pointer"
                 >
                   Comprar ahora
                 </button>
@@ -259,14 +294,14 @@ import { PromotionService } from '../../core/services/promotion.service';
 
               <!-- Oil & Filter Cross-Sell Recommendation -->
               @if (isOilOrFilter(p)) {
-                <div class="rounded-xl border border-blue-200 bg-blue-50/70 p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+                <div class="rounded-xl border border-amber-200 bg-amber-50/70 p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
                   <div class="flex items-start gap-2.5">
                     <span class="text-xl">💡</span>
                     <div>
-                      <p class="font-bold text-blue-950">
+                      <p class="font-bold text-gray-900">
                         {{ isOil(p) ? '¿Realizando el cambio de aceite?' : '¿Comprando este filtro automotriz?' }}
                       </p>
-                      <p class="text-[11px] text-blue-800">
+                      <p class="text-[11px] text-gray-600">
                         {{ isOil(p) ? 'Recuerda reemplazar también el filtro de aceite para garantizar la protección del motor.' : 'Asegúrate de contar con el lubricante del grado de viscosidad SAE correcto.' }}
                       </p>
                     </div>
@@ -274,7 +309,7 @@ import { PromotionService } from '../../core/services/promotion.service';
                   <a
                     routerLink="/"
                     [queryParams]="isOil(p) ? { category: 'FILTROS' } : { category: 'LUBRICANTES' }"
-                    class="shrink-0 rounded-lg bg-blue-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 transition"
+                    class="shrink-0 rounded-lg bg-orange-600 px-3.5 py-1.5 text-xs font-bold text-white hover:bg-orange-700 transition"
                   >
                     {{ isOil(p) ? 'Ver Filtros Compatibles' : 'Ver Aceites Disponibles' }}
                   </a>
@@ -284,45 +319,45 @@ import { PromotionService } from '../../core/services/promotion.service';
           </div>
 
           <!-- Vehicle Compatibility Table -->
-          <div class="rounded-2xl border border-gray-200 bg-white overflow-hidden shadow-2xs">
+          <div class="rounded-2xl border border-gray-200 bg-white overflow-hidden shadow-xs">
             <div class="border-b border-gray-200 bg-white px-6 py-4 flex flex-wrap items-center justify-between gap-2">
               <div>
-                <h2 class="text-base font-bold text-gray-900">
-                  Vehículos compatibles
+                <h2 class="text-base font-extrabold text-gray-900">
+                  Matriz de Vehículos Compatibles
                 </h2>
                 <p class="text-xs text-gray-500">
                   @if (p.oemCode) {
-                    Modelos verificados para el código OEM <span class="font-mono font-medium text-gray-700">{{ p.oemCode }}</span>
+                    Modelos verificados para el código OEM <span class="font-mono font-bold text-gray-700">{{ p.oemCode }}</span>
                   } @else {
                     Modelos y años de aplicación verificados para este repuesto
                   }
                 </p>
               </div>
-              <span class="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-medium text-gray-700">
-                {{ p.compatibilities?.length || 0 }} modelos compatibles
+              <span class="rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-xs font-bold text-orange-700">
+                {{ p.compatibilities?.length || 0 }} aplicaciones registradas
               </span>
             </div>
 
             @if (!p.compatibilities || p.compatibilities.length === 0) {
               <div class="p-6 text-xs text-gray-500">
-                Repuesto de aplicación general. Consulta con nuestro asistente si deseas confirmar compatibilidad con tu vehículo.
+                Repuesto de aplicación universal o multimarca. Consulta con nuestro asistente si deseas confirmar compatibilidad con tu vehículo.
               </div>
             } @else {
               <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-200 text-xs">
-                  <thead class="bg-gray-50 text-left font-semibold text-gray-600">
+                  <thead class="bg-gray-50 text-left font-bold text-gray-600 uppercase tracking-wider text-[11px]">
                     <tr>
                       <th class="px-6 py-3">Marca</th>
                       <th class="px-6 py-3">Modelo</th>
-                      <th class="px-6 py-3">Años</th>
-                      <th class="px-6 py-3">Motor</th>
-                      <th class="px-6 py-3">Notas de instalación</th>
+                      <th class="px-6 py-3">Rango de Años</th>
+                      <th class="px-6 py-3">Motorización</th>
+                      <th class="px-6 py-3">Notas técnicas</th>
                     </tr>
                   </thead>
                   <tbody class="divide-y divide-gray-100 bg-white">
                     @for (comp of p.compatibilities; track $index) {
                       <tr class="hover:bg-orange-50/30 transition">
-                        <td class="px-6 py-3.5 font-semibold text-gray-900">
+                        <td class="px-6 py-3.5 font-bold text-gray-900">
                           <div class="flex items-center gap-2">
                             @if (getBrandLogo(comp.makeName); as logoUrl) {
                               <img [src]="logoUrl" [alt]="comp.makeName" class="h-4 w-7 object-contain rounded bg-gray-50 border border-gray-100 p-0.5 shrink-0" />
@@ -330,7 +365,7 @@ import { PromotionService } from '../../core/services/promotion.service';
                             <span>{{ comp.makeName || 'Marca' }}</span>
                           </div>
                         </td>
-                        <td class="px-6 py-3.5 font-medium text-gray-800">
+                        <td class="px-6 py-3.5 font-semibold text-gray-800">
                           {{ comp.modelName || 'Modelo #' + comp.modelId }}
                           @if (comp.vehicleType) {
                             <span class="ml-1.5 rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 text-[10px] text-gray-500">
@@ -339,7 +374,7 @@ import { PromotionService } from '../../core/services/promotion.service';
                           }
                         </td>
                         <td class="px-6 py-3.5">
-                          <span class="rounded-md border border-orange-200 bg-orange-50 px-2 py-0.5 font-mono text-[11px] font-medium text-orange-700">
+                          <span class="rounded-md border border-orange-200 bg-orange-50 px-2 py-0.5 font-mono text-[11px] font-bold text-orange-700">
                             {{ comp.yearStart }} – {{ comp.yearEnd }}
                           </span>
                         </td>
@@ -347,7 +382,7 @@ import { PromotionService } from '../../core/services/promotion.service';
                           {{ comp.engineSpec || 'Estándar' }}
                         </td>
                         <td class="px-6 py-3.5 text-gray-500">
-                          {{ comp.notes || 'Instalación directa' }}
+                          {{ comp.notes || 'Instalación directa OEM' }}
                         </td>
                       </tr>
                     }
@@ -356,85 +391,13 @@ import { PromotionService } from '../../core/services/promotion.service';
               </div>
             }
           </div>
-
-          <!-- Trust & Logistics Operational Assurance Grid (Real Photography) -->
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-5 pt-2">
-            <!-- Card 1: Motorized Express Delivery with Real GPS -->
-            <div class="group relative overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xs hover:shadow-md transition">
-              <div class="h-32 overflow-hidden">
-                <img
-                  src="/images/banners/banner-delivery.jpg"
-                  alt="Despacho express motorizado con rastreo en vivo"
-                  class="h-full w-full object-cover group-hover:scale-105 transition duration-300"
-                />
-              </div>
-              <div class="p-4 space-y-1">
-                <div class="flex items-center gap-1.5 text-xs font-bold text-orange-600">
-                  <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-                  </svg>
-                  <span>Rastreo GPS en tiempo real</span>
-                </div>
-                <h3 class="text-xs sm:text-sm font-bold text-gray-900">Envíos Express y Despacho en Lima</h3>
-                <p class="text-[11px] text-gray-600 leading-relaxed">
-                  Seguimiento del motorizado en el mapa con firma digital y comprobante al instante.
-                </p>
-              </div>
-            </div>
-
-            <!-- Card 2: Centralized Warehouse & Immediate Stock -->
-            <div class="group relative overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xs hover:shadow-md transition">
-              <div class="h-32 overflow-hidden">
-                <img
-                  src="/images/banners/banner-warehouse.jpg"
-                  alt="Almacén de repuestos automotrices Asunción"
-                  class="h-full w-full object-cover group-hover:scale-105 transition duration-300"
-                />
-              </div>
-              <div class="p-4 space-y-1">
-                <div class="flex items-center gap-1.5 text-xs font-bold text-orange-600">
-                  <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
-                  </svg>
-                  <span>Stock Físico Inmediato</span>
-                </div>
-                <h3 class="text-xs sm:text-sm font-bold text-gray-900">Almacén Centralizado en Lima</h3>
-                <p class="text-[11px] text-gray-600 leading-relaxed">
-                  Piezas listas para retiro inmediato en Av. Sta. Ana 441, Santa Anita o despacho motorizado.
-                </p>
-              </div>
-            </div>
-
-            <!-- Card 3: Technical Specialist & Factory Warranty -->
-            <div class="group relative overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xs hover:shadow-md transition">
-              <div class="h-32 overflow-hidden">
-                <img
-                  src="/images/banners/banner-expert.jpg"
-                  alt="Asesoría técnica automotriz garantizada"
-                  class="h-full w-full object-cover group-hover:scale-105 transition duration-300"
-                />
-              </div>
-              <div class="p-4 space-y-1">
-                <div class="flex items-center gap-1.5 text-xs font-bold text-orange-600">
-                  <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <span>Garantía de Fábrica</span>
-                </div>
-                <h3 class="text-xs sm:text-sm font-bold text-gray-900">Asesoría Técnica y Calidad</h3>
-                <p class="text-[11px] text-gray-600 leading-relaxed">
-                  Asistencia especializada para confirmar compatibilidad de números de pieza y VIN.
-                </p>
-              </div>
-            </div>
-          </div>
         }
       </div>
     </div>
   `,
 })
 export class PartDetailPageComponent implements OnInit {
+  protected readonly Math = Math;
   readonly auth = inject(AuthService);
   private readonly toast = inject(ToastService);
   readonly promotionService = inject(PromotionService);

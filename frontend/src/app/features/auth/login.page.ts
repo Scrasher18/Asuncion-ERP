@@ -44,7 +44,9 @@ import { RecaptchaV3Service } from '../../core/services/recaptcha-v3.service';
         
 
         <!-- Primary Login / Register Card -->
-        <div class="rounded-2xl border border-gray-200 bg-white p-6 sm:p-7 shadow-2xs">
+        <div class="rounded-2xl border border-gray-200/90 bg-white p-6 sm:p-7 shadow-xs relative overflow-hidden">
+          <div class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-orange-600 via-orange-500 to-amber-500"></div>
+
           <!-- Mode Tabs (visible on login & register) -->
           @if (mode() !== 'forgot') {
             <div class="grid grid-cols-2 rounded-xl bg-gray-100 p-1 mb-6">
@@ -53,10 +55,10 @@ import { RecaptchaV3Service } from '../../core/services/recaptcha-v3.service';
                 (click)="mode.set('login'); errorMessage.set('')"
                 [class]="
                   mode() === 'login'
-                    ? 'bg-white text-gray-900 font-semibold shadow-2xs'
+                    ? 'bg-white text-gray-900 font-bold shadow-2xs'
                     : 'text-gray-500 hover:text-gray-800 font-medium'
                 "
-                class="rounded-lg py-2 text-xs transition"
+                class="rounded-lg py-2 text-xs transition cursor-pointer"
               >
                 Iniciar sesión
               </button>
@@ -65,10 +67,10 @@ import { RecaptchaV3Service } from '../../core/services/recaptcha-v3.service';
                 (click)="mode.set('register'); errorMessage.set('')"
                 [class]="
                   mode() === 'register'
-                    ? 'bg-white text-gray-900 font-semibold shadow-2xs'
+                    ? 'bg-white text-gray-900 font-bold shadow-2xs'
                     : 'text-gray-500 hover:text-gray-800 font-medium'
                 "
-                class="rounded-lg py-2 text-xs transition"
+                class="rounded-lg py-2 text-xs transition cursor-pointer"
               >
                 Crear cuenta
               </button>
@@ -558,12 +560,28 @@ import { RecaptchaV3Service } from '../../core/services/recaptcha-v3.service';
           }
 
           <div class="mt-5 pt-4 border-t border-gray-100 text-center">
-            <a routerLink="/" class="inline-flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-orange-600 transition">
-              <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+            <a routerLink="/" class="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-500 hover:text-orange-600 transition">
+              <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
               </svg>
               <span>Volver al catálogo de repuestos</span>
             </a>
+          </div>
+        </div>
+
+        <!-- Security & Commercial Trust Strip -->
+        <div class="grid grid-cols-3 gap-2 text-center">
+          <div class="rounded-xl border border-gray-200/80 bg-white p-2.5 shadow-2xs">
+            <span class="block text-[10px] font-extrabold text-gray-900">SUNAT / RENIEC</span>
+            <span class="block text-[10px] text-gray-500">Autocompletado</span>
+          </div>
+          <div class="rounded-xl border border-gray-200/80 bg-white p-2.5 shadow-2xs">
+            <span class="block text-[10px] font-extrabold text-emerald-700">Precios Mayoristas</span>
+            <span class="block text-[10px] text-gray-500">Desde 4 unidades</span>
+          </div>
+          <div class="rounded-xl border border-gray-200/80 bg-white p-2.5 shadow-2xs">
+            <span class="block text-[10px] font-extrabold text-orange-600">Sesión Cifrada</span>
+            <span class="block text-[10px] text-gray-500">Seguridad JWT</span>
           </div>
         </div>
       </div>
