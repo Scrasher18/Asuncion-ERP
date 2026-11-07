@@ -25,7 +25,7 @@ interface ChatMessageItem {
   imports: [CommonModule, FormsModule],
   template: `
     @if (shouldShow()) {
-    <div class="fixed bottom-20 right-4 lg:bottom-6 lg:right-6 z-40 flex flex-col items-end">
+    <div class="fixed bottom-[4.5rem] right-3.5 sm:bottom-6 sm:right-6 z-40 flex flex-col items-end">
       <!-- Chat Window -->
       @if (isOpen()) {
         <div class="mb-3 w-[calc(100vw-2rem)] sm:w-[380px] max-h-[70vh] sm:max-h-[540px] flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl">
@@ -201,20 +201,21 @@ interface ChatMessageItem {
         </div>
       }
 
-      <!-- Floating Trigger Pill -->
+      <!-- Floating Trigger Pill / FAB -->
       <button
         type="button"
         (click)="isOpen.set(!isOpen())"
-        class="group inline-flex min-h-[44px] items-center gap-2 rounded-full bg-orange-600 px-4 py-2.5 text-white shadow-md hover:bg-orange-700 transition"
+        class="group inline-flex h-11 w-11 sm:h-auto sm:w-auto sm:min-h-[44px] items-center justify-center gap-2 rounded-full bg-orange-600 sm:px-4 py-2.5 text-white shadow-xl hover:bg-orange-700 active:scale-95 transition cursor-pointer ring-2 ring-white/30"
+        aria-label="Abrir asistente de IA Asunción"
       >
-        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.85">
+        <svg class="h-5 w-5 sm:h-4 sm:w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           @if (isOpen()) {
-            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
           } @else {
             <path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
           }
         </svg>
-        <span class="text-xs font-semibold">
+        <span class="text-xs font-bold hidden sm:inline">
           {{ isOpen() ? 'Cerrar chat' : 'Asistente Asunción' }}
         </span>
       </button>
