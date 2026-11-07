@@ -195,11 +195,11 @@ public class DataSeeder implements CommandLineRunner {
         VehicleModel l200 = ensureModel(mitsubishi, "L200 Triton", "PICKUP");
         VehicleModel amarok = ensureModel(volkswagen, "Amarok", "PICKUP");
 
-        VehicleModel dutro = ensureModel(hino, "Dutro 300", "CAMION");
-        VehicleModel hino500 = ensureModel(hino, "500 Series", "CAMION");
-        VehicleModel forward = ensureModel(isuzu, "Forward FTR", "CAMION");
-        VehicleModel npr = ensureModel(isuzu, "NPR Reward", "CAMION");
-        VehicleModel scaniaP410 = ensureModel(scania, "P410", "TRACTO");
+        VehicleModel dutro = ensureModel(hino, "Dutro 300", "COMERCIAL");
+        VehicleModel hino500 = ensureModel(hino, "500 Series", "COMERCIAL");
+        VehicleModel forward = ensureModel(isuzu, "Forward FTR", "COMERCIAL");
+        VehicleModel npr = ensureModel(isuzu, "NPR Reward", "COMERCIAL");
+        VehicleModel scaniaP410 = ensureModel(scania, "P410", "COMERCIAL");
 
         Instant now = Instant.now();
 

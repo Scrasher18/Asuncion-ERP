@@ -9,7 +9,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -28,6 +29,10 @@ import java.util.stream.Collectors;
 public class CatalogMatrixSeeder implements CommandLineRunner {
 
     private static final Logger log = LoggerFactory.getLogger(CatalogMatrixSeeder.class);
+    private static final int MAX_CATALOG_PARTS = 100;
+    private static final Set<String> ALLOWED_DB_VEHICLE_TYPES = Set.of(
+            "SEDAN", "HATCHBACK", "SUV", "PICKUP", "VAN", "COMERCIAL", "CROSSOVER"
+    );
 
     private enum Segment {
         LIGHT, PICKUP_VAN, HEAVY_TRUCK, ALL_MAKES_CLASSIC, UNIVERSAL
@@ -478,6 +483,7 @@ public class CatalogMatrixSeeder implements CommandLineRunner {
     );
 
     private final boolean matrixEnabled;
+    private final TransactionTemplate transactionTemplate;
     private final CategoryRepository categoryRepository;
     private final ManufacturerBrandRepository brandRepository;
     private final VehicleMakeRepository makeRepository;
@@ -487,6 +493,7 @@ public class CatalogMatrixSeeder implements CommandLineRunner {
 
     public CatalogMatrixSeeder(
             @Value("${app.catalog-matrix.enabled:true}") boolean matrixEnabled,
+            PlatformTransactionManager transactionManager,
             CategoryRepository categoryRepository,
             ManufacturerBrandRepository brandRepository,
             VehicleMakeRepository makeRepository,
@@ -495,6 +502,7 @@ public class CatalogMatrixSeeder implements CommandLineRunner {
             CatalogService catalogService
     ) {
         this.matrixEnabled = matrixEnabled;
+        this.transactionTemplate = new TransactionTemplate(transactionManager);
         this.categoryRepository = categoryRepository;
         this.brandRepository = brandRepository;
         this.makeRepository = makeRepository;
@@ -504,20 +512,21 @@ public class CatalogMatrixSeeder implements CommandLineRunner {
     }
 
     @Override
-    @Transactional
     public void run(String... args) {
         if (!matrixEnabled) {
             return;
         }
         try {
-            ensureStandardMakesAndModels();
-            Map<String, Category> categoriesByCode = loadCategoriesByCode();
-            Map<String, Part> seededPartsBySku = upsertMatrixParts(categoriesByCode);
-            replenishDepletedStock();
-            ensureFullCombinableMatrix(categoriesByCode, seededPartsBySku);
+            transactionTemplate.executeWithoutResult(status -> {
+                ensureStandardMakesAndModels();
+                Map<String, Category> categoriesByCode = loadCategoriesByCode();
+                Map<String, Part> seededPartsBySku = upsertMatrixParts(categoriesByCode);
+                replenishDepletedStock();
+                ensureFullCombinableMatrix(categoriesByCode, seededPartsBySku);
+            });
             catalogService.evictCatalogCache();
-            log.info("Matriz combinable de catálogo verificada con éxito ({} repuestos totales, 100% combinaciones con stock).",
-                    partRepository.count());
+            log.info("Matriz combinable de catálogo verificada con éxito ({} repuestos totales <= {}, 100% combinaciones 1980..2026 con stock).",
+                    partRepository.count(), MAX_CATALOG_PARTS);
         } catch (Exception e) {
             log.warn("Verificación de matriz combinable finalizó con aviso no crítico: {}", e.getMessage());
         }
@@ -560,19 +569,19 @@ public class CatalogMatrixSeeder implements CommandLineRunner {
         ensureModel(kia, "K2700", "COMERCIAL");
 
         ensureModel(mitsubishi, "L200", "PICKUP");
-        ensureModel(mitsubishi, "Canter", "CAMION");
+        ensureModel(mitsubishi, "Canter", "COMERCIAL");
 
-        ensureModel(hino, "Dutro 300", "CAMION");
-        ensureModel(hino, "500 Series", "CAMION");
+        ensureModel(hino, "Dutro 300", "COMERCIAL");
+        ensureModel(hino, "500 Series", "COMERCIAL");
 
         ensureModel(isuzu, "D-Max", "PICKUP");
-        ensureModel(isuzu, "Forward FTR", "CAMION");
-        ensureModel(isuzu, "NPR Reward", "CAMION");
+        ensureModel(isuzu, "Forward FTR", "COMERCIAL");
+        ensureModel(isuzu, "NPR Reward", "COMERCIAL");
 
-        ensureModel(scania, "P410", "TRACTO");
-        ensureModel(scania, "R-Series Heavy", "CAMION");
+        ensureModel(scania, "P410", "COMERCIAL");
+        ensureModel(scania, "R-Series Heavy", "COMERCIAL");
 
-        ensureModel(volvo, "FH 460 / 500", "CAMION");
+        ensureModel(volvo, "FH 460 / 500", "COMERCIAL");
         ensureModel(vw, "Amarok", "PICKUP");
     }
 
@@ -590,14 +599,17 @@ public class CatalogMatrixSeeder implements CommandLineRunner {
 
     private Map<String, Part> upsertMatrixParts(Map<String, Category> categoriesByCode) {
         Map<String, Part> result = new LinkedHashMap<>();
-        for (SeedPartSpec spec : COMPLETE_PARTS) {
+        long totalParts = partRepository.count();
+
+        // Prioritize ALL_MAKES_CLASSIC first when inserting new parts while strictly respecting MAX_CATALOG_PARTS (100)
+        List<SeedPartSpec> orderedSpecs = new ArrayList<>(COMPLETE_PARTS);
+        orderedSpecs.sort(Comparator.comparingInt(s -> s.segment() == Segment.ALL_MAKES_CLASSIC ? 0 : 1));
+
+        for (SeedPartSpec spec : orderedSpecs) {
             Category cat = categoriesByCode.get(spec.categoryCode());
             if (cat == null) {
                 continue;
             }
-            ManufacturerBrand brand = brandRepository.findByNameIgnoreCase(spec.brandName())
-                    .orElseGet(() -> brandRepository.save(new ManufacturerBrand(spec.brandName(), spec.brandOrigin())));
-
             Optional<Part> existingOpt = partRepository.findBySkuIgnoreCase(spec.sku());
             Part part;
             if (existingOpt.isPresent()) {
@@ -623,6 +635,12 @@ public class CatalogMatrixSeeder implements CommandLineRunner {
                 }
                 part = partRepository.save(part);
             } else {
+                if (totalParts >= MAX_CATALOG_PARTS) {
+                    continue;
+                }
+                ManufacturerBrand brand = brandRepository.findByNameIgnoreCase(spec.brandName())
+                        .orElseGet(() -> brandRepository.save(new ManufacturerBrand(spec.brandName(), spec.brandOrigin())));
+
                 part = new Part();
                 part.setSku(spec.sku());
                 part.setOemCode(spec.oemCode());
@@ -649,6 +667,7 @@ public class CatalogMatrixSeeder implements CommandLineRunner {
                 part.getImages().add(img);
 
                 part = partRepository.save(part);
+                totalParts++;
             }
             result.put(spec.sku(), part);
         }
@@ -687,10 +706,22 @@ public class CatalogMatrixSeeder implements CommandLineRunner {
 
         Set<Part> dirtyParts = new LinkedHashSet<>();
 
-        // 1. Widen any existing compatibility ranges so classic/older years (1980..2026) never come back empty
+        // 1. Widen any existing compatibility ranges to 1980..2026 while avoiding uq_part_vehicle_compatibility collisions
         for (Part p : allParts) {
             if (!p.isActive() || p.getCompatibilities() == null) continue;
+            Set<String> seenModelEngineAtFullRange = new HashSet<>();
             for (PartCompatibility c : p.getCompatibilities()) {
+                if (c.getYearStart() == 1980 && c.getYearEnd() == 2026) {
+                    String key = c.getVehicleModel().getId() + "|" + (c.getEngineSpec() != null ? c.getEngineSpec() : "");
+                    seenModelEngineAtFullRange.add(key);
+                }
+            }
+            for (PartCompatibility c : p.getCompatibilities()) {
+                if (c.getYearStart() == 1980 && c.getYearEnd() == 2026) continue;
+                String key = c.getVehicleModel().getId() + "|" + (c.getEngineSpec() != null ? c.getEngineSpec() : "");
+                if (!seenModelEngineAtFullRange.add(key)) {
+                    continue;
+                }
                 boolean updated = false;
                 if (c.getYearStart() > 1980) {
                     c.setYearStart(1980);
@@ -846,7 +877,10 @@ public class CatalogMatrixSeeder implements CommandLineRunner {
     }
 
     private VehicleModel ensureModel(VehicleMake make, String name, String type) {
+        String safeType = (type != null && ALLOWED_DB_VEHICLE_TYPES.contains(type.toUpperCase()))
+                ? type.toUpperCase()
+                : "COMERCIAL";
         return modelRepository.findByMakeIdAndNameIgnoreCase(make.getId(), name)
-                .orElseGet(() -> modelRepository.save(new VehicleModel(make, name, type)));
+                .orElseGet(() -> modelRepository.save(new VehicleModel(make, name, safeType)));
     }
 }
