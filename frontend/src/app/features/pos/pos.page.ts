@@ -334,8 +334,8 @@ const POS_HOLD_TTL_MS = 15 * 60 * 1000;
                             </span>
                           }
                           @if (getOnlineReservedForPart(part) > 0) {
-                            <span class="rounded-full bg-amber-50 border border-amber-200 px-1.5 py-0.2 text-[9px] font-bold text-amber-800">
-                              ⏳ {{ getOnlineReservedForPart(part) }} reservado web
+                            <span class="rounded-full bg-amber-50 border border-amber-200 px-1.5 py-0.2 text-[9px] font-bold text-amber-800" title="Unidades en carritos web sin pagar. La venta en mostrador tiene prioridad de despacho físico.">
+                              ⚡ {{ getOnlineReservedForPart(part) }} en carritos web (Prioridad mostrador)
                             </span>
                           }
                         </div>
@@ -347,7 +347,7 @@ const POS_HOLD_TTL_MS = 15 * 60 * 1000;
                         (click)="addToTicket(part)"
                         class="inline-flex min-h-[36px] items-center gap-1 rounded-xl bg-orange-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-2xs hover:bg-orange-700 active:scale-[0.98] disabled:bg-gray-200 disabled:text-gray-400 transition cursor-pointer"
                       >
-                        <span>{{ getRemainingPosStock(part) <= 0 ? (getOnlineReservedForPart(part) > 0 ? 'Reservado Web' : 'Sin stock') : '+ Agregar' }}</span>
+                        <span>{{ getRemainingPosStock(part) <= 0 ? 'Sin stock' : '+ Agregar' }}</span>
                       </button>
                     </div>
                   </div>
@@ -916,9 +916,7 @@ export class PosPageComponent implements OnInit, OnDestroy {
   }
 
   getMaxSellableInPos(part: Part): number {
-    const physicalStock = Math.max(0, part.stockQuantity ?? 0);
-    const onlineReserved = this.getOnlineReservedForPart(part);
-    return Math.max(0, physicalStock - onlineReserved);
+    return Math.max(0, part.stockQuantity ?? 0);
   }
 
   getRemainingPosStock(part: Part): number {
@@ -939,15 +937,15 @@ export class PosPageComponent implements OnInit, OnDestroy {
       if (maxAllowed <= 0) {
         modified = true;
         this.toast.warning(
-          'Producto reservado en tienda online',
-          `«${latestPart.name}» fue reservado o adquirido por un cliente web y se retiró del ticket.`
+          'Sin existencias físicas',
+          `«${latestPart.name}» se encuentra agotado físicamente en almacén y se retiró del ticket.`
         );
       } else if (item.quantity > maxAllowed) {
         modified = true;
         nextTicket.push({ part: latestPart, quantity: maxAllowed });
         this.toast.warning(
-          'Cantidad ajustada por reserva web',
-          `«${latestPart.name}» se ajustó a ${maxAllowed} und. disponibles.`
+          'Cantidad ajustada por stock físico',
+          `«${latestPart.name}» se ajustó a ${maxAllowed} und. disponibles en almacén.`
         );
       } else {
         nextTicket.push({ part: latestPart, quantity: item.quantity });
@@ -1086,9 +1084,7 @@ export class PosPageComponent implements OnInit, OnDestroy {
     if (maxAvail <= 0) {
       this.toast.warning(
         'Sin stock disponible',
-        this.getOnlineReservedForPart(part) > 0
-          ? 'Las unidades de este repuesto están reservadas por un cliente en la tienda online.'
-          : 'Este repuesto se encuentra agotado.'
+        'Este repuesto se encuentra agotado físicamente en almacén.'
       );
       return;
     }

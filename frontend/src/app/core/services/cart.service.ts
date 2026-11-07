@@ -14,6 +14,23 @@ const RESERVATION_SESSION_KEY = 'asuncion_reservation_session_id';
 export const POS_ACTIVE_HOLDS_KEY = 'asuncion_pos_active_holds';
 export const ONLINE_ACTIVE_HOLDS_KEY = 'asuncion_online_active_holds';
 
+export interface StockAdjustmentItem {
+  partId: number;
+  partName: string;
+  partSku: string;
+  previousQuantity: number;
+  newQuantity: number;
+  reason: string;
+  isFullyDepleted: boolean;
+}
+
+export interface StockAdjustmentAlert {
+  title: string;
+  subtitle: string;
+  items: StockAdjustmentItem[];
+  timestamp: number;
+}
+
 @Injectable({ providedIn: 'root' })
 export class CartService {
   private readonly http = inject(HttpClient);
@@ -25,6 +42,7 @@ export class CartService {
 
   readonly items = signal<CartItem[]>([]);
   readonly isDrawerOpen = signal<boolean>(false);
+  readonly activeStockAlert = signal<StockAdjustmentAlert | null>(null);
 
   // Stock Reservation (Estado RESERVADO) Signals
   readonly reservationSessionId: string = this.initOrLoadSessionId();
@@ -135,6 +153,10 @@ export class CartService {
     }
   }
 
+  dismissStockAlert(): void {
+    this.activeStockAlert.set(null);
+  }
+
   refreshPosHoldsAndReconcile(showToast = true): void {
     const latestPos = this.loadPosActiveHolds();
     this.posActiveHolds.set(latestPos);
@@ -144,6 +166,8 @@ export class CartService {
 
     let adjusted = false;
     const nextList: CartItem[] = [];
+    const adjustments: StockAdjustmentItem[] = [];
+
     for (const item of current) {
       const posQty = latestPos[item.part.id] ?? 0;
       const serverOthers = this.reservedByOthersMap()[item.part.id] ?? 0;
@@ -151,12 +175,24 @@ export class CartService {
       const maxAvail = Math.max(0, item.part.stockQuantity - reservedByOthers);
       if (item.quantity > maxAvail) {
         adjusted = true;
+        const diff = item.quantity - maxAvail;
+        adjustments.push({
+          partId: item.part.id,
+          partName: item.part.name,
+          partSku: item.part.sku,
+          previousQuantity: item.quantity,
+          newQuantity: maxAvail,
+          isFullyDepleted: maxAvail === 0,
+          reason: maxAvail === 0
+            ? 'Las unidades fueron adquiridas en caja de nuestra tienda física.'
+            : `Se redujo en ${diff} und. por atención presencial en mostrador. Tienes ${maxAvail} und. reservadas.`,
+        });
         if (showToast) {
           this.toast.warning(
-            'Stock reservado en Punto de Venta',
+            'Stock reservado en mostrador',
             maxAvail > 0
               ? `Solo quedan ${maxAvail} und. disponibles de ${item.part.name} (el resto está reservado en Caja).`
-              : `Las unidades de ${item.part.name} acaban de ser reservadas en Caja / Punto de Venta.`
+              : `Las unidades de ${item.part.name} acaban de ser adquiridas en mostrador de tienda física.`
           );
         }
         if (maxAvail > 0) {
@@ -170,6 +206,14 @@ export class CartService {
     if (adjusted) {
       this.items.set(nextList);
       this.persist();
+      if (adjustments.length > 0) {
+        this.activeStockAlert.set({
+          title: 'Stock adquirido en Tienda Física',
+          subtitle: 'Un cliente en mostrador completó una compra presencial con prioridad de despacho.',
+          items: adjustments,
+          timestamp: Date.now(),
+        });
+      }
       this.syncReservationWithServer(false);
     }
   }
@@ -511,21 +555,53 @@ export class CartService {
           this.reservationExpiresAt.set(expMs);
           this.reservationRemainingSeconds.set(Math.max(0, Math.floor((expMs - Date.now()) / 1000)));
 
+          const currentMap = new Map(this.items().map((i) => [i.part.id, i.quantity]));
+          const currentPartMap = new Map(this.items().map((i) => [i.part.id, i.part]));
           const othersMap: Record<number, number> = {};
           let anyAdjusted = false;
+          const adjustments: StockAdjustmentItem[] = [];
 
           for (const st of res.items || []) {
             othersMap[st.partId] = st.reservedByOthers;
+            const prevQty = currentMap.get(st.partId) ?? 0;
+            const partInfo = currentPartMap.get(st.partId);
+            const partName = st.name || partInfo?.name || 'Repuesto';
+            const partSku = st.sku || partInfo?.sku || '';
+
+            if (st.reservedQuantity < prevQty) {
+              const diff = prevQty - st.reservedQuantity;
+              adjustments.push({
+                partId: st.partId,
+                partName,
+                partSku,
+                previousQuantity: prevQty,
+                newQuantity: st.reservedQuantity,
+                isFullyDepleted: st.reservedQuantity === 0,
+                reason: st.reservedQuantity === 0
+                  ? 'Se agotaron las unidades disponibles por una compra en mostrador de tienda física / ajuste de almacén.'
+                  : `Se redujo en ${diff} und. debido a una venta presencial prioritaria en mostrador de tienda física. Las ${st.reservedQuantity} und. restantes quedan aseguradas para ti.`,
+              });
+            }
+
             if (st.status === 'AJUSTADO_POR_RESERVA' || st.status === 'AGOTADO_EN_RESERVA' || st.status === 'AGOTADO') {
               anyAdjusted = true;
               if (showAdjustToast) {
-                this.toast.warning('Reserva concurrente detectada', st.message);
+                this.toast.warning('Ajuste de inventario', st.message);
               }
             }
           }
           this.reservedByOthersMap.set(othersMap);
           this.syncBus.notifyReservationsUpdated(res.items ? res.items.map((it) => it.partId) : []);
           this.syncBus.notifyCatalogRefresh();
+
+          if (adjustments.length > 0) {
+            this.activeStockAlert.set({
+              title: 'Actualización de Inventario en tu Carrito',
+              subtitle: 'Detectamos un cambio en el stock físico de almacén mientras preparabas tu pedido.',
+              items: adjustments,
+              timestamp: Date.now(),
+            });
+          }
 
           if (anyAdjusted) {
             const statusByPart = new Map(res.items.map((it) => [it.partId, it]));

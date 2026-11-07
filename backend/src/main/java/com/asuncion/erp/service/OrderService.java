@@ -173,10 +173,14 @@ public class OrderService {
                 throw new BadRequestException("El repuesto '" + part.getName() + "' (" + part.getSku() + ") no se encuentra disponible.");
             }
 
-            int reservedByOthers = stockReservationService.getReservedQuantityExcludingSession(
-                    part.getId(),
-                    req.reservationSessionId()
-            );
+            // Physical counter sales (mostrador / caja) have immediate in-store dispensing priority
+            // over uncommitted online cart holds. Online checkouts must respect other online holds.
+            int reservedByOthers = isCounterSale
+                    ? 0
+                    : stockReservationService.getReservedQuantityExcludingSession(
+                            part.getId(),
+                            req.reservationSessionId()
+                    );
             int effectiveAvailable = Math.max(0, part.getStockQuantity() - reservedByOthers);
 
             if (effectiveAvailable < qty) {
@@ -196,6 +200,7 @@ public class OrderService {
 
             part.setStockQuantity(part.getStockQuantity() - qty);
             partRepository.save(part);
+            stockReservationService.reconcileHoldsForPart(part.getId(), part.getStockQuantity());
             lockedPartsById.put(part.getId(), part);
         }
 
