@@ -13,7 +13,17 @@ import {
 import { ApiConfigService } from '../../core/services/api-config.service';
 import { CartService } from '../../core/services/cart.service';
 import { CatalogService } from '../../core/services/catalog.service';
-import { PromotionService } from '../../core/services/promotion.service';
+import { PartPromotion, PromotionService } from '../../core/services/promotion.service';
+
+interface CatalogComboCard {
+  promo: PartPromotion;
+  mainPart: Part;
+  complementPart: Part;
+  regularTotal: number;
+  comboTotal: number;
+  savings: number;
+  complementComboPrice: number;
+}
 
 const CATALOG_CACHE_KEY = 'asuncion_catalog_snapshot_v4';
 const LEGACY_CATALOG_CACHE_KEY = 'asuncion_catalog_snapshot_v3';
@@ -280,32 +290,6 @@ interface CatalogLocalSnapshot {
 
       <!-- Main Catalog Content (Directly Below Selector) -->
       <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-6 space-y-5">
-        @if (promotionService.activePromotions().length > 0) {
-          <div class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-orange-200 bg-gradient-to-r from-orange-50 via-amber-50/70 to-white px-4 py-3 shadow-2xs">
-            <div class="flex items-center gap-2.5 text-xs sm:text-sm font-bold text-gray-900">
-              <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-orange-600 text-white text-sm shadow-2xs">
-                🏷️
-              </span>
-              <div>
-                <span>
-                  Tenemos <strong class="text-orange-700">{{ promotionService.activeCombos().length }} Combos Automotrices</strong> y
-                  <strong class="text-red-600">{{ promotionService.activeDirectOffers().length }} Ofertas Flash</strong> activas hoy
-                </span>
-                <span class="hidden md:inline text-xs font-medium text-gray-600 ml-1.5">
-                  · Lleva el repuesto principal + consumible con doble descuento
-                </span>
-              </div>
-            </div>
-            <a
-              routerLink="/ofertas"
-              class="inline-flex items-center gap-1.5 rounded-xl bg-orange-600 px-3.5 py-2 text-xs font-extrabold text-white shadow-2xs hover:bg-orange-700 transition"
-            >
-              <span>Ver Ofertas y Combos</span>
-              <span>→</span>
-            </a>
-          </div>
-        }
-
         <!-- High-Legibility Results Summary & Active Filter Chips Toolbar -->
         <div class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gray-300/90 bg-white px-4 py-3.5 shadow-2xs">
           <div class="flex flex-wrap items-center gap-2.5 text-sm font-semibold text-gray-800">
@@ -314,6 +298,22 @@ interface CatalogLocalSnapshot {
                 <span class="h-4 w-4 animate-spin rounded-full border-2 border-orange-600 border-t-transparent"></span>
                 Cargando catálogo de repuestos...
               </span>
+            } @else if (sortBy() === 'ONLY_COMBOS') {
+              <span class="inline-flex items-center gap-2">
+                <span>Mostrando</span>
+                <strong class="inline-flex items-center justify-center rounded-lg border border-orange-200 bg-orange-50 px-2.5 py-0.5 text-base font-black text-orange-700 tabular-nums">
+                  {{ displayedCombos().length }}
+                </strong>
+                <span>{{ displayedCombos().length === 1 ? 'combo automotriz activo' : 'combos automotrices activos' }}</span>
+              </span>
+              <button
+                type="button"
+                (click)="sortBy.set('RELEVANCE')"
+                class="inline-flex items-center gap-1 rounded-lg bg-orange-50 border border-orange-200 px-2.5 py-1 text-xs font-extrabold text-orange-800 hover:bg-orange-100 cursor-pointer"
+              >
+                <span>📦 Solo Combos</span>
+                <span>✕</span>
+              </button>
             } @else if (displayedParts().length === 0) {
               <span class="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-1 text-sm font-extrabold text-red-700">
                 <span>Sin coincidencias</span>
@@ -325,8 +325,24 @@ interface CatalogLocalSnapshot {
                 <strong class="inline-flex items-center justify-center rounded-lg border border-orange-200 bg-orange-50 px-2.5 py-0.5 text-base font-black text-orange-700 tabular-nums">
                   {{ displayedParts().length }}
                 </strong>
-                <span>{{ displayedParts().length === 1 ? 'repuesto disponible' : 'repuestos disponibles' }}</span>
+                <span>
+                  {{
+                    sortBy() === 'ONLY_OFFERS'
+                      ? (displayedParts().length === 1 ? 'repuesto en oferta' : 'repuestos en oferta')
+                      : (displayedParts().length === 1 ? 'repuesto disponible' : 'repuestos disponibles')
+                  }}
+                </span>
               </span>
+              @if (sortBy() === 'ONLY_OFFERS') {
+                <button
+                  type="button"
+                  (click)="sortBy.set('RELEVANCE')"
+                  class="inline-flex items-center gap-1 rounded-lg bg-red-50 border border-red-200 px-2.5 py-1 text-xs font-extrabold text-red-700 hover:bg-red-100 cursor-pointer"
+                >
+                  <span>🔥 Solo Ofertas</span>
+                  <span>✕</span>
+                </button>
+              }
             }
 
             @if (activeMakeName(); as makeLabel) {
@@ -381,12 +397,54 @@ interface CatalogLocalSnapshot {
             }
           </div>
 
-          <div class="flex items-center gap-3">
+          <div class="flex flex-wrap items-center gap-2.5">
             @if (backendOffline()) {
               <div class="inline-flex items-center gap-2 rounded-lg border border-orange-200 bg-orange-50 px-3 py-1.5 text-xs font-bold text-orange-800">
                 <span class="h-2 w-2 rounded-full bg-orange-500 animate-ping"></span>
                 <span>Sincronizando con servidor en la nube...</span>
               </div>
+            }
+
+            @if (promotionService.activeDirectOffers().length > 0) {
+              <button
+                type="button"
+                (click)="togglePromoSort('ONLY_OFFERS')"
+                [class]="
+                  sortBy() === 'ONLY_OFFERS'
+                    ? 'border-red-600 bg-red-600 text-white shadow-2xs'
+                    : 'border-gray-300 bg-gray-50 text-gray-800 hover:border-red-400 hover:bg-red-50 hover:text-red-700'
+                "
+                class="min-h-[38px] inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-extrabold transition cursor-pointer"
+              >
+                <span>🔥 Ofertas</span>
+                <span
+                  [class]="sortBy() === 'ONLY_OFFERS' ? 'bg-white/25 text-white' : 'bg-red-100 text-red-700'"
+                  class="rounded-full px-1.5 py-0.2 text-[11px] font-black tabular-nums"
+                >
+                  {{ promotionService.activeDirectOffers().length }}
+                </span>
+              </button>
+            }
+
+            @if (promotionService.activeCombos().length > 0) {
+              <button
+                type="button"
+                (click)="togglePromoSort('ONLY_COMBOS')"
+                [class]="
+                  sortBy() === 'ONLY_COMBOS'
+                    ? 'border-orange-600 bg-orange-600 text-white shadow-2xs'
+                    : 'border-gray-300 bg-gray-50 text-gray-800 hover:border-orange-400 hover:bg-orange-50 hover:text-orange-700'
+                "
+                class="min-h-[38px] inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-extrabold transition cursor-pointer"
+              >
+                <span>📦 Combos</span>
+                <span
+                  [class]="sortBy() === 'ONLY_COMBOS' ? 'bg-white/25 text-white' : 'bg-orange-100 text-orange-700'"
+                  class="rounded-full px-1.5 py-0.2 text-[11px] font-black tabular-nums"
+                >
+                  {{ promotionService.activeCombos().length }}
+                </span>
+              </button>
             }
 
             <div class="flex items-center gap-2 text-xs sm:text-sm">
@@ -397,6 +455,9 @@ interface CatalogLocalSnapshot {
                 class="min-h-[38px] rounded-lg border border-gray-300 bg-gray-50 px-3 py-1.5 text-xs sm:text-sm font-bold text-gray-900 focus:border-orange-500 focus:outline-none cursor-pointer"
               >
                 <option value="RELEVANCE">Relevancia</option>
+                <option value="PROMOS_FIRST">Ofertas y Combos primero</option>
+                <option value="ONLY_OFFERS">Solo Ofertas Flash</option>
+                <option value="ONLY_COMBOS">Solo Combos Automotrices</option>
                 <option value="PRICE_ASC">Precio: Menor a Mayor</option>
                 <option value="PRICE_DESC">Precio: Mayor a Menor</option>
                 <option value="STOCK_DESC">Mayor Stock Disponible</option>
@@ -404,6 +465,139 @@ interface CatalogLocalSnapshot {
             </div>
           </div>
         </div>
+
+        <!-- Combos Automotrices Section (Shown ONLY when user selects Combos or Ofertas y Combos primero) -->
+        @if ((sortBy() === 'ONLY_COMBOS' || sortBy() === 'PROMOS_FIRST') && !isLoading()) {
+          @if (displayedCombos().length === 0 && sortBy() === 'ONLY_COMBOS') {
+            <div class="rounded-2xl border border-gray-300 bg-white p-12 text-center space-y-3.5 shadow-xs">
+              <h3 class="text-lg font-extrabold text-gray-950">
+                No hay combos activos que coincidan con este filtro
+              </h3>
+              <p class="text-sm text-gray-600 max-w-md mx-auto">
+                Restablece los filtros o vuelve al catálogo general para explorar todos los repuestos disponibles.
+              </p>
+              <button
+                type="button"
+                (click)="resetAllFilters(); sortBy.set('RELEVANCE')"
+                class="rounded-xl bg-orange-600 px-6 py-3 text-sm font-extrabold text-white hover:bg-orange-700 transition cursor-pointer shadow-xs"
+              >
+                Mostrar todo el catálogo
+              </button>
+            </div>
+          } @else if (displayedCombos().length > 0) {
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+              @for (combo of displayedCombos(); track combo.promo.sku) {
+                <article class="flex flex-col justify-between rounded-2xl border-2 border-orange-200 bg-white p-4 sm:p-5 shadow-xs hover:border-orange-400 hover:shadow-md transition">
+                  <div>
+                    <div class="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-gray-100">
+                      <span class="inline-flex items-center gap-1.5 rounded-full bg-orange-600 px-3 py-1 text-[11px] font-black text-white uppercase tracking-wide">
+                        📦 Combo Automotriz · {{ combo.promo.badgeLabel }}
+                      </span>
+                      <span class="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-extrabold text-emerald-800 tabular-nums">
+                        Cupo: {{ combo.promo.unitsQuota - combo.promo.unitsSoldInPromo }} disp.
+                      </span>
+                    </div>
+
+                    <div class="mt-4 grid grid-cols-1 sm:grid-cols-11 gap-3 items-center">
+                      <!-- Main Part -->
+                      <a
+                        [routerLink]="['/part', combo.mainPart.id]"
+                        class="sm:col-span-5 rounded-xl border border-gray-200 bg-gray-50/70 p-3 hover:border-orange-300 transition flex items-center gap-3"
+                      >
+                        <div class="h-16 w-16 shrink-0 rounded-lg bg-white border border-gray-200 p-1.5 flex items-center justify-center">
+                          <img
+                            [src]="resolveImage(combo.mainPart)"
+                            [alt]="combo.mainPart.name"
+                            (error)="onPartImageError($event, combo.mainPart)"
+                            class="max-h-full max-w-full object-contain"
+                          />
+                        </div>
+                        <div class="min-w-0">
+                          <span class="inline-block rounded bg-orange-100 px-1.5 py-0.5 text-[10px] font-extrabold text-orange-800">
+                            -{{ combo.promo.discountPercentage }}% EN COMBO
+                          </span>
+                          <p class="mt-0.5 text-xs font-extrabold text-gray-950 line-clamp-2 leading-snug">
+                            {{ combo.mainPart.name }}
+                          </p>
+                          <div class="mt-1 flex items-baseline gap-1.5">
+                            <span class="text-xs font-black text-gray-900 tabular-nums">
+                              S/ {{ combo.promo.promoPrice | number: '1.2-2' }}
+                            </span>
+                            <span class="text-[11px] text-gray-400 line-through tabular-nums">
+                              S/ {{ combo.mainPart.salePrice | number: '1.2-2' }}
+                            </span>
+                          </div>
+                        </div>
+                      </a>
+
+                      <div class="sm:col-span-1 flex items-center justify-center">
+                        <span class="flex h-7 w-7 items-center justify-center rounded-full bg-orange-100 text-orange-700 font-black text-sm">
+                          +
+                        </span>
+                      </div>
+
+                      <!-- Complement Part -->
+                      <a
+                        [routerLink]="['/part', combo.complementPart.id]"
+                        class="sm:col-span-5 rounded-xl border border-gray-200 bg-gray-50/70 p-3 hover:border-orange-300 transition flex items-center gap-3"
+                      >
+                        <div class="h-16 w-16 shrink-0 rounded-lg bg-white border border-gray-200 p-1.5 flex items-center justify-center">
+                          <img
+                            [src]="resolveImage(combo.complementPart)"
+                            [alt]="combo.complementPart.name"
+                            (error)="onPartImageError($event, combo.complementPart)"
+                            class="max-h-full max-w-full object-contain"
+                          />
+                        </div>
+                        <div class="min-w-0">
+                          <span class="inline-block rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-extrabold text-emerald-800">
+                            -15% ADICIONAL
+                          </span>
+                          <p class="mt-0.5 text-xs font-extrabold text-gray-950 line-clamp-2 leading-snug">
+                            {{ combo.complementPart.name }}
+                          </p>
+                          <div class="mt-1 flex items-baseline gap-1.5">
+                            <span class="text-xs font-black text-gray-900 tabular-nums">
+                              S/ {{ combo.complementComboPrice | number: '1.2-2' }}
+                            </span>
+                            <span class="text-[11px] text-gray-400 line-through tabular-nums">
+                              S/ {{ combo.complementPart.salePrice | number: '1.2-2' }}
+                            </span>
+                          </div>
+                        </div>
+                      </a>
+                    </div>
+                  </div>
+
+                  <div class="mt-4 pt-3.5 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <span class="block text-[11px] font-semibold text-gray-500">
+                        Separados: <span class="line-through tabular-nums">S/ {{ combo.regularTotal | number: '1.2-2' }}</span>
+                      </span>
+                      <div class="flex items-baseline gap-2">
+                        <span class="text-2xl font-black text-gray-950 tabular-nums">
+                          S/ {{ combo.comboTotal | number: '1.2-2' }}
+                        </span>
+                        <span class="rounded-md bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-xs font-extrabold text-emerald-700 tabular-nums">
+                          Ahorras S/ {{ combo.savings | number: '1.2-2' }}
+                        </span>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      [disabled]="!canAddCombo(combo)"
+                      (click)="cart.addCombo(combo.mainPart, combo.complementPart, true)"
+                      class="min-h-[42px] inline-flex items-center justify-center gap-2 rounded-xl bg-orange-600 px-4 py-2.5 text-xs sm:text-sm font-extrabold text-white shadow-xs hover:bg-orange-700 active:scale-[0.98] disabled:bg-gray-200 disabled:text-gray-500 transition cursor-pointer"
+                    >
+                      <span>{{ canAddCombo(combo) ? '🛒 Llevar Combo Completo' : 'Combo sin stock disponible' }}</span>
+                    </button>
+                  </div>
+                </article>
+              }
+            </div>
+          }
+        }
 
         <!-- Loading Skeleton (Only on first uncached cold boot) -->
         @if (isLoading()) {
@@ -417,7 +611,7 @@ interface CatalogLocalSnapshot {
               </div>
             }
           </div>
-        } @else if (displayedParts().length === 0) {
+        } @else if (sortBy() !== 'ONLY_COMBOS' && displayedParts().length === 0) {
           <div class="rounded-2xl border border-gray-300 bg-white p-12 text-center space-y-3.5 shadow-xs">
             <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-orange-200 bg-orange-50 text-orange-600">
               <svg class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -432,13 +626,13 @@ interface CatalogLocalSnapshot {
             </p>
             <button
               type="button"
-              (click)="resetAllFilters()"
+              (click)="resetAllFilters(); sortBy.set('RELEVANCE')"
               class="rounded-xl bg-orange-600 px-6 py-3 text-sm font-extrabold text-white hover:bg-orange-700 transition cursor-pointer shadow-xs"
             >
               Mostrar todo el catálogo
             </button>
           </div>
-        } @else {
+        } @else if (sortBy() !== 'ONLY_COMBOS') {
           <!-- Spare Parts Grid -->
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
             @for (part of displayedParts(); track part.id) {
@@ -553,13 +747,14 @@ interface CatalogLocalSnapshot {
                           S/ {{ part.salePrice | number: '1.2-2' }}
                         </span>
                         @if (promotionService.getPromotion(part.sku); as comboPromo) {
-                          <a
-                            routerLink="/ofertas"
-                            class="inline-flex items-center gap-1 text-[11px] font-extrabold text-orange-700 hover:underline mt-0.5"
+                          <button
+                            type="button"
+                            (click)="sortBy.set('ONLY_COMBOS')"
+                            class="inline-flex items-center gap-1 text-[11px] font-extrabold text-orange-700 hover:underline mt-0.5 cursor-pointer"
                           >
                             <span>📦 Disponible en Combo (-{{ comboPromo.discountPercentage }}%)</span>
                             <span>→</span>
-                          </a>
+                          </button>
                         }
                       }
                       @if (part.wholesalePrice) {
@@ -687,7 +882,15 @@ export class CatalogPageComponent implements OnInit, OnDestroy {
   readonly isLoading = signal<boolean>(true);
   readonly backendOffline = signal<boolean>(false);
   readonly showSuggestions = signal<boolean>(false);
-  readonly sortBy = signal<'RELEVANCE' | 'PRICE_ASC' | 'PRICE_DESC' | 'STOCK_DESC'>('RELEVANCE');
+  readonly sortBy = signal<
+    | 'RELEVANCE'
+    | 'PROMOS_FIRST'
+    | 'ONLY_OFFERS'
+    | 'ONLY_COMBOS'
+    | 'PRICE_ASC'
+    | 'PRICE_DESC'
+    | 'STOCK_DESC'
+  >('RELEVANCE');
 
   // Reactive filter state signals for 0ms synchronous filtering
   private readonly searchQuerySig = signal<string>('');
@@ -789,6 +992,74 @@ export class CatalogPageComponent implements OnInit, OnDestroy {
   readonly selectedViscosity = signal<string | null>(null);
   readonly years: number[] = Array.from({ length: 47 }, (_, i) => 2026 - i);
 
+  readonly displayedCombos = computed<CatalogComboCard[]>(() => {
+    const partsMap = new Map<string, Part>();
+    for (const p of this.allParts()) {
+      partsMap.set(p.sku, p);
+    }
+
+    const catId = this.selectedCategoryIdSig();
+    const makeId = this.selectedMakeIdSig();
+    const modelId = this.selectedModelIdSig();
+    const year = this.selectedYearSig();
+    const inStockOnly = this.onlyInStockSig();
+    const queryTokens = this.tokenizeSearch(this.searchQuerySig());
+
+    const cards: CatalogComboCard[] = [];
+    for (const promo of this.promotionService.activeCombos()) {
+      if (!promo.comboComplementSku) continue;
+      const mainPart = partsMap.get(promo.sku);
+      const complementPart = partsMap.get(promo.comboComplementSku);
+      if (!mainPart || !complementPart) continue;
+
+      if (catId !== null && mainPart.categoryId !== catId && complementPart.categoryId !== catId) {
+        continue;
+      }
+      if (
+        inStockOnly &&
+        (this.cart.getRemainingStockToAdd(mainPart) <= 0 ||
+          this.cart.getRemainingStockToAdd(complementPart) <= 0)
+      ) {
+        continue;
+      }
+      if (!this.matchesFitment(mainPart, makeId, modelId, year)) {
+        continue;
+      }
+      if (
+        queryTokens.length > 0 &&
+        !this.matchesQueryTokens(mainPart, queryTokens) &&
+        !this.matchesQueryTokens(complementPart, queryTokens)
+      ) {
+        continue;
+      }
+
+      const complementComboPrice =
+        promo.comboComplementPromoPrice ??
+        Number(
+          Math.max(
+            complementPart.purchasePrice ?? 0,
+            complementPart.salePrice * 0.85
+          ).toFixed(2)
+        );
+      const regularTotal = Number((mainPart.salePrice + complementPart.salePrice).toFixed(2));
+      const comboTotal =
+        promo.comboTotalPromoPrice ??
+        Number((promo.promoPrice + complementComboPrice).toFixed(2));
+      const savings = Math.max(0, Number((regularTotal - comboTotal).toFixed(2)));
+
+      cards.push({
+        promo,
+        mainPart,
+        complementPart,
+        regularTotal,
+        comboTotal,
+        savings,
+        complementComboPrice,
+      });
+    }
+    return cards;
+  });
+
   // Instant 0ms in-memory filtered and sorted parts
   readonly displayedParts = computed<Part[]>(() => {
     const catId = this.selectedCategoryIdSig();
@@ -799,9 +1070,13 @@ export class CatalogPageComponent implements OnInit, OnDestroy {
     const visc = this.selectedViscosity();
     const queryTokens = this.tokenizeSearch(this.searchQuerySig());
     const hasVehicleFilter = Boolean(makeId || modelId || year);
+    const sort = this.sortBy();
 
     let list = this.allParts().filter((part) => {
       if (part.active === false) return false;
+      if (sort === 'ONLY_OFFERS' && !this.promotionService.getDirectOffer(part.sku)) {
+        return false;
+      }
       if (catId !== null && part.categoryId !== catId) return false;
       if (inStockOnly && this.cart.getRemainingStockToAdd(part) <= 0) return false;
       if (!this.matchesFitment(part, makeId, modelId, year)) return false;
@@ -818,8 +1093,30 @@ export class CatalogPageComponent implements OnInit, OnDestroy {
       return true;
     });
 
-    const sort = this.sortBy();
-    if (sort === 'PRICE_ASC') {
+    if (sort === 'ONLY_OFFERS') {
+      list = [...list].sort((a, b) => {
+        const pctA = this.promotionService.getDirectOffer(a.sku)?.discountPercentage ?? 0;
+        const pctB = this.promotionService.getDirectOffer(b.sku)?.discountPercentage ?? 0;
+        return pctB - pctA;
+      });
+    } else if (sort === 'PROMOS_FIRST') {
+      list = [...list].sort((a, b) => {
+        const rankA = this.promotionService.getDirectOffer(a.sku)
+          ? 0
+          : this.promotionService.hasPromotion(a.sku)
+            ? 1
+            : 2;
+        const rankB = this.promotionService.getDirectOffer(b.sku)
+          ? 0
+          : this.promotionService.hasPromotion(b.sku)
+            ? 1
+            : 2;
+        if (rankA !== rankB) return rankA - rankB;
+        const discA = this.promotionService.getPromotion(a.sku)?.discountPercentage ?? 0;
+        const discB = this.promotionService.getPromotion(b.sku)?.discountPercentage ?? 0;
+        return discB - discA;
+      });
+    } else if (sort === 'PRICE_ASC') {
       list = [...list].sort((a, b) => a.salePrice - b.salePrice);
     } else if (sort === 'PRICE_DESC') {
       list = [...list].sort((a, b) => b.salePrice - a.salePrice);
@@ -839,6 +1136,17 @@ export class CatalogPageComponent implements OnInit, OnDestroy {
     return list;
   });
 
+  togglePromoSort(mode: 'ONLY_OFFERS' | 'ONLY_COMBOS'): void {
+    this.sortBy.update((curr) => (curr === mode ? 'RELEVANCE' : mode));
+  }
+
+  canAddCombo(combo: CatalogComboCard): boolean {
+    return (
+      this.cart.getRemainingStockToAdd(combo.mainPart) > 0 &&
+      this.cart.getRemainingStockToAdd(combo.complementPart) > 0
+    );
+  }
+
   readonly predictiveResults = computed<Part[]>(() => {
     const tokens = this.tokenizeSearch(this.searchQuerySig());
     if (tokens.length === 0) return [];
@@ -852,6 +1160,15 @@ export class CatalogPageComponent implements OnInit, OnDestroy {
     this.cart.refreshPosHoldsAndReconcile();
 
     this.route.queryParamMap.subscribe((params) => {
+      const sortParam = params.get('sort');
+      if (
+        sortParam === 'ONLY_COMBOS' ||
+        sortParam === 'ONLY_OFFERS' ||
+        sortParam === 'PROMOS_FIRST'
+      ) {
+        this.sortBy.set(sortParam);
+      }
+
       const catParam = params.get('category');
       if (catParam) {
         const normalized = catParam.toUpperCase().includes('LUBRIC') ? 'FILTROS' : catParam;

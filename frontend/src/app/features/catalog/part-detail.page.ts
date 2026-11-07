@@ -239,7 +239,8 @@ import { PromotionService } from '../../core/services/promotion.service';
                       </p>
                     </div>
                     <a
-                      routerLink="/ofertas"
+                      routerLink="/"
+                      [queryParams]="{ sort: 'ONLY_COMBOS' }"
                       class="shrink-0 inline-flex items-center justify-center gap-1.5 rounded-xl bg-orange-600 px-4 py-2.5 text-xs font-extrabold text-white shadow-2xs hover:bg-orange-700 transition"
                     >
                       <span>Ver Combo Completo</span>

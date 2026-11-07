@@ -3,7 +3,6 @@ import { Component, HostListener, computed, inject, signal } from '@angular/core
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { CartService } from '../../../core/services/cart.service';
-import { PromotionService } from '../../../core/services/promotion.service';
 import {
   NotificationCenterService,
   AppNotification,
@@ -45,20 +44,6 @@ import {
                   <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
                 </svg>
                 <span>Catálogo</span>
-              </a>
-
-              <a
-                routerLink="/ofertas"
-                routerLinkActive="bg-orange-50 text-orange-700 border-orange-200 font-bold"
-                class="inline-flex shrink-0 whitespace-nowrap items-center gap-1.5 rounded-xl border border-transparent px-2.5 xl:px-3 py-2 text-xs xl:text-sm font-bold text-gray-800 hover:bg-orange-50/70 hover:text-orange-700 transition"
-              >
-                <span class="text-sm leading-none">🏷️</span>
-                <span>Ofertas y Combos</span>
-                @if (promotionService.activePromotions().length > 0) {
-                  <span class="rounded-full bg-red-600 px-1.5 py-0.5 text-[10px] font-black text-white tabular-nums leading-none">
-                    {{ promotionService.activePromotions().length }}
-                  </span>
-                }
               </a>
             }
 
@@ -543,18 +528,6 @@ import {
             >
               Catálogo
             </a>
-            <a
-              routerLink="/ofertas"
-              (click)="mobileOpen.set(false)"
-              class="flex items-center justify-between rounded-lg px-3 py-2.5 text-sm font-bold text-orange-700 bg-orange-50/50 hover:bg-orange-100/70"
-            >
-              <span>🏷️ Ofertas y Combos</span>
-              @if (promotionService.activePromotions().length > 0) {
-                <span class="rounded-full bg-red-600 px-2 py-0.5 text-xs font-black text-white tabular-nums">
-                  {{ promotionService.activePromotions().length }}
-                </span>
-              }
-            </a>
           }
           @if (auth.canAccessTracking()) {
             <a
@@ -692,22 +665,6 @@ import {
             </svg>
             <span class="text-[11px] font-medium">Catálogo</span>
           </a>
-
-          <a
-            routerLink="/ofertas"
-            routerLinkActive="text-orange-600"
-            class="relative flex flex-1 flex-col items-center justify-center gap-0.5 py-2 min-h-[56px] text-gray-500 hover:text-gray-900 transition"
-          >
-            <div class="relative">
-              <span class="text-base leading-none">🏷️</span>
-              @if (promotionService.activePromotions().length > 0) {
-                <span class="absolute -top-1.5 -right-2.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-600 px-1 text-[9px] font-black text-white tabular-nums">
-                  {{ promotionService.activePromotions().length }}
-                </span>
-              }
-            </div>
-            <span class="text-[11px] font-medium">Ofertas</span>
-          </a>
         }
 
         @if (auth.canAccessTracking()) {
@@ -796,7 +753,6 @@ import {
 export class NavbarComponent {
   readonly auth = inject(AuthService);
   readonly cart = inject(CartService);
-  readonly promotionService = inject(PromotionService);
   readonly notifService = inject(NotificationCenterService);
   private readonly router = inject(Router);
 
