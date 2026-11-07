@@ -114,9 +114,10 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/admin/branches/**").hasRole("ADMIN")
                         .requestMatchers("/api/v1/admin/notifications/**").hasRole("ADMIN")
                         .requestMatchers("/api/v1/admin/users/**").hasRole("ADMIN")
-                        // Admin ERP Parts, Autocomplete, Vehicles & Analytics -> ADMIN, VENDEDOR
+                        // Admin ERP Parts, Promotions/Combos, Autocomplete, Vehicles & Analytics -> ADMIN, VENDEDOR
                         .requestMatchers(
                                 "/api/v1/admin/parts/**",
+                                "/api/v1/admin/promotions/**",
                                 "/api/v1/admin/autocomplete/**",
                                 "/api/v1/admin/vehicles/**",
                                 "/api/v1/admin/analytics/**"

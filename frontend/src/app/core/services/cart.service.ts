@@ -189,8 +189,31 @@ export class CartService {
   readonly igvAmount = computed(() => Number((this.subtotal() - this.netBaseAmount()).toFixed(2)));
 
   effectiveUnitPrice(item: CartItem): number {
-    const promo = this.promotionService.getPromotion(item.part.sku);
-    const basePrice = promo && promo.active ? promo.promoPrice : item.part.salePrice;
+    const cartSkus = new Set(
+      this.items().map((i) => (i.part.sku || '').trim().toUpperCase())
+    );
+    const itemSku = (item.part.sku || '').trim().toUpperCase();
+    let basePrice = item.part.salePrice;
+
+    const promo = this.promotionService.getPromotion(itemSku);
+    if (promo && promo.active) {
+      if (promo.promoType === 'COMBO_SUGERIDO' && promo.comboComplementSku) {
+        if (cartSkus.has(promo.comboComplementSku.trim().toUpperCase())) {
+          basePrice = Math.min(basePrice, promo.promoPrice);
+        }
+      } else {
+        basePrice = Math.min(basePrice, promo.promoPrice);
+      }
+    }
+
+    const pairedCombo = this.promotionService.findComboWhereComplementIs(itemSku, cartSkus);
+    if (pairedCombo) {
+      const compPrice = this.promotionService.getComplementComboPrice(
+        pairedCombo,
+        item.part.salePrice
+      );
+      basePrice = Math.min(basePrice, compPrice);
+    }
 
     if (
       item.part.wholesalePrice &&
@@ -200,6 +223,23 @@ export class CartService {
       return Math.min(item.part.wholesalePrice, basePrice);
     }
     return basePrice;
+  }
+
+  isComboPriceActiveOnItem(item: CartItem): boolean {
+    const cartSkus = new Set(
+      this.items().map((i) => (i.part.sku || '').trim().toUpperCase())
+    );
+    const itemSku = (item.part.sku || '').trim().toUpperCase();
+    const mainCombo = this.promotionService.getPromotion(itemSku);
+    if (
+      mainCombo &&
+      mainCombo.promoType === 'COMBO_SUGERIDO' &&
+      mainCombo.comboComplementSku &&
+      cartSkus.has(mainCombo.comboComplementSku.trim().toUpperCase())
+    ) {
+      return true;
+    }
+    return Boolean(this.promotionService.findComboWhereComplementIs(itemSku, cartSkus));
   }
 
   getMyCartQuantity(partId: number): number {
@@ -304,6 +344,57 @@ export class CartService {
       );
     }
 
+    this.syncReservationWithServer(true);
+    if (openDrawerAfter) {
+      this.isDrawerOpen.set(true);
+    }
+  }
+
+  addCombo(mainPart: Part, complementPart: Part, openDrawerAfter = true): void {
+    this.refreshPosHoldsAndReconcile(false);
+    const remMain = this.getRemainingStockToAdd(mainPart);
+    const remComp = this.getRemainingStockToAdd(complementPart);
+
+    if (remMain <= 0 && this.getMyCartQuantity(mainPart.id) === 0) {
+      this.toast.warning(
+        'Stock insuficiente en el repuesto principal',
+        `No hay unidades libres de ${mainPart.name} en este momento.`
+      );
+      return;
+    }
+    if (remComp <= 0 && this.getMyCartQuantity(complementPart.id) === 0) {
+      this.toast.warning(
+        'Stock insuficiente en el complemento',
+        `No hay unidades libres de ${complementPart.name} en este momento.`
+      );
+      return;
+    }
+
+    this.items.update((current) => {
+      let next = [...current];
+      const upsertOne = (target: Part) => {
+        const maxAvail = this.getAvailableStockForPart(target);
+        if (maxAvail <= 0) return;
+        const idx = next.findIndex((i) => i.part.id === target.id);
+        if (idx >= 0) {
+          next[idx] = {
+            part: target,
+            quantity: Math.min(next[idx].quantity + 1, maxAvail),
+          };
+        } else {
+          next.push({ part: target, quantity: 1 });
+        }
+      };
+      upsertOne(mainPart);
+      upsertOne(complementPart);
+      return next;
+    });
+
+    this.persist();
+    this.toast.success(
+      '¡Combo Automotriz activado en tu carrito!',
+      `Se agregaron ${mainPart.name} + ${complementPart.name} con descuento conjunto aplicado.`
+    );
     this.syncReservationWithServer(true);
     if (openDrawerAfter) {
       this.isDrawerOpen.set(true);

@@ -157,7 +157,11 @@ import { ToastService } from '../../../core/services/toast.service';
                             S/ {{ (cart.effectiveUnitPrice(item) * item.quantity) | number: '1.2-2' }}
                           </span>
                           @if (cart.effectiveUnitPrice(item) < item.part.salePrice) {
-                            @if (cart.promotionService.getPromotion(item.part.sku); as promo) {
+                            @if (cart.isComboPriceActiveOnItem(item)) {
+                              <span class="inline-block rounded bg-orange-50 border border-orange-200 px-1.5 py-0.5 text-[10px] font-extrabold text-orange-800">
+                                📦 Precio Combo Activo
+                              </span>
+                            } @else if (cart.promotionService.getDirectOffer(item.part.sku); as promo) {
                               <span class="inline-block rounded bg-red-50 border border-red-200 px-1.5 py-0.5 text-[10px] font-bold text-red-700">
                                 {{ promo.badgeLabel || 'OFERTA' }} -{{ promo.discountPercentage }}%
                               </span>

@@ -1,6 +1,7 @@
 package com.asuncion.erp.config;
 
 import com.asuncion.erp.service.CatalogService;
+import com.asuncion.erp.service.PromotionCatalogService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -26,6 +27,7 @@ public class CloudStartupWarmupCoordinator {
     private final MediaUrlFixer mediaUrlFixer;
     private final CatalogMatrixSeeder catalogMatrixSeeder;
     private final CatalogService catalogService;
+    private final PromotionCatalogService promotionCatalogService;
 
     public CloudStartupWarmupCoordinator(
             @Value("${app.startup.async-warmup:false}") boolean asyncWarmup,
@@ -33,7 +35,8 @@ public class CloudStartupWarmupCoordinator {
             @Lazy DataSeeder dataSeeder,
             @Lazy MediaUrlFixer mediaUrlFixer,
             @Lazy CatalogMatrixSeeder catalogMatrixSeeder,
-            @Lazy CatalogService catalogService
+            @Lazy CatalogService catalogService,
+            @Lazy PromotionCatalogService promotionCatalogService
     ) {
         this.asyncWarmup = asyncWarmup;
         this.schemaPatcher = schemaPatcher;
@@ -41,6 +44,7 @@ public class CloudStartupWarmupCoordinator {
         this.mediaUrlFixer = mediaUrlFixer;
         this.catalogMatrixSeeder = catalogMatrixSeeder;
         this.catalogService = catalogService;
+        this.promotionCatalogService = promotionCatalogService;
     }
 
     @EventListener(ApplicationReadyEvent.class)
@@ -71,6 +75,12 @@ public class CloudStartupWarmupCoordinator {
                     catalogMatrixSeeder.executeMatrixSeed();
                 } catch (Exception e) {
                     log.warn("Aviso en verificación de matriz combinable: {}", e.getMessage());
+                }
+                try {
+                    promotionCatalogService.seedDefaultPromotionsIfEmpty();
+                    promotionCatalogService.getActivePromotions();
+                } catch (Exception e) {
+                    log.warn("Aviso en precarga de ofertas y combos: {}", e.getMessage());
                 }
                 try {
                     catalogService.getCategories();

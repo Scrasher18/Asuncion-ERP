@@ -10,6 +10,13 @@ export const routes: Routes = [
       import('./features/catalog/catalog.page').then((m) => m.CatalogPageComponent),
   },
   {
+    path: 'ofertas',
+    title: 'Ofertas y Combos | Autopartes Asunción',
+    canActivate: [catalogGuard],
+    loadComponent: () =>
+      import('./features/offers/offers.page').then((m) => m.OffersPageComponent),
+  },
+  {
     path: 'login',
     title: 'Iniciar sesión | Autopartes Asunción',
     loadComponent: () =>

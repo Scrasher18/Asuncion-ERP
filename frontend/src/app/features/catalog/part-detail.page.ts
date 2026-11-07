@@ -168,7 +168,7 @@ import { PromotionService } from '../../core/services/promotion.service';
               <!-- Pricing Box (Retail vs Interactive Wholesale) -->
               <div class="rounded-2xl border border-gray-200 bg-gray-50/70 p-4 flex flex-wrap items-center justify-between gap-4">
                 <div>
-                  @if (promotionService.getPromotion(p.sku); as promo) {
+                  @if (promotionService.getDirectOffer(p.sku); as promo) {
                     <div class="flex items-center gap-2 mb-1">
                       <span class="rounded-full bg-red-600 text-white font-extrabold text-[10px] px-2.5 py-0.5 animate-pulse">
                         🏷️ {{ promo.badgeLabel || 'OFERTA' }} -{{ promo.discountPercentage }}%
@@ -218,6 +218,36 @@ import { PromotionService } from '../../core/services/promotion.service';
                   </button>
                 }
               </div>
+
+              @if (promotionService.getPromotion(p.sku); as comboPromo) {
+                @if (comboPromo.promoType === 'COMBO_SUGERIDO') {
+                  <div class="rounded-2xl border-2 border-orange-200 bg-orange-50/60 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div class="space-y-1">
+                      <div class="flex items-center gap-2">
+                        <span class="rounded-full bg-orange-600 px-2.5 py-0.5 text-[10px] font-black text-white uppercase">
+                          📦 Combo Automotriz Activo
+                        </span>
+                        <span class="text-xs font-extrabold text-emerald-700">
+                          Doble descuento al llevar el kit
+                        </span>
+                      </div>
+                      <p class="text-xs font-bold text-gray-900">
+                        Llévalo junto con <span class="text-orange-700">{{ comboPromo.comboComplementName }}</span> por solo
+                        <strong class="text-sm font-black text-gray-950 tabular-nums">
+                          S/ {{ (comboPromo.comboTotalPromoPrice || (comboPromo.promoPrice + (comboPromo.comboComplementPrice || 0) * 0.85)) | number: '1.2-2' }}
+                        </strong>
+                      </p>
+                    </div>
+                    <a
+                      routerLink="/ofertas"
+                      class="shrink-0 inline-flex items-center justify-center gap-1.5 rounded-xl bg-orange-600 px-4 py-2.5 text-xs font-extrabold text-white shadow-2xs hover:bg-orange-700 transition"
+                    >
+                      <span>Ver Combo Completo</span>
+                      <span>→</span>
+                    </a>
+                  </div>
+                }
+              }
 
               <!-- Availability & Delivery Info -->
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">

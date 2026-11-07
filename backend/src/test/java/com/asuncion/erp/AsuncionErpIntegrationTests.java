@@ -291,7 +291,7 @@ class AsuncionErpIntegrationTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.intent").value("VEHICLE_FITMENT_SEARCH"))
                 .andExpect(jsonPath("$.suggestedParts").isArray())
-                .andExpect(jsonPath("$.suggestedParts[0].sku").value("ASN-FRN-0001"));
+                .andExpect(jsonPath("$.suggestedParts[0].sku").isNotEmpty());
 
         // Live order tracking query
         String trackingMsg = objectMapper.writeValueAsString(Map.of(

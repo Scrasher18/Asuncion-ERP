@@ -1368,6 +1368,19 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                         <td class="px-4 py-3.5 text-right whitespace-nowrap space-x-1.5">
                           <button
                             type="button"
+                            (click)="openPromotionModal(p)"
+                            [class]="
+                              promotionService.hasPromotion(p.sku)
+                                ? 'border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-600 hover:text-white'
+                                : 'border-orange-200 bg-orange-50/70 text-orange-700 hover:bg-orange-600 hover:text-white'
+                            "
+                            class="inline-flex min-h-[34px] items-center gap-1 rounded-lg border px-2.5 py-1.5 text-xs font-bold transition cursor-pointer"
+                            title="Crear o editar Oferta o Combo Automotriz"
+                          >
+                            <span>{{ promotionService.hasPromotion(p.sku) ? '✓ Oferta Activa' : '🏷️ Oferta / Combo' }}</span>
+                          </button>
+                          <button
+                            type="button"
                             (click)="openEditPartModal(p)"
                             class="inline-flex min-h-[34px] items-center rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:border-orange-300 hover:text-orange-700 transition"
                           >
@@ -1742,34 +1755,27 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                     </p>
                   </div>
 
-                  <!-- Estado real de credenciales SMTP -->
-                  @if (hasSavedMailPassword()) {
-                    <div class="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-2 text-xs font-bold text-emerald-800 shadow-2xs">
-                      <span class="relative flex h-2.5 w-2.5">
-                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                        <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
-                      </span>
-                      <span>Envío real de correos activo</span>
-                    </div>
-                  } @else {
-                    <div class="inline-flex items-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-3.5 py-2 text-xs font-bold text-amber-900 shadow-2xs">
-                      <span class="h-2.5 w-2.5 rounded-full bg-amber-500"></span>
-                      <span>Falta clave de aplicación de Google (16 letras)</span>
-                    </div>
-                  }
+                  <!-- Estado real de credenciales SMTP (protegidas por variable de entorno en Render) -->
+                  <div class="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-2 text-xs font-bold text-emerald-800 shadow-2xs">
+                    <span class="relative flex h-2.5 w-2.5">
+                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                    </span>
+                    <span>Envío real de correos activo (Render Env)</span>
+                  </div>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <!-- Correo remitente -->
+                  <!-- Correo remitente fijo por entorno de nube -->
                   <div>
                     <label class="block text-xs font-medium text-gray-700 mb-1.5">
-                      Correo de la tienda (Remitente)
+                      Correo de la tienda (Remitente conectado en Render)
                     </label>
                     <input
                       type="email"
-                      [(ngModel)]="mailConfigForm.username"
-                      placeholder="luisoscarperez322@gmail.com"
-                      class="min-h-[42px] w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-base sm:text-sm text-gray-900 placeholder:text-gray-400 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
+                      [ngModel]="mailConfigForm.username"
+                      readonly
+                      class="min-h-[42px] w-full rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-2 text-base sm:text-sm font-semibold text-gray-700 cursor-not-allowed focus:outline-none"
                     />
                   </div>
 
@@ -1815,7 +1821,7 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                         type="button"
                         [disabled]="sendingTestMail() || !testRecipientEmail.trim()"
                         (click)="sendTestNotification()"
-                        class="min-h-[42px] shrink-0 rounded-xl border border-orange-200 bg-orange-50 px-4 py-2 text-xs font-semibold text-orange-700 hover:bg-orange-100 disabled:opacity-50 transition"
+                        class="min-h-[42px] shrink-0 rounded-xl border border-orange-200 bg-orange-50 px-4 py-2 text-xs font-semibold text-orange-700 hover:bg-orange-100 disabled:opacity-50 transition cursor-pointer"
                       >
                         {{ sendingTestMail() ? 'Enviando...' : 'Enviar correo de prueba' }}
                       </button>
@@ -1823,82 +1829,31 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                   </div>
                 </div>
 
-                <!-- Contraseña de aplicación de Google (16 letras) -->
-                <div
-                  [class]="
-                    hasSavedMailPassword()
-                      ? 'rounded-xl border border-gray-200 bg-gray-50/70 p-3.5 space-y-2'
-                      : 'rounded-xl border-2 border-amber-300 bg-amber-50/60 p-4 space-y-2'
-                  "
-                >
-                  <div class="flex flex-wrap items-center justify-between gap-2">
-                    <label class="text-xs font-bold text-gray-900 flex items-center gap-1.5">
-                      <svg class="h-4 w-4 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
+                <div class="rounded-xl border border-emerald-200/80 bg-emerald-50/50 p-4 flex flex-wrap items-center justify-between gap-3">
+                  <div class="flex items-center gap-3">
+                    <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+                      <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                       </svg>
-                      <span>Contraseña de aplicación de Google (16 letras)</span>
-                    </label>
-                    <a
-                      href="https://myaccount.google.com/apppasswords"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      class="text-[11px] font-bold text-orange-700 hover:underline"
-                    >
-                      Obtener clave de 16 letras en Google ↗
-                    </a>
-                  </div>
-                  <input
-                    type="password"
-                    [(ngModel)]="mailConfigForm.password"
-                    [placeholder]="
-                      hasSavedMailPassword()
-                        ? '•••••••••••• (Ya guardada — escribe aquí solo si deseas reemplazarla)'
-                        : 'Pega aquí tu Contraseña de Aplicación de 16 letras (ej: abcd efgh ijkl mnop)'
-                    "
-                    class="min-h-[42px] w-full rounded-xl border border-gray-300 bg-white px-3.5 py-1.5 font-mono text-xs text-gray-900 placeholder:font-sans placeholder:text-gray-500 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
-                  />
-                </div>
-
-                @if (hasSavedMailPassword()) {
-                  <div class="rounded-xl border border-emerald-200/80 bg-emerald-50/50 p-4 flex flex-wrap items-center justify-between gap-3">
-                    <div class="flex items-center gap-3">
-                      <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
-                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                        </svg>
-                      </div>
-                      <div>
-                        <p class="text-xs font-bold text-emerald-950">Cuenta de Gmail conectada ({{ mailConfigForm.username }})</p>
-                        <p class="text-[11px] text-emerald-700">Las confirmaciones de registro, compras, despacho y reclamos se envían a la bandeja real.</p>
-                      </div>
                     </div>
-                    <button
-                      type="button"
-                      [disabled]="savingMailConfig()"
-                      (click)="saveMailConfiguration()"
-                      class="min-h-[40px] rounded-xl bg-orange-600 px-5 py-2 text-xs sm:text-sm font-semibold text-white shadow-2xs hover:bg-orange-700 disabled:opacity-50 transition cursor-pointer"
-                    >
-                      {{ savingMailConfig() ? 'Guardando...' : 'Guardar cambios' }}
-                    </button>
-                  </div>
-                } @else {
-                  <div class="rounded-xl border border-amber-300 bg-amber-50 p-4 flex flex-wrap items-center justify-between gap-3">
-                    <div class="space-y-0.5 max-w-xl">
-                      <p class="text-xs font-bold text-amber-950">Activa el envío real pegando tu clave de 16 letras arriba</p>
-                      <p class="text-[11px] text-amber-900">
-                        Por seguridad Google exige una <strong>Contraseña de Aplicación de 16 letras</strong> de tu cuenta <strong>{{ mailConfigForm.username || 'Gmail' }}</strong>. Pégala arriba y pulsa <strong>Guardar cambios</strong>.
+                    <div>
+                      <p class="text-xs font-bold text-emerald-950">
+                        Credenciales protegidas en Render ({{ mailConfigForm.username || 'luisoscarperez322@gmail.com' }})
+                      </p>
+                      <p class="text-[11px] text-emerald-700">
+                        La clave segura del servidor (<code class="font-mono font-bold">MAIL_APP_PASSWORD</code>) está activa permanentemente en la nube. Las confirmaciones de registro, compras, despacho y reclamos llegan directo a bandeja real.
                       </p>
                     </div>
-                    <button
-                      type="button"
-                      [disabled]="savingMailConfig()"
-                      (click)="saveMailConfiguration()"
-                      class="min-h-[40px] rounded-xl bg-orange-600 px-5 py-2 text-xs sm:text-sm font-bold text-white shadow-2xs hover:bg-orange-700 disabled:opacity-50 transition cursor-pointer"
-                    >
-                      {{ savingMailConfig() ? 'Guardando...' : 'Guardar cambios' }}
-                    </button>
                   </div>
-                }
+                  <button
+                    type="button"
+                    [disabled]="savingMailConfig()"
+                    (click)="saveMailConfiguration()"
+                    class="min-h-[40px] rounded-xl bg-orange-600 px-5 py-2 text-xs sm:text-sm font-semibold text-white shadow-2xs hover:bg-orange-700 disabled:opacity-50 transition cursor-pointer"
+                  >
+                    {{ savingMailConfig() ? 'Guardando...' : 'Guardar cambios' }}
+                  </button>
+                </div>
               </div>
 
               <!-- BOTTOM CARD: Historial de Notificaciones Enviadas -->
@@ -3268,20 +3223,26 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                 <!-- Complementary Item for Combo -->
                 @if (promoType === 'COMBO_SUGERIDO') {
                   <div class="space-y-2 pt-2 border-t border-gray-100">
-                    <span class="text-xs font-bold text-gray-900 block">Repuesto complementario para el combo:</span>
+                    <div class="flex flex-wrap items-center justify-between gap-1">
+                      <span class="text-xs font-bold text-gray-900">Repuesto complementario para el combo (-15% adicional):</span>
+                      <span class="text-[11px] font-semibold text-orange-700">Doble descuento al llevar ambos repuestos</span>
+                    </div>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       @for (comp of suggestedComplements; track comp.sku) {
                         <button
                           type="button"
                           (click)="onComboComplementSelect(comp.sku)"
-                          [class]="promoComboComplementSku === comp.sku ? 'border-orange-500 bg-orange-50/70 font-bold' : 'border-gray-200 bg-white hover:bg-gray-50'"
-                          class="rounded-xl border p-2.5 text-left text-xs transition cursor-pointer flex items-center justify-between"
+                          [class]="promoComboComplementSku === comp.sku ? 'border-orange-500 bg-orange-50/70 ring-1 ring-orange-500/30' : 'border-gray-200 bg-white hover:bg-gray-50'"
+                          class="rounded-xl border p-2.5 text-left text-xs transition cursor-pointer flex items-center justify-between gap-2"
                         >
-                          <div>
-                            <span class="block text-gray-900 font-semibold">{{ comp.name }}</span>
+                          <div class="min-w-0">
+                            <span class="block text-gray-900 font-semibold truncate">{{ comp.name }}</span>
                             <span class="text-[10px] text-gray-500">{{ comp.sku }} • Regular S/ {{ comp.price | number: '1.2-2' }}</span>
                           </div>
-                          <span class="text-xs font-bold text-orange-600">+S/ {{ comp.price | number: '1.2-2' }}</span>
+                          <div class="text-right shrink-0">
+                            <span class="block text-xs font-extrabold text-orange-600">+S/ {{ (comp.price * 0.85) | number: '1.2-2' }}</span>
+                            <span class="block text-[10px] font-bold text-emerald-700">-15% combo</span>
+                          </div>
                         </button>
                       }
                     </div>
@@ -3291,26 +3252,54 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                 <!-- Real-time Simulation Box -->
                 <div class="rounded-xl border border-emerald-200 bg-emerald-50/40 p-4 space-y-2.5">
                   <span class="text-[11px] font-bold text-emerald-900 uppercase tracking-wider block">
-                    📊 Simulación Financiera en Tiempo Real
+                    📊 {{ promoType === 'COMBO_SUGERIDO' ? 'Simulación Financiera del Combo Completo' : 'Simulación Financiera en Tiempo Real' }}
                   </span>
-                  <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-                    <div>
-                      <span class="text-gray-500 block">Precio Oferta</span>
-                      <span class="text-base font-black text-gray-900">S/ {{ promoCalculatedPrice | number: '1.2-2' }}</span>
+                  @if (promoType === 'COMBO_SUGERIDO') {
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                      <div>
+                        <span class="text-gray-500 block">Precio Total Combo</span>
+                        <span class="text-base font-black text-gray-900 tabular-nums">
+                          S/ {{ (promoCalculatedPrice + promoComboComplementPrice * 0.85) | number: '1.2-2' }}
+                        </span>
+                        <span class="block text-[10px] text-gray-400 line-through tabular-nums">
+                          Normal S/ {{ (part.salePrice + promoComboComplementPrice) | number: '1.2-2' }}
+                        </span>
+                      </div>
+                      <div>
+                        <span class="text-gray-500 block">Ahorro Total Cliente</span>
+                        <span class="text-base font-bold text-emerald-700 tabular-nums">
+                          -S/ {{ (promoClientSavings + promoComboComplementPrice * 0.15) | number: '1.2-2' }}
+                        </span>
+                      </div>
+                      <div>
+                        <span class="text-gray-500 block">Ganancia Pieza Base</span>
+                        <span class="text-base font-bold text-emerald-900 tabular-nums">S/ {{ promoUnitProfit | number: '1.2-2' }}</span>
+                      </div>
+                      <div>
+                        <span class="text-gray-500 block">Margen Conservado</span>
+                        <span class="text-base font-bold text-emerald-800 tabular-nums">{{ promoProfitMargin }}%</span>
+                      </div>
                     </div>
-                    <div>
-                      <span class="text-gray-500 block">Ahorro Cliente</span>
-                      <span class="text-base font-bold text-emerald-700">-S/ {{ promoClientSavings | number: '1.2-2' }}</span>
+                  } @else {
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                      <div>
+                        <span class="text-gray-500 block">Precio Oferta</span>
+                        <span class="text-base font-black text-gray-900 tabular-nums">S/ {{ promoCalculatedPrice | number: '1.2-2' }}</span>
+                      </div>
+                      <div>
+                        <span class="text-gray-500 block">Ahorro Cliente</span>
+                        <span class="text-base font-bold text-emerald-700 tabular-nums">-S/ {{ promoClientSavings | number: '1.2-2' }}</span>
+                      </div>
+                      <div>
+                        <span class="text-gray-500 block">Ganancia Neta c/u</span>
+                        <span class="text-base font-bold text-emerald-900 tabular-nums">S/ {{ promoUnitProfit | number: '1.2-2' }}</span>
+                      </div>
+                      <div>
+                        <span class="text-gray-500 block">Margen Conservado</span>
+                        <span class="text-base font-bold text-emerald-800 tabular-nums">{{ promoProfitMargin }}%</span>
+                      </div>
                     </div>
-                    <div>
-                      <span class="text-gray-500 block">Ganancia Neta c/u</span>
-                      <span class="text-base font-bold text-emerald-900">S/ {{ promoUnitProfit | number: '1.2-2' }}</span>
-                    </div>
-                    <div>
-                      <span class="text-gray-500 block">Margen Conservado</span>
-                      <span class="text-base font-bold text-emerald-800">{{ promoProfitMargin }}%</span>
-                    </div>
-                  </div>
+                  }
                 </div>
 
                 <!-- Promotion Settings Strip (Quota & Badge) -->
@@ -4879,13 +4868,48 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
   promoComboComplementName: string = 'Filtro de Aceite Blindado Denso';
   promoComboComplementPrice: number = 42;
 
-  readonly suggestedComplements = [
+  private readonly fallbackComplements = [
     { sku: 'ASU-FIL-001', name: 'Filtro de Aceite Blindado Denso', price: 42 },
     { sku: 'ASU-FRE-004', name: 'Líquido de Frenos DOT 4 Bosch 500ml', price: 28 },
     { sku: 'ASU-REF-003', name: 'Refrigerante 50/50 Prestone Galón', price: 48 },
     { sku: 'ASU-ELE-002', name: 'Bujía Iridium Power Denso', price: 45 },
     { sku: 'ASU-FIL-002', name: 'Filtro de Aire Motor Mann Filter', price: 58 },
   ];
+
+  get suggestedComplements(): Array<{ sku: string; name: string; price: number }> {
+    const currentSku = this.promoPart()?.sku;
+    const allParts = this.adminParts();
+    if (!allParts || allParts.length === 0) {
+      return this.fallbackComplements.filter((c) => c.sku !== currentSku);
+    }
+
+    const consumableParts = allParts
+      .filter(
+        (p) =>
+          p.sku !== currentSku &&
+          (p.availableStock ?? p.stockQuantity ?? 0) > 0 &&
+          p.salePrice <= 150 &&
+          /(filtro|aceite|lubricante|liquido|líquido|refrigerante|bujia|bujía|foco|plumilla)/i.test(
+            `${p.name} ${p.categoryName || ''}`
+          )
+      )
+      .slice(0, 6)
+      .map((p) => ({ sku: p.sku, name: p.name, price: p.salePrice }));
+
+    if (consumableParts.length >= 4) {
+      return consumableParts;
+    }
+
+    const fallbackMapped = allParts
+      .filter((p) => p.sku !== currentSku && (p.availableStock ?? p.stockQuantity ?? 0) > 0)
+      .sort((a, b) => a.salePrice - b.salePrice)
+      .slice(0, 6)
+      .map((p) => ({ sku: p.sku, name: p.name, price: p.salePrice }));
+
+    return fallbackMapped.length > 0
+      ? fallbackMapped
+      : this.fallbackComplements.filter((c) => c.sku !== currentSku);
+  }
 
   get promoCalculatedPrice(): number {
     const p = this.promoPart();
@@ -4948,20 +4972,28 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
     });
 
     // Check if there is an existing promo
+    const defaultComp = this.suggestedComplements[0] || {
+      sku: 'ASU-FIL-001',
+      name: 'Filtro de Aceite Blindado Denso',
+      price: 42,
+    };
     const existing = this.promotionService.getPromotion(item.sku);
     if (existing) {
       this.promoDiscountPercent = existing.discountPercentage;
       this.promoType = existing.promoType;
       this.promoBadgeLabel = existing.badgeLabel;
       this.promoUnitsQuota = existing.unitsQuota;
-      this.promoComboComplementSku = existing.comboComplementSku || 'ASU-FIL-001';
-      this.promoComboComplementName = existing.comboComplementName || 'Filtro de Aceite Blindado Denso';
-      this.promoComboComplementPrice = existing.comboComplementPrice || 42;
+      this.promoComboComplementSku = existing.comboComplementSku || defaultComp.sku;
+      this.promoComboComplementName = existing.comboComplementName || defaultComp.name;
+      this.promoComboComplementPrice = existing.comboComplementPrice || defaultComp.price;
     } else {
       this.promoDiscountPercent = Math.min(10, this.promoMaxSafeDiscount || 10);
       this.promoType = 'DESCUENTO_DIRECTO';
       this.promoBadgeLabel = 'OFERTA FLASH';
       this.promoUnitsQuota = Math.min(5, Math.max(1, stockQuantity));
+      this.promoComboComplementSku = defaultComp.sku;
+      this.promoComboComplementName = defaultComp.name;
+      this.promoComboComplementPrice = defaultComp.price;
     }
 
     this.showPromotionModal.set(true);
@@ -6785,15 +6817,16 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
 
   saveMailConfiguration(): void {
     this.savingMailConfig.set(true);
-    const cleanPassword = (this.mailConfigForm.password || '').replace(/\s+/g, '');
     const payload: MailConfigUpdateRequest = {
       enabled: true,
       smtpHost: (this.mailConfigForm.smtpHost || 'smtp.gmail.com').trim(),
       smtpPort: Number(this.mailConfigForm.smtpPort) || 587,
-      username: (this.mailConfigForm.username || '').trim(),
-      password: cleanPassword,
+      username: (this.mailConfigForm.username || 'luisoscarperez322@gmail.com').trim(),
+      password: '',
       fromName: (this.mailConfigForm.fromName || 'Repuestos Asunción').trim(),
-      adminNotificationEmail: (this.mailConfigForm.adminNotificationEmail || '').trim(),
+      adminNotificationEmail: (
+        this.mailConfigForm.adminNotificationEmail || 'luisoscarperez322@gmail.com'
+      ).trim(),
     };
 
     this.notificationAdminService
@@ -6801,19 +6834,12 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
       .pipe(finalize(() => this.savingMailConfig.set(false)))
       .subscribe({
         next: (saved) => {
-          this.hasSavedMailPassword.set(Boolean(saved.hasPassword || cleanPassword));
+          this.hasSavedMailPassword.set(true);
           this.mailConfigForm.password = '';
-          if (saved.hasPassword || cleanPassword) {
-            this.toast.success(
-              'Correo Gmail conectado',
-              `Credenciales guardadas para ${saved.username || payload.username}. El envío real está activo.`
-            );
-          } else {
-            this.toast.warning(
-              'Datos guardados (falta clave de 16 letras)',
-              'Ingresa tu Contraseña de Aplicación de Google de 16 letras para enviar correos reales.'
-            );
-          }
+          this.toast.success(
+            'Configuración de correo guardada',
+            `Las alertas llegan a ${saved.adminNotificationEmail || payload.adminNotificationEmail} usando las credenciales protegidas de Render.`
+          );
         },
         error: (err) => {
           this.toast.error(
@@ -6827,34 +6853,6 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
   sendTestNotification(): void {
     const recipient = this.testRecipientEmail.trim();
     if (!recipient) return;
-
-    const pendingPassword = (this.mailConfigForm.password || '').replace(/\s+/g, '');
-    if (pendingPassword.length > 0) {
-      // Auto-save typed password before sending test email so user doesn't have to click two buttons
-      this.savingMailConfig.set(true);
-      const payload: MailConfigUpdateRequest = {
-        enabled: true,
-        smtpHost: (this.mailConfigForm.smtpHost || 'smtp.gmail.com').trim(),
-        smtpPort: Number(this.mailConfigForm.smtpPort) || 587,
-        username: (this.mailConfigForm.username || '').trim(),
-        password: pendingPassword,
-        fromName: (this.mailConfigForm.fromName || 'Repuestos Asunción').trim(),
-        adminNotificationEmail: (this.mailConfigForm.adminNotificationEmail || '').trim(),
-      };
-      this.notificationAdminService
-        .updateConfig(payload)
-        .pipe(finalize(() => this.savingMailConfig.set(false)))
-        .subscribe({
-          next: (saved) => {
-            this.hasSavedMailPassword.set(Boolean(saved.hasPassword || pendingPassword));
-            this.mailConfigForm.password = '';
-            this.dispatchTestEmailRequest(recipient);
-          },
-          error: () => this.dispatchTestEmailRequest(recipient),
-        });
-      return;
-    }
-
     this.dispatchTestEmailRequest(recipient);
   }
 

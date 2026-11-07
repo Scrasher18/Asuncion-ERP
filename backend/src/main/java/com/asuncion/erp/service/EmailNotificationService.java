@@ -110,17 +110,23 @@ public class EmailNotificationService {
         String host = req.smtpHost() != null && !req.smtpHost().isBlank() ? req.smtpHost().trim() : "smtp.gmail.com";
         cfg.setSmtpHost(host);
         cfg.setSmtpPort(req.smtpPort() != null && req.smtpPort() > 0 ? req.smtpPort() : 587);
-        cfg.setUsername(req.username() != null && !req.username().isBlank() ? req.username().trim() : null);
 
-        if (req.password() != null && !req.password().isBlank()) {
-            String cleanedPass = host.toLowerCase(Locale.ROOT).contains("gmail")
-                    ? normalizeGmailAppPassword(req.password())
-                    : req.password().trim();
-            cfg.setPassword(cleanedPass);
+        if (!envMailPassword.isBlank()) {
+            // Render environment variable is always the authoritative credential source
+            cfg.setUsername(envMailUsername);
+            cfg.setPassword(null);
+            cfg.setEnabled(true);
+        } else {
+            cfg.setUsername(req.username() != null && !req.username().isBlank() ? req.username().trim() : null);
+            if (req.password() != null && !req.password().isBlank()) {
+                String cleanedPass = host.toLowerCase(Locale.ROOT).contains("gmail")
+                        ? normalizeGmailAppPassword(req.password())
+                        : req.password().trim();
+                cfg.setPassword(cleanedPass);
+            }
+            boolean hasAnyPassword = cfg.getPassword() != null && !cfg.getPassword().isBlank();
+            cfg.setEnabled(req.enabled() || hasAnyPassword);
         }
-
-        boolean hasAnyPassword = (cfg.getPassword() != null && !cfg.getPassword().isBlank()) || !envMailPassword.isBlank();
-        cfg.setEnabled(req.enabled() || hasAnyPassword);
 
         cfg.setFromName(req.fromName() != null && !req.fromName().isBlank() ? req.fromName().trim() : "Repuestos Asunción");
         cfg.setAdminNotificationEmail(req.adminNotificationEmail() != null && !req.adminNotificationEmail().isBlank()
@@ -1036,35 +1042,52 @@ public class EmailNotificationService {
 
     private EffectiveMailSettings resolveEffectiveSettings() {
         SystemMailConfig cfg = configRepository.findById(SINGLETON_ID).orElse(null);
+        boolean hasRenderEnvPassword = !envMailPassword.isBlank();
+        String cleanEnvPass = envMailHost.toLowerCase(Locale.ROOT).contains("gmail")
+                ? normalizeGmailAppPassword(envMailPassword)
+                : envMailPassword;
+
         if (cfg == null) {
-            boolean envReady = !envMailUsername.isBlank() && !envMailPassword.isBlank();
+            boolean envReady = !envMailUsername.isBlank() && hasRenderEnvPassword;
             String adminMail = !envMailUsername.isBlank() ? envMailUsername : "admin@asuncion.pe";
             return new EffectiveMailSettings(
                     envReady,
                     envMailHost,
                     envMailPort,
                     envMailUsername,
-                    envMailPassword,
+                    cleanEnvPass,
                     "Repuestos Asunción",
                     adminMail
             );
         }
 
-        String host = firstNonBlank(cfg.getSmtpHost(), envMailHost, "smtp.gmail.com");
-        int port = (cfg.getSmtpPort() != null && cfg.getSmtpPort() > 0) ? cfg.getSmtpPort() : envMailPort;
-        boolean hasDbPass = cfg.getPassword() != null && !cfg.getPassword().isBlank();
-        String user = (!hasDbPass && !envMailPassword.isBlank() && !envMailUsername.isBlank())
-                ? envMailUsername
-                : firstNonBlank(cfg.getUsername(), envMailUsername);
-        String rawPass = hasDbPass ? cfg.getPassword() : envMailPassword;
-        String pass = host.toLowerCase(Locale.ROOT).contains("gmail")
-                ? normalizeGmailAppPassword(rawPass)
-                : nullToEmpty(rawPass);
         String fromName = firstNonBlank(cfg.getFromName(), "Repuestos Asunción");
         String rawAdminEmail = cfg.getAdminNotificationEmail();
         if ("scrasher322@gmail.com".equalsIgnoreCase(rawAdminEmail)) {
             rawAdminEmail = null;
         }
+
+        // Always prioritize Render environment variable (MAIL_APP_PASSWORD) when configured
+        if (hasRenderEnvPassword) {
+            String user = !envMailUsername.isBlank() ? envMailUsername : firstNonBlank(cfg.getUsername(), "luisoscarperez322@gmail.com");
+            String adminEmail = firstNonBlank(rawAdminEmail, user, "admin@asuncion.pe");
+            return new EffectiveMailSettings(
+                    true,
+                    envMailHost,
+                    envMailPort,
+                    user,
+                    cleanEnvPass,
+                    fromName,
+                    adminEmail
+            );
+        }
+
+        String host = firstNonBlank(cfg.getSmtpHost(), envMailHost, "smtp.gmail.com");
+        int port = (cfg.getSmtpPort() != null && cfg.getSmtpPort() > 0) ? cfg.getSmtpPort() : envMailPort;
+        String user = firstNonBlank(cfg.getUsername(), envMailUsername);
+        String pass = host.toLowerCase(Locale.ROOT).contains("gmail")
+                ? normalizeGmailAppPassword(cfg.getPassword())
+                : nullToEmpty(cfg.getPassword());
         String adminEmail = firstNonBlank(rawAdminEmail, user, "admin@asuncion.pe");
 
         return new EffectiveMailSettings(

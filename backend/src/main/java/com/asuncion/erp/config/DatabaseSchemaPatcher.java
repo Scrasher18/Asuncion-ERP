@@ -183,11 +183,12 @@ public class DatabaseSchemaPatcher implements CommandLineRunner {
             log.debug("Verificación Toyota Probox completada: {}", e.getMessage());
         }
 
-        // Heal stale mail sender username if pointing to legacy scrasher322@gmail.com without custom password
+        // Ensure system_mail_config relies strictly on Render MAIL_APP_PASSWORD env var and official sender
         try {
             jdbcTemplate.execute("""
                 UPDATE system_mail_config
                 SET username = 'luisoscarperez322@gmail.com',
+                    password = NULL,
                     admin_notification_email = CASE
                         WHEN admin_notification_email IS NULL OR admin_notification_email = '' OR admin_notification_email = 'scrasher322@gmail.com'
                         THEN 'luisoscarperez322@gmail.com'
@@ -195,10 +196,39 @@ public class DatabaseSchemaPatcher implements CommandLineRunner {
                     END,
                     enabled = TRUE
                 WHERE id = 1
-                  AND (username IS NULL OR username = '' OR LOWER(username) = 'scrasher322@gmail.com')
             """);
         } catch (Exception e) {
             log.debug("Verificación system_mail_config completada: {}", e.getMessage());
+        }
+
+        // Ensure part_promotions table exists for cloud-synced Offers & Automotive Combos
+        try {
+            jdbcTemplate.execute("""
+                CREATE TABLE IF NOT EXISTS part_promotions (
+                    sku VARCHAR(50) PRIMARY KEY,
+                    part_id BIGINT,
+                    part_name VARCHAR(200) NOT NULL,
+                    category_name VARCHAR(120),
+                    original_price NUMERIC(12,2) NOT NULL,
+                    purchase_price NUMERIC(12,2) NOT NULL,
+                    promo_price NUMERIC(12,2) NOT NULL,
+                    discount_percentage INT NOT NULL,
+                    badge_label VARCHAR(60) NOT NULL,
+                    promo_type VARCHAR(30) NOT NULL,
+                    combo_complement_sku VARCHAR(50),
+                    combo_complement_name VARCHAR(200),
+                    combo_complement_price NUMERIC(12,2),
+                    combo_complement_promo_price NUMERIC(12,2),
+                    combo_total_promo_price NUMERIC(12,2),
+                    units_quota INT NOT NULL DEFAULT 8,
+                    units_sold_in_promo INT NOT NULL DEFAULT 0,
+                    active BOOLEAN NOT NULL DEFAULT TRUE,
+                    start_date VARCHAR(30),
+                    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+                )
+            """);
+        } catch (Exception e) {
+            log.debug("Verificación tabla part_promotions completada: {}", e.getMessage());
         }
     }
 }

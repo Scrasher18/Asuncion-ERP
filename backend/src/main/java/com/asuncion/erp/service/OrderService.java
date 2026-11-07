@@ -39,6 +39,7 @@ public class OrderService {
     private final StorageService storageService;
     private final EmailNotificationService emailNotificationService;
     private final StockReservationService stockReservationService;
+    private final PromotionCatalogService promotionCatalogService;
 
     public OrderService(
             CustomerOrderRepository orderRepository,
@@ -50,7 +51,8 @@ public class OrderService {
             ImageOptimizationService imageOptimizationService,
             StorageService storageService,
             EmailNotificationService emailNotificationService,
-            StockReservationService stockReservationService
+            StockReservationService stockReservationService,
+            PromotionCatalogService promotionCatalogService
     ) {
         this.orderRepository = orderRepository;
         this.partRepository = partRepository;
@@ -62,6 +64,7 @@ public class OrderService {
         this.storageService = storageService;
         this.emailNotificationService = emailNotificationService;
         this.stockReservationService = stockReservationService;
+        this.promotionCatalogService = promotionCatalogService;
     }
 
     @Transactional
@@ -159,7 +162,7 @@ public class OrderService {
             order.setSalesperson(currentUser);
         }
 
-        BigDecimal subtotal = BigDecimal.ZERO;
+        Map<Long, Part> lockedPartsById = new LinkedHashMap<>();
         for (Map.Entry<Long, Integer> entry : requestedQuantities.entrySet()) {
             // Acquire PESSIMISTIC_WRITE lock on Part row so two simultaneous checkouts cannot oversell stock
             Part part = partRepository.findByIdForUpdate(entry.getKey())
@@ -193,12 +196,19 @@ public class OrderService {
 
             part.setStockQuantity(part.getStockQuantity() - qty);
             partRepository.save(part);
+            lockedPartsById.put(part.getId(), part);
+        }
 
-            BigDecimal effectiveUnitPrice = part.getSalePrice();
-            if (qty >= 4 && part.getWholesalePrice() != null && part.getWholesalePrice().compareTo(BigDecimal.ZERO) > 0
-                    && part.getWholesalePrice().compareTo(part.getSalePrice()) < 0) {
-                effectiveUnitPrice = part.getWholesalePrice();
-            }
+        Map<Long, BigDecimal> effectiveUnitPrices = promotionCatalogService.resolveEffectiveUnitPricesAndTrackQuota(
+                lockedPartsById,
+                requestedQuantities
+        );
+
+        BigDecimal subtotal = BigDecimal.ZERO;
+        for (Map.Entry<Long, Integer> entry : requestedQuantities.entrySet()) {
+            Part part = lockedPartsById.get(entry.getKey());
+            int qty = entry.getValue();
+            BigDecimal effectiveUnitPrice = effectiveUnitPrices.getOrDefault(part.getId(), part.getSalePrice());
 
             OrderItem item = new OrderItem();
             item.setOrder(order);

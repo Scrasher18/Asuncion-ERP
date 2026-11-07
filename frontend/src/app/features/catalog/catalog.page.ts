@@ -280,6 +280,32 @@ interface CatalogLocalSnapshot {
 
       <!-- Main Catalog Content (Directly Below Selector) -->
       <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-6 space-y-5">
+        @if (promotionService.activePromotions().length > 0) {
+          <div class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-orange-200 bg-gradient-to-r from-orange-50 via-amber-50/70 to-white px-4 py-3 shadow-2xs">
+            <div class="flex items-center gap-2.5 text-xs sm:text-sm font-bold text-gray-900">
+              <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-orange-600 text-white text-sm shadow-2xs">
+                🏷️
+              </span>
+              <div>
+                <span>
+                  Tenemos <strong class="text-orange-700">{{ promotionService.activeCombos().length }} Combos Automotrices</strong> y
+                  <strong class="text-red-600">{{ promotionService.activeDirectOffers().length }} Ofertas Flash</strong> activas hoy
+                </span>
+                <span class="hidden md:inline text-xs font-medium text-gray-600 ml-1.5">
+                  · Lleva el repuesto principal + consumible con doble descuento
+                </span>
+              </div>
+            </div>
+            <a
+              routerLink="/ofertas"
+              class="inline-flex items-center gap-1.5 rounded-xl bg-orange-600 px-3.5 py-2 text-xs font-extrabold text-white shadow-2xs hover:bg-orange-700 transition"
+            >
+              <span>Ver Ofertas y Combos</span>
+              <span>→</span>
+            </a>
+          </div>
+        }
+
         <!-- High-Legibility Results Summary & Active Filter Chips Toolbar -->
         <div class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gray-300/90 bg-white px-4 py-3.5 shadow-2xs">
           <div class="flex flex-wrap items-center gap-2.5 text-sm font-semibold text-gray-800">
@@ -437,9 +463,13 @@ interface CatalogLocalSnapshot {
                   }
 
                   <!-- Promo Badge -->
-                  @if (promotionService.getPromotion(part.sku); as promo) {
+                  @if (promotionService.getDirectOffer(part.sku); as offer) {
                     <span class="absolute bottom-2.5 left-2.5 rounded-full border border-red-500 bg-red-600 px-2.5 py-0.5 text-[11px] font-extrabold text-white shadow-xs z-10 tabular-nums">
-                      -{{ promo.discountPercentage }}%
+                      -{{ offer.discountPercentage }}%
+                    </span>
+                  } @else if (promotionService.getPromotion(part.sku); as comboPromo) {
+                    <span class="absolute bottom-2.5 left-2.5 rounded-full border border-orange-500 bg-orange-600 px-2.5 py-0.5 text-[11px] font-extrabold text-white shadow-xs z-10">
+                      📦 En Combo
                     </span>
                   }
 
@@ -509,10 +539,10 @@ interface CatalogLocalSnapshot {
                   <!-- Clean Price & Actions Footer -->
                   <div class="mt-auto pt-3 border-t border-gray-100 space-y-3">
                     <div>
-                      @if (promotionService.getPromotion(part.sku); as promo) {
+                      @if (promotionService.getDirectOffer(part.sku); as offer) {
                         <div class="flex items-baseline gap-2">
                           <span class="text-xl font-black tracking-tight text-red-600 tabular-nums">
-                            S/ {{ promo.promoPrice | number: '1.2-2' }}
+                            S/ {{ offer.promoPrice | number: '1.2-2' }}
                           </span>
                           <span class="text-xs font-semibold text-gray-400 line-through tabular-nums">
                             S/ {{ part.salePrice | number: '1.2-2' }}
@@ -522,6 +552,15 @@ interface CatalogLocalSnapshot {
                         <span class="block text-xl font-black tracking-tight text-gray-950 tabular-nums">
                           S/ {{ part.salePrice | number: '1.2-2' }}
                         </span>
+                        @if (promotionService.getPromotion(part.sku); as comboPromo) {
+                          <a
+                            routerLink="/ofertas"
+                            class="inline-flex items-center gap-1 text-[11px] font-extrabold text-orange-700 hover:underline mt-0.5"
+                          >
+                            <span>📦 Disponible en Combo (-{{ comboPromo.discountPercentage }}%)</span>
+                            <span>→</span>
+                          </a>
+                        }
                       }
                       @if (part.wholesalePrice) {
                         <span class="block text-xs font-bold text-emerald-700 tabular-nums mt-0.5">
