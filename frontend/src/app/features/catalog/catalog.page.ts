@@ -25,8 +25,9 @@ interface CatalogComboCard {
   complementComboPrice: number;
 }
 
-const CATALOG_CACHE_KEY = 'asuncion_catalog_snapshot_v6';
+const CATALOG_CACHE_KEY = 'asuncion_catalog_snapshot_v7';
 const LEGACY_CATALOG_CACHE_KEYS = [
+  'asuncion_catalog_snapshot_v6',
   'asuncion_catalog_snapshot_v5',
   'asuncion_catalog_snapshot_v4',
   'asuncion_catalog_snapshot_v3',
@@ -1644,7 +1645,16 @@ export class CatalogPageComponent implements OnInit, OnDestroy {
 
       const target = chosen || comps[0];
       const vehicle = [target.makeName, target.modelName].filter(Boolean).join(' ');
-      return `${vehicle} (${target.yearStart}-${target.yearEnd})`;
+
+      if (year !== null) {
+        const engine = target.engineSpec ? ` · ${target.engineSpec}` : '';
+        return `${vehicle} ${year}${engine}`;
+      }
+
+      if (target.engineSpec) {
+        return `${vehicle} · ${target.engineSpec}`;
+      }
+      return `${vehicle} · OEM`;
     }
 
     const activeVehicle = [this.activeMakeName(), this.activeModelName()].filter(Boolean).join(' ');

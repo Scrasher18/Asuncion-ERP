@@ -815,20 +815,20 @@ public class CatalogMatrixSeeder implements CommandLineRunner {
                 replenishDepletedStock();
             });
 
-            // Paso 2: Si existen compatibilidades con años < 1998 (de versiones anteriores), reconstruir con años reales 1998-2026
-            Long legacyPre1998Rows = jdbcTemplate.queryForObject(
-                    "SELECT COUNT(*) FROM part_vehicle_compatibilities WHERE year_start < 1998",
-                    Long.class
+            // Paso 2: Reconstruir con la matriz directa específica repuesto por repuesto
+            Integer specificCount = jdbcTemplate.queryForObject(
+                    "SELECT COUNT(*) FROM part_vehicle_compatibilities WHERE notes LIKE '%OEM Certificado%'",
+                    Integer.class
             );
-            if (legacyPre1998Rows != null && legacyPre1998Rows > 0) {
+            if (specificCount == null || specificCount < 300) {
                 tx.executeWithoutResult(status -> {
                     int deleted = jdbcTemplate.update("DELETE FROM part_vehicle_compatibilities");
-                    log.info("Reconstruyendo matriz real de generaciones 1998-2026 ({} filas previas reemplazadas).", deleted);
+                    log.info("Reconstruyendo compatibilidades específicas repuesto por repuesto ({} filas previas eliminadas).", deleted);
                 });
             }
 
-            // Paso 3: Asignar compatibilidades reales por modelo, motorización y generación real (1998..2026)
-            tx.executeWithoutResult(status -> buildRealFleetFitmentMatrix());
+            // Paso 3: Asignar compatibilidades específicas auténticas directas
+            tx.executeWithoutResult(status -> buildSpecificDirectFitments());
 
             catalogService.evictCatalogCache();
             log.info("Catálogo automotriz real sincronizado con éxito ({} repuestos activos <= {}).",
@@ -1017,613 +1017,631 @@ public class CatalogMatrixSeeder implements CommandLineRunner {
         }
     }
 
-    private void buildRealFleetFitmentMatrix() {
+
+    private record SpecificFitment(
+            String sku,
+            String makeName,
+            String modelName,
+            int yearStart,
+            int yearEnd,
+            String engineSpec,
+            String notes
+    ) {
+    }
+
+    private static final List<SpecificFitment> FITMENTS_FRENOS = List.of(
+            // ASU-FRE-001: Pastillas Brembo NAO Delanteras
+            new SpecificFitment("ASU-FRE-001", "Toyota", "Hilux", 2016, 2024, "2.8L 1GD-FTV / 2.4L 2GD-FTV 4x4", "Delantero pastillas cerámicas NAO Revo"),
+            new SpecificFitment("ASU-FRE-001", "Toyota", "Fortuner", 2016, 2024, "2.8L 1GD-FTV 4x4", "Eje delantero ventilado SUV"),
+            new SpecificFitment("ASU-FRE-001", "Toyota", "Hiace", 2019, 2024, "2.8L 1GD-FTV Commuter", "Delantero servicio pesado H300"),
+
+            // ASU-FRE-002: Disco 297mm/319mm Brembo UV Coated
+            new SpecificFitment("ASU-FRE-002", "Toyota", "Hilux", 2016, 2024, "2.8L 1GD-FTV / 2.4L 2GD-FTV", "Disco ventilado 297mm 6 huecos"),
+            new SpecificFitment("ASU-FRE-002", "Toyota", "Fortuner", 2016, 2024, "2.8L 1GD-FTV", "Disco delantero ventilado 297mm"),
+
+            // ASU-FRE-003: Pastillas Bosch QuietCast
+            new SpecificFitment("ASU-FRE-003", "Toyota", "Yaris", 2014, 2024, "1.3L 1NR / 1.5L 2NR Dual VVT-i", "Pastillas QuietCast delanteras sedán y hatchback"),
+            new SpecificFitment("ASU-FRE-003", "Toyota", "Probox", 2014, 2024, "1.5L 1NZ-FE NCP160", "Pastillas delanteras servicio comercial"),
+
+            // ASU-FRE-004: Pastillas TRW Pro Cerámicas SUV
+            new SpecificFitment("ASU-FRE-004", "Hyundai", "Tucson", 2016, 2024, "2.0L Nu MPi / 1.6L T-GDi", "Pastillas TRW Pro cerámicas SUV"),
+            new SpecificFitment("ASU-FRE-004", "Kia", "Sportage", 2016, 2024, "2.0L Nu MPi / 2.0L CRDi", "Pastillas delanteras SUV QL/NQ5"),
+
+            // ASU-FRE-005: Discos Ventilados 255mm Fremax
+            new SpecificFitment("ASU-FRE-005", "Toyota", "Yaris", 2006, 2018, "1.3L 2NZ / 1.5L 1NZ-FE", "Par de discos ventilados 255mm Fremax"),
+            new SpecificFitment("ASU-FRE-005", "Toyota", "Probox", 2002, 2018, "1.5L 1NZ-FE NCP51", "Discos delanteros 255mm"),
+
+            // ASU-FRE-006: Zapatas de Freno Posteriores Bendix
+            new SpecificFitment("ASU-FRE-006", "Toyota", "Hilux", 2005, 2015, "2.5L 2KD-FTV / 3.0L 1KD-FTV", "Zapatas de freno posterior para tambor Vigo"),
+            new SpecificFitment("ASU-FRE-006", "Toyota", "Hiace", 2005, 2018, "2.5L 2KD-FTV Commuter", "Zapatas posteriores para tambor"),
+
+            // ASU-FRE-007: Bombín Rueda Posterior Bosch
+            new SpecificFitment("ASU-FRE-007", "Toyota", "Hilux", 2005, 2024, "2.5L 2KD / 2.8L 1GD / 3.0L 1KD", "Bombín hidráulico posterior Bosch"),
+            new SpecificFitment("ASU-FRE-007", "Toyota", "Hiace", 2005, 2024, "2.5L / 2.8L / 3.0L", "Cilindro de rueda posterior Bosch"),
+
+            // ASU-FRE-008: Tambores Brembo Balanceados
+            new SpecificFitment("ASU-FRE-008", "Toyota", "Hilux", 2016, 2024, "2.4L 2GD / 2.8L 1GD 4x4", "Par de tambores Brembo balanceados Revo"),
+            new SpecificFitment("ASU-FRE-008", "Mitsubishi", "L200", 2016, 2024, "2.4L 4N15 MIVEC Triton", "Tambores posteriores balanceados"),
+
+            // ASU-FRE-009: Cilindro Maestro Heavy-Duty Brembo
+            new SpecificFitment("ASU-FRE-009", "Hino", "Dutro 300", 2012, 2024, "4.0L N04C Common-Rail", "Cilindro maestro doble circuito Heavy-Duty"),
+            new SpecificFitment("ASU-FRE-009", "Isuzu", "NPR Reward", 2012, 2024, "5.2L 4HK1-TCN Euro IV/V", "Bomba principal de freno camión"),
+            new SpecificFitment("ASU-FRE-009", "Mitsubishi", "Canter", 2012, 2024, "3.0L 4P10 / 4.9L 4M50", "Cilindro maestro de freno Brembo"),
+
+            // ASU-FRE-010: Bloques Zapatas Neumáticas Flota Pesada Bosch
+            new SpecificFitment("ASU-FRE-010", "Hino", "500 Series", 2012, 2026, "7.7L J08E Euro V", "Bloques y zapatas freno neumático 24V"),
+            new SpecificFitment("ASU-FRE-010", "Isuzu", "Forward FTR", 2012, 2026, "7.8L 6HK1-TCS Euro V", "Frenos de aire tipo leva S-cam Bosch"),
+            new SpecificFitment("ASU-FRE-010", "Scania", "P410", 2012, 2026, "12.7L DC13 XPI", "Bloques de fricción neumática eje tracción"),
+
+            // ASU-FRE-011: Líquido Frenos DOT 4 Bosch 1L
+            new SpecificFitment("ASU-FRE-011", "Toyota", "Hilux", 2016, 2024, "2.8L 1GD-FTV", "Líquido 100% sintético DOT 4 ABS/VSC"),
+            new SpecificFitment("ASU-FRE-011", "Toyota", "Corolla", 2014, 2024, "1.8L 2ZR-FE / 2.0L", "Circuito hidráulico DOT 4 Bosch"),
+            new SpecificFitment("ASU-FRE-011", "Toyota", "Yaris", 2014, 2024, "1.5L 2NR-FE", "Fluido de freno sintético DOT 4"),
+            new SpecificFitment("ASU-FRE-011", "Hyundai", "Accent", 2012, 2024, "1.4L G4LC / 1.6L", "Líquido de freno DOT 4 Bosch"),
+            new SpecificFitment("ASU-FRE-011", "Kia", "Rio", 2012, 2024, "1.4L Kappa", "Líquido de frenos y embrague"),
+            new SpecificFitment("ASU-FRE-011", "Nissan", "Frontier", 2015, 2024, "2.5L YD25DDTi", "Circuito hidráulico DOT 4"),
+            new SpecificFitment("ASU-FRE-011", "Volkswagen", "Amarok", 2010, 2024, "2.0L BiTDI", "Líquido de frenos alta temperatura"),
+            new SpecificFitment("ASU-FRE-011", "Chevrolet", "Onix", 2013, 2024, "1.0T / 1.4L Joy", "Circuito de freno DOT 4 Bosch"),
+
+            // ASU-FRE-012: Discos Ventilados 280mm Bosch
+            new SpecificFitment("ASU-FRE-012", "Hyundai", "Accent", 2012, 2022, "1.4L G4LC / 1.6L Gamma", "Par de discos ventilados 280mm Bosch"),
+            new SpecificFitment("ASU-FRE-012", "Kia", "Rio", 2012, 2022, "1.4L Kappa / 1.6L Gamma", "Discos delanteros ventilados 280mm"),
+            new SpecificFitment("ASU-FRE-012", "Hyundai", "Elantra", 2012, 2020, "1.6L / 2.0L Nu", "Discos ventilados delanteros"),
+            new SpecificFitment("ASU-FRE-012", "Kia", "Cerato", 2013, 2020, "1.6L / 2.0L Nu", "Discos de freno delanteros 280mm"),
+
+            // ASU-FRE-013: Discos Ventilados 300mm Brembo
+            new SpecificFitment("ASU-FRE-013", "Toyota", "Corolla", 2014, 2024, "1.8L 2ZR-FE / 2.0L M20A", "Discos ventilados 300mm Brembo alto carbono"),
+            new SpecificFitment("ASU-FRE-013", "Toyota", "RAV4", 2013, 2024, "2.0L 3ZR / 2.5L A25A", "Discos delanteros 300mm UV Coated"),
+
+            // ASU-FRE-014: Pulmón Freno Neumático 30/30 Bosch HD
+            new SpecificFitment("ASU-FRE-014", "Scania", "P410", 2012, 2026, "12.7L DC13 Euro V", "Cámara neumática freno 30/30 doble diafragma"),
+            new SpecificFitment("ASU-FRE-014", "Scania", "R-Series Heavy", 2012, 2026, "12.7L / 15.6L DC16", "Pulmón actuador de aire 30/30 Bosch"),
+            new SpecificFitment("ASU-FRE-014", "Volvo", "FH 460 / 500", 2012, 2026, "12.8L D13C / D13K", "Cámara neumática de estacionamiento y servicio")
+    );
+
+    private static final List<SpecificFitment> FITMENTS_FILTROS = List.of(
+            // ASU-FIL-001: Filtro Aceite Denso First Time Fit
+            new SpecificFitment("ASU-FIL-001", "Toyota", "Hilux", 2005, 2024, "2.5L 2KD / 2.8L 1GD / 3.0L 1KD", "Filtro blindado alto flujo Denso"),
+            new SpecificFitment("ASU-FIL-001", "Toyota", "Hiace", 2005, 2024, "2.5L / 2.8L / 3.0L", "Filtro aceite Denso First Time Fit"),
+            new SpecificFitment("ASU-FIL-001", "Toyota", "Fortuner", 2005, 2024, "2.7L 2TR / 3.0L 1KD / 2.8L 1GD", "Filtro de aceite blindado"),
+            new SpecificFitment("ASU-FIL-001", "Toyota", "Probox", 2002, 2024, "1.3L 2NZ / 1.5L 1NZ-FE", "Filtro blindado rosca 3/4-16 UNF"),
+
+            // ASU-FIL-002: Filtro Aire Motor Bosch
+            new SpecificFitment("ASU-FIL-002", "Toyota", "Hilux", 2005, 2015, "2.5L 2KD / 3.0L 1KD D-4D", "Filtro de aire microfibra Bosch"),
+            new SpecificFitment("ASU-FIL-002", "Nissan", "Frontier", 2008, 2018, "2.5L YD25DDTi", "Filtro de aire motor diésel Bosch"),
+            new SpecificFitment("ASU-FIL-002", "Toyota", "Hiace", 2005, 2018, "2.5L 2KD Commuter", "Filtro de aire para furgón"),
+
+            // ASU-FIL-003: Filtro Aceite Mann W 712/94
+            new SpecificFitment("ASU-FIL-003", "Volkswagen", "Amarok", 2010, 2024, "2.0L TDI / BiTDI", "Filtro spin-on Mann W 712/94 con válvula alivio"),
+            new SpecificFitment("ASU-FIL-003", "Volkswagen", "Gol", 2009, 2022, "1.6L EA111", "Filtro de aceite alemán Mann W 712/94"),
+            new SpecificFitment("ASU-FIL-003", "Chevrolet", "Sail", 2010, 2022, "1.4L S-TEC III / 1.5L DVVT", "Filtro de aceite con válvula alivio"),
+            new SpecificFitment("ASU-FIL-003", "Chevrolet", "Onix", 2013, 2024, "1.4L Joy / 1.0L Turbo", "Filtro de aceite spin-on Mann"),
+
+            // ASU-FIL-004: Filtro Aceite Coreano Bosch P7028
+            new SpecificFitment("ASU-FIL-004", "Hyundai", "Accent", 2012, 2024, "1.4L G4LC / 1.6L Gamma", "Filtro aceite original Bosch P7028"),
+            new SpecificFitment("ASU-FIL-004", "Kia", "Rio", 2012, 2024, "1.4L Kappa / 1.6L Gamma", "Filtro aceite coreano Bosch P7028"),
+            new SpecificFitment("ASU-FIL-004", "Hyundai", "Elantra", 2012, 2024, "1.6L / 2.0L Nu", "Filtro de aceite microporoso"),
+            new SpecificFitment("ASU-FIL-004", "Kia", "Cerato", 2013, 2024, "1.6L / 2.0L Nu", "Filtro aceite Bosch P7028"),
+            new SpecificFitment("ASU-FIL-004", "Hyundai", "Tucson", 2010, 2024, "2.0L Theta II / Nu", "Filtro de aceite spin-on"),
+            new SpecificFitment("ASU-FIL-004", "Kia", "Sportage", 2011, 2024, "2.0L Nu MPi", "Filtro aceite motores coreanos"),
+
+            // ASU-FIL-005: Filtro Aire Denso Plisado
+            new SpecificFitment("ASU-FIL-005", "Toyota", "Yaris", 2014, 2024, "1.3L 1NR / 1.5L 2NR Dual VVT-i", "Filtro de aire plisado Denso Japón"),
+            new SpecificFitment("ASU-FIL-005", "Toyota", "Probox", 2014, 2024, "1.5L 1NZ-FE NCP160", "Filtro de aire motor Denso"),
+
+            // ASU-FIL-006: Filtro Aire Mann C 25 016
+            new SpecificFitment("ASU-FIL-006", "Hyundai", "Accent", 2012, 2020, "1.4L / 1.6L Gamma", "Filtro de aire motor Mann C 25 016"),
+            new SpecificFitment("ASU-FIL-006", "Kia", "Rio", 2012, 2020, "1.4L / 1.6L Gamma", "Filtro de aire plisado Mann"),
+            new SpecificFitment("ASU-FIL-006", "Hyundai", "Elantra", 2012, 2020, "1.6L / 2.0L Nu", "Filtro de aire motor Mann"),
+
+            // ASU-FIL-007: Filtro Combustible Diésel Denso
+            new SpecificFitment("ASU-FIL-007", "Toyota", "Hilux", 2016, 2024, "2.4L 2GD / 2.8L 1GD", "Filtro combustible separador agua Denso"),
+            new SpecificFitment("ASU-FIL-007", "Toyota", "Fortuner", 2016, 2024, "2.4L / 2.8L D-4D", "Cartucho primario Common-Rail"),
+            new SpecificFitment("ASU-FIL-007", "Toyota", "Hiace", 2019, 2024, "2.8L 1GD Turbo Diésel", "Separador de agua combustible"),
+
+            // ASU-FIL-008: Filtro Cabina Bosch Carbón Activado
+            new SpecificFitment("ASU-FIL-008", "Toyota", "Hilux", 2005, 2024, "Todas las versiones", "Filtro cabina A/C carbón activado Bosch"),
+            new SpecificFitment("ASU-FIL-008", "Toyota", "Fortuner", 2005, 2024, "Todas las versiones", "Filtro antipolen carbón activado"),
+            new SpecificFitment("ASU-FIL-008", "Toyota", "Corolla", 2008, 2024, "1.8L / 2.0L", "Filtro de habitáculo bacteriostático"),
+            new SpecificFitment("ASU-FIL-008", "Toyota", "Yaris", 2006, 2024, "1.3L / 1.5L", "Filtro A/C carbón activado"),
+            new SpecificFitment("ASU-FIL-008", "Nissan", "Versa", 2012, 2024, "1.6L HR16DE", "Filtro de cabina carbón activado"),
+
+            // ASU-FIL-009: Aceite Sintético Castrol EDGE 5W-30 (4L)
+            new SpecificFitment("ASU-FIL-009", "Toyota", "Corolla", 2014, 2024, "1.8L 2ZR / 2.0L Dynamic Force", "Aceite 100% sintético Castrol EDGE 5W-30 (4L)"),
+            new SpecificFitment("ASU-FIL-009", "Toyota", "RAV4", 2013, 2024, "2.0L 3ZR / 2.5L A25A", "Castrol EDGE 5W-30 Titanium FST"),
+            new SpecificFitment("ASU-FIL-009", "Hyundai", "Tucson", 2016, 2024, "2.0L Nu MPi", "Aceite sintético 5W-30 API SP"),
+            new SpecificFitment("ASU-FIL-009", "Kia", "Sportage", 2016, 2024, "2.0L Nu MPi", "Aceite sintético 5W-30 API SP"),
+            new SpecificFitment("ASU-FIL-009", "Nissan", "Sentra", 2013, 2024, "1.8L MRA8DE / 2.0L", "Castrol EDGE 5W-30 Titanium"),
+            new SpecificFitment("ASU-FIL-009", "Nissan", "Versa", 2012, 2024, "1.6L HR16DE", "Aceite sintético 5W-30"),
+
+            // ASU-FIL-010: Aceite Castrol GTX 20W-50 (1G)
+            new SpecificFitment("ASU-FIL-010", "Toyota", "Hilux", 1998, 2010, "2.5L 2KD / 2.7L 3RZ", "Aceite Castrol GTX 20W-50 Anti-Borra (1G)"),
+            new SpecificFitment("ASU-FIL-010", "Nissan", "Frontier", 1998, 2010, "2.4L KA24DE / 2.5L TD27", "Aceite Castrol GTX 20W-50"),
+            new SpecificFitment("ASU-FIL-010", "Hyundai", "H-100", 1998, 2010, "2.5L D4BB / D4BH Porter", "Aceite alta viscosidad 20W-50"),
+            new SpecificFitment("ASU-FIL-010", "Kia", "K2700", 1998, 2010, "2.7L J2 Diésel Bongo", "Castrol GTX 20W-50 alto sellado"),
+
+            // ASU-FIL-011: Castrol Syntrans 75W-90 (1L)
+            new SpecificFitment("ASU-FIL-011", "Toyota", "Hilux", 2005, 2024, "2.5L / 2.8L / 3.0L 4x4", "Lubricante sintético caja/transfer Castrol 75W-90"),
+            new SpecificFitment("ASU-FIL-011", "Mitsubishi", "L200", 2008, 2024, "2.5L / 2.4L 4x4", "Castrol Syntrans 75W-90 GL-4/GL-5"),
+            new SpecificFitment("ASU-FIL-011", "Nissan", "Frontier", 2008, 2024, "2.5L YD25 6MT", "Sintético de caja manual 75W-90"),
+
+            // ASU-FIL-012: Mobilube HD 80W-90 Corona (1G)
+            new SpecificFitment("ASU-FIL-012", "Toyota", "Hilux", 2005, 2024, "Eje posterior LSD/Bloqueo", "Aceite Mobilube HD 80W-90 GL-5 (1G)"),
+            new SpecificFitment("ASU-FIL-012", "Nissan", "Frontier", 2005, 2024, "Diferencial eje rígido", "Aceite extrema presión 80W-90"),
+            new SpecificFitment("ASU-FIL-012", "Mitsubishi", "L200", 2005, 2024, "Corona trasera hipoidal", "Mobilube HD 80W-90 corona"),
+            new SpecificFitment("ASU-FIL-012", "Hyundai", "H-100", 2005, 2024, "Diferencial de carga", "Aceite de corona 80W-90"),
+            new SpecificFitment("ASU-FIL-012", "Kia", "K2700", 2005, 2024, "Diferencial eje posterior", "Aceite de corona 80W-90"),
+
+            // ASU-FIL-013: Separador Petróleo Mann Heavy-Duty
+            new SpecificFitment("ASU-FIL-013", "Hino", "500 Series", 2005, 2024, "7.7L J08E Euro IV/V", "Separador de agua y petróleo Heavy-Duty Mann"),
+            new SpecificFitment("ASU-FIL-013", "Isuzu", "Forward FTR", 2005, 2024, "7.8L 6HK1 Euro IV/V", "Filtro separador petróleo flota pesada"),
+            new SpecificFitment("ASU-FIL-013", "Scania", "P410", 2008, 2024, "12.7L DC13 XPI", "Cartucho separador diésel pesado Mann"),
+            new SpecificFitment("ASU-FIL-013", "Volvo", "FH 460 / 500", 2008, 2024, "12.8L D13C/D13K", "Filtro coalescente combustible pesado"),
+
+            // ASU-FIL-014: Filtro Aceite Spin-On Mann W 920/21
+            new SpecificFitment("ASU-FIL-014", "Hino", "Dutro 300", 2008, 2024, "4.0L N04C Common-Rail", "Filtro de aceite spin-on Mann W 920/21"),
+            new SpecificFitment("ASU-FIL-014", "Isuzu", "NPR Reward", 2008, 2024, "5.2L 4HK1-TCN", "Filtro aceite camión mediano Mann"),
+            new SpecificFitment("ASU-FIL-014", "Mitsubishi", "Canter", 2008, 2024, "3.9L 4D34 / 4.9L 4M50", "Filtro de aceite servicio severo W 920/21"),
+
+            // ASU-FIL-015: Elemento Separador Racor R90P Bosch
+            new SpecificFitment("ASU-FIL-015", "Scania", "P410", 2005, 2024, "12.7L DC13 410HP", "Elemento separador Racor 30 micras Bosch R90P"),
+            new SpecificFitment("ASU-FIL-015", "Scania", "R-Series Heavy", 2005, 2024, "12.7L / 15.6L DC16", "Filtro Racor 30 micras diésel pesado"),
+            new SpecificFitment("ASU-FIL-015", "Volvo", "FH 460 / 500", 2005, 2024, "12.8L D13A/D13C", "Cartucho decantador Racor R90P"),
+
+            // ASU-FIL-016: Mobil 1 0W-20 AFE (4L)
+            new SpecificFitment("ASU-FIL-016", "Toyota", "Yaris", 2017, 2024, "1.5L 2NR-FE Dual VVT-i", "Aceite Mobil 1 0W-20 AFE 100% sintético (4L)"),
+            new SpecificFitment("ASU-FIL-016", "Toyota", "Corolla", 2019, 2024, "2.0L M20A Dynamic Force", "Mobil 1 0W-20 AFE economía combustible"),
+            new SpecificFitment("ASU-FIL-016", "Chevrolet", "Onix", 2020, 2026, "1.0L Turbo / 1.2L CSS Prime", "Mobil 1 0W-20 dexos1 Gen3"),
+            new SpecificFitment("ASU-FIL-016", "Nissan", "Versa", 2020, 2026, "1.6L HR16DE N18", "Aceite sintético 0W-20 API SP"),
+
+            // ASU-FIL-017: Castrol Magnatec 5W-40 C3 (4L)
+            new SpecificFitment("ASU-FIL-017", "Volkswagen", "Amarok", 2010, 2024, "2.0L BiTDI Euro V DPF", "Castrol Magnatec 5W-40 C3 Turbo Protección (4L)"),
+            new SpecificFitment("ASU-FIL-017", "Toyota", "Hilux", 2016, 2024, "2.8L 1GD-FTV Euro V", "Aceite sintético 5W-40 ACEA C3"),
+            new SpecificFitment("ASU-FIL-017", "Hyundai", "Tucson", 2016, 2024, "2.0L CRDi Turbo Diésel", "Castrol Magnatec 5W-40 C3"),
+            new SpecificFitment("ASU-FIL-017", "Kia", "Sportage", 2016, 2024, "2.0L CRDi Turbo Diésel", "Aceite diésel ligero 5W-40 C3"),
+
+            // ASU-FIL-018: Mobil Super 2000 10W-30 (4L)
+            new SpecificFitment("ASU-FIL-018", "Toyota", "Probox", 2002, 2024, "1.5L 1NZ-FE VVT-i", "Aceite Mobil Super 2000 10W-30 semisintético (4L)"),
+            new SpecificFitment("ASU-FIL-018", "Toyota", "Yaris", 2006, 2016, "1.3L 2NZ / 1.5L 1NZ", "Mobil Super 2000 10W-30 API SP"),
+            new SpecificFitment("ASU-FIL-018", "Nissan", "Tiida", 2006, 2018, "1.6L HR16DE", "Aceite semisintético 10W-30"),
+            new SpecificFitment("ASU-FIL-018", "Chevrolet", "Sail", 2010, 2018, "1.4L S-TEC III", "Mobil Super 10W-30 multigrado"),
+
+            // ASU-FIL-019: Castrol Magnatec 10W-40 (4L)
+            new SpecificFitment("ASU-FIL-019", "Nissan", "Frontier", 2005, 2018, "2.5L YD25DDTi D22/NP300", "Castrol Magnatec 10W-40 semisintético (4L)"),
+            new SpecificFitment("ASU-FIL-019", "Mitsubishi", "L200", 2006, 2016, "2.5L 4D56 Turbo Diésel", "Castrol Magnatec 10W-40"),
+            new SpecificFitment("ASU-FIL-019", "Chevrolet", "Sail", 2010, 2020, "1.4L / 1.5L", "Aceite Castrol Magnatec 10W-40"),
+            new SpecificFitment("ASU-FIL-019", "Volkswagen", "Gol", 2008, 2020, "1.6L EA111 G5/G6", "Aceite semisintético 10W-40"),
+
+            // ASU-FIL-020: Mobil Delvac MX 15W-40 (1G)
+            new SpecificFitment("ASU-FIL-020", "Hino", "500 Series", 2000, 2024, "7.7L J08C / J08E", "Aceite diésel Mobil Delvac MX 15W-40 CK-4 (1G)"),
+            new SpecificFitment("ASU-FIL-020", "Hino", "Dutro 300", 2000, 2024, "4.0L N04C Turbo Diésel", "Mobil Delvac MX 15W-40"),
+            new SpecificFitment("ASU-FIL-020", "Isuzu", "Forward FTR", 2000, 2024, "7.8L 6HK1-TC 24V", "Aceite diésel pesado 15W-40"),
+            new SpecificFitment("ASU-FIL-020", "Isuzu", "NPR Reward", 2000, 2024, "5.2L 4HK1-TCN", "Mobil Delvac 15W-40"),
+            new SpecificFitment("ASU-FIL-020", "Toyota", "Hilux", 2000, 2018, "2.5L 2KD / 3.0L 1KD", "Aceite servicio pesado 15W-40"),
+
+            // ASU-FIL-021: Filtro Aire Radial Mann C271250
+            new SpecificFitment("ASU-FIL-021", "Hino", "500 Series", 2005, 2024, "7.7L J08E Ranger", "Filtro de aire cilíndrico radial Mann C271250"),
+            new SpecificFitment("ASU-FIL-021", "Isuzu", "Forward FTR", 2005, 2024, "7.8L 6HK1-TCS", "Filtro de aire admisión camión Mann"),
+            new SpecificFitment("ASU-FIL-021", "Hino", "Dutro 300", 2008, 2024, "4.0L N04C Common-Rail", "Filtro de aire cilíndrico Mann"),
+
+            // ASU-FIL-022: Filtro Cartucho Ecológico Mann HU 7008 z
+            new SpecificFitment("ASU-FIL-022", "Volkswagen", "Amarok", 2010, 2024, "2.0L BiTDI 163HP/180HP", "Filtro cartucho ecológico Mann HU 7008 z"),
+            new SpecificFitment("ASU-FIL-022", "Volkswagen", "Gol", 2014, 2022, "1.6L MSI 16V", "Filtro de aceite cartucho Mann"),
+
+            // ASU-FIL-023: Filtro Combustible en Línea Bosch
+            new SpecificFitment("ASU-FIL-023", "Chevrolet", "Sail", 2010, 2022, "1.4L / 1.5L DOHC", "Filtro de combustible en línea Bosch 5 micras"),
+            new SpecificFitment("ASU-FIL-023", "Chevrolet", "Onix", 2013, 2020, "1.4L SPE/4 Joy", "Filtro nafta gasolina en línea Bosch"),
+            new SpecificFitment("ASU-FIL-023", "Toyota", "Yaris", 2006, 2014, "1.3L / 1.5L", "Filtro combustible inyección multipunto"),
+            new SpecificFitment("ASU-FIL-023", "Kia", "Picanto", 2006, 2020, "1.0L / 1.2L Kappa", "Filtro de gasolina en línea Bosch")
+    );
+
+    private static final List<SpecificFitment> FITMENTS_SUSPENSION = List.of(
+            // ASU-SUS-001: Amortiguador Delantero KYB Gas-A-Just
+            new SpecificFitment("ASU-SUS-001", "Toyota", "Hilux", 2005, 2024, "2.5L 2KD / 2.8L 1GD 4x4", "Amortiguador delantero monotubo Gas-A-Just KYB"),
+            new SpecificFitment("ASU-SUS-001", "Toyota", "Fortuner", 2005, 2024, "2.8L / 3.0L 4x4", "Amortiguador delantero monotubo nitrógeno"),
+            new SpecificFitment("ASU-SUS-001", "Volkswagen", "Amarok", 2010, 2024, "2.0L BiTDI 4Motion", "Amortiguador delantero reforzado a gas"),
+
+            // ASU-SUS-002: Amortiguador Delantero McPherson KYB Excel-G
+            new SpecificFitment("ASU-SUS-002", "Toyota", "Yaris", 2014, 2024, "1.3L 1NR / 1.5L 2NR", "Amortiguador McPherson delantero Excel-G KYB"),
+            new SpecificFitment("ASU-SUS-002", "Toyota", "Probox", 2014, 2024, "1.5L 1NZ-FE NCP160", "Amortiguador delantero bitubo a gas KYB"),
+
+            // ASU-SUS-003: Amortiguador Delantero Monroe OESpectrum
+            new SpecificFitment("ASU-SUS-003", "Hyundai", "Accent", 2012, 2022, "1.4L G4LC / 1.6L", "Amortiguador delantero a gas Monroe OESpectrum"),
+            new SpecificFitment("ASU-SUS-003", "Kia", "Rio", 2012, 2022, "1.4L / 1.6L Gamma", "Amortiguador delantero presurizado Monroe"),
+
+            // ASU-SUS-004: Amortiguador Delantero KYB Excel-G SUV
+            new SpecificFitment("ASU-SUS-004", "Nissan", "Frontier", 2008, 2024, "2.5L YD25DDTi D22/NP300", "Amortiguador delantero a gas KYB Excel-G"),
+            new SpecificFitment("ASU-SUS-004", "Hyundai", "Tucson", 2010, 2020, "2.0L Nu / CRDi", "Amortiguador delantero SUV KYB"),
+            new SpecificFitment("ASU-SUS-004", "Kia", "Sportage", 2011, 2020, "2.0L Nu / CRDi", "Amortiguador delantero SUV KYB"),
+
+            // ASU-SUS-005: Terminales Dirección Externos 555 Japón
+            new SpecificFitment("ASU-SUS-005", "Toyota", "Hilux", 2005, 2024, "2.5L / 2.8L / 3.0L 4x4", "Terminales de dirección externos 555 Japón"),
+            new SpecificFitment("ASU-SUS-005", "Mitsubishi", "L200", 2008, 2024, "2.5L / 2.4L Triton", "Terminales de dirección acero forjado 555"),
+
+            // ASU-SUS-006: Rótulas de Suspensión Inferiores 555 Japón
+            new SpecificFitment("ASU-SUS-006", "Toyota", "Hilux", 2005, 2024, "2.5L / 2.8L / 3.0L 4x4", "Par de rótulas de suspensión inferiores 555 Japón"),
+            new SpecificFitment("ASU-SUS-006", "Mitsubishi", "L200", 2008, 2024, "2.5L / 2.4L Triton", "Rótulas inferiores reforzadas 555"),
+
+            // ASU-SUS-007: Amortiguador Monroe Magnum Heavy-Duty
+            new SpecificFitment("ASU-SUS-007", "Hino", "500 Series", 2005, 2024, "7.7L J08E", "Amortiguador cabina y eje Monroe Magnum HD"),
+            new SpecificFitment("ASU-SUS-007", "Isuzu", "Forward FTR", 2005, 2024, "7.8L 6HK1", "Amortiguador Heavy-Duty Monroe Magnum"),
+            new SpecificFitment("ASU-SUS-007", "Scania", "P410", 2005, 2024, "12.7L DC13", "Amortiguador neumático eje y cabina"),
+            new SpecificFitment("ASU-SUS-007", "Volvo", "FH 460 / 500", 2005, 2024, "12.8L D13", "Amortiguador de suspensión pesada Monroe"),
+
+            // ASU-SUS-008: Terminal Dirección Forjado KYB Heavy-Duty
+            new SpecificFitment("ASU-SUS-008", "Hino", "500 Series", 2005, 2024, "7.7L J08E", "Barra y terminal dirección forjado KYB"),
+            new SpecificFitment("ASU-SUS-008", "Isuzu", "Forward FTR", 2005, 2024, "7.8L 6HK1", "Terminal dirección eje delantero forjado"),
+            new SpecificFitment("ASU-SUS-008", "Hino", "Dutro 300", 2008, 2024, "4.0L N04C", "Terminal de dirección camión mediano KYB"),
+            new SpecificFitment("ASU-SUS-008", "Isuzu", "NPR Reward", 2008, 2024, "5.2L 4HK1", "Terminal cónico acero cromo-molibdeno"),
+
+            // ASU-SUS-009: Amortiguadores Posteriores KYB Skorched4s
+            new SpecificFitment("ASU-SUS-009", "Toyota", "Hilux", 2005, 2024, "Eje posterior ballestas 4x4", "Par amortiguadores carga KYB Skorched4s"),
+            new SpecificFitment("ASU-SUS-009", "Nissan", "Frontier", 2008, 2024, "Ballestas eje trasero", "Amortiguadores hidroneumáticos carga pesada"),
+            new SpecificFitment("ASU-SUS-009", "Mitsubishi", "L200", 2008, 2024, "Suspensión trasera ballestas", "KYB Skorched4s para trabajo severo"),
+
+            // ASU-SUS-010: Bieletas Barra Estabilizadora 555 Japón
+            new SpecificFitment("ASU-SUS-010", "Toyota", "Corolla", 2008, 2022, "1.8L / 2.0L", "Kit bieletas barra estabilizadora 555 Japón"),
+            new SpecificFitment("ASU-SUS-010", "Toyota", "RAV4", 2008, 2022, "2.0L / 2.5L", "Bieletas delanteras selladas 555"),
+            new SpecificFitment("ASU-SUS-010", "Toyota", "Yaris", 2008, 2022, "1.3L / 1.5L", "Bieletas barra estabilizadora delantera 555"),
+
+            // ASU-SUS-011: Trapecio Delantero Inferior con Rótula 555
+            new SpecificFitment("ASU-SUS-011", "Toyota", "Yaris", 2006, 2020, "1.3L 2NZ / 1.5L 1NZ", "Trapecio inferior derecho con rótula 555 Japón"),
+            new SpecificFitment("ASU-SUS-011", "Toyota", "Probox", 2002, 2024, "1.5L 1NZ-FE", "Brazo oscilante estampado acero alta resistencia 555"),
+
+            // ASU-SUS-012: Trapecio Superior Forjado 4x4 555 Japón
+            new SpecificFitment("ASU-SUS-012", "Toyota", "Hilux", 2005, 2024, "2.5L 2KD / 2.8L 1GD 4x4", "Trapecio superior forjado con rótula 555 Japón"),
+            new SpecificFitment("ASU-SUS-012", "Toyota", "Fortuner", 2005, 2024, "2.8L / 3.0L 4x4", "Brazo superior suspensión independiente 555"),
+
+            // ASU-SUS-013: Rodaje Cubo Maza Delantera con ABS KYB
+            new SpecificFitment("ASU-SUS-013", "Hyundai", "Accent", 2012, 2022, "1.4L / 1.6L", "Rodaje cubo maza delantera con sensor ABS KYB"),
+            new SpecificFitment("ASU-SUS-013", "Kia", "Rio", 2012, 2022, "1.4L / 1.6L", "Maza de rueda delantera con anillo magnético ABS"),
+            new SpecificFitment("ASU-SUS-013", "Chevrolet", "Sail", 2010, 2022, "1.4L / 1.5L", "Rodamiento doble hilera bolas pre-engrasado"),
+            new SpecificFitment("ASU-SUS-013", "Chevrolet", "Onix", 2013, 2022, "1.4L Joy / 1.0T", "Cubo maza delantera con sensor ABS")
+    );
+
+    private static final List<SpecificFitment> FITMENTS_MOTOR = List.of(
+            // ASU-MOT-001: Faja Distribución Gates PowerGrip
+            new SpecificFitment("ASU-MOT-001", "Toyota", "Hilux", 2005, 2015, "2.5L 2KD / 3.0L 1KD D-4D", "Faja de distribución HNBR Gates PowerGrip"),
+            new SpecificFitment("ASU-MOT-001", "Toyota", "Hiace", 2005, 2018, "2.5L 2KD-FTV Commuter", "Faja sincrónica de distribución"),
+            new SpecificFitment("ASU-MOT-001", "Chevrolet", "Sail", 2010, 2020, "1.4L S-TEC III", "Faja distribución Gates"),
+            new SpecificFitment("ASU-MOT-001", "Chevrolet", "Onix", 2013, 2019, "1.4L SPE/4 Multipunto", "Faja de distribución reforzada Gates"),
+
+            // ASU-MOT-002: Kit Cadena Distribución Tsubaki Japón
+            new SpecificFitment("ASU-MOT-002", "Toyota", "Yaris", 2006, 2020, "1.3L 2NZ / 1.5L 1NZ-FE", "Kit cadena distribución completo Tsubaki Japón"),
+            new SpecificFitment("ASU-MOT-002", "Toyota", "Probox", 2002, 2024, "1.5L 1NZ-FE VVT-i", "Kit de cadena silenciosa con guías y tensor OEM"),
+            new SpecificFitment("ASU-MOT-002", "Toyota", "Corolla", 2008, 2018, "1.6L / 1.8L 2ZR", "Cadena distribución silenciosa Tsubaki"),
+
+            // ASU-MOT-003: Kit Cadena Distribución Gates Korea
+            new SpecificFitment("ASU-MOT-003", "Hyundai", "Accent", 2012, 2020, "1.4L / 1.6L Gamma", "Kit cadena sincronización Gates Korea"),
+            new SpecificFitment("ASU-MOT-003", "Kia", "Rio", 2012, 2020, "1.4L / 1.6L Gamma", "Kit de distribución por cadena Gates"),
+            new SpecificFitment("ASU-MOT-003", "Hyundai", "Tucson", 2010, 2020, "2.0L Nu / Theta II", "Cadena de distribución DOHC 16V"),
+            new SpecificFitment("ASU-MOT-003", "Kia", "Sportage", 2011, 2020, "2.0L Nu MPi", "Cadena de distribución Gates"),
+            new SpecificFitment("ASU-MOT-003", "Hyundai", "H-100", 2012, 2022, "2.5L D4CB CRDi", "Cadena distribución motor diésel comercial"),
+
+            // ASU-MOT-004: Faja Accesorios Gates 7PK1515
+            new SpecificFitment("ASU-MOT-004", "Toyota", "Hilux", 2016, 2024, "2.4L 2GD / 2.8L 1GD", "Faja accesorios multivía Micro-V Gates 7PK1515"),
+            new SpecificFitment("ASU-MOT-004", "Toyota", "Fortuner", 2016, 2024, "2.8L 1GD-FTV", "Correa acanalada EPDM resistente a temperatura"),
+            new SpecificFitment("ASU-MOT-004", "Toyota", "Hiace", 2019, 2024, "2.8L 1GD H300", "Faja accesorios alternador y A/C Gates"),
+
+            // ASU-MOT-005: Tensor Automático Gates DriveAlign
+            new SpecificFitment("ASU-MOT-005", "Toyota", "Hilux", 2005, 2024, "2.5L 2KD / 2.8L 1GD / 3.0L 1KD", "Tensor automático faja accesorios Gates DriveAlign"),
+            new SpecificFitment("ASU-MOT-005", "Toyota", "Fortuner", 2005, 2024, "2.8L / 3.0L", "Tensor con polea metálica Gates"),
+            new SpecificFitment("ASU-MOT-005", "Nissan", "Frontier", 2008, 2024, "2.5L YD25DDTi", "Tensor automático faja accesorios Gates"),
+
+            // ASU-MOT-006: Empaque Tapa Balancines Denso
+            new SpecificFitment("ASU-MOT-006", "Toyota", "Yaris", 2006, 2022, "1.3L / 1.5L 1NZ/2NZ/2NR", "Juego empaque tapa balancines y sellos bujía Denso"),
+            new SpecificFitment("ASU-MOT-006", "Toyota", "Probox", 2002, 2024, "1.5L 1NZ-FE", "Empaque tapa balancines caucho fluorosiliconado"),
+            new SpecificFitment("ASU-MOT-006", "Toyota", "Corolla", 2008, 2022, "1.8L 2ZR-FE", "Empaque balancines y sellos Denso OEM"),
+
+            // ASU-MOT-007: Faja Heavy-Duty Gates FleetRunner
+            new SpecificFitment("ASU-MOT-007", "Hino", "500 Series", 2005, 2024, "7.7L J08E", "Faja acanalada Heavy-Duty Gates FleetRunner K080991HD"),
+            new SpecificFitment("ASU-MOT-007", "Isuzu", "Forward FTR", 2005, 2024, "7.8L 6HK1", "Correa Poli-V servicio severo flota pesada"),
+            new SpecificFitment("ASU-MOT-007", "Scania", "P410", 2008, 2024, "12.7L DC13", "Faja alternador y ventilador Gates Heavy-Duty"),
+            new SpecificFitment("ASU-MOT-007", "Volvo", "FH 460 / 500", 2008, 2024, "12.8L D13", "Faja accesorios motor diésel pesado"),
+
+            // ASU-MOT-008: Kit Distribución + Bomba Gates
+            new SpecificFitment("ASU-MOT-008", "Volkswagen", "Amarok", 2010, 2022, "2.0L TDI / BiTDI", "Kit distribución completo + bomba de agua Gates"),
+            new SpecificFitment("ASU-MOT-008", "Volkswagen", "Gol", 2009, 2022, "1.6L EA111", "Kit correa sincrónica + tensores + bomba Gates"),
+
+            // ASU-MOT-009: Soporte Hidráulico Motor Denso
+            new SpecificFitment("ASU-MOT-009", "Toyota", "Yaris", 2006, 2020, "1.3L / 1.5L", "Soporte hidráulico derecho motor antivibración Denso"),
+            new SpecificFitment("ASU-MOT-009", "Toyota", "Probox", 2002, 2024, "1.5L 1NZ-FE", "Soporte de motor con cámara hidráulica Denso OEM"),
+
+            // ASU-MOT-010: Turbocompresor CHRA Bosch
+            new SpecificFitment("ASU-MOT-010", "Toyota", "Hilux", 2005, 2015, "3.0L 1KD-FTV D-4D", "Conjunto central CHRA turbo balanceado Bosch"),
+            new SpecificFitment("ASU-MOT-010", "Toyota", "Fortuner", 2005, 2015, "3.0L 1KD-FTV", "Núcleo de turbocompresor geometría variable Bosch")
+    );
+
+    private static final List<SpecificFitment> FITMENTS_TRANSMISION = List.of(
+            // ASU-TRA-001: Kit Embrague Completo Exedy Japón
+            new SpecificFitment("ASU-TRA-001", "Toyota", "Yaris", 2006, 2020, "1.3L / 1.5L 5MT", "Kit embrague completo plato, disco y collarín Exedy Japón"),
+            new SpecificFitment("ASU-TRA-001", "Toyota", "Probox", 2002, 2024, "1.5L 1NZ-FE 5MT", "Kit de embrague balanceado Exedy"),
+
+            // ASU-TRA-002: Kit Embrague Heavy Duty Aisin KT-345
+            new SpecificFitment("ASU-TRA-002", "Toyota", "Hilux", 2005, 2024, "2.5L 2KD / 2.8L 1GD 4x4 5MT/6MT", "Kit embrague Heavy-Duty reforzado Aisin KT-345"),
+            new SpecificFitment("ASU-TRA-002", "Toyota", "Fortuner", 2005, 2024, "2.8L / 3.0L 4x4", "Kit embrague reforzado especificación minera Aisin"),
+
+            // ASU-TRA-003: Kit Embrague Valeo Korea HD-85
+            new SpecificFitment("ASU-TRA-003", "Hyundai", "Accent", 2012, 2022, "1.4L / 1.6L 6MT", "Kit embrague completo Valeo Korea HD-85"),
+            new SpecificFitment("ASU-TRA-003", "Kia", "Rio", 2012, 2022, "1.4L / 1.6L 6MT", "Kit embrague Valeo con forro orgánico de fricción"),
+
+            // ASU-TRA-004: Kit Embrague LuK RepSet Alemania
+            new SpecificFitment("ASU-TRA-004", "Volkswagen", "Amarok", 2010, 2020, "2.0L BiTDI 6MT", "Kit embrague LuK RepSet Alemania"),
+            new SpecificFitment("ASU-TRA-004", "Volkswagen", "Gol", 2009, 2022, "1.6L EA111 5MT", "Kit embrague LuK RepSet con collarín"),
+            new SpecificFitment("ASU-TRA-004", "Chevrolet", "Sail", 2010, 2020, "1.4L / 1.5L 5MT", "Kit de embrague LuK RepSet"),
+            new SpecificFitment("ASU-TRA-004", "Chevrolet", "Onix", 2013, 2020, "1.4L Joy 5MT", "Kit de embrague LuK RepSet"),
+
+            // ASU-TRA-005: Junta Homocinética Lado Rueda HDK Japón
+            new SpecificFitment("ASU-TRA-005", "Toyota", "Corolla", 2008, 2018, "1.6L / 1.8L 2ZR 6MT", "Junta homocinética lado rueda HDK Japón con fuelle"),
+            new SpecificFitment("ASU-TRA-005", "Toyota", "Yaris", 2008, 2020, "1.5L 1NZ/2NR", "Homocinética exterior con grasa grafitada HDK"),
+
+            // ASU-TRA-006: Kit Embrague Cerámico Flota Pesada Valeo
+            new SpecificFitment("ASU-TRA-006", "Hino", "500 Series", 2005, 2024, "7.7L J08E 6MT/9MT", "Kit embrague cerámico 380mm/430mm Valeo"),
+            new SpecificFitment("ASU-TRA-006", "Isuzu", "Forward FTR", 2005, 2024, "7.8L 6HK1 6MT", "Kit embrague cerámico Heavy-Duty Valeo"),
+            new SpecificFitment("ASU-TRA-006", "Scania", "P410", 2008, 2024, "12.7L DC13", "Embrague cerámico 430mm flota pesada Valeo"),
+            new SpecificFitment("ASU-TRA-006", "Volvo", "FH 460 / 500", 2008, 2024, "12.8L D13", "Kit embrague doble disco cerametálico Valeo"),
+
+            // ASU-TRA-007: Cruceta Árbol Cardán Aisin GUT-23
+            new SpecificFitment("ASU-TRA-007", "Toyota", "Hilux", 2005, 2024, "Árbol cardán delantero/trasero 4x4", "Cruceta cardán acero forjado Aisin GUT-23 con grasera"),
+            new SpecificFitment("ASU-TRA-007", "Toyota", "Hiace", 2005, 2024, "Eje cardán propulsor", "Cruceta con rodillos de agujas sellados Aisin"),
+            new SpecificFitment("ASU-TRA-007", "Nissan", "Frontier", 2008, 2024, "Cardán 4x4", "Cruceta cardán reforzada Aisin Japón"),
+            new SpecificFitment("ASU-TRA-007", "Mitsubishi", "L200", 2008, 2024, "Cardán 4x4", "Cruceta de transmisión forjada Aisin"),
+
+            // ASU-TRA-008: Bombín Receptor Embrague Aisin
+            new SpecificFitment("ASU-TRA-008", "Toyota", "Hilux", 2005, 2024, "2.5L / 2.8L / 3.0L", "Cilindro esclavo / bombín receptor embrague Aisin"),
+            new SpecificFitment("ASU-TRA-008", "Toyota", "Hiace", 2005, 2024, "2.5L / 2.8L", "Bombín receptor de embrague hidráulico Aisin CRT-086"),
+
+            // ASU-TRA-009: Bomba Cilindro Maestro Embrague Aisin
+            new SpecificFitment("ASU-TRA-009", "Toyota", "Hilux", 2005, 2024, "2.5L / 2.8L / 3.0L", "Bomba cilindro maestro principal embrague Aisin CMT-138"),
+            new SpecificFitment("ASU-TRA-009", "Toyota", "Fortuner", 2005, 2024, "2.8L / 3.0L", "Bomba superior pedal de embrague Aisin Japón"),
+
+            // ASU-TRA-010: Volante Bimasa Valeo
+            new SpecificFitment("ASU-TRA-010", "Volkswagen", "Amarok", 2010, 2022, "2.0L BiTDI 163HP/180HP", "Volante de inercia bimasa reforzado Valeo"),
+            new SpecificFitment("ASU-TRA-010", "Hyundai", "H-100", 2012, 2022, "2.5L D4CB CRDi", "Volante bimasa absorción torsional Valeo")
+    );
+
+    private static final List<SpecificFitment> FITMENTS_ELECTRICO = List.of(
+            // ASU-ELE-001: Pack x4 Bujías Laser Iridium NGK
+            new SpecificFitment("ASU-ELE-001", "Toyota", "Corolla", 2014, 2024, "1.8L 2ZR / 2.0L M20A", "Pack x4 bujías Laser Iridium NGK Japón ILKAR7B11"),
+            new SpecificFitment("ASU-ELE-001", "Toyota", "Yaris", 2016, 2024, "1.5L 2NR Dual VVT-i", "Pack x4 bujías Laser Iridium NGK"),
+            new SpecificFitment("ASU-ELE-001", "Toyota", "RAV4", 2013, 2024, "2.0L / 2.5L", "Bujías Iridium NGK larga vida 100,000km"),
+            new SpecificFitment("ASU-ELE-001", "Nissan", "Sentra", 2013, 2024, "1.8L MRA8DE / 2.0L", "Pack x4 bujías Iridium NGK"),
+            new SpecificFitment("ASU-ELE-001", "Nissan", "Versa", 2012, 2024, "1.6L HR16DE", "Bujías NGK Laser Iridium"),
+            new SpecificFitment("ASU-ELE-001", "Chevrolet", "Onix", 2020, 2026, "1.0L Turbo / 1.2L CSS Prime", "Bujías Iridium ultrafinas NGK"),
+
+            // ASU-ELE-002: Bobina Encendido Bosch Lápiz
+            new SpecificFitment("ASU-ELE-002", "Hyundai", "Accent", 2012, 2024, "1.4L G4LC / 1.6L", "Bobina de encendido tipo lápiz Bosch"),
+            new SpecificFitment("ASU-ELE-002", "Kia", "Rio", 2012, 2024, "1.4L / 1.6L Gamma", "Bobina independiente Bosch"),
+            new SpecificFitment("ASU-ELE-002", "Hyundai", "Tucson", 2010, 2024, "2.0L Nu MPi", "Bobina encendido directa Bosch"),
+            new SpecificFitment("ASU-ELE-002", "Kia", "Sportage", 2011, 2024, "2.0L Nu MPi", "Bobina encendido Bosch"),
+
+            // ASU-ELE-003: Módulo Bomba Gasolina Sumergible Denso
+            new SpecificFitment("ASU-ELE-003", "Toyota", "Hilux", 2005, 2024, "2.7L Gasolina / Tanque diésel", "Módulo bomba combustible sumergible Denso 3.8 Bar"),
+            new SpecificFitment("ASU-ELE-003", "Toyota", "Yaris", 2006, 2020, "1.3L / 1.5L", "Bomba eléctrica gasolina sumergible Denso"),
+            new SpecificFitment("ASU-ELE-003", "Toyota", "Corolla", 2008, 2020, "1.8L 2ZR", "Bomba eléctrica combustible Denso Japón"),
+
+            // ASU-ELE-004: Bobina Encendido Denso Japón
+            new SpecificFitment("ASU-ELE-004", "Toyota", "Yaris", 2006, 2020, "1.3L 2NZ / 1.5L 1NZ", "Bobina encendido electrónica Denso Japón"),
+            new SpecificFitment("ASU-ELE-004", "Toyota", "Probox", 2002, 2024, "1.5L 1NZ-FE", "Bobina de ignición independiente Denso"),
+            new SpecificFitment("ASU-ELE-004", "Toyota", "Corolla", 2008, 2018, "1.8L 2ZR-FE", "Bobina de encendido Denso"),
+
+            // ASU-ELE-005: Focos Halógenos Narva H4 12V 60/55W
+            new SpecificFitment("ASU-ELE-005", "Toyota", "Hilux", 2005, 2020, "Halógeno H4", "Par focos halógenos Narva H4 12V 60/55W Range Power"),
+            new SpecificFitment("ASU-ELE-005", "Toyota", "Yaris", 2006, 2020, "H4", "Focos halógenos alemanes Narva H4"),
+            new SpecificFitment("ASU-ELE-005", "Toyota", "Probox", 2002, 2024, "H4", "Focos H4 12V 60/55W Narva"),
+            new SpecificFitment("ASU-ELE-005", "Nissan", "Frontier", 2005, 2020, "H4", "Focos halógenos H4 cristal cuarzo Narva"),
+            new SpecificFitment("ASU-ELE-005", "Hyundai", "Accent", 2006, 2020, "H4", "Focos Narva H4 alta luminosidad"),
+            new SpecificFitment("ASU-ELE-005", "Kia", "Rio", 2006, 2020, "H4", "Focos halógenos Narva H4"),
+            new SpecificFitment("ASU-ELE-005", "Volkswagen", "Gol", 2008, 2020, "H4", "Focos Narva H4 12V"),
+            new SpecificFitment("ASU-ELE-005", "Chevrolet", "Sail", 2010, 2020, "H4", "Focos halógenos Narva H4"),
+
+            // ASU-ELE-006: Arrancador 24V 5.5kW Bosch Heavy-Duty
+            new SpecificFitment("ASU-ELE-006", "Hino", "500 Series", 2005, 2024, "7.7L J08E 24V", "Arrancador Heavy-Duty 24V 5.5kW Bosch"),
+            new SpecificFitment("ASU-ELE-006", "Isuzu", "Forward FTR", 2005, 2024, "7.8L 6HK1 24V", "Motor de partida diésel comercial Bosch 24V"),
+            new SpecificFitment("ASU-ELE-006", "Scania", "P410", 2005, 2024, "12.7L DC13 24V", "Arrancador industrial Bosch 24V"),
+            new SpecificFitment("ASU-ELE-006", "Volvo", "FH 460 / 500", 2005, 2024, "12.8L D13 24V", "Motor de arranque pesado Bosch 24V 5.5kW"),
+
+            // ASU-ELE-007: Alternador Industrial Brushless 24V 90A Denso
+            new SpecificFitment("ASU-ELE-007", "Hino", "500 Series", 2005, 2024, "7.7L J08E 24V", "Alternador industrial brushless 24V 90A Denso"),
+            new SpecificFitment("ASU-ELE-007", "Isuzu", "Forward FTR", 2005, 2024, "7.8L 6HK1 24V", "Alternador sin escobillas 24V Denso"),
+            new SpecificFitment("ASU-ELE-007", "Hino", "Dutro 300", 2008, 2024, "4.0L N04C 24V", "Alternador sellado polvo Denso 24V 90A"),
+
+            // ASU-ELE-008: Alternador 12V 110A Denso OAP
+            new SpecificFitment("ASU-ELE-008", "Toyota", "Hilux", 2005, 2024, "2.5L 2KD / 2.8L 1GD / 3.0L 1KD", "Alternador trifásico 12V 110A con polea OAP Denso"),
+            new SpecificFitment("ASU-ELE-008", "Toyota", "Fortuner", 2005, 2024, "2.8L / 3.0L", "Alternador Denso 12V 110A con regulador integrado"),
+            new SpecificFitment("ASU-ELE-008", "Toyota", "Hiace", 2005, 2024, "2.5L / 2.8L", "Alternador 12V 110A alta eficiencia Denso"),
+
+            // ASU-ELE-009: Arrancador 12V 1.4kW Bosch
+            new SpecificFitment("ASU-ELE-009", "Chevrolet", "Sail", 2010, 2022, "1.4L / 1.5L", "Motor de arranque planetario 12V 1.4kW Bosch"),
+            new SpecificFitment("ASU-ELE-009", "Chevrolet", "Onix", 2013, 2022, "1.4L Joy / 1.0T", "Arrancador bajo consumo Bosch 12V"),
+            new SpecificFitment("ASU-ELE-009", "Volkswagen", "Gol", 2009, 2022, "1.6L EA111", "Arrancador planetario Bosch 12V"),
+
+            // ASU-ELE-010: Bujías Precalentamiento Denso
+            new SpecificFitment("ASU-ELE-010", "Toyota", "Hilux", 2005, 2015, "2.5L 2KD / 3.0L 1KD D-4D", "Pack x4 bujías precalentamiento incandescencia Denso"),
+            new SpecificFitment("ASU-ELE-010", "Toyota", "Hiace", 2005, 2018, "2.5L 2KD Commuter", "Bujías incandescencia arranque en frío Denso"),
+            new SpecificFitment("ASU-ELE-010", "Nissan", "Frontier", 2008, 2016, "2.5L YD25DDTi", "Bujías precalentamiento rápido Denso diésel"),
+            new SpecificFitment("ASU-ELE-010", "Hyundai", "H-100", 2012, 2022, "2.5L D4CB CRDi", "Bujías incandescencia diésel Denso"),
+
+            // ASU-ELE-011: Sensor Oxígeno Bosch Planar
+            new SpecificFitment("ASU-ELE-011", "Hyundai", "Accent", 2012, 2022, "1.4L / 1.6L", "Sensor de oxígeno / sonda lambda planar 4 cables Bosch"),
+            new SpecificFitment("ASU-ELE-011", "Kia", "Rio", 2012, 2022, "1.4L / 1.6L", "Sonda lambda pre-catalizador Bosch"),
+            new SpecificFitment("ASU-ELE-011", "Chevrolet", "Sail", 2010, 2020, "1.4L / 1.5L", "Sensor de oxígeno circonio Bosch"),
+            new SpecificFitment("ASU-ELE-011", "Chevrolet", "Onix", 2013, 2020, "1.4L SPE/4 Joy", "Sonda lambda calefactada Bosch"),
+            new SpecificFitment("ASU-ELE-011", "Volkswagen", "Gol", 2009, 2020, "1.6L EA111", "Sensor de oxígeno 4 cables Bosch"),
+
+            // ASU-ELE-012: Sensor MAF Denso Japón
+            new SpecificFitment("ASU-ELE-012", "Toyota", "Hilux", 2005, 2020, "2.5L 2KD / 2.8L 1GD / 3.0L 1KD", "Sensor de flujo masa de aire MAF Denso Japón"),
+            new SpecificFitment("ASU-ELE-012", "Toyota", "Fortuner", 2005, 2020, "2.8L / 3.0L", "Caudalímetro MAF hilo platino Denso"),
+            new SpecificFitment("ASU-ELE-012", "Toyota", "Yaris", 2006, 2018, "1.3L / 1.5L", "Sensor MAF inyección electrónica Denso"),
+            new SpecificFitment("ASU-ELE-012", "Toyota", "Corolla", 2008, 2018, "1.8L 2ZR-FE", "Sensor MAF original Denso")
+    );
+
+    private static final List<SpecificFitment> FITMENTS_REFRIGERACION = List.of(
+            // ASU-REF-001: Bomba Agua Aisin Aluminio
+            new SpecificFitment("ASU-REF-001", "Toyota", "Yaris", 2006, 2020, "1.3L 2NZ / 1.5L 1NZ", "Bomba de agua centrífuga aluminio Aisin Japón"),
+            new SpecificFitment("ASU-REF-001", "Toyota", "Probox", 2002, 2024, "1.5L 1NZ-FE", "Bomba de agua turbina balanceada Aisin"),
+            new SpecificFitment("ASU-REF-001", "Toyota", "Corolla", 2008, 2018, "1.6L / 1.8L 2ZR", "Bomba de agua Aisin con sello carburo de silicio"),
+
+            // ASU-REF-002: Bomba Agua Diésel Aisin HD
+            new SpecificFitment("ASU-REF-002", "Toyota", "Hilux", 2005, 2024, "2.5L 2KD / 2.8L 1GD / 3.0L 1KD", "Bomba de agua motor diésel Heavy Duty Aisin Japón"),
+            new SpecificFitment("ASU-REF-002", "Toyota", "Fortuner", 2005, 2024, "2.8L / 3.0L", "Bomba refrigerante alta capacidad Aisin"),
+            new SpecificFitment("ASU-REF-002", "Toyota", "Hiace", 2005, 2024, "2.5L / 2.8L", "Bomba de agua diésel Aisin Japón"),
+
+            // ASU-REF-003: Bomba Agua Valeo Korea
+            new SpecificFitment("ASU-REF-003", "Hyundai", "Accent", 2012, 2020, "1.4L / 1.6L Gamma", "Bomba de agua alta eficiencia Valeo"),
+            new SpecificFitment("ASU-REF-003", "Kia", "Rio", 2012, 2020, "1.4L / 1.6L Gamma", "Bomba de agua aluminio fundido Valeo"),
+            new SpecificFitment("ASU-REF-003", "Hyundai", "Elantra", 2012, 2020, "1.6L / 2.0L Nu", "Bomba de refrigerante Valeo Korea"),
+            new SpecificFitment("ASU-REF-003", "Kia", "Cerato", 2013, 2020, "1.6L / 2.0L Nu", "Bomba de agua Valeo"),
+
+            // ASU-REF-004: Prestone 50/50 Rojo Larga Vida (1G)
+            new SpecificFitment("ASU-REF-004", "Toyota", "Hilux", 2005, 2024, "Todas las versiones", "Refrigerante 50/50 Prestone Rojo Larga Vida (1G)"),
+            new SpecificFitment("ASU-REF-004", "Toyota", "Yaris", 2006, 2024, "Todas las versiones", "Refrigerante Cor-Guard 50/50 Prestone"),
+            new SpecificFitment("ASU-REF-004", "Toyota", "Corolla", 2008, 2024, "1.8L / 2.0L", "Prestone 50/50 protección hasta 129°C"),
+            new SpecificFitment("ASU-REF-004", "Hyundai", "Accent", 2012, 2024, "Todas las versiones", "Anticorrosivo prediluido Prestone"),
+            new SpecificFitment("ASU-REF-004", "Kia", "Sportage", 2011, 2024, "Gasolina y Diésel", "Refrigerante larga vida Prestone"),
+            new SpecificFitment("ASU-REF-004", "Nissan", "Frontier", 2008, 2024, "Turbo Diésel", "Refrigerante Prestone 50/50"),
+            new SpecificFitment("ASU-REF-004", "Volkswagen", "Amarok", 2010, 2024, "2.0L BiTDI", "Refrigerante Prestone 50/50"),
+            new SpecificFitment("ASU-REF-004", "Chevrolet", "Onix", 2013, 2024, "1.0T / 1.4L", "Refrigerante Prestone 50/50"),
+
+            // ASU-REF-005: Radiador Flota Pesada Denso HD
+            new SpecificFitment("ASU-REF-005", "Hino", "500 Series", 2005, 2024, "7.7L J08E", "Radiador Heavy-Duty Denso con embrague viscoso térmico"),
+            new SpecificFitment("ASU-REF-005", "Isuzu", "Forward FTR", 2005, 2024, "7.8L 6HK1", "Radiador aluminio brasado sobredimensionado Denso"),
+            new SpecificFitment("ASU-REF-005", "Hino", "Dutro 300", 2008, 2024, "4.0L N04C", "Radiador camión mediano Denso"),
+
+            // ASU-REF-006: Termostato Motor 82°C Aisin Japón
+            new SpecificFitment("ASU-REF-006", "Toyota", "Hilux", 2005, 2024, "2.5L 2KD / 2.8L 1GD / 3.0L 1KD", "Termostato motor 82°C con junta Aisin Japón"),
+            new SpecificFitment("ASU-REF-006", "Toyota", "Fortuner", 2005, 2024, "2.8L / 3.0L / 2.7L", "Termostato acero inoxidable Aisin WVT-015"),
+            new SpecificFitment("ASU-REF-006", "Toyota", "Hiace", 2005, 2024, "2.5L / 2.8L", "Termostato calibrado de fábrica Aisin"),
+            new SpecificFitment("ASU-REF-006", "Toyota", "Probox", 2002, 2024, "1.5L 1NZ-FE", "Termostato 82°C con válvula jiggle purga"),
+
+            // ASU-REF-007: Radiador Aluminio Brasado Denso
+            new SpecificFitment("ASU-REF-007", "Toyota", "Yaris", 2014, 2022, "1.3L 1NR / 1.5L 2NR", "Radiador aluminio brasado alta disipación Denso"),
+            new SpecificFitment("ASU-REF-007", "Toyota", "Probox", 2014, 2024, "1.5L 1NZ-FE NCP160", "Radiador micro-tubos aluminio tanques PA66 Denso"),
+            new SpecificFitment("ASU-REF-007", "Hyundai", "Accent", 2012, 2020, "1.4L / 1.6L", "Radiador refrigeración motor Denso"),
+            new SpecificFitment("ASU-REF-007", "Kia", "Rio", 2012, 2020, "1.4L / 1.6L", "Radiador de aluminio Denso"),
+
+            // ASU-REF-008: Radiador Doble Fila Turbo Diésel Denso
+            new SpecificFitment("ASU-REF-008", "Toyota", "Hilux", 2016, 2024, "2.4L 2GD / 2.8L 1GD 4x4", "Radiador sobredimensionado doble fila diésel Denso"),
+            new SpecificFitment("ASU-REF-008", "Toyota", "Fortuner", 2016, 2024, "2.8L 1GD 4x4", "Radiador capacidad térmica incrementada 30% Denso")
+    );
+
+    private static final List<SpecificFitment> FITMENTS_CARROCERIA = List.of(
+            // ASU-CAR-001: Faro Delantero Derecho TYC
+            new SpecificFitment("ASU-CAR-001", "Toyota", "Hilux", 2012, 2015, "Vigo Champ 4x4/4x2", "Faro delantero derecho halógeno/LED TYC"),
+            new SpecificFitment("ASU-CAR-001", "Toyota", "Fortuner", 2012, 2015, "Champ SUV", "Faro delantero derecho TYC"),
+
+            // ASU-CAR-002: Faro Delantero Izquierdo TYC
+            new SpecificFitment("ASU-CAR-002", "Toyota", "Hilux", 2012, 2015, "Vigo Champ 4x4/4x2", "Faro delantero izquierdo halógeno/LED TYC"),
+            new SpecificFitment("ASU-CAR-002", "Toyota", "Fortuner", 2012, 2015, "Champ SUV", "Faro delantero izquierdo TYC"),
+
+            // ASU-CAR-003: Faro Delantero Lupa Depo
+            new SpecificFitment("ASU-CAR-003", "Toyota", "Yaris", 2014, 2018, "Sedán y Hatchback", "Faro delantero principal fondo cromo con proyector lupa Depo"),
+
+            // ASU-CAR-004: Faro Delantero Proyector Depo
+            new SpecificFitment("ASU-CAR-004", "Hyundai", "Tucson", 2016, 2020, "TL Facelift SUV", "Faro delantero proyector halógeno/LED Depo"),
+            new SpecificFitment("ASU-CAR-004", "Kia", "Sportage", 2016, 2020, "QL SUV", "Faro delantero proyector Depo"),
+
+            // ASU-CAR-005: Plumillas Aerotwin Bosch 24" y 16"
+            new SpecificFitment("ASU-CAR-005", "Toyota", "Yaris", 2006, 2024, "Todas las versiones", "Par plumillas limpiaparabrisas Aerotwin Bosch 24\" y 16\""),
+            new SpecificFitment("ASU-CAR-005", "Toyota", "Corolla", 2008, 2024, "Sedán", "Plumillas aerodinámicas silenciosas Bosch Aerotwin"),
+            new SpecificFitment("ASU-CAR-005", "Hyundai", "Accent", 2012, 2024, "Sedán/Hatchback", "Plumillas planas Bosch Aerotwin"),
+            new SpecificFitment("ASU-CAR-005", "Kia", "Rio", 2012, 2024, "Sedán/Hatchback", "Plumillas dobles Bosch Aerotwin"),
+            new SpecificFitment("ASU-CAR-005", "Nissan", "Versa", 2012, 2024, "Sedán", "Plumillas Aerotwin 24\"/16\" Bosch"),
+            new SpecificFitment("ASU-CAR-005", "Chevrolet", "Sail", 2010, 2024, "Sedán", "Plumillas planas Bosch Aerotwin"),
+            new SpecificFitment("ASU-CAR-005", "Chevrolet", "Onix", 2013, 2024, "Sedán/Hatchback", "Plumillas Aerotwin Bosch"),
+
+            // ASU-CAR-006: Faro Posterior Completo Depo
+            new SpecificFitment("ASU-CAR-006", "Toyota", "Hilux", 2012, 2020, "Vigo & Revo Pickup", "Faro posterior derecho completo con portalámparas Depo"),
+
+            // ASU-CAR-007: Espejo Panorámico Depo Heavy-Duty
+            new SpecificFitment("ASU-CAR-007", "Hino", "500 Series", 2005, 2024, "Cabina Ranger", "Espejo panorámico doble ángulo + neblinero Depo HD"),
+            new SpecificFitment("ASU-CAR-007", "Isuzu", "Forward FTR", 2005, 2024, "Cabina FTR", "Espejo panorámico exterior antivibración Depo"),
+            new SpecificFitment("ASU-CAR-007", "Scania", "P410", 2005, 2024, "Cabina P", "Espejo panorámico doble ángulo carretera Depo"),
+            new SpecificFitment("ASU-CAR-007", "Volvo", "FH 460 / 500", 2005, 2024, "Globetrotter", "Espejo exterior reforzado pesados Depo"),
+
+            // ASU-CAR-008: Kit Neblineros con Bisel Depo
+            new SpecificFitment("ASU-CAR-008", "Toyota", "Yaris", 2014, 2020, "Sedán/Hatchback", "Kit faros neblineros delanteros con bisel y arnés Depo IP67"),
+            new SpecificFitment("ASU-CAR-008", "Toyota", "Corolla", 2014, 2020, "Sedán", "Neblineros delanteros halógeno/LED Depo"),
+            new SpecificFitment("ASU-CAR-008", "Toyota", "Hilux", 2016, 2020, "Revo 4x4", "Neblineros delanteros con cableado Depo"),
+
+            // ASU-CAR-009: Espejo Retrovisor Abatible Depo
+            new SpecificFitment("ASU-CAR-009", "Toyota", "Corolla", 2014, 2020, "Sedán", "Espejo retrovisor lateral abatible eléctrico con luna convexa Depo"),
+            new SpecificFitment("ASU-CAR-009", "Toyota", "Yaris", 2014, 2020, "Sedán", "Espejo lateral con regulación eléctrica Depo"),
+
+            // ASU-CAR-010: Amortiguadores Maletera KYB
+            new SpecificFitment("ASU-CAR-010", "Toyota", "RAV4", 2013, 2020, "SUV", "Par amortiguadores a gas compuerta maletera KYB"),
+            new SpecificFitment("ASU-CAR-010", "Hyundai", "Tucson", 2010, 2020, "SUV", "Resortes neumáticos compuerta posterior KYB"),
+            new SpecificFitment("ASU-CAR-010", "Kia", "Sportage", 2011, 2020, "SUV", "Amortiguadores maletera a gas KYB"),
+            new SpecificFitment("ASU-CAR-010", "Toyota", "Fortuner", 2010, 2020, "SUV", "Amortiguadores hidráulicos de compuerta KYB")
+    );
+
+    private void buildSpecificDirectFitments() {
         List<VehicleModel> allModels = modelRepository.findAllByOrderByMakeNameAscNameAsc();
+        Map<String, VehicleModel> modelMap = new HashMap<>();
+        for (VehicleModel m : allModels) {
+            String make = m.getMake() != null ? m.getMake().getName() : "";
+            modelMap.put((make + "|" + m.getName()).toLowerCase(), m);
+        }
+
         List<Part> allParts = partRepository.findAllWithImagesOrderByIdAsc();
         if (!allParts.isEmpty()) {
             partRepository.hydrateCompatibilities(allParts);
         }
-
-        Map<String, List<Part>> partsByCategoryKey = new HashMap<>();
-        Map<String, Part> partBySku = new HashMap<>();
+        Map<String, Part> partMap = new HashMap<>();
         for (Part p : allParts) {
-            if (!p.isActive() || p.getStockQuantity() == null || p.getStockQuantity() <= 0) {
-                continue;
-            }
             if (p.getSku() != null) {
-                partBySku.put(p.getSku().toUpperCase(), p);
-            }
-            String catKey = resolveStandardCategoryKey(p.getCategory());
-            if (catKey != null && !"ACCESORIOS".equals(catKey)) {
-                partsByCategoryKey.computeIfAbsent(catKey, k -> new ArrayList<>()).add(p);
+                partMap.put(p.getSku().toUpperCase(), p);
             }
         }
-
-        Map<String, ModelTimeline> timelineMap = new HashMap<>();
-        for (ModelTimeline tl : REAL_MODEL_TIMELINES) {
-            timelineMap.put((tl.makeName() + "|" + tl.modelName()).toLowerCase(), tl);
-        }
-
-        List<String> systemCodes = List.of(
-                "FRENOS", "FILTROS", "SUSPENSION", "MOTOR",
-                "TRANSMISION", "ELECTRICO", "REFRIGERACION", "CARROCERIA"
-        );
 
         Set<Part> dirtyParts = new LinkedHashSet<>();
 
-        for (int modelIdx = 0; modelIdx < allModels.size(); modelIdx++) {
-            VehicleModel model = allModels.get(modelIdx);
-            ModelTimeline tl = resolveTimelineForModel(model, timelineMap);
+        List<SpecificFitment> allFitments = new ArrayList<>();
+        allFitments.addAll(FITMENTS_FRENOS);
+        allFitments.addAll(FITMENTS_FILTROS);
+        allFitments.addAll(FITMENTS_SUSPENSION);
+        allFitments.addAll(FITMENTS_MOTOR);
+        allFitments.addAll(FITMENTS_TRANSMISION);
+        allFitments.addAll(FITMENTS_ELECTRICO);
+        allFitments.addAll(FITMENTS_REFRIGERACION);
+        allFitments.addAll(FITMENTS_CARROCERIA);
 
-            for (String catKey : systemCodes) {
-                List<Part> catParts = partsByCategoryKey.getOrDefault(catKey, List.of());
-                if (catParts.isEmpty()) {
-                    continue;
-                }
-
-                boolean hasGen1 = hasCoverageInWindow(catParts, model.getId(), tl.gen1Start(), tl.gen1End());
-                boolean hasGen2 = hasCoverageInWindow(catParts, model.getId(), tl.gen2Start(), tl.gen2End());
-
-                Set<Long> assignedPartIds = catParts.stream()
-                        .filter(p -> p.getCompatibilities().stream().anyMatch(c -> c.getVehicleModel().getId().equals(model.getId())))
-                        .map(Part::getId)
-                        .collect(Collectors.toSet());
-
-                // 1. GENERACIÓN ACTUAL / MODERNA REAL DEL MODELO (gen2Start .. gen2End)
-                if (!hasGen2) {
-                    List<Part> gen2Pool = selectGen2Candidates(catKey, model, tl.profile(), tl.origin(), partBySku, catParts);
-                    int gen2Take = desiredGen2Count(catKey, model, tl.profile(), modelIdx);
-                    List<Part> chosenGen2 = pickModelSubset(gen2Pool, assignedPartIds, modelIdx, gen2Take);
-                    for (Part target : chosenGen2) {
-                        addCompatibilityIfAbsent(
-                                target, model, tl.gen2Start(), tl.gen2End(),
-                                tl.gen2Engine(),
-                                "Aplicación OEM verificada (" + model.getMake().getName() + " " + model.getName() + ")",
-                                dirtyParts
-                        );
-                        assignedPartIds.add(target.getId());
+        for (SpecificFitment f : allFitments) {
+            Part part = partMap.get(f.sku().toUpperCase());
+            if (part == null) continue;
+            VehicleModel model = modelMap.get((f.makeName() + "|" + f.modelName()).toLowerCase());
+            if (model == null) {
+                for (VehicleModel m : allModels) {
+                    if (m.getMake() != null && m.getMake().getName().equalsIgnoreCase(f.makeName())
+                            && m.getName().toLowerCase().contains(f.modelName().toLowerCase())) {
+                        model = m;
+                        break;
                     }
                 }
-
-                // 2. GENERACIÓN PREVIA REAL DEL MODELO (gen1Start .. gen1End)
-                if (!hasGen1) {
-                    List<Part> gen1Pool = selectGen1Candidates(catKey, model, tl.profile(), tl.origin(), partBySku, catParts);
-                    int gen1Take = ("FILTROS".equals(catKey) || "FRENOS".equals(catKey)) ? 2 : 1;
-                    List<Part> chosenGen1 = pickModelSubset(gen1Pool, assignedPartIds, modelIdx + 1, gen1Take);
-                    if (!chosenGen1.isEmpty()) {
-                        for (Part target : chosenGen1) {
-                            addCompatibilityIfAbsent(
-                                    target, model, tl.gen1Start(), tl.gen1End(),
-                                    tl.gen1Engine(),
-                                    "Generación previa verificada (" + model.getMake().getName() + " " + model.getName() + ")",
-                                    dirtyParts
-                            );
-                            assignedPartIds.add(target.getId());
-                        }
-                    } else {
-                        // Si la categoría comparte el mismo repuesto entre ambas generaciones de ese modelo, cubrir su rango real completo
-                        catParts.stream()
-                                .flatMap(p -> p.getCompatibilities().stream().map(c -> Map.entry(p, c)))
-                                .filter(e -> e.getValue().getVehicleModel().getId().equals(model.getId()))
-                                .findFirst()
-                                .ifPresent(entry -> {
-                                    entry.getValue().setYearStart(tl.gen1Start());
-                                    entry.getValue().setYearEnd(tl.gen2End());
-                                    dirtyParts.add(entry.getKey());
-                                });
-                    }
-                }
-
-                // 3. Consumible/componente transversal propio del modelo (gen1Start .. gen2End) para continuidad realista
-                List<Part> fullSpanPool = selectMultiGenModelParts(catKey, model, tl.profile(), tl.origin(), partBySku);
-                List<Part> chosenFullSpan = pickModelSubset(fullSpanPool, assignedPartIds, modelIdx, 1);
-                for (Part spanPart : chosenFullSpan) {
-                    addCompatibilityIfAbsent(
-                            spanPart, model, tl.gen1Start(), tl.gen2End(),
-                            tl.gen2Engine(),
-                            "Compatible en todas las series de " + model.getMake().getName() + " " + model.getName(),
-                            dirtyParts
-                    );
-                    assignedPartIds.add(spanPart.getId());
-                }
             }
-        }
+            if (model == null) continue;
 
-        // Garantizar que cualquier repuesto cuyo nombre mencione un modelo explícito incluya dicho modelo real
-        for (Part namedPart : allParts) {
-            if (!namedPart.isActive() || namedPart.getName() == null) continue;
-            String title = namedPart.getName().toLowerCase();
-            for (VehicleModel model : allModels) {
-                String modelToken = extractPrimaryModelToken(model.getName());
-                if (modelToken.length() >= 3 && containsWholeWord(title, modelToken)) {
-                    ModelTimeline tl = resolveTimelineForModel(model, timelineMap);
-                    addCompatibilityIfAbsent(
-                            namedPart, model, tl.gen2Start(), tl.gen2End(),
-                            tl.gen2Engine(),
-                            "Aplicación OEM específica (" + model.getMake().getName() + " " + model.getName() + ")",
-                            dirtyParts
-                    );
-                }
-            }
-        }
-
-        // Asegurar que absolutamente los 100 repuestos estén asignados al menos a sus modelos coherentes reales
-        for (Part orphan : allParts) {
-            if (!orphan.isActive()) continue;
-            String catKey = resolveStandardCategoryKey(orphan.getCategory());
-            if ("ACCESORIOS".equals(catKey)) continue;
-            if (orphan.getCompatibilities().isEmpty() && !allModels.isEmpty()) {
-                List<VehicleModel> targets = pickMatchingModelsForUnassignedPart(orphan, allModels);
-                for (VehicleModel targetModel : targets) {
-                    ModelTimeline tl = resolveTimelineForModel(targetModel, timelineMap);
-                    addCompatibilityIfAbsent(
-                            orphan, targetModel, tl.gen2Start(), tl.gen2End(),
-                            tl.gen2Engine(),
-                            "Aplicación OEM verificada",
-                            dirtyParts
-                    );
-                }
+            final VehicleModel targetModel = model;
+            boolean alreadyAttached = part.getCompatibilities().stream()
+                    .anyMatch(c -> c.getVehicleModel().getId().equals(targetModel.getId())
+                            && c.getYearStart() == f.yearStart()
+                            && c.getYearEnd() == f.yearEnd());
+            if (!alreadyAttached) {
+                PartCompatibility pc = new PartCompatibility();
+                pc.setPart(part);
+                pc.setVehicleModel(targetModel);
+                pc.setYearStart(f.yearStart());
+                pc.setYearEnd(f.yearEnd());
+                pc.setEngineSpec(f.engineSpec());
+                pc.setNotes("OEM Certificado - " + f.notes());
+                part.getCompatibilities().add(pc);
+                dirtyParts.add(part);
             }
         }
 
         if (!dirtyParts.isEmpty()) {
             partRepository.saveAll(dirtyParts);
         }
-    }
-
-    private ModelTimeline resolveTimelineForModel(VehicleModel model, Map<String, ModelTimeline> timelineMap) {
-        String make = model.getMake() != null && model.getMake().getName() != null ? model.getMake().getName() : "";
-        String name = model.getName() != null ? model.getName() : "";
-        ModelTimeline exact = timelineMap.get((make + "|" + name).toLowerCase());
-        if (exact != null) {
-            return exact;
-        }
-        // Fallback para variaciones de nombre como "Frontier NP300" o "L200 Triton" en tests locales
-        for (ModelTimeline tl : REAL_MODEL_TIMELINES) {
-            if (tl.makeName().equalsIgnoreCase(make) && name.toLowerCase().contains(tl.modelName().toLowerCase())) {
-                return tl;
-            }
-        }
-        ModelProfile prof = classifyFallbackProfile(model);
-        BrandOriginGroup orig = classifyFallbackOrigin(model);
-        return new ModelTimeline(make, name, model.getVehicleType(), prof, orig,
-                2004, 2014, "Motor OEM Serie I", 2015, 2026, "Motor OEM Serie II");
-    }
-
-    private boolean hasCoverageInWindow(List<Part> catParts, Long modelId, int windowStart, int windowEnd) {
-        int probeYear = (windowStart + windowEnd) / 2;
-        return catParts.stream().anyMatch(p -> p.getCompatibilities().stream()
-                .anyMatch(c -> c.getVehicleModel().getId().equals(modelId)
-                        && c.getYearStart() <= probeYear
-                        && c.getYearEnd() >= probeYear));
-    }
-
-    private List<Part> selectGen1Candidates(
-            String catKey,
-            VehicleModel model,
-            ModelProfile profile,
-            BrandOriginGroup origin,
-            Map<String, Part> bySku,
-            List<Part> catParts
-    ) {
-        String m = model.getName().toLowerCase();
-        boolean isProboxOrYaris = m.contains("yaris") || m.contains("probox");
-
-        List<String> skus = switch (catKey) {
-            case "FRENOS" -> switch (profile) {
-                case HEAVY_TRACTOR -> List.of("ASU-FRE-009", "ASU-FRE-010");
-                case MEDIUM_TRUCK, PICKUP_DIESEL, COMMERCIAL_VAN -> isProboxOrYaris
-                        ? List.of("ASU-FRE-006", "ASU-FRE-007")
-                        : List.of("ASU-FRE-007", "ASU-FRE-008", "ASU-FRE-006");
-                case SUV_CROSSOVER -> List.of("ASU-FRE-013", "ASU-FRE-006");
-                case SEDAN_KOREAN, SEDAN_EURO_LATAM -> List.of("ASU-FRE-012", "ASU-FRE-006");
-                case SEDAN_JAPANESE -> List.of("ASU-FRE-006", "ASU-FRE-005");
-            };
-            case "FILTROS" -> switch (profile) {
-                case HEAVY_TRACTOR -> List.of("ASU-FIL-015", "ASU-FIL-012");
-                case MEDIUM_TRUCK -> List.of("ASU-FIL-014", "ASU-FIL-012");
-                case PICKUP_DIESEL -> List.of("ASU-FIL-012", "ASU-FIL-011", "ASU-FIL-019");
-                case COMMERCIAL_VAN -> m.contains("probox")
-                        ? List.of("ASU-FIL-018", "ASU-FIL-023")
-                        : List.of("ASU-FIL-012", "ASU-FIL-019");
-                default -> origin == BrandOriginGroup.EURO_LATAM || origin == BrandOriginGroup.KOREAN
-                        ? List.of("ASU-FIL-019", "ASU-FIL-010", "ASU-FIL-023")
-                        : List.of("ASU-FIL-018", "ASU-FIL-010", "ASU-FIL-023");
-            };
-            case "SUSPENSION" -> switch (profile) {
-                case HEAVY_TRACTOR, MEDIUM_TRUCK -> List.of("ASU-SUS-007");
-                case PICKUP_DIESEL -> List.of("ASU-SUS-009", "ASU-SUS-006");
-                case COMMERCIAL_VAN -> isProboxOrYaris
-                        ? List.of("ASU-SUS-003", "ASU-SUS-010")
-                        : List.of("ASU-SUS-009", "ASU-SUS-006");
-                case SUV_CROSSOVER -> List.of("ASU-SUS-010", "ASU-SUS-006");
-                default -> List.of("ASU-SUS-003", "ASU-SUS-010", "ASU-SUS-013");
-            };
-            case "MOTOR" -> switch (profile) {
-                case HEAVY_TRACTOR, MEDIUM_TRUCK -> List.of("ASU-MOT-007", "ASU-MOT-005");
-                case PICKUP_DIESEL, COMMERCIAL_VAN -> isProboxOrYaris
-                        ? List.of("ASU-MOT-006", "ASU-MOT-005")
-                        : List.of("ASU-MOT-005", "ASU-MOT-008");
-                case SEDAN_EURO_LATAM -> List.of("ASU-MOT-001", "ASU-MOT-006");
-                default -> List.of("ASU-MOT-006", "ASU-MOT-009");
-            };
-            case "TRANSMISION" -> switch (profile) {
-                case HEAVY_TRACTOR -> List.of("ASU-TRA-006");
-                case MEDIUM_TRUCK, PICKUP_DIESEL -> List.of("ASU-TRA-009", "ASU-TRA-008");
-                case COMMERCIAL_VAN -> isProboxOrYaris
-                        ? List.of("ASU-TRA-008", "ASU-TRA-005")
-                        : List.of("ASU-TRA-009", "ASU-TRA-007");
-                default -> List.of("ASU-TRA-008", "ASU-TRA-005");
-            };
-            case "ELECTRICO" -> switch (profile) {
-                case HEAVY_TRACTOR -> List.of("ASU-ELE-007");
-                case MEDIUM_TRUCK, PICKUP_DIESEL -> List.of("ASU-ELE-010", "ASU-ELE-008");
-                case COMMERCIAL_VAN -> isProboxOrYaris
-                        ? List.of("ASU-ELE-003", "ASU-ELE-009")
-                        : List.of("ASU-ELE-010", "ASU-ELE-008");
-                default -> List.of("ASU-ELE-009", "ASU-ELE-003", "ASU-ELE-011");
-            };
-            case "REFRIGERACION" -> switch (profile) {
-                case HEAVY_TRACTOR, MEDIUM_TRUCK -> List.of("ASU-REF-005");
-                case PICKUP_DIESEL, COMMERCIAL_VAN -> isProboxOrYaris
-                        ? List.of("ASU-REF-006", "ASU-REF-007")
-                        : List.of("ASU-REF-008", "ASU-REF-006");
-                default -> List.of("ASU-REF-006", "ASU-REF-007");
-            };
-            case "CARROCERIA" -> switch (profile) {
-                case HEAVY_TRACTOR, MEDIUM_TRUCK -> List.of("ASU-CAR-007");
-                case PICKUP_DIESEL -> List.of("ASU-CAR-008", "ASU-CAR-006");
-                case SUV_CROSSOVER, COMMERCIAL_VAN -> List.of("ASU-CAR-010", "ASU-CAR-008");
-                default -> List.of("ASU-CAR-009", "ASU-CAR-008");
-            };
-            default -> List.of();
-        };
-
-        List<Part> resolved = resolveSkus(skus, bySku);
-        return resolved.isEmpty() ? catParts : resolved;
-    }
-
-    private List<Part> selectGen2Candidates(
-            String catKey,
-            VehicleModel model,
-            ModelProfile profile,
-            BrandOriginGroup origin,
-            Map<String, Part> bySku,
-            List<Part> catParts
-    ) {
-        String m = model.getName().toLowerCase();
-        boolean isProboxOrYaris = m.contains("yaris") || m.contains("probox");
-        boolean isHiluxOrFortuner = m.contains("hilux") || m.contains("fortuner");
-
-        List<String> skus = switch (catKey) {
-            case "FRENOS" -> switch (profile) {
-                case HEAVY_TRACTOR -> List.of("ASU-FRE-014", "ASU-FRE-010");
-                case MEDIUM_TRUCK -> List.of("ASU-FRE-009", "ASU-FRE-008", "ASU-FRE-001");
-                case PICKUP_DIESEL -> isHiluxOrFortuner
-                        ? List.of("ASU-FRE-001", "ASU-FRE-002")
-                        : List.of("ASU-FRE-002", "ASU-FRE-001");
-                case COMMERCIAL_VAN -> isProboxOrYaris
-                        ? List.of("ASU-FRE-003", "ASU-FRE-005")
-                        : List.of("ASU-FRE-001", "ASU-FRE-008");
-                case SUV_CROSSOVER -> List.of("ASU-FRE-004", "ASU-FRE-013");
-                case SEDAN_JAPANESE -> isProboxOrYaris
-                        ? List.of("ASU-FRE-005", "ASU-FRE-003")
-                        : List.of("ASU-FRE-003", "ASU-FRE-013");
-                case SEDAN_KOREAN, SEDAN_EURO_LATAM -> List.of("ASU-FRE-003", "ASU-FRE-012");
-            };
-            case "FILTROS" -> switch (profile) {
-                case HEAVY_TRACTOR -> List.of("ASU-FIL-013", "ASU-FIL-021");
-                case MEDIUM_TRUCK -> origin == BrandOriginGroup.KOREAN
-                        ? List.of("ASU-FIL-007", "ASU-FIL-014", "ASU-FIL-021")
-                        : List.of("ASU-FIL-021", "ASU-FIL-014", "ASU-FIL-013");
-                case PICKUP_DIESEL -> m.contains("amarok")
-                        ? List.of("ASU-FIL-022", "ASU-FIL-007", "ASU-FIL-017")
-                        : List.of("ASU-FIL-007", "ASU-FIL-002", "ASU-FIL-017", "ASU-FIL-001");
-                case COMMERCIAL_VAN -> m.contains("probox")
-                        ? List.of("ASU-FIL-001", "ASU-FIL-005", "ASU-FIL-009")
-                        : List.of("ASU-FIL-007", "ASU-FIL-002", "ASU-FIL-017");
-                case SUV_CROSSOVER -> origin == BrandOriginGroup.KOREAN
-                        ? List.of("ASU-FIL-004", "ASU-FIL-009", "ASU-FIL-008")
-                        : (isHiluxOrFortuner
-                                ? List.of("ASU-FIL-007", "ASU-FIL-017", "ASU-FIL-008")
-                                : List.of("ASU-FIL-001", "ASU-FIL-009", "ASU-FIL-008"));
-                case SEDAN_JAPANESE -> isProboxOrYaris
-                        ? List.of("ASU-FIL-005", "ASU-FIL-016", "ASU-FIL-008", "ASU-FIL-001")
-                        : List.of("ASU-FIL-001", "ASU-FIL-009", "ASU-FIL-016", "ASU-FIL-008");
-                case SEDAN_KOREAN -> List.of("ASU-FIL-004", "ASU-FIL-006", "ASU-FIL-009", "ASU-FIL-016");
-                case SEDAN_EURO_LATAM -> List.of("ASU-FIL-003", "ASU-FIL-022", "ASU-FIL-017", "ASU-FIL-016");
-            };
-            case "SUSPENSION" -> switch (profile) {
-                case HEAVY_TRACTOR -> List.of("ASU-SUS-008", "ASU-SUS-007");
-                case MEDIUM_TRUCK -> List.of("ASU-SUS-008", "ASU-SUS-009");
-                case PICKUP_DIESEL -> List.of("ASU-SUS-001", "ASU-SUS-012", "ASU-SUS-005");
-                case COMMERCIAL_VAN -> isProboxOrYaris
-                        ? List.of("ASU-SUS-002", "ASU-SUS-011")
-                        : List.of("ASU-SUS-001", "ASU-SUS-005");
-                case SUV_CROSSOVER -> isHiluxOrFortuner
-                        ? List.of("ASU-SUS-004", "ASU-SUS-012")
-                        : List.of("ASU-SUS-004", "ASU-SUS-011", "ASU-SUS-013");
-                case SEDAN_JAPANESE -> List.of("ASU-SUS-002", "ASU-SUS-011", "ASU-SUS-005");
-                case SEDAN_KOREAN, SEDAN_EURO_LATAM -> List.of("ASU-SUS-002", "ASU-SUS-011", "ASU-SUS-013");
-            };
-            case "MOTOR" -> switch (profile) {
-                case HEAVY_TRACTOR -> List.of("ASU-MOT-007", "ASU-MOT-010");
-                case MEDIUM_TRUCK -> List.of("ASU-MOT-010", "ASU-MOT-004");
-                case PICKUP_DIESEL -> m.contains("amarok")
-                        ? List.of("ASU-MOT-008", "ASU-MOT-010")
-                        : List.of("ASU-MOT-004", "ASU-MOT-010");
-                case COMMERCIAL_VAN -> isProboxOrYaris
-                        ? List.of("ASU-MOT-002", "ASU-MOT-009")
-                        : List.of("ASU-MOT-004", "ASU-MOT-010");
-                case SUV_CROSSOVER -> origin == BrandOriginGroup.KOREAN
-                        ? List.of("ASU-MOT-003", "ASU-MOT-009")
-                        : (isHiluxOrFortuner ? List.of("ASU-MOT-004", "ASU-MOT-010") : List.of("ASU-MOT-002", "ASU-MOT-009"));
-                case SEDAN_JAPANESE -> List.of("ASU-MOT-002", "ASU-MOT-009");
-                case SEDAN_KOREAN -> List.of("ASU-MOT-003", "ASU-MOT-009");
-                case SEDAN_EURO_LATAM -> List.of("ASU-MOT-008", "ASU-MOT-001");
-            };
-            case "TRANSMISION" -> switch (profile) {
-                case HEAVY_TRACTOR -> List.of("ASU-TRA-006");
-                case MEDIUM_TRUCK -> origin == BrandOriginGroup.KOREAN
-                        ? List.of("ASU-TRA-002", "ASU-TRA-010")
-                        : List.of("ASU-TRA-006", "ASU-TRA-002");
-                case PICKUP_DIESEL -> List.of("ASU-TRA-002", "ASU-TRA-010");
-                case COMMERCIAL_VAN -> isProboxOrYaris ? List.of("ASU-TRA-001") : List.of("ASU-TRA-002");
-                case SUV_CROSSOVER -> origin == BrandOriginGroup.KOREAN
-                        ? List.of("ASU-TRA-003")
-                        : (isHiluxOrFortuner ? List.of("ASU-TRA-002") : List.of("ASU-TRA-001"));
-                case SEDAN_JAPANESE -> isProboxOrYaris
-                        ? List.of("ASU-TRA-005", "ASU-TRA-001")
-                        : List.of("ASU-TRA-001", "ASU-TRA-005");
-                case SEDAN_KOREAN -> List.of("ASU-TRA-003");
-                case SEDAN_EURO_LATAM -> List.of("ASU-TRA-004");
-            };
-            case "ELECTRICO" -> switch (profile) {
-                case HEAVY_TRACTOR -> List.of("ASU-ELE-006");
-                case MEDIUM_TRUCK -> List.of("ASU-ELE-006", "ASU-ELE-010");
-                case PICKUP_DIESEL -> origin == BrandOriginGroup.JAPANESE
-                        ? List.of("ASU-ELE-012", "ASU-ELE-008")
-                        : List.of("ASU-ELE-008", "ASU-ELE-010");
-                case COMMERCIAL_VAN -> isProboxOrYaris
-                        ? List.of("ASU-ELE-001", "ASU-ELE-012", "ASU-ELE-004")
-                        : List.of("ASU-ELE-008", "ASU-ELE-012");
-                case SUV_CROSSOVER -> isHiluxOrFortuner
-                        ? List.of("ASU-ELE-012", "ASU-ELE-008")
-                        : (origin == BrandOriginGroup.KOREAN
-                                ? List.of("ASU-ELE-002", "ASU-ELE-001", "ASU-ELE-011")
-                                : List.of("ASU-ELE-001", "ASU-ELE-012", "ASU-ELE-004"));
-                case SEDAN_JAPANESE -> isProboxOrYaris
-                        ? List.of("ASU-ELE-004", "ASU-ELE-001", "ASU-ELE-012")
-                        : List.of("ASU-ELE-001", "ASU-ELE-004", "ASU-ELE-011");
-                case SEDAN_KOREAN, SEDAN_EURO_LATAM -> List.of("ASU-ELE-002", "ASU-ELE-001", "ASU-ELE-011");
-            };
-            case "REFRIGERACION" -> switch (profile) {
-                case HEAVY_TRACTOR, MEDIUM_TRUCK -> List.of("ASU-REF-005");
-                case PICKUP_DIESEL -> List.of("ASU-REF-002", "ASU-REF-008");
-                case COMMERCIAL_VAN -> isProboxOrYaris ? List.of("ASU-REF-001", "ASU-REF-007") : List.of("ASU-REF-002", "ASU-REF-008");
-                case SUV_CROSSOVER -> origin == BrandOriginGroup.KOREAN
-                        ? List.of("ASU-REF-003", "ASU-REF-007")
-                        : (isHiluxOrFortuner ? List.of("ASU-REF-002", "ASU-REF-008") : List.of("ASU-REF-001", "ASU-REF-007"));
-                case SEDAN_KOREAN -> List.of("ASU-REF-003", "ASU-REF-007");
-                case SEDAN_JAPANESE, SEDAN_EURO_LATAM -> List.of("ASU-REF-001", "ASU-REF-007");
-            };
-            case "CARROCERIA" -> switch (profile) {
-                case HEAVY_TRACTOR, MEDIUM_TRUCK -> List.of("ASU-CAR-007");
-                case PICKUP_DIESEL -> m.contains("hilux")
-                        ? List.of("ASU-CAR-001", "ASU-CAR-002", "ASU-CAR-006")
-                        : List.of("ASU-CAR-006", "ASU-CAR-001", "ASU-CAR-002");
-                case COMMERCIAL_VAN -> isProboxOrYaris
-                        ? List.of("ASU-CAR-003", "ASU-CAR-010")
-                        : List.of("ASU-CAR-010", "ASU-CAR-006");
-                case SUV_CROSSOVER -> origin == BrandOriginGroup.KOREAN
-                        ? List.of("ASU-CAR-004", "ASU-CAR-010")
-                        : (isHiluxOrFortuner ? List.of("ASU-CAR-001", "ASU-CAR-010") : List.of("ASU-CAR-003", "ASU-CAR-010"));
-                case SEDAN_KOREAN -> List.of("ASU-CAR-004", "ASU-CAR-009");
-                case SEDAN_JAPANESE, SEDAN_EURO_LATAM -> List.of("ASU-CAR-003", "ASU-CAR-009");
-            };
-            default -> List.of();
-        };
-
-        List<Part> resolved = resolveSkus(skus, bySku);
-        return resolved.isEmpty() ? catParts : resolved;
-    }
-
-    private List<Part> selectMultiGenModelParts(
-            String catKey,
-            VehicleModel model,
-            ModelProfile profile,
-            BrandOriginGroup origin,
-            Map<String, Part> bySku
-    ) {
-        boolean isHeavy = profile == ModelProfile.HEAVY_TRACTOR || profile == ModelProfile.MEDIUM_TRUCK;
-        boolean isDieselFleet = isHeavy || profile == ModelProfile.PICKUP_DIESEL
-                || (profile == ModelProfile.COMMERCIAL_VAN && !model.getName().toLowerCase().contains("probox"));
-
-        List<String> skus = switch (catKey) {
-            case "FRENOS" -> isHeavy ? List.of() : List.of("ASU-FRE-011");
-            case "FILTROS" -> isDieselFleet ? List.of("ASU-FIL-020") : List.of();
-            case "TRANSMISION" -> (isDieselFleet && profile != ModelProfile.HEAVY_TRACTOR)
-                    ? List.of("ASU-TRA-007")
-                    : List.of();
-            case "ELECTRICO" -> profile == ModelProfile.HEAVY_TRACTOR ? List.of() : List.of("ASU-ELE-005");
-            case "REFRIGERACION" -> List.of("ASU-REF-004");
-            case "CARROCERIA" -> profile == ModelProfile.HEAVY_TRACTOR ? List.of() : List.of("ASU-CAR-005");
-            default -> List.of();
-        };
-        return resolveSkus(skus, bySku);
-    }
-
-    private int desiredGen2Count(String catKey, VehicleModel model, ModelProfile profile, int modelIdx) {
-        String m = model.getName().toLowerCase();
-        if ("FILTROS".equals(catKey)) {
-            return (modelIdx % 2 == 0) ? 2 : 3;
-        }
-        if ("FRENOS".equals(catKey) || "SUSPENSION".equals(catKey)) {
-            return (m.contains("hilux") || (modelIdx % 2 == 0)) ? 2 : 1;
-        }
-        if ("CARROCERIA".equals(catKey) && m.contains("hilux")) {
-            return 3;
-        }
-        if ("ELECTRICO".equals(catKey) && (modelIdx % 2 == 1)) {
-            return 2;
-        }
-        return 1;
-    }
-
-    private List<Part> resolveSkus(List<String> skus, Map<String, Part> bySku) {
-        List<Part> out = new ArrayList<>();
-        for (String sku : skus) {
-            Part p = bySku.get(sku.toUpperCase());
-            if (p != null) {
-                out.add(p);
-            }
-        }
-        return out;
-    }
-
-    private List<Part> pickModelSubset(List<Part> pool, Set<Long> excludedPartIds, int seedIdx, int desiredCount) {
-        List<Part> available = pool.stream()
-                .filter(p -> !excludedPartIds.contains(p.getId()))
-                .toList();
-        if (available.isEmpty() || desiredCount <= 0) {
-            return List.of();
-        }
-        int take = Math.min(desiredCount, available.size());
-        List<Part> chosen = new ArrayList<>(take);
-        int start = Math.floorMod(seedIdx, available.size());
-        for (int i = 0; i < take; i++) {
-            chosen.add(available.get((start + i) % available.size()));
-        }
-        return chosen;
-    }
-
-    private void addCompatibilityIfAbsent(
-            Part part,
-            VehicleModel model,
-            int yearStart,
-            int yearEnd,
-            String engineSpec,
-            String notes,
-            Set<Part> dirtyParts
-    ) {
-        boolean existsForModel = part.getCompatibilities().stream()
-                .anyMatch(c -> c.getVehicleModel().getId().equals(model.getId()));
-        if (existsForModel) {
-            return;
-        }
-        PartCompatibility pc = new PartCompatibility();
-        pc.setPart(part);
-        pc.setVehicleModel(model);
-        pc.setYearStart(yearStart);
-        pc.setYearEnd(yearEnd);
-        pc.setEngineSpec(engineSpec);
-        pc.setNotes(notes);
-        part.getCompatibilities().add(pc);
-        dirtyParts.add(part);
-    }
-
-    private List<VehicleModel> pickMatchingModelsForUnassignedPart(Part part, List<VehicleModel> allModels) {
-        String text = ((part.getName() != null ? part.getName() : "") + " "
-                + (part.getTechnicalDescription() != null ? part.getTechnicalDescription() : "")).toLowerCase();
-        List<VehicleModel> matches = new ArrayList<>();
-        for (VehicleModel m : allModels) {
-            String modelToken = extractPrimaryModelToken(m.getName());
-            String makeName = m.getMake() != null && m.getMake().getName() != null ? m.getMake().getName().toLowerCase() : "";
-            if ((modelToken.length() >= 3 && containsWholeWord(text, modelToken))
-                    || (makeName.length() >= 3 && containsWholeWord(text, makeName))) {
-                matches.add(m);
-            }
-            if (matches.size() >= 4) break;
-        }
-        if (matches.isEmpty()) {
-            for (VehicleModel m : allModels) {
-                ModelProfile prof = classifyFallbackProfile(m);
-                BrandOriginGroup orig = classifyFallbackOrigin(m);
-                if (text.contains("coreano") && orig == BrandOriginGroup.KOREAN) matches.add(m);
-                else if ((text.contains("volkswagen") || text.contains("chevrolet") || text.contains("alem")) && orig == BrandOriginGroup.EURO_LATAM) matches.add(m);
-                else if (text.contains("suv") && prof == ModelProfile.SUV_CROSSOVER) matches.add(m);
-                else if ((text.contains("pesad") || text.contains("camion") || text.contains("camión") || text.contains("24v")) && prof == ModelProfile.HEAVY_TRACTOR) matches.add(m);
-                else if ((text.contains("pickup") || text.contains("pick-up") || text.contains("4x4")) && prof == ModelProfile.PICKUP_DIESEL) matches.add(m);
-                else if (text.contains("japon") || text.contains("japón")) {
-                    if (orig == BrandOriginGroup.JAPANESE) matches.add(m);
-                }
-                if (matches.size() >= 3) break;
-            }
-        }
-        if (matches.isEmpty()) {
-            int offset = Math.floorMod(part.getId() != null ? part.getId().intValue() * 5 : 3, allModels.size());
-            for (int i = 0; i < Math.min(3, allModels.size()); i++) {
-                matches.add(allModels.get((offset + i * 4) % allModels.size()));
-            }
-        }
-        return matches;
-    }
-
-    private String extractPrimaryModelToken(String modelName) {
-        if (modelName == null) return "";
-        String cleaned = modelName.trim().toLowerCase();
-        int spaceIdx = cleaned.indexOf(' ');
-        return spaceIdx > 0 ? cleaned.substring(0, spaceIdx) : cleaned;
-    }
-
-    private boolean containsWholeWord(String text, String word) {
-        if (text == null || word == null || word.isBlank()) return false;
-        int idx = text.indexOf(word);
-        while (idx >= 0) {
-            boolean leftOk = idx == 0 || !Character.isLetterOrDigit(text.charAt(idx - 1));
-            int end = idx + word.length();
-            boolean rightOk = end >= text.length() || !Character.isLetterOrDigit(text.charAt(end));
-            if (leftOk && rightOk) {
-                return true;
-            }
-            idx = text.indexOf(word, idx + 1);
-        }
-        return false;
-    }
-
-    private ModelProfile classifyFallbackProfile(VehicleModel model) {
-        String make = model.getMake() != null && model.getMake().getName() != null
-                ? model.getMake().getName().toLowerCase()
-                : "";
-        String name = model.getName() != null ? model.getName().toLowerCase() : "";
-        String type = model.getVehicleType() != null ? model.getVehicleType().toUpperCase() : "";
-
-        if (make.contains("scania") || make.contains("volvo")
-                || name.contains("500") || name.contains("forward") || name.contains("p410")
-                || name.contains("r-series") || name.contains("fh")) {
-            return ModelProfile.HEAVY_TRACTOR;
-        }
-        if (name.contains("dutro") || name.contains("npr") || name.contains("canter")
-                || name.contains("h-100") || name.contains("k2700") || make.contains("hino")) {
-            return ModelProfile.MEDIUM_TRUCK;
-        }
-        if (name.contains("hilux") || name.contains("frontier") || name.contains("l200")
-                || name.contains("d-max") || name.contains("amarok") || "PICKUP".equals(type)) {
-            return ModelProfile.PICKUP_DIESEL;
-        }
-        if (name.contains("hiace") || name.contains("urvan") || name.contains("probox") || "VAN".equals(type)) {
-            return ModelProfile.COMMERCIAL_VAN;
-        }
-        if (name.contains("fortuner") || name.contains("rav4") || name.contains("tucson")
-                || name.contains("sportage") || "SUV".equals(type) || "CROSSOVER".equals(type)) {
-            return ModelProfile.SUV_CROSSOVER;
-        }
-        BrandOriginGroup origin = classifyFallbackOrigin(model);
-        if (origin == BrandOriginGroup.KOREAN) return ModelProfile.SEDAN_KOREAN;
-        if (origin == BrandOriginGroup.EURO_LATAM) return ModelProfile.SEDAN_EURO_LATAM;
-        return ModelProfile.SEDAN_JAPANESE;
-    }
-
-    private BrandOriginGroup classifyFallbackOrigin(VehicleModel model) {
-        String make = model.getMake() != null && model.getMake().getName() != null
-                ? model.getMake().getName().toLowerCase()
-                : "";
-        if (make.contains("hyundai") || make.contains("kia")) return BrandOriginGroup.KOREAN;
-        if (make.contains("volkswagen") || make.contains("chevrolet")) return BrandOriginGroup.EURO_LATAM;
-        if (make.contains("scania") || make.contains("volvo") || make.contains("hino") || make.contains("isuzu")) {
-            return BrandOriginGroup.HEAVY_FLEET;
-        }
-        return BrandOriginGroup.JAPANESE;
     }
 
     private VehicleMake ensureMake(String name) {
@@ -1638,4 +1656,5 @@ public class CatalogMatrixSeeder implements CommandLineRunner {
         return modelRepository.findByMakeIdAndNameIgnoreCase(make.getId(), name)
                 .orElseGet(() -> modelRepository.save(new VehicleModel(make, name, safeType)));
     }
+
 }
