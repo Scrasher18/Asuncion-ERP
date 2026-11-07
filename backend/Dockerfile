@@ -32,17 +32,11 @@ USER asuncion
 
 EXPOSE 8080
 
-# Optimización de Memoria para Render Free Tier (Límite estricto 512MB RAM)
-# -Xmx220m: Heap máximo seguro de 220MB (la app usa ~110MB)
-# -Xms96m: Heap inicial ligero para arranque rápido
-# -XX:MaxMetaspaceSize=192m: Metaspace amplio para todas las clases de Spring Boot 3 y Hibernate
-# -Xss256k: Hilos ligeros (256KB por hilo en lugar del 1MB por defecto)
-# -XX:+UseSerialGC: Recolector monohilo sin overhead nativo de buffers concurrentes G1
-ENV JAVA_OPTS="-XX:+UseContainerSupport -Xmx220m -Xms96m -XX:MaxMetaspaceSize=192m -Xss256k -XX:+UseSerialGC -Djava.security.egd=file:/dev/./urandom"
-ENV JAVA_TOOL_OPTIONS="-XX:+UseContainerSupport -Xmx220m -Xms96m -XX:MaxMetaspaceSize=192m -Xss256k -XX:+UseSerialGC"
-ENV SPRING_PROFILES_ACTIVE=docker
+# Optimización de Arranque Rápido y Memoria para Render Free Tier (0.1 vCPU / 512MB RAM)
+# -XX:+TieredCompilation -XX:TieredStopAtLevel=1: Evita compilación JIT C2 pesada en 0.1 vCPU (reduce el arranque >55%)
+# -Xms160m -Xmx256m: Sin pausas GC repetitivas por expansión de heap durante el arranque
+# -XX:MaxMetaspaceSize=160m -Xss256k -XX:+UseSerialGC: Huella nativa mínima y determinista bajo 512MB
+ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:+TieredCompilation -XX:TieredStopAtLevel=1 -Xms160m -Xmx256m -XX:MaxMetaspaceSize=160m -Xss256k -XX:+UseSerialGC -Djava.security.egd=file:/dev/./urandom"
+ENV SPRING_PROFILES_ACTIVE=postgres
 
-HEALTHCHECK --interval=20s --timeout=5s --start-period=35s --retries=3 \
-  CMD curl -fsS http://localhost:8080/actuator/health || exit 1
-
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar /app/app.jar"]
+ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -jar /app/app.jar"]

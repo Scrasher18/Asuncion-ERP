@@ -1768,7 +1768,7 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                     <input
                       type="email"
                       [(ngModel)]="mailConfigForm.username"
-                      placeholder="scrasher322@gmail.com"
+                      placeholder="luisoscarperez322@gmail.com"
                       class="min-h-[42px] w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-base sm:text-sm text-gray-900 placeholder:text-gray-400 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
                     />
                   </div>
@@ -1794,7 +1794,7 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                     <input
                       type="email"
                       [(ngModel)]="mailConfigForm.adminNotificationEmail"
-                      placeholder="scrasher322@gmail.com"
+                      placeholder="luisoscarperez322@gmail.com"
                       class="min-h-[42px] w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-base sm:text-sm text-gray-900 placeholder:text-gray-400 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
                     />
                   </div>
@@ -1808,7 +1808,7 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                       <input
                         type="email"
                         [(ngModel)]="testRecipientEmail"
-                        placeholder="scrasher322@gmail.com"
+                        placeholder="luisoscarperez322@gmail.com"
                         class="min-h-[42px] flex-1 rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-base sm:text-sm text-gray-900 placeholder:text-gray-400 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
                       />
                       <button
@@ -5244,16 +5244,16 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
     enabled: false,
     smtpHost: 'smtp.gmail.com',
     smtpPort: 587,
-    username: 'scrasher322@gmail.com',
+    username: 'luisoscarperez322@gmail.com',
     password: '',
     fromName: 'Repuestos Asunción',
-    adminNotificationEmail: 'scrasher322@gmail.com',
+    adminNotificationEmail: 'luisoscarperez322@gmail.com',
   };
   readonly hasSavedMailPassword = signal<boolean>(true);
   readonly showSmtpPassword = signal<boolean>(false);
   readonly savingMailConfig = signal<boolean>(false);
   readonly sendingTestMail = signal<boolean>(false);
-  testRecipientEmail = 'scrasher322@gmail.com';
+  testRecipientEmail = 'luisoscarperez322@gmail.com';
 
   readonly notificationLogs = signal<NotificationLogItem[]>([]);
   readonly loadingNotificationLogs = signal<boolean>(false);
@@ -6768,15 +6768,15 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
           enabled: Boolean(cfg.enabled),
           smtpHost: cfg.smtpHost || 'smtp.gmail.com',
           smtpPort: cfg.smtpPort || 587,
-          username: cfg.username || 'scrasher322@gmail.com',
+          username: cfg.username || 'luisoscarperez322@gmail.com',
           password: '',
           fromName: cfg.fromName || 'Repuestos Asunción',
-          adminNotificationEmail: cfg.adminNotificationEmail || 'scrasher322@gmail.com',
+          adminNotificationEmail: cfg.adminNotificationEmail || 'luisoscarperez322@gmail.com',
         };
         this.hasSavedMailPassword.set(Boolean(cfg.hasPassword));
         if (!this.testRecipientEmail) {
           this.testRecipientEmail =
-            cfg.adminNotificationEmail || cfg.username || 'scrasher322@gmail.com';
+            cfg.adminNotificationEmail || cfg.username || 'luisoscarperez322@gmail.com';
         }
       },
       error: () => {},

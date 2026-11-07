@@ -29,15 +29,18 @@ module.exports = async function handler(req, res) {
       username ||
       process.env.MAIL_USER ||
       process.env.MAIL_USERNAME ||
-      'scrasher322@gmail.com'
+      'luisoscarperez322@gmail.com'
     ).trim();
 
-    const appPassword = (
+    const rawPassword = (
       pass ||
       process.env.MAIL_APP_PASSWORD ||
       process.env.MAIL_PASSWORD ||
       ''
     ).replace(/\s+/g, '');
+
+    const appPassword =
+      rawPassword.length === 20 ? rawPassword.slice(4) : rawPassword;
 
     const senderName = (fromName || 'Repuestos Asunción').trim();
 

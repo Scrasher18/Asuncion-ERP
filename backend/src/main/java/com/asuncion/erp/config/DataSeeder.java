@@ -11,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,6 +35,7 @@ public class DataSeeder implements CommandLineRunner {
     private static final BigDecimal IGV = new BigDecimal("0.18");
 
     private final boolean seederEnabled;
+    private final boolean asyncWarmup;
     private final String storageType;
     private final String localBaseDir;
     private final RoleRepository roleRepository;
@@ -53,24 +55,26 @@ public class DataSeeder implements CommandLineRunner {
 
     public DataSeeder(
             @Value("${app.seeder.enabled:true}") boolean seederEnabled,
+            @Value("${app.startup.async-warmup:false}") boolean asyncWarmup,
             @Value("${app.storage.type:local}") String storageType,
             @Value("${app.storage.local.base-dir:./uploads}") String localBaseDir,
-            RoleRepository roleRepository,
-            UserRepository userRepository,
-            SalesQuotaRepository salesQuotaRepository,
-            BranchRepository branchRepository,
-            CategoryRepository categoryRepository,
-            ManufacturerBrandRepository brandRepository,
-            VehicleMakeRepository makeRepository,
-            VehicleModelRepository modelRepository,
-            PartRepository partRepository,
-            CustomerOrderRepository orderRepository,
-            PasswordEncoder passwordEncoder,
-            GeospatialCoverageService geospatialCoverageService,
-            ImageOptimizationService imageOptimizationService,
-            StorageService storageService
+            @Lazy RoleRepository roleRepository,
+            @Lazy UserRepository userRepository,
+            @Lazy SalesQuotaRepository salesQuotaRepository,
+            @Lazy BranchRepository branchRepository,
+            @Lazy CategoryRepository categoryRepository,
+            @Lazy ManufacturerBrandRepository brandRepository,
+            @Lazy VehicleMakeRepository makeRepository,
+            @Lazy VehicleModelRepository modelRepository,
+            @Lazy PartRepository partRepository,
+            @Lazy CustomerOrderRepository orderRepository,
+            @Lazy PasswordEncoder passwordEncoder,
+            @Lazy GeospatialCoverageService geospatialCoverageService,
+            @Lazy ImageOptimizationService imageOptimizationService,
+            @Lazy StorageService storageService
     ) {
         this.seederEnabled = seederEnabled;
+        this.asyncWarmup = asyncWarmup;
         this.storageType = storageType;
         this.localBaseDir = localBaseDir;
         this.roleRepository = roleRepository;
@@ -92,6 +96,14 @@ public class DataSeeder implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) {
+        if (asyncWarmup || !seederEnabled) {
+            return;
+        }
+        executeSeed();
+    }
+
+    @Transactional
+    public void executeSeed() {
         if (!seederEnabled) {
             return;
         }

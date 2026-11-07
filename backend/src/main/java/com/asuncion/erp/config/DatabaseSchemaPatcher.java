@@ -2,10 +2,11 @@ package com.asuncion.erp.config;
 
 import com.asuncion.erp.domain.entity.Category;
 import com.asuncion.erp.repository.CategoryRepository;
-import com.asuncion.erp.service.CatalogService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.core.annotation.Order;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
@@ -40,16 +41,29 @@ public class DatabaseSchemaPatcher implements CommandLineRunner {
                     "Faros delanteros y posteriores, neblineros, espejos retrovisores, parachoques y plumillas")
     );
 
+    private final boolean asyncWarmup;
     private final JdbcTemplate jdbcTemplate;
     private final CategoryRepository categoryRepository;
 
-    public DatabaseSchemaPatcher(JdbcTemplate jdbcTemplate, CategoryRepository categoryRepository) {
+    public DatabaseSchemaPatcher(
+            @Value("${app.startup.async-warmup:false}") boolean asyncWarmup,
+            @Lazy JdbcTemplate jdbcTemplate,
+            @Lazy CategoryRepository categoryRepository
+    ) {
+        this.asyncWarmup = asyncWarmup;
         this.jdbcTemplate = jdbcTemplate;
         this.categoryRepository = categoryRepository;
     }
 
     @Override
     public void run(String... args) {
+        if (asyncWarmup) {
+            return;
+        }
+        executePatch();
+    }
+
+    public void executePatch() {
         // Ensure parts.oem_code and parts.warehouse_location accept NULL on pre-existing PostgreSQL tables
         try {
             jdbcTemplate.execute("ALTER TABLE parts ALTER COLUMN oem_code DROP NOT NULL");
@@ -167,6 +181,24 @@ public class DatabaseSchemaPatcher implements CommandLineRunner {
             """);
         } catch (Exception e) {
             log.debug("Verificación Toyota Probox completada: {}", e.getMessage());
+        }
+
+        // Heal stale mail sender username if pointing to legacy scrasher322@gmail.com without custom password
+        try {
+            jdbcTemplate.execute("""
+                UPDATE system_mail_config
+                SET username = 'luisoscarperez322@gmail.com',
+                    admin_notification_email = CASE
+                        WHEN admin_notification_email IS NULL OR admin_notification_email = '' OR admin_notification_email = 'scrasher322@gmail.com'
+                        THEN 'luisoscarperez322@gmail.com'
+                        ELSE admin_notification_email
+                    END,
+                    enabled = TRUE
+                WHERE id = 1
+                  AND (username IS NULL OR username = '' OR LOWER(username) = 'scrasher322@gmail.com')
+            """);
+        } catch (Exception e) {
+            log.debug("Verificación system_mail_config completada: {}", e.getMessage());
         }
     }
 }

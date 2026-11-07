@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -483,7 +484,8 @@ public class CatalogMatrixSeeder implements CommandLineRunner {
     );
 
     private final boolean matrixEnabled;
-    private final TransactionTemplate transactionTemplate;
+    private final boolean asyncWarmup;
+    private final PlatformTransactionManager transactionManager;
     private final CategoryRepository categoryRepository;
     private final ManufacturerBrandRepository brandRepository;
     private final VehicleMakeRepository makeRepository;
@@ -493,16 +495,18 @@ public class CatalogMatrixSeeder implements CommandLineRunner {
 
     public CatalogMatrixSeeder(
             @Value("${app.catalog-matrix.enabled:true}") boolean matrixEnabled,
-            PlatformTransactionManager transactionManager,
-            CategoryRepository categoryRepository,
-            ManufacturerBrandRepository brandRepository,
-            VehicleMakeRepository makeRepository,
-            VehicleModelRepository modelRepository,
-            PartRepository partRepository,
-            CatalogService catalogService
+            @Value("${app.startup.async-warmup:false}") boolean asyncWarmup,
+            @Lazy PlatformTransactionManager transactionManager,
+            @Lazy CategoryRepository categoryRepository,
+            @Lazy ManufacturerBrandRepository brandRepository,
+            @Lazy VehicleMakeRepository makeRepository,
+            @Lazy VehicleModelRepository modelRepository,
+            @Lazy PartRepository partRepository,
+            @Lazy CatalogService catalogService
     ) {
         this.matrixEnabled = matrixEnabled;
-        this.transactionTemplate = new TransactionTemplate(transactionManager);
+        this.asyncWarmup = asyncWarmup;
+        this.transactionManager = transactionManager;
         this.categoryRepository = categoryRepository;
         this.brandRepository = brandRepository;
         this.makeRepository = makeRepository;
@@ -513,10 +517,18 @@ public class CatalogMatrixSeeder implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
+        if (asyncWarmup) {
+            return;
+        }
+        executeMatrixSeed();
+    }
+
+    public void executeMatrixSeed() {
         if (!matrixEnabled) {
             return;
         }
         try {
+            TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
             transactionTemplate.executeWithoutResult(status -> {
                 ensureStandardMakesAndModels();
                 Map<String, Category> categoriesByCode = loadCategoriesByCode();

@@ -114,7 +114,7 @@ public class EmailNotificationService {
 
         if (req.password() != null && !req.password().isBlank()) {
             String cleanedPass = host.toLowerCase(Locale.ROOT).contains("gmail")
-                    ? req.password().replaceAll("\\s+", "")
+                    ? normalizeGmailAppPassword(req.password())
                     : req.password().trim();
             cfg.setPassword(cleanedPass);
         }
@@ -175,7 +175,7 @@ public class EmailNotificationService {
                 </p>
                 """.formatted(
                 escapeHtml(settings.fromName()),
-                escapeHtml(settings.username() != null ? settings.username() : "scrasher322@gmail.com"),
+                escapeHtml(settings.username() != null ? settings.username() : "luisoscarperez322@gmail.com"),
                 escapeHtml(cleanRecipient),
                 PERU_DATETIME_FMT.format(Instant.now())
         );
@@ -798,8 +798,68 @@ public class EmailNotificationService {
             String subject,
             String htmlBody
     ) throws Exception {
+        try {
+            attemptSendWithTransportFallback(settings, recipientEmail, subject, htmlBody);
+            return;
+        } catch (Exception primaryEx) {
+            String msg = primaryEx.getMessage() != null ? primaryEx.getMessage() : "";
+            boolean isAuthErr = msg.contains("535")
+                    || msg.contains("Google rechazó la clave")
+                    || msg.toLowerCase(Locale.ROOT).contains("username and password not accepted");
+
+            if (!isAuthErr) {
+                throw primaryEx;
+            }
+
+            // Recovery 1: If DB config had a stale/mismatched username or password, retry with Render env credentials
+            if (!envMailUsername.isBlank() && !envMailPassword.isBlank()) {
+                String cleanEnvPass = normalizeGmailAppPassword(envMailPassword);
+                EffectiveMailSettings envSettings = new EffectiveMailSettings(
+                        true,
+                        envMailHost,
+                        envMailPort,
+                        envMailUsername,
+                        cleanEnvPass,
+                        settings.fromName(),
+                        settings.adminNotificationEmail()
+                );
+                String currUser = settings.username() != null ? settings.username() : "";
+                String currPass = settings.password() != null ? settings.password().replaceAll("\\s+", "") : "";
+                if (!envMailUsername.equalsIgnoreCase(currUser) || !cleanEnvPass.equals(currPass)) {
+                    log.info("Reintentando envío de correo con credenciales de entorno verificadas ({})", envMailUsername);
+                    attemptSendWithTransportFallback(envSettings, recipientEmail, subject, htmlBody);
+                    healStoredMailConfigToEnv();
+                    return;
+                }
+            }
+
+            // Recovery 2: If a Gmail App Password had accidental extra prefix characters (>16 chars), retry with trailing 16 chars
+            String compactPass = settings.password() != null ? settings.password().replaceAll("\\s+", "") : "";
+            if (compactPass.length() > 16 && settings.smtpHost().toLowerCase(Locale.ROOT).contains("gmail")) {
+                EffectiveMailSettings trimmedSettings = new EffectiveMailSettings(
+                        true,
+                        settings.smtpHost(),
+                        settings.smtpPort(),
+                        settings.username(),
+                        compactPass.substring(compactPass.length() - 16),
+                        settings.fromName(),
+                        settings.adminNotificationEmail()
+                );
+                attemptSendWithTransportFallback(trimmedSettings, recipientEmail, subject, htmlBody);
+                return;
+            }
+
+            throw primaryEx;
+        }
+    }
+
+    private void attemptSendWithTransportFallback(
+            EffectiveMailSettings settings,
+            String recipientEmail,
+            String subject,
+            String htmlBody
+    ) throws Exception {
         if (!settings.hasCredentials()) {
-            // Allow Vercel HTTPS relay to fulfill if MAIL_APP_PASSWORD env var is set on Vercel; otherwise throws clear error immediately
             dispatchViaHttpsRelay(settings, recipientEmail, subject, htmlBody);
             return;
         }
@@ -829,6 +889,35 @@ public class EmailNotificationService {
             }
             log.info("Direct SMTP unavailable ({}), delegating to HTTPS relay", msg);
             dispatchViaHttpsRelay(settings, recipientEmail, subject, htmlBody);
+        }
+    }
+
+    private static String normalizeGmailAppPassword(String raw) {
+        if (raw == null) {
+            return "";
+        }
+        String compact = raw.replaceAll("\\s+", "");
+        if (compact.length() == 20) {
+            return compact.substring(4);
+        }
+        return compact;
+    }
+
+    private void healStoredMailConfigToEnv() {
+        try {
+            configRepository.findById(SINGLETON_ID).ifPresent(cfg -> {
+                cfg.setUsername(envMailUsername);
+                cfg.setPassword(null);
+                cfg.setEnabled(true);
+                if (cfg.getAdminNotificationEmail() == null
+                        || cfg.getAdminNotificationEmail().isBlank()
+                        || "scrasher322@gmail.com".equalsIgnoreCase(cfg.getAdminNotificationEmail())) {
+                    cfg.setAdminNotificationEmail(envMailUsername);
+                }
+                cfg.setUpdatedAt(Instant.now());
+                configRepository.save(cfg);
+            });
+        } catch (Exception ignored) {
         }
     }
 
@@ -963,10 +1052,20 @@ public class EmailNotificationService {
 
         String host = firstNonBlank(cfg.getSmtpHost(), envMailHost, "smtp.gmail.com");
         int port = (cfg.getSmtpPort() != null && cfg.getSmtpPort() > 0) ? cfg.getSmtpPort() : envMailPort;
-        String user = firstNonBlank(cfg.getUsername(), envMailUsername);
-        String pass = nullToEmpty(firstNonBlank(cfg.getPassword(), envMailPassword));
+        boolean hasDbPass = cfg.getPassword() != null && !cfg.getPassword().isBlank();
+        String user = (!hasDbPass && !envMailPassword.isBlank() && !envMailUsername.isBlank())
+                ? envMailUsername
+                : firstNonBlank(cfg.getUsername(), envMailUsername);
+        String rawPass = hasDbPass ? cfg.getPassword() : envMailPassword;
+        String pass = host.toLowerCase(Locale.ROOT).contains("gmail")
+                ? normalizeGmailAppPassword(rawPass)
+                : nullToEmpty(rawPass);
         String fromName = firstNonBlank(cfg.getFromName(), "Repuestos Asunción");
-        String adminEmail = firstNonBlank(cfg.getAdminNotificationEmail(), user, "admin@asuncion.pe");
+        String rawAdminEmail = cfg.getAdminNotificationEmail();
+        if ("scrasher322@gmail.com".equalsIgnoreCase(rawAdminEmail)) {
+            rawAdminEmail = null;
+        }
+        String adminEmail = firstNonBlank(rawAdminEmail, user, "admin@asuncion.pe");
 
         return new EffectiveMailSettings(
                 cfg.isEnabled() || !pass.isBlank(),

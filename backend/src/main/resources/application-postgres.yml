@@ -4,17 +4,27 @@
 # Para activarlo, cambia en application.yml -> active: postgres
 # ==============================================================================
 spring:
+  main:
+    lazy-initialization: ${LAZY_INIT:true}
+  jmx:
+    enabled: false
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/asuncion_erp}
     driver-class-name: org.postgresql.Driver
     username: ${DB_USER:postgres}
     password: ${DB_PASSWORD:admin}
     hikari:
-      maximum-pool-size: 8
-      minimum-idle: 2
+      maximum-pool-size: 5
+      minimum-idle: 1
       idle-timeout: 300000
       max-lifetime: 600000
       connection-timeout: 20000
+      initialization-fail-timeout: -1
+      data-source-properties:
+        connectTimeout: 10
+        socketTimeout: 30
+        loginTimeout: 10
+        tcpKeepAlive: true
   jpa:
     hibernate:
       ddl-auto: update
@@ -24,6 +34,8 @@ spring:
         default_batch_fetch_size: 64
 
 app:
+  startup:
+    async-warmup: ${ASYNC_WARMUP:true}
   seeder:
     enabled: ${APP_SEEDER_ENABLED:true}
   mail:

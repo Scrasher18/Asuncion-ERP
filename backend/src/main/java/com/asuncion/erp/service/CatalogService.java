@@ -22,9 +22,9 @@ import java.util.*;
 public class CatalogService {
 
     private static final Set<String> VALID_VEHICLE_TYPES = Set.of(
-            "SEDAN", "HATCHBACK", "SUV", "PICKUP", "VAN", "COMERCIAL", "CROSSOVER", "CAMION", "TRACTO"
+            "SEDAN", "HATCHBACK", "SUV", "PICKUP", "VAN", "COMERCIAL", "CROSSOVER"
     );
-    private static final long CACHE_TTL_MS = 60_000L;
+    private static final long CACHE_TTL_MS = 600_000L;
 
     private record CachedPartEntry(
             PartResponse baseResponse,
@@ -688,7 +688,7 @@ public class CatalogService {
             return clean;
         }
         if (clean.contains("PICK")) return "PICKUP";
-        if (clean.contains("CAMION") || clean.contains("FURGON") || clean.contains("COMERC")) return "COMERCIAL";
+        if (clean.contains("CAMION") || clean.contains("TRACTO") || clean.contains("FURGON") || clean.contains("COMERC")) return "COMERCIAL";
         if (clean.contains("SUV") || clean.contains("4X4")) return "SUV";
         if (clean.contains("HATCH")) return "HATCHBACK";
         if (clean.contains("VAN") || clean.contains("MINIVAN")) return "VAN";
