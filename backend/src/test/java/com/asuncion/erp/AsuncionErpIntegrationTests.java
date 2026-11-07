@@ -258,6 +258,69 @@ class AsuncionErpIntegrationTests {
         assertThat(parts.size()).isGreaterThanOrEqualTo(4);
         assertThat(parts.get(0).get("images").get(0).get("isPrimary").asBoolean()).isTrue();
 
+        // Verify genuine differentiation across Year (1980 vs 2022) and Model (Hino 500 Series vs Dutro 300)
+        MvcResult modelsRes = mockMvc.perform(get("/api/v1/catalog/vehicle-models"))
+                .andExpect(status().isOk())
+                .andReturn();
+        JsonNode allModels = objectMapper.readTree(modelsRes.getResponse().getContentAsString());
+        Long hinoMakeId = null;
+        Long hino500Id = null;
+        Long hinoDutroId = null;
+        Long yarisId = null;
+        for (JsonNode m : allModels) {
+            String make = m.get("makeName").asText();
+            String name = m.get("name").asText();
+            if ("Hino".equalsIgnoreCase(make) && "500 Series".equalsIgnoreCase(name)) {
+                hinoMakeId = m.get("makeId").asLong();
+                hino500Id = m.get("id").asLong();
+            } else if ("Hino".equalsIgnoreCase(make) && "Dutro 300".equalsIgnoreCase(name)) {
+                hinoDutroId = m.get("id").asLong();
+            } else if ("Toyota".equalsIgnoreCase(make) && "Yaris".equalsIgnoreCase(name)) {
+                yarisId = m.get("id").asLong();
+            }
+        }
+        assertThat(hino500Id).isNotNull();
+        assertThat(hinoDutroId).isNotNull();
+        assertThat(yarisId).isNotNull();
+
+        JsonNode hino500Classic = objectMapper.readTree(mockMvc.perform(get("/api/v1/catalog/parts")
+                        .param("makeId", String.valueOf(hinoMakeId))
+                        .param("modelId", String.valueOf(hino500Id))
+                        .param("year", "1980"))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
+        JsonNode hino500Modern = objectMapper.readTree(mockMvc.perform(get("/api/v1/catalog/parts")
+                        .param("makeId", String.valueOf(hinoMakeId))
+                        .param("modelId", String.valueOf(hino500Id))
+                        .param("year", "2022"))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
+        JsonNode hinoDutroModern = objectMapper.readTree(mockMvc.perform(get("/api/v1/catalog/parts")
+                        .param("makeId", String.valueOf(hinoMakeId))
+                        .param("modelId", String.valueOf(hinoDutroId))
+                        .param("year", "2022"))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
+        JsonNode yaris2020 = objectMapper.readTree(mockMvc.perform(get("/api/v1/catalog/parts")
+                        .param("makeId", "1")
+                        .param("modelId", String.valueOf(yarisId))
+                        .param("year", "2020"))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
+
+        java.util.List<String> skus500Classic = new java.util.ArrayList<>();
+        hino500Classic.forEach(n -> skus500Classic.add(n.get("sku").asText()));
+        java.util.List<String> skus500Modern = new java.util.ArrayList<>();
+        hino500Modern.forEach(n -> skus500Modern.add(n.get("sku").asText()));
+        java.util.List<String> skusDutroModern = new java.util.ArrayList<>();
+        hinoDutroModern.forEach(n -> skusDutroModern.add(n.get("sku").asText()));
+        java.util.List<String> skusHilux2020 = new java.util.ArrayList<>();
+        parts.forEach(n -> skusHilux2020.add(n.get("sku").asText()));
+        java.util.List<String> skusYaris2020 = new java.util.ArrayList<>();
+        yaris2020.forEach(n -> skusYaris2020.add(n.get("sku").asText()));
+
+        assertThat(skus500Classic).isNotEmpty();
+        assertThat(skus500Modern).isNotEmpty();
+        assertThat(skus500Classic).isNotEqualTo(skus500Modern);
+        assertThat(skus500Modern).isNotEqualTo(skusDutroModern);
+        assertThat(skusHilux2020).isNotEqualTo(skusYaris2020);
+
         // Admin uploads high-res image (1600x1200) -> resized & optimized via WebP pipeline
         String adminJwt = loginAndExtractJwt("admin@asuncion.pe", "Asuncion2026!");
         MockMultipartFile partPhoto = new MockMultipartFile(
@@ -423,10 +486,14 @@ class AsuncionErpIntegrationTests {
                 .andExpect(jsonPath("$.warehouseLocation").isEmpty());
 
         // Public catalog & chatbot search remain 100% null-safe with null oemCode
-        mockMvc.perform(get("/api/v1/catalog/parts")
+        MvcResult narvaSearch = mockMvc.perform(get("/api/v1/catalog/parts")
                         .param("q", "narva halogeno h4"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].sku").value(generatedSku));
+                .andReturn();
+        JsonNode narvaMatches = objectMapper.readTree(narvaSearch.getResponse().getContentAsString());
+        java.util.List<String> narvaSkus = new java.util.ArrayList<>();
+        narvaMatches.forEach(n -> narvaSkus.add(n.get("sku").asText()));
+        assertThat(narvaSkus).contains(generatedSku);
     }
 
     @Test

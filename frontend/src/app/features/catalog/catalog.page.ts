@@ -25,8 +25,8 @@ interface CatalogComboCard {
   complementComboPrice: number;
 }
 
-const CATALOG_CACHE_KEY = 'asuncion_catalog_snapshot_v4';
-const LEGACY_CATALOG_CACHE_KEY = 'asuncion_catalog_snapshot_v3';
+const CATALOG_CACHE_KEY = 'asuncion_catalog_snapshot_v5';
+const LEGACY_CATALOG_CACHE_KEYS = ['asuncion_catalog_snapshot_v4', 'asuncion_catalog_snapshot_v3'];
 const CATALOG_CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
 interface CatalogLocalSnapshot {
@@ -715,20 +715,25 @@ interface CatalogLocalSnapshot {
                     {{ part.name }}
                   </a>
 
-                  @if (getPartViscosity(part) || activeVehicleSummary()) {
-                    <div class="flex flex-wrap items-center gap-1.5">
-                      @if (getPartViscosity(part); as visc) {
-                        <span class="inline-flex items-center gap-1 rounded-md border border-amber-300 bg-amber-50 px-2 py-0.5 text-xs font-extrabold text-amber-950 tabular-nums">
-                          🛢️ SAE {{ visc }}
-                        </span>
-                      }
-                      @if (activeVehicleSummary(); as vehicleLabel) {
-                        <span class="inline-flex items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-bold text-emerald-800">
-                          ✓ Compatible · {{ vehicleLabel }}
-                        </span>
-                      }
-                    </div>
-                  }
+                  <div class="flex flex-wrap items-center gap-1.5">
+                    @if (getPartViscosity(part); as visc) {
+                      <span class="inline-flex items-center gap-1 rounded-md border border-amber-300 bg-amber-50 px-2 py-0.5 text-xs font-extrabold text-amber-950 tabular-nums">
+                        🛢️ SAE {{ visc }}
+                      </span>
+                    }
+                    @if (hasVehicleOrYearFilter()) {
+                      <span class="inline-flex max-w-full items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-bold text-emerald-800 truncate">
+                        ✓ {{ formatFirstCompatibility(part) }}
+                      </span>
+                    } @else if (part.compatibilities && part.compatibilities.length > 0) {
+                      <span class="inline-flex max-w-full items-center gap-1 rounded-md border border-gray-200 bg-gray-50 px-2 py-0.5 text-xs font-semibold text-gray-700 truncate">
+                        <span>{{ formatFirstCompatibility(part) }}</span>
+                        @if (part.compatibilities.length > 1) {
+                          <span class="font-extrabold text-orange-700">+{{ part.compatibilities.length - 1 }}</span>
+                        }
+                      </span>
+                    }
+                  </div>
 
                   <!-- Clean Price & Actions Footer -->
                   <div class="mt-auto pt-3 border-t border-gray-100 space-y-3">
@@ -907,32 +912,40 @@ export class CatalogPageComponent implements OnInit, OnDestroy {
     this.searchQuerySig.set(val ?? '');
   }
 
+  private toNullableNumber(val: unknown): number | null {
+    if (val === null || val === undefined || val === '' || val === 'null') {
+      return null;
+    }
+    const num = Number(val);
+    return Number.isFinite(num) ? num : null;
+  }
+
   get selectedCategoryId(): number | null {
     return this.selectedCategoryIdSig();
   }
   set selectedCategoryId(val: number | null) {
-    this.selectedCategoryIdSig.set(val);
+    this.selectedCategoryIdSig.set(this.toNullableNumber(val));
   }
 
   get selectedMakeId(): number | null {
     return this.selectedMakeIdSig();
   }
   set selectedMakeId(val: number | null) {
-    this.selectedMakeIdSig.set(val);
+    this.selectedMakeIdSig.set(this.toNullableNumber(val));
   }
 
   get selectedModelId(): number | null {
     return this.selectedModelIdSig();
   }
   set selectedModelId(val: number | null) {
-    this.selectedModelIdSig.set(val);
+    this.selectedModelIdSig.set(this.toNullableNumber(val));
   }
 
   get selectedYear(): number | null {
     return this.selectedYearSig();
   }
   set selectedYear(val: number | null) {
-    this.selectedYearSig.set(val);
+    this.selectedYearSig.set(this.toNullableNumber(val));
   }
 
   get onlyInStock(): boolean {
@@ -945,28 +958,36 @@ export class CatalogPageComponent implements OnInit, OnDestroy {
   readonly models = computed<VehicleModel[]>(() => {
     const makeId = this.selectedMakeIdSig();
     const list = this.allModels();
-    if (!makeId) {
+    if (makeId === null) {
       return list;
     }
-    return list.filter((m) => m.makeId === makeId);
+    return list.filter((m) => Number(m.makeId) === Number(makeId));
+  });
+
+  readonly hasVehicleOrYearFilter = computed<boolean>(() => {
+    return (
+      this.selectedMakeIdSig() !== null ||
+      this.selectedModelIdSig() !== null ||
+      this.selectedYearSig() !== null
+    );
   });
 
   readonly activeMakeName = computed<string | null>(() => {
     const id = this.selectedMakeIdSig();
-    if (!id) return null;
-    return this.makes().find((m) => m.id === id)?.name ?? null;
+    if (id === null) return null;
+    return this.makes().find((m) => Number(m.id) === Number(id))?.name ?? null;
   });
 
   readonly activeModelName = computed<string | null>(() => {
     const id = this.selectedModelIdSig();
-    if (!id) return null;
-    return this.allModels().find((m) => m.id === id)?.name ?? null;
+    if (id === null) return null;
+    return this.allModels().find((m) => Number(m.id) === Number(id))?.name ?? null;
   });
 
   readonly activeCategoryName = computed<string | null>(() => {
     const id = this.selectedCategoryIdSig();
-    if (!id) return null;
-    return this.categories().find((c) => c.id === id)?.name ?? null;
+    if (id === null) return null;
+    return this.categories().find((c) => Number(c.id) === Number(id))?.name ?? null;
   });
 
   readonly activeVehicleSummary = computed<string | null>(() => {
@@ -1077,7 +1098,7 @@ export class CatalogPageComponent implements OnInit, OnDestroy {
       if (sort === 'ONLY_OFFERS' && !this.promotionService.getDirectOffer(part.sku)) {
         return false;
       }
-      if (catId !== null && part.categoryId !== catId) return false;
+      if (catId !== null && Number(part.categoryId) !== Number(catId)) return false;
       if (inStockOnly && this.cart.getRemainingStockToAdd(part) <= 0) return false;
       if (!this.matchesFitment(part, makeId, modelId, year)) return false;
       if (visc) {
@@ -1200,7 +1221,9 @@ export class CatalogPageComponent implements OnInit, OnDestroy {
   private hydrateSnapshotFromStorage(): void {
     if (typeof window === 'undefined') return;
     try {
-      localStorage.removeItem(LEGACY_CATALOG_CACHE_KEY);
+      for (const legacyKey of LEGACY_CATALOG_CACHE_KEYS) {
+        localStorage.removeItem(legacyKey);
+      }
       const raw = localStorage.getItem(CATALOG_CACHE_KEY);
       if (!raw) return;
       const parsed = JSON.parse(raw) as CatalogLocalSnapshot;
@@ -1314,25 +1337,19 @@ export class CatalogPageComponent implements OnInit, OnDestroy {
     });
   }
 
-  private isUniversalPart(part: Part): boolean {
-    if (!part.compatibilities || part.compatibilities.length === 0) {
-      return true;
-    }
-    const text = `${part.name} ${part.technicalDescription || ''}`.toLowerCase();
-    return text.includes('universal');
-  }
-
   private hasDirectCompatibility(
     part: Part,
     makeId: number | null,
     modelId: number | null,
     year: number | null
   ): boolean {
-    if (!part.compatibilities || part.compatibilities.length === 0) return false;
-    return part.compatibilities.some((c) => {
-      const makeOk = makeId === null || c.makeId === makeId;
-      const modelOk = modelId === null || c.modelId === modelId;
-      const yearOk = year === null || (c.yearStart <= year && c.yearEnd >= year);
+    const comps = part.compatibilities;
+    if (!comps || comps.length === 0) return false;
+    return comps.some((c) => {
+      const makeOk = makeId === null || Number(c.makeId) === Number(makeId);
+      const modelOk = modelId === null || Number(c.modelId) === Number(modelId);
+      const yearOk =
+        year === null || (Number(c.yearStart) <= Number(year) && Number(c.yearEnd) >= Number(year));
       return makeOk && modelOk && yearOk;
     });
   }
@@ -1349,7 +1366,11 @@ export class CatalogPageComponent implements OnInit, OnDestroy {
     if (this.hasDirectCompatibility(part, makeId, modelId, year)) {
       return true;
     }
-    return this.isUniversalPart(part);
+    const comps = part.compatibilities;
+    if (!comps || comps.length === 0) {
+      return (part.categoryName || '').toLowerCase().includes('accesorio');
+    }
+    return false;
   }
 
   private normalizeSearchText(str: string): string {
@@ -1427,12 +1448,12 @@ export class CatalogPageComponent implements OnInit, OnDestroy {
   onMakeChange(): void {
     const makeId = this.selectedMakeIdSig();
     const currentModelId = this.selectedModelIdSig();
-    if (makeId && currentModelId) {
-      const currentModel = this.allModels().find((m) => m.id === currentModelId);
-      if (currentModel && currentModel.makeId !== makeId) {
+    if (makeId !== null && currentModelId !== null) {
+      const currentModel = this.allModels().find((m) => Number(m.id) === Number(currentModelId));
+      if (currentModel && Number(currentModel.makeId) !== Number(makeId)) {
         this.selectedModelId = null;
       }
-    } else if (!makeId) {
+    } else if (makeId === null) {
       this.selectedModelId = null;
     }
     this.applyFilters();
@@ -1440,9 +1461,9 @@ export class CatalogPageComponent implements OnInit, OnDestroy {
 
   onModelChange(): void {
     const modelId = this.selectedModelIdSig();
-    if (modelId && !this.selectedMakeIdSig()) {
-      const foundModel = this.allModels().find((m) => m.id === modelId);
-      if (foundModel?.makeId) {
+    if (modelId !== null) {
+      const foundModel = this.allModels().find((m) => Number(m.id) === Number(modelId));
+      if (foundModel?.makeId && Number(this.selectedMakeIdSig()) !== Number(foundModel.makeId)) {
         this.selectedMakeId = foundModel.makeId;
       }
     }
@@ -1555,12 +1576,13 @@ export class CatalogPageComponent implements OnInit, OnDestroy {
       const exactMatch =
         comps.find(
           (c) =>
-            (makeId === null || c.makeId === makeId) &&
-            (modelId === null || c.modelId === modelId) &&
-            (year === null || (c.yearStart <= year && c.yearEnd >= year))
+            (makeId === null || Number(c.makeId) === Number(makeId)) &&
+            (modelId === null || Number(c.modelId) === Number(modelId)) &&
+            (year === null ||
+              (Number(c.yearStart) <= Number(year) && Number(c.yearEnd) >= Number(year)))
         ) ||
-        comps.find((c) => modelId !== null && c.modelId === modelId) ||
-        comps.find((c) => makeId !== null && c.makeId === makeId) ||
+        comps.find((c) => modelId !== null && Number(c.modelId) === Number(modelId)) ||
+        comps.find((c) => makeId !== null && Number(c.makeId) === Number(makeId)) ||
         comps[0];
 
       const vehicle = [exactMatch.makeName, exactMatch.modelName].filter(Boolean).join(' ');

@@ -165,15 +165,12 @@ public class DatabaseSchemaPatcher implements CommandLineRunner {
 
             jdbcTemplate.execute("""
                 INSERT INTO part_vehicle_compatibilities (part_id, model_id, year_start, year_end, engine_spec, notes)
-                SELECT p.id, vm.id, 2002, 2024, '1.3L 2NZ / 1.5L 1NZ-FE VVT-i', 'Compatible certificado para Toyota Probox'
+                SELECT p.id, vm.id, 2008, 2024, '1.3L 2NZ / 1.5L 1NZ-FE VVT-i', 'Compatible certificado para Toyota Probox'
                 FROM parts p
                 CROSS JOIN vehicle_models vm
                 JOIN vehicle_makes mk ON mk.id = vm.make_id
                 WHERE LOWER(mk.name) = 'toyota' AND LOWER(vm.name) = 'probox'
-                AND (
-                    LOWER(p.sku) IN ('asu-fil-001', 'asu-fil-003', 'asu-ele-001', 'asu-mot-002', 'asu-fil-005', 'asu-fre-001', 'asn-flt-0003', 'asn-frn-0001', 'asn-elc-0009', 'asn-mtr-0011')
-                    OR LOWER(p.oem_code) IN ('90915-yzzd2', 'edge-5w30-4l', '90919-01253', '16100-09471', '04465-0k240')
-                )
+                AND LOWER(p.sku) IN ('asu-fil-001', 'asu-ele-001', 'asu-fre-003', 'asu-fil-005', 'asn-flt-0003', 'asn-frn-0001', 'asn-elc-0009', 'asn-mtr-0011')
                 AND NOT EXISTS (
                     SELECT 1 FROM part_vehicle_compatibilities pvc
                     WHERE pvc.part_id = p.id AND pvc.model_id = vm.id

@@ -154,8 +154,8 @@ public class CatalogService {
     private CachedPartEntry buildCachedPartEntry(Part part) {
         PartResponse base = toPartResponseWithReserved(part, 0);
         boolean universal = base.compatibilities().isEmpty()
-                || (base.technicalDescription() != null && base.technicalDescription().toLowerCase().contains("universal"))
-                || (base.name() != null && base.name().toLowerCase().contains("universal"));
+                && base.categoryName() != null
+                && base.categoryName().toLowerCase().contains("accesorio");
 
         StringBuilder searchable = new StringBuilder();
         if (base.sku() != null) searchable.append(base.sku()).append(' ');
@@ -645,10 +645,11 @@ public class CatalogService {
         if (makeId == null && modelId == null && year == null) {
             return true;
         }
-        if (entry.universalFitment()) {
-            return true;
+        List<PartCompatibilityDto> comps = entry.baseResponse().compatibilities();
+        if (comps == null || comps.isEmpty()) {
+            return entry.universalFitment();
         }
-        return entry.baseResponse().compatibilities().stream().anyMatch(c -> {
+        return comps.stream().anyMatch(c -> {
             boolean makeOk = makeId == null || makeId.equals(c.makeId());
             boolean modelOk = modelId == null || modelId.equals(c.modelId());
             boolean yearOk = year == null || (c.yearStart() <= year && c.yearEnd() >= year);
