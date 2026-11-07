@@ -22,8 +22,56 @@ import java.util.*;
 public class CatalogService {
 
     private static final Set<String> VALID_VEHICLE_TYPES = Set.of(
-            "SEDAN", "HATCHBACK", "SUV", "PICKUP", "VAN", "COMERCIAL", "CROSSOVER"
+            "SEDAN", "HATCHBACK", "SUV", "PICKUP", "VAN", "COMERCIAL", "CROSSOVER", "CAMION", "TRACTO"
     );
+    private static final long CACHE_TTL_MS = 60_000L;
+
+    private record CachedPartEntry(
+            PartResponse baseResponse,
+            boolean universalFitment,
+            String haystack,
+            String compactHaystack
+    ) {
+        PartResponse withLiveReservations(int reservedQty) {
+            int physical = baseResponse.stockQuantity() != null ? baseResponse.stockQuantity() : 0;
+            int avail = Math.max(0, physical - reservedQty);
+            boolean low = physical <= (baseResponse.minStockLevel() != null ? baseResponse.minStockLevel() : 5);
+            return new PartResponse(
+                    baseResponse.id(),
+                    baseResponse.sku(),
+                    baseResponse.oemCode(),
+                    baseResponse.name(),
+                    baseResponse.technicalDescription(),
+                    baseResponse.manufacturerBrand(),
+                    baseResponse.categoryId(),
+                    baseResponse.categoryName(),
+                    baseResponse.purchasePrice(),
+                    baseResponse.salePrice(),
+                    baseResponse.wholesalePrice(),
+                    physical,
+                    reservedQty,
+                    avail,
+                    baseResponse.minStockLevel(),
+                    low,
+                    baseResponse.warehouseLocation(),
+                    baseResponse.active(),
+                    baseResponse.primaryImageUrl(),
+                    baseResponse.images(),
+                    baseResponse.compatibilities()
+            );
+        }
+    }
+
+    private record CatalogCacheSnapshot(
+            long loadedAtMs,
+            List<CategoryDto> categories,
+            List<VehicleMakeDto> makes,
+            List<VehicleModelDto> allModels,
+            List<CachedPartEntry> allParts
+    ) {
+    }
+
+    private volatile CatalogCacheSnapshot catalogCache = null;
 
     private final CategoryRepository categoryRepository;
     private final ManufacturerBrandRepository manufacturerBrandRepository;
@@ -57,27 +105,98 @@ public class CatalogService {
         this.stockReservationService = stockReservationService;
     }
 
+    public void evictCatalogCache() {
+        this.catalogCache = null;
+    }
+
+    private CatalogCacheSnapshot getOrLoadSnapshot() {
+        CatalogCacheSnapshot snap = this.catalogCache;
+        long now = System.currentTimeMillis();
+        if (snap != null && (now - snap.loadedAtMs()) < CACHE_TTL_MS) {
+            return snap;
+        }
+        synchronized (this) {
+            snap = this.catalogCache;
+            if (snap != null && (System.currentTimeMillis() - snap.loadedAtMs()) < CACHE_TTL_MS) {
+                return snap;
+            }
+            List<CategoryDto> cats = categoryRepository.findByActiveTrueOrderByIdAsc().stream()
+                    .map(c -> new CategoryDto(c.getId(), c.getCode(), c.getName(), c.getDescription()))
+                    .toList();
+            List<VehicleMakeDto> makes = vehicleMakeRepository.findAllByOrderByNameAsc().stream()
+                    .map(m -> new VehicleMakeDto(m.getId(), m.getName()))
+                    .toList();
+            List<VehicleModelDto> models = vehicleModelRepository.findAllByOrderByMakeNameAscNameAsc().stream()
+                    .map(this::toVehicleModelDto)
+                    .toList();
+
+            List<Part> parts = partRepository.findAllWithImagesOrderByIdAsc();
+            if (!parts.isEmpty()) {
+                partRepository.hydrateCompatibilities(parts);
+            }
+
+            List<CachedPartEntry> cachedParts = parts.stream()
+                    .map(this::buildCachedPartEntry)
+                    .toList();
+
+            CatalogCacheSnapshot fresh = new CatalogCacheSnapshot(
+                    System.currentTimeMillis(),
+                    cats,
+                    makes,
+                    models,
+                    cachedParts
+            );
+            this.catalogCache = fresh;
+            return fresh;
+        }
+    }
+
+    private CachedPartEntry buildCachedPartEntry(Part part) {
+        PartResponse base = toPartResponseWithReserved(part, 0);
+        boolean universal = base.compatibilities().isEmpty()
+                || (base.technicalDescription() != null && base.technicalDescription().toLowerCase().contains("universal"))
+                || (base.name() != null && base.name().toLowerCase().contains("universal"));
+
+        StringBuilder searchable = new StringBuilder();
+        if (base.sku() != null) searchable.append(base.sku()).append(' ');
+        if (base.oemCode() != null && !base.oemCode().isBlank()) searchable.append(base.oemCode()).append(' ');
+        searchable.append(base.name()).append(' ')
+                .append(base.manufacturerBrand()).append(' ')
+                .append(base.categoryName()).append(' ');
+        if (base.technicalDescription() != null) {
+            searchable.append(base.technicalDescription()).append(' ');
+        }
+        for (PartCompatibilityDto c : base.compatibilities()) {
+            searchable.append(c.makeName()).append(' ')
+                    .append(c.modelName()).append(' ')
+                    .append(c.yearStart()).append('-').append(c.yearEnd()).append(' ');
+            if (c.engineSpec() != null) {
+                searchable.append(c.engineSpec()).append(' ');
+            }
+        }
+        String haystack = normalizeText(searchable.toString());
+        String compactHaystack = haystack.replace("-", "").replace(" ", "");
+        return new CachedPartEntry(base, universal, haystack, compactHaystack);
+    }
+
     @Transactional(readOnly = true)
     public List<CategoryDto> getCategories() {
-        return categoryRepository.findByActiveTrueOrderByIdAsc().stream()
-                .map(c -> new CategoryDto(c.getId(), c.getCode(), c.getName(), c.getDescription()))
-                .toList();
+        return getOrLoadSnapshot().categories();
     }
 
     @Transactional(readOnly = true)
     public List<VehicleMakeDto> getVehicleMakes() {
-        return vehicleMakeRepository.findAllByOrderByNameAsc().stream()
-                .map(m -> new VehicleMakeDto(m.getId(), m.getName()))
-                .toList();
+        return getOrLoadSnapshot().makes();
     }
 
     @Transactional(readOnly = true)
     public List<VehicleModelDto> getVehicleModels(Long makeId) {
-        List<VehicleModel> models = makeId != null
-                ? vehicleModelRepository.findByMakeIdOrderByNameAsc(makeId)
-                : vehicleModelRepository.findAllByOrderByMakeNameAscNameAsc();
-        return models.stream()
-                .map(this::toVehicleModelDto)
+        List<VehicleModelDto> all = getOrLoadSnapshot().allModels();
+        if (makeId == null) {
+            return all;
+        }
+        return all.stream()
+                .filter(m -> makeId.equals(m.makeId()))
                 .toList();
     }
 
@@ -86,6 +205,7 @@ public class CatalogService {
         String name = request.name().trim();
         VehicleMake make = vehicleMakeRepository.findByNameIgnoreCase(name)
                 .orElseGet(() -> vehicleMakeRepository.save(new VehicleMake(name)));
+        evictCatalogCache();
         return new VehicleMakeDto(make.getId(), make.getName());
     }
 
@@ -98,6 +218,7 @@ public class CatalogService {
 
         VehicleModel model = vehicleModelRepository.findByMakeIdAndNameIgnoreCase(make.getId(), modelName)
                 .orElseGet(() -> vehicleModelRepository.save(new VehicleModel(make, modelName, normalizedType)));
+        evictCatalogCache();
         return toVehicleModelDto(model);
     }
 
@@ -118,6 +239,7 @@ public class CatalogService {
                         .orElseGet(() -> vehicleModelRepository.save(new VehicleModel(make, modelName, normalizedType)));
             }
         }
+        evictCatalogCache();
 
         return vehicleModelRepository.findByMakeIdOrderByNameAsc(make.getId()).stream()
                 .map(this::toVehicleModelDto)
@@ -133,20 +255,34 @@ public class CatalogService {
             Integer year,
             Boolean onlyInStock
     ) {
-        List<Part> activeParts = partRepository.findByActiveTrueOrderByIdAsc();
+        CatalogCacheSnapshot snap = getOrLoadSnapshot();
+        Map<Long, Integer> reservedMap = stockReservationService.getAllReservedQuantities();
         List<String> queryTokens = tokenizeNormalized(q);
 
-        return activeParts.stream()
-                .filter(part -> categoryId == null || part.getCategory().getId().equals(categoryId))
-                .filter(part -> !Boolean.TRUE.equals(onlyInStock) || part.getStockQuantity() > 0)
-                .filter(part -> matchesVehicleFitment(part, makeId, modelId, year))
-                .filter(part -> matchesSearchTokens(part, queryTokens))
-                .map(this::toPartResponse)
+        return snap.allParts().stream()
+                .filter(entry -> entry.baseResponse().active())
+                .filter(entry -> categoryId == null || categoryId.equals(entry.baseResponse().categoryId()))
+                .filter(entry -> {
+                    if (!Boolean.TRUE.equals(onlyInStock)) return true;
+                    int reserved = reservedMap.getOrDefault(entry.baseResponse().id(), 0);
+                    int avail = Math.max(0, (entry.baseResponse().stockQuantity() != null ? entry.baseResponse().stockQuantity() : 0) - reserved);
+                    return avail > 0;
+                })
+                .filter(entry -> matchesCachedFitment(entry, makeId, modelId, year))
+                .filter(entry -> matchesCachedSearchTokens(entry, queryTokens))
+                .map(entry -> entry.withLiveReservations(reservedMap.getOrDefault(entry.baseResponse().id(), 0)))
                 .toList();
     }
 
     @Transactional(readOnly = true)
     public PartResponse getPublicPartById(Long id) {
+        CatalogCacheSnapshot snap = getOrLoadSnapshot();
+        for (CachedPartEntry entry : snap.allParts()) {
+            if (id.equals(entry.baseResponse().id())) {
+                int reserved = stockReservationService.getReservedQuantity(id);
+                return entry.withLiveReservations(reserved);
+            }
+        }
         Part part = partRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Repuesto no encontrado con ID: " + id));
         return toPartResponse(part);
@@ -154,9 +290,11 @@ public class CatalogService {
 
     @Transactional(readOnly = true)
     public List<PartResponse> getAdminParts(Boolean lowStockOnly) {
-        return partRepository.findAllByOrderByIdAsc().stream()
-                .filter(part -> !Boolean.TRUE.equals(lowStockOnly) || part.getStockQuantity() <= part.getMinStockLevel())
-                .map(this::toPartResponse)
+        CatalogCacheSnapshot snap = getOrLoadSnapshot();
+        Map<Long, Integer> reservedMap = stockReservationService.getAllReservedQuantities();
+        return snap.allParts().stream()
+                .map(entry -> entry.withLiveReservations(reservedMap.getOrDefault(entry.baseResponse().id(), 0)))
+                .filter(part -> !Boolean.TRUE.equals(lowStockOnly) || part.lowStockAlert())
                 .toList();
     }
 
@@ -183,6 +321,7 @@ public class CatalogService {
             attachCompatibilities(saved, req.compatibilities());
             saved = partRepository.save(saved);
         }
+        evictCatalogCache();
         return toPartResponse(saved);
     }
 
@@ -217,6 +356,7 @@ public class CatalogService {
         }
 
         Part saved = partRepository.save(part);
+        evictCatalogCache();
         return toPartResponse(saved);
     }
 
@@ -226,6 +366,7 @@ public class CatalogService {
                 .orElseThrow(() -> new ResourceNotFoundException("Repuesto no encontrado con ID: " + id));
         part.setActive(false);
         partRepository.save(part);
+        evictCatalogCache();
     }
 
     @Transactional
@@ -282,6 +423,7 @@ public class CatalogService {
         }
 
         Part saved = partRepository.saveAndFlush(part);
+        evictCatalogCache();
         return toPartResponse(saved);
     }
 
@@ -305,6 +447,7 @@ public class CatalogService {
             }
         });
         Part saved = partRepository.saveAndFlush(part);
+        evictCatalogCache();
         return toPartResponse(saved);
     }
 
@@ -329,11 +472,17 @@ public class CatalogService {
                     .ifPresent(first -> first.setPrimary(true));
             part = partRepository.saveAndFlush(part);
         }
+        evictCatalogCache();
 
         return toPartResponse(part);
     }
 
     public PartResponse toPartResponse(Part part) {
+        int reservedQty = stockReservationService.getReservedQuantity(part.getId());
+        return toPartResponseWithReserved(part, reservedQty);
+    }
+
+    private PartResponse toPartResponseWithReserved(Part part, int reservedQty) {
         List<PartImageDto> imageDtos = part.getImages().stream()
                 .sorted(Comparator
                         .comparingInt((PartImage img) -> img.getDisplayOrder() != null ? img.getDisplayOrder() : 0)
@@ -370,7 +519,6 @@ public class CatalogService {
                 .toList();
 
         int physicalStock = part.getStockQuantity() != null ? part.getStockQuantity() : 0;
-        int reservedQty = stockReservationService.getReservedQuantity(part.getId());
         int availableStock = Math.max(0, physicalStock - reservedQty);
         boolean lowStock = physicalStock <= part.getMinStockLevel();
 
@@ -493,58 +641,31 @@ public class CatalogService {
         }
     }
 
-    private boolean matchesVehicleFitment(Part part, Long makeId, Long modelId, Integer year) {
+    private boolean matchesCachedFitment(CachedPartEntry entry, Long makeId, Long modelId, Integer year) {
         if (makeId == null && modelId == null && year == null) {
             return true;
         }
-        // Repuestos de aplicación universal aplican para cualquier vehículo buscado
-        if (part.getCompatibilities().isEmpty()
-                || (part.getTechnicalDescription() != null && part.getTechnicalDescription().toLowerCase().contains("universal"))
-                || (part.getName() != null && part.getName().toLowerCase().contains("universal"))) {
+        if (entry.universalFitment()) {
             return true;
         }
-        return part.getCompatibilities().stream().anyMatch(c -> {
-            boolean makeOk = makeId == null || c.getVehicleModel().getMake().getId().equals(makeId);
-            boolean modelOk = modelId == null || c.getVehicleModel().getId().equals(modelId);
-            boolean yearOk = year == null || (c.getYearStart() <= year && c.getYearEnd() >= year);
+        return entry.baseResponse().compatibilities().stream().anyMatch(c -> {
+            boolean makeOk = makeId == null || makeId.equals(c.makeId());
+            boolean modelOk = modelId == null || modelId.equals(c.modelId());
+            boolean yearOk = year == null || (c.yearStart() <= year && c.yearEnd() >= year);
             return makeOk && modelOk && yearOk;
         });
     }
 
-    private boolean matchesSearchTokens(Part part, List<String> tokens) {
+    private boolean matchesCachedSearchTokens(CachedPartEntry entry, List<String> tokens) {
         if (tokens.isEmpty()) {
             return true;
         }
-        StringBuilder searchable = new StringBuilder();
-        if (part.getSku() != null) {
-            searchable.append(part.getSku()).append(' ');
-        }
-        if (part.getOemCode() != null && !part.getOemCode().isBlank()) {
-            searchable.append(part.getOemCode()).append(' ');
-        }
-        searchable.append(part.getName()).append(' ')
-                .append(part.getManufacturerBrand().getName()).append(' ')
-                .append(part.getCategory().getName()).append(' ');
-        if (part.getTechnicalDescription() != null) {
-            searchable.append(part.getTechnicalDescription()).append(' ');
-        }
-        for (PartCompatibility c : part.getCompatibilities()) {
-            searchable.append(c.getVehicleModel().getMake().getName()).append(' ')
-                    .append(c.getVehicleModel().getName()).append(' ')
-                    .append(c.getYearStart()).append('-').append(c.getYearEnd()).append(' ');
-            if (c.getEngineSpec() != null) {
-                searchable.append(c.getEngineSpec()).append(' ');
-            }
-        }
-        String haystack = normalizeText(searchable.toString());
-        String compactHaystack = haystack.replace("-", "").replace(" ", "");
-
         return tokens.stream().allMatch(token -> {
-            if (haystack.contains(token)) {
+            if (entry.haystack().contains(token)) {
                 return true;
             }
             String compactToken = token.replace("-", "").replace(" ", "");
-            return !compactToken.isBlank() && compactHaystack.contains(compactToken);
+            return !compactToken.isBlank() && entry.compactHaystack().contains(compactToken);
         });
     }
 

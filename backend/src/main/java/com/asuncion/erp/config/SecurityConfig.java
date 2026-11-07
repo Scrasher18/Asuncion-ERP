@@ -100,9 +100,12 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/admin/payments/**").hasRole("ADMIN")
                         // OpenAPI / Actuator / H2 Dev Console
                         .requestMatchers(
+                                "/",
+                                "/favicon.ico",
                                 "/swagger-ui.html",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
+                                "/actuator/health",
                                 "/actuator/health/**",
                                 "/actuator/info",
                                 "/h2-console/**"

@@ -244,6 +244,7 @@ public class OrderService {
         ));
 
         CustomerOrder saved = orderRepository.save(order);
+        catalogService.evictCatalogCache();
         OrderResponse response = toOrderResponse(saved);
         if (!isOnlinePayment && !isCounterSale) {
             emailNotificationService.notifyOrderCreated(response);
@@ -400,6 +401,7 @@ public class OrderService {
         ));
 
         CustomerOrder saved = orderRepository.save(order);
+        catalogService.evictCatalogCache();
         OrderResponse response = toOrderResponse(saved);
         emailNotificationService.notifyOrderInPreparation(response);
         return response;
@@ -465,6 +467,7 @@ public class OrderService {
         ));
 
         CustomerOrder saved = orderRepository.save(order);
+        catalogService.evictCatalogCache();
         OrderResponse response = toOrderResponse(saved);
         emailNotificationService.notifyOrderReadyForDispatch(response);
         return response;
@@ -558,6 +561,7 @@ public class OrderService {
         ));
 
         CustomerOrder saved = orderRepository.save(order);
+        catalogService.evictCatalogCache();
         OrderResponse response = toOrderResponse(saved);
         emailNotificationService.notifyOrderInRoute(response);
         return response;
@@ -640,6 +644,7 @@ public class OrderService {
         ));
 
         CustomerOrder saved = orderRepository.save(order);
+        catalogService.evictCatalogCache();
         OrderResponse response = toOrderResponse(saved);
         emailNotificationService.notifyOrderDelivered(response);
         return response;

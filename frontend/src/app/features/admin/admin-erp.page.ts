@@ -3,7 +3,7 @@ import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer } from '@angular/platform-browser';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { finalize } from 'rxjs';
+import { finalize, retry } from 'rxjs';
 import {
   AdminUserResponse,
   Branch,
@@ -5365,20 +5365,28 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
 
   loadAnalytics(days: number): void {
     this.analyticsDays.set(days);
-    this.loadingAnalytics.set(true);
+    if (!this.dashboard()) {
+      this.loadingAnalytics.set(true);
+    }
     this.analyticsService
       .getExecutiveDashboard(days)
-      .pipe(finalize(() => this.loadingAnalytics.set(false)))
+      .pipe(
+        retry({ count: 3, delay: 2500 }),
+        finalize(() => this.loadingAnalytics.set(false))
+      )
       .subscribe({
         next: (res) => this.dashboard.set(res),
-        error: () =>
-          this.dashboard.set({
-            kpis: {},
-            salespersonRanking: [],
-            highRotationParts: [],
-            lowRotationParts: [],
-            salesByCategory: [],
-          }),
+        error: () => {
+          if (!this.dashboard()) {
+            this.dashboard.set({
+              kpis: {},
+              salespersonRanking: [],
+              highRotationParts: [],
+              lowRotationParts: [],
+              salesByCategory: [],
+            });
+          }
+        },
       });
   }
 
@@ -5443,10 +5451,31 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
   }
 
   loadAdminParts(): void {
-    this.catalogService.getAdminParts(this.lowStockOnlyFilter).subscribe({
-      next: (list) => this.adminParts.set(list),
-      error: () => this.adminParts.set([]),
-    });
+    if (this.adminParts().length === 0 && !this.lowStockOnlyFilter && typeof window !== 'undefined') {
+      try {
+        const raw = localStorage.getItem('asuncion_catalog_snapshot_v3');
+        if (raw) {
+          const parsed = JSON.parse(raw) as { parts?: Part[] };
+          if (Array.isArray(parsed.parts) && parsed.parts.length > 0) {
+            this.adminParts.set(parsed.parts);
+          }
+        }
+      } catch {
+        // Ignore storage error
+      }
+    }
+
+    this.catalogService
+      .getAdminParts(this.lowStockOnlyFilter)
+      .pipe(retry({ count: 3, delay: 2500 }))
+      .subscribe({
+        next: (list) => this.adminParts.set(list),
+        error: () => {
+          if (this.adminParts().length === 0) {
+            this.adminParts.set([]);
+          }
+        },
+      });
   }
 
   resolvePartImg(part: Part): string {

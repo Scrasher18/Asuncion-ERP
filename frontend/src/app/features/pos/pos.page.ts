@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { finalize } from 'rxjs';
+import { finalize, retry } from 'rxjs';
 import { Branch, Category, Order, Part } from '../../core/models/api.models';
 import { ApiConfigService } from '../../core/services/api-config.service';
 import { AuthService } from '../../core/services/auth.service';
@@ -748,16 +748,25 @@ export class PosPageComponent implements OnInit, OnDestroy {
   );
 
   ngOnInit(): void {
+    this.hydrateCachedCatalogForPos();
     this.onlineHolds.set(this.loadOnlineHoldsMap());
     this.refreshPosData();
     this.syncPosTicketReservations();
 
-    this.catalogService.getCategories().subscribe({
-      next: (cats) => this.categories.set(cats),
-    });
-    this.logisticsService.getBranches().subscribe({
-      next: (brs) => this.branches.set(brs),
-    });
+    this.catalogService
+      .getCategories()
+      .pipe(retry({ count: 3, delay: 2000 }))
+      .subscribe({
+        next: (cats) => this.categories.set(cats),
+        error: () => {},
+      });
+    this.logisticsService
+      .getBranches()
+      .pipe(retry({ count: 3, delay: 2000 }))
+      .subscribe({
+        next: (brs) => this.branches.set(brs),
+        error: () => {},
+      });
 
     if (typeof window !== 'undefined') {
       this.storageListener = (event: StorageEvent) => {
@@ -799,22 +808,50 @@ export class PosPageComponent implements OnInit, OnDestroy {
     });
   }
 
+  private hydrateCachedCatalogForPos(): void {
+    if (typeof window === 'undefined') return;
+    try {
+      const raw = localStorage.getItem('asuncion_catalog_snapshot_v3');
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as { categories?: Category[]; parts?: Part[] };
+      if (Array.isArray(parsed.categories) && parsed.categories.length > 0) {
+        this.categories.set(parsed.categories);
+      }
+      if (Array.isArray(parsed.parts) && parsed.parts.length > 0) {
+        this.parts.set(parsed.parts);
+        this.loadingParts.set(false);
+      }
+    } catch {
+      // Ignore cache error
+    }
+  }
+
   refreshPosData(): void {
-    this.loadingParts.set(true);
+    if (this.parts().length === 0) {
+      this.loadingParts.set(true);
+    }
     this.onlineHolds.set(this.loadOnlineHoldsMap());
     this.catalogService
       .getAdminParts(false)
-      .pipe(finalize(() => this.loadingParts.set(false)))
+      .pipe(
+        retry({ count: 3, delay: 2500 }),
+        finalize(() => this.loadingParts.set(false))
+      )
       .subscribe({
         next: (list) => {
           this.parts.set(list);
           this.reconcileTicketWithAvailableStock();
         },
+        error: () => {},
       });
 
-    this.ordersService.getAllOrders().subscribe({
-      next: (ords) => this.allOrders.set(ords),
-    });
+    this.ordersService
+      .getAllOrders()
+      .pipe(retry({ count: 3, delay: 2500 }))
+      .subscribe({
+        next: (ords) => this.allOrders.set(ords),
+        error: () => {},
+      });
   }
 
   getTicketQtyForPart(partId: number): number {

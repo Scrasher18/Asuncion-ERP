@@ -1,5 +1,7 @@
+import { HttpClient } from '@angular/common/http';
 import { Component, inject } from '@angular/core';
 import { NavigationEnd, Router, RouterLink, RouterOutlet } from '@angular/router';
+import { ApiConfigService } from './core/services/api-config.service';
 import { CartDrawerComponent } from './shared/components/cart-drawer/cart-drawer.component';
 import { ChatbotWidgetComponent } from './shared/components/chatbot-widget/chatbot-widget.component';
 import { NavbarComponent } from './shared/components/navbar/navbar.component';
@@ -230,13 +232,15 @@ import { ToastContainerComponent } from './shared/components/toast-container/toa
 })
 export class App {
   private readonly router = inject(Router);
+  private readonly http = inject(HttpClient);
+  private readonly apiConfig = inject(ApiConfigService);
 
   constructor() {
     this.router.events.subscribe((evt) => {
       if (evt instanceof NavigationEnd) {
         const url = evt.urlAfterRedirects || evt.url;
         if (typeof document !== 'undefined') {
-          if (url.startsWith('/admin') || url.startsWith('/delivery')) {
+          if (url.startsWith('/admin') || url.startsWith('/delivery') || url.startsWith('/pos')) {
             document.body.classList.add('hide-recaptcha');
           } else {
             document.body.classList.remove('hide-recaptcha');
@@ -246,6 +250,12 @@ export class App {
     });
 
     if (typeof window !== 'undefined') {
+      // Proactive cloud backend keep-alive ping to prevent cold-start spin-down while browsing
+      const pingBackend = () => {
+        this.http.get(`${this.apiConfig.apiUrl}/catalog/categories`).subscribe({ error: () => {} });
+      };
+      setTimeout(pingBackend, 500);
+      setInterval(pingBackend, 4 * 60 * 1000);
       // Toggle expansion when clicking/pulsando on the reCAPTCHA badge iframe
       window.addEventListener('blur', () => {
         const badge = document.querySelector('.grecaptcha-badge');

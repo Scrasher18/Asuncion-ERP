@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { finalize } from 'rxjs';
+import { finalize, retry } from 'rxjs';
 import { Part } from '../../core/models/api.models';
 import { ApiConfigService } from '../../core/services/api-config.service';
 import { AuthService } from '../../core/services/auth.service';
@@ -122,23 +122,23 @@ import { PromotionService } from '../../core/services/promotion.service';
                   }
                 </div>
 
-                <h1 class="text-xl sm:text-2xl font-extrabold text-gray-900 leading-snug tracking-tight">
+                <h1 class="text-2xl sm:text-3xl font-black text-gray-950 leading-snug tracking-tight">
                   {{ p.name }}
                 </h1>
 
                 <!-- Technical Specs Micro-Grid -->
                 <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-1">
-                  <div class="rounded-xl border border-gray-200/80 bg-gray-50/70 px-3 py-2">
-                    <span class="block text-[10px] font-bold uppercase tracking-wider text-gray-400">Código OEM</span>
-                    <span class="font-mono text-xs font-extrabold text-gray-900">{{ p.oemCode || 'Estándar' }}</span>
+                  <div class="rounded-xl border border-gray-300 bg-gray-50 px-3.5 py-2.5">
+                    <span class="block text-[11px] font-extrabold uppercase tracking-wide text-gray-600">Código OEM</span>
+                    <span class="text-sm font-black text-gray-950 tabular-nums">{{ p.oemCode || 'Estándar' }}</span>
                   </div>
-                  <div class="rounded-xl border border-gray-200/80 bg-gray-50/70 px-3 py-2">
-                    <span class="block text-[10px] font-bold uppercase tracking-wider text-gray-400">Código SKU</span>
-                    <span class="font-mono text-xs font-bold text-gray-800">{{ p.sku }}</span>
+                  <div class="rounded-xl border border-gray-300 bg-gray-50 px-3.5 py-2.5">
+                    <span class="block text-[11px] font-extrabold uppercase tracking-wide text-gray-600">Código SKU</span>
+                    <span class="text-sm font-extrabold text-gray-900 tabular-nums">{{ p.sku }}</span>
                   </div>
-                  <div class="col-span-2 sm:col-span-1 rounded-xl border border-gray-200/80 bg-gray-50/70 px-3 py-2">
-                    <span class="block text-[10px] font-bold uppercase tracking-wider text-gray-400">Procedencia / Marca</span>
-                    <span class="text-xs font-bold text-gray-800">{{ p.manufacturerBrand || 'Certificado OEM' }}</span>
+                  <div class="col-span-2 sm:col-span-1 rounded-xl border border-gray-300 bg-gray-50 px-3.5 py-2.5">
+                    <span class="block text-[11px] font-extrabold uppercase tracking-wide text-gray-600">Procedencia / Marca</span>
+                    <span class="text-sm font-extrabold text-gray-900">{{ p.manufacturerBrand || 'Certificado OEM' }}</span>
                   </div>
                 </div>
 
@@ -438,7 +438,7 @@ export class PartDetailPageComponent implements OnInit {
         return pa - pb;
       });
       return sorted.map((img) =>
-        this.apiConfig.resolveMediaUrl(img.imageUrl, p.oemCode || p.sku, p.manufacturerBrand)
+        this.apiConfig.resolveMediaUrl(img.imageUrl, p.sku, p.manufacturerBrand)
       );
     }
     return [this.apiConfig.resolvePartPrimaryImage(p)];
@@ -461,15 +461,41 @@ export class PartDetailPageComponent implements OnInit {
   }
 
   private fetchPart(id: number): void {
-    this.isLoading.set(true);
     this.selectedImageIndex.set(0);
+    const cached = this.findCachedPart(id);
+    if (cached) {
+      this.part.set(cached);
+      this.isLoading.set(false);
+    } else {
+      this.isLoading.set(true);
+    }
+
     this.catalogService
       .getPartById(id)
-      .pipe(finalize(() => this.isLoading.set(false)))
+      .pipe(
+        retry({ count: 3, delay: 2000 }),
+        finalize(() => this.isLoading.set(false))
+      )
       .subscribe({
         next: (data) => this.part.set(data),
-        error: () => this.part.set(null),
+        error: () => {
+          if (!this.part()) {
+            this.part.set(null);
+          }
+        },
       });
+  }
+
+  private findCachedPart(id: number): Part | null {
+    if (typeof window === 'undefined') return null;
+    try {
+      const raw = localStorage.getItem('asuncion_catalog_snapshot_v3');
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as { parts?: Part[] };
+      return parsed.parts?.find((item) => item.id === id) ?? null;
+    } catch {
+      return null;
+    }
   }
 
   onMouseMoveZoom(event: MouseEvent): void {
