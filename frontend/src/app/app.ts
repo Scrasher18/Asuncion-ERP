@@ -3,6 +3,7 @@ import { Component, inject } from '@angular/core';
 import { NavigationEnd, Router, RouterLink, RouterOutlet } from '@angular/router';
 import { ApiConfigService } from './core/services/api-config.service';
 import { CartDrawerComponent } from './shared/components/cart-drawer/cart-drawer.component';
+import { FloatingCartComponent } from './shared/components/floating-cart/floating-cart.component';
 import { ChatbotWidgetComponent } from './shared/components/chatbot-widget/chatbot-widget.component';
 import { NavbarComponent } from './shared/components/navbar/navbar.component';
 import { ToastContainerComponent } from './shared/components/toast-container/toast-container.component';
@@ -15,6 +16,7 @@ import { ToastContainerComponent } from './shared/components/toast-container/toa
     RouterLink,
     NavbarComponent,
     CartDrawerComponent,
+    FloatingCartComponent,
     ChatbotWidgetComponent,
     ToastContainerComponent,
   ],
@@ -224,6 +226,7 @@ import { ToastContainerComponent } from './shared/components/toast-container/toa
         </div>
       </footer>
 
+      <app-floating-cart />
       <app-cart-drawer />
       <app-chatbot-widget />
       <app-toast-container />

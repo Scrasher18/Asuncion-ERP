@@ -257,8 +257,10 @@ export class CartService {
   getReservedByOthersForPart(part: Part): number {
     const posHold = this.posActiveHolds()[part.id] ?? 0;
     const myQty = this.getMyCartQuantity(part.id);
-    const serverOthers =
-      this.reservedByOthersMap()[part.id] ?? Math.max(0, (part.reservedQuantity ?? 0) - myQty);
+    if (this.reservedByOthersMap()[part.id] !== undefined) {
+      return Math.max(posHold, this.reservedByOthersMap()[part.id]);
+    }
+    const serverOthers = Math.max(0, (part.reservedQuantity ?? 0) - myQty);
     return Math.max(posHold, serverOthers);
   }
 
@@ -276,7 +278,7 @@ export class CartService {
   getTotalReservedDisplay(part: Part): number {
     const others = this.getReservedByOthersForPart(part);
     const myQty = this.getMyCartQuantity(part.id);
-    return Math.max(part.reservedQuantity ?? 0, others + myQty);
+    return others + myQty;
   }
 
   openDrawer(): void {
@@ -427,19 +429,35 @@ export class CartService {
 
   removePart(partId: number): void {
     this.items.update((current) => current.filter((i) => i.part.id !== partId));
+    this.reservedByOthersMap.update((map) => {
+      const next = { ...map };
+      delete next[partId];
+      return next;
+    });
     this.persist();
-    this.syncReservationWithServer(false);
+    if (this.items().length === 0) {
+      this.clear();
+    } else {
+      this.syncReservationWithServer(false);
+    }
   }
 
   clear(): void {
     this.items.set([]);
     this.reservationExpiresAt.set(null);
     this.reservationRemainingSeconds.set(0);
+    this.reservedByOthersMap.set({});
     this.persist();
     if (typeof window !== 'undefined') {
       this.http
         .delete(`${this.apiConfig.apiUrl}/catalog/reservations/${this.reservationSessionId}`)
-        .pipe(catchError(() => of(null)))
+        .pipe(
+          tap(() => {
+            this.syncBus.notifyReservationsUpdated([]);
+            this.syncBus.notifyCatalogRefresh();
+          }),
+          catchError(() => of(null))
+        )
         .subscribe();
     }
   }
@@ -454,9 +472,14 @@ export class CartService {
     if (currentItems.length === 0) {
       this.reservationExpiresAt.set(null);
       this.reservationRemainingSeconds.set(0);
+      this.reservedByOthersMap.set({});
       return this.http
         .delete(`${this.apiConfig.apiUrl}/catalog/reservations/${this.reservationSessionId}`)
         .pipe(
+          tap(() => {
+            this.syncBus.notifyReservationsUpdated([]);
+            this.syncBus.notifyCatalogRefresh();
+          }),
           mapToNull(),
           catchError(() => of(null))
         );
@@ -488,7 +511,7 @@ export class CartService {
           this.reservationExpiresAt.set(expMs);
           this.reservationRemainingSeconds.set(Math.max(0, Math.floor((expMs - Date.now()) / 1000)));
 
-          const othersMap: Record<number, number> = { ...this.reservedByOthersMap() };
+          const othersMap: Record<number, number> = {};
           let anyAdjusted = false;
 
           for (const st of res.items || []) {
@@ -501,6 +524,8 @@ export class CartService {
             }
           }
           this.reservedByOthersMap.set(othersMap);
+          this.syncBus.notifyReservationsUpdated(res.items ? res.items.map((it) => it.partId) : []);
+          this.syncBus.notifyCatalogRefresh();
 
           if (anyAdjusted) {
             const statusByPart = new Map(res.items.map((it) => [it.partId, it]));

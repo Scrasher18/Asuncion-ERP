@@ -63,13 +63,10 @@ public class ChatbotService {
 
     // Dictionary of external makes not in Asunción's core catalog
     private static final Map<String, String> EXTERNAL_MAKES = Map.ofEntries(
-            Map.entry("chevrolet", "Chevrolet"),
             Map.entry("ford", "Ford"),
             Map.entry("mazda", "Mazda"),
             Map.entry("suzuki", "Suzuki"),
             Map.entry("honda", "Honda"),
-            Map.entry("volkswagen", "Volkswagen"),
-            Map.entry("vw", "Volkswagen"),
             Map.entry("renault", "Renault"),
             Map.entry("peugeot", "Peugeot"),
             Map.entry("chery", "Chery"),
@@ -91,8 +88,6 @@ public class ChatbotService {
 
     // Dictionary of external popular models
     private static final Map<String, String> EXTERNAL_MODELS = Map.ofEntries(
-            Map.entry("sail", "Chevrolet Sail"),
-            Map.entry("onix", "Chevrolet Onix"),
             Map.entry("spark", "Chevrolet Spark"),
             Map.entry("cruze", "Chevrolet Cruze"),
             Map.entry("aveo", "Chevrolet Aveo"),
@@ -109,7 +104,6 @@ public class ChatbotService {
             Map.entry("crv", "Honda CR-V"),
             Map.entry("duster", "Renault Duster"),
             Map.entry("stepway", "Renault Stepway"),
-            Map.entry("gol", "Volkswagen Gol"),
             Map.entry("golf", "Volkswagen Golf"),
             Map.entry("jetta", "Volkswagen Jetta"),
             Map.entry("tico", "Daewoo Tico"),
@@ -935,12 +929,13 @@ public class ChatbotService {
                     DIRECTRICES OBLIGATORIAS:
                     1. BREVEDAD: Responde en MÁXIMO 40 a 50 palabras. Ve al grano sin introducciones largas ni rodeos.
                     2. RECOMENDACIÓN PUNTUAL: Si el cliente pide recomendación o pide un repuesto específico (por ejemplo "¿qué filtro de aceite me recomiendas?"), recomienda ÚNICAMENTE el repuesto exacto que tenemos disponible en almacén indicado en los datos. No agregues piezas que no pidió (si pide filtro de aceite, no menciones aceites líquidos ni filtros de aire).
-                    3. JUSTIFICACIÓN TÉCNICA: Menciona brevemente por qué es el indicado (retención de impurezas, especificación OEM o tolerancia del motor). No hables mal de otras marcas ni inventes comparaciones innecesarias si no te las pidieron.
+                    3. JUSTIFICACIÓN Y CONOCIMIENTO AUTOMOTRIZ: Responde con autoridad técnica sobre cualquier consulta mecánica, de mantenimiento preventivo, viscosidades de aceite, frenos, distribución, suspensión, fallas comunes y especificaciones OEM (SAE, API, DOT).
                     4. FORMATO: TOTALMENTE PROHIBIDO USAR ASTERISCOS (**) O MARCAS MARKDOWN. Escribe en texto limpio y legible.
                     5. PROHIBIDO USAR EMOJIS.
                     6. CONSULTAS TRAMPA:
                        - Si preguntan por bujías en camiones pesados diésel (Scania, Volvo, Hino): Aclara técnicamente que los motores diésel encienden por compresión y no usan bujías de chispa.
                        - Si preguntan por repuestos de combustión para autos 100% eléctricos: Aclara que no llevan motor a combustión ni aceite de motor.
+                    7. AMPLITUD TEMÁTICA AUTOMOTRIZ: Si el cliente consulta sobre diagnóstico de fallas (ruidos, vibraciones, frenado esponjoso, sobrecalentamiento, chirridos), intervalos de cambio de fajas o fluidos, o diferencias de materiales (cerámico vs semimetálico), responde con fundamento técnico automotriz claro y sugiere la solución con las piezas OEM y Aftermarket de Repuestos Asunción.
 
                     DATOS OFICIALES DE ALMACÉN:
                     %s

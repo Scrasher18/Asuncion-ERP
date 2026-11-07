@@ -356,6 +356,7 @@ public class CatalogService {
         }
 
         Part saved = partRepository.save(part);
+        stockReservationService.reconcileHoldsForPart(saved.getId(), saved.getStockQuantity() != null ? saved.getStockQuantity() : 0);
         evictCatalogCache();
         return toPartResponse(saved);
     }

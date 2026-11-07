@@ -46,11 +46,17 @@ public class StockReservationService {
         final String sessionId;
         final Map<Long, Integer> quantities;
         Instant expiresAt;
+        final Instant createdAt;
 
         SessionHold(String sessionId, Map<Long, Integer> quantities, Instant expiresAt) {
+            this(sessionId, quantities, expiresAt, Instant.now());
+        }
+
+        SessionHold(String sessionId, Map<Long, Integer> quantities, Instant expiresAt, Instant createdAt) {
             this.sessionId = sessionId;
             this.quantities = new ConcurrentHashMap<>(quantities);
             this.expiresAt = expiresAt;
+            this.createdAt = createdAt != null ? createdAt : Instant.now();
         }
     }
 
@@ -64,6 +70,40 @@ public class StockReservationService {
     public synchronized void purgeExpired() {
         Instant now = Instant.now();
         activeHolds.entrySet().removeIf(entry -> entry.getValue().expiresAt.isBefore(now));
+    }
+
+    /**
+     * Reconciliación FIFO de reservas activas ante reducciones manuales de stock físico en almacén.
+     * Si la suma de reservas activas excede el nuevo stock disponible, protege la antigüedad
+     * de la reserva (First-In, First-Out), ajustando o liberando automáticamente a los clientes posteriores.
+     */
+    public synchronized void reconcileHoldsForPart(Long partId, int newPhysicalStock) {
+        if (partId == null) return;
+        purgeExpired();
+        int currentReserved = 0;
+        for (SessionHold hold : activeHolds.values()) {
+            currentReserved += hold.quantities.getOrDefault(partId, 0);
+        }
+        if (currentReserved <= newPhysicalStock) {
+            return;
+        }
+
+        int remainingPool = Math.max(0, newPhysicalStock);
+        List<SessionHold> sortedHolds = activeHolds.values().stream()
+                .filter(h -> h.quantities.containsKey(partId))
+                .sorted(Comparator.comparing(h -> h.createdAt != null ? h.createdAt : Instant.MIN))
+                .toList();
+
+        for (SessionHold hold : sortedHolds) {
+            int requested = hold.quantities.getOrDefault(partId, 0);
+            int granted = Math.min(requested, remainingPool);
+            if (granted > 0) {
+                hold.quantities.put(partId, granted);
+                remainingPool -= granted;
+            } else {
+                hold.quantities.remove(partId);
+            }
+        }
     }
 
     public synchronized int getReservedQuantity(Long partId) {
