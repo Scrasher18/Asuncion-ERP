@@ -25,6 +25,7 @@ import { OrdersService } from '../../core/services/orders.service';
 import { PaymentService, StoreWalletConfig, DEFAULT_WALLET_CONFIG } from '../../core/services/payment.service';
 import { PdfInvoiceService } from '../../core/services/pdf-invoice.service';
 import { ToastService } from '../../core/services/toast.service';
+import { SyncBusService } from '../../core/services/sync-bus.service';
 import {
   CoverageMapComponent,
   SelectedGeoPoint,
@@ -46,6 +47,7 @@ export class CheckoutPageComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
   readonly pdfInvoiceService = inject(PdfInvoiceService);
+  private readonly syncBus = inject(SyncBusService);
   readonly walletConfig = signal<StoreWalletConfig>(DEFAULT_WALLET_CONFIG);
 
   readonly branches = signal<Branch[]>([]);
@@ -475,6 +477,7 @@ export class CheckoutPageComponent implements OnInit, OnDestroy {
                   this.isProcessingPayment.set(false);
                   this.isSubmitting.set(false);
                   this.cart.clear();
+                  this.syncBus.notifyOnlineOrder(createdOrder.orderNumber, payload.items.map((i) => i.partId));
                   this.paymentSuccessReceipt.set(receipt);
                   this.toast.success(
                     '¡Pago aprobado con éxito en Culqi!',
@@ -625,6 +628,7 @@ export class CheckoutPageComponent implements OnInit, OnDestroy {
 
               // Flow 2: Standard orders (YAPE, TRANSFERENCIA, CONTRA_ENTREGA)
               this.cart.clear();
+              this.syncBus.notifyOnlineOrder(createdOrder.orderNumber, payload.items.map((i) => i.partId));
               const emailTarget = this.auth.currentUser()?.email || 'tu correo electrónico';
               this.toast.success(
                 `Pedido ${createdOrder.orderNumber} registrado`,

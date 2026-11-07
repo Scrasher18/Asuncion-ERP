@@ -7,6 +7,7 @@ import { ApiConfigService } from './api-config.service';
 import { ToastService } from './toast.service';
 import { AuthService } from './auth.service';
 import { PromotionService } from './promotion.service';
+import { SyncBusService } from './sync-bus.service';
 
 const GUEST_CART_KEY = 'asuncion_cart_guest_v2';
 const RESERVATION_SESSION_KEY = 'asuncion_reservation_session_id';
@@ -20,6 +21,7 @@ export class CartService {
   private readonly toast = inject(ToastService);
   private readonly authService = inject(AuthService);
   readonly promotionService = inject(PromotionService);
+  private readonly syncBus = inject(SyncBusService);
 
   readonly items = signal<CartItem[]>([]);
   readonly isDrawerOpen = signal<boolean>(false);
@@ -57,6 +59,11 @@ export class CartService {
     }, { allowSignalWrites: true });
 
     if (typeof window !== 'undefined') {
+      // Real-time synchronization across POS, Catalog, and Multi-Tabs
+      this.syncBus.events$.subscribe(() => {
+        this.refreshPosHoldsAndReconcile(false);
+      });
+
       // Listen for POS holds or cross-tab changes in real time
       window.addEventListener('storage', (evt) => {
         if (evt.key === POS_ACTIVE_HOLDS_KEY) {
@@ -122,6 +129,7 @@ export class CartService {
         );
       }
       window.dispatchEvent(new CustomEvent('asuncion-online-holds-updated'));
+      this.syncBus.notifyReservationsUpdated(cartItems ? cartItems.map((i) => i.part.id) : []);
     } catch {
       // ignore storage errors
     }

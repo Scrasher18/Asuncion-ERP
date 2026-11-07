@@ -24,7 +24,7 @@ public class CatalogService {
     private static final Set<String> VALID_VEHICLE_TYPES = Set.of(
             "SEDAN", "HATCHBACK", "SUV", "PICKUP", "VAN", "COMERCIAL", "CROSSOVER"
     );
-    private static final long CACHE_TTL_MS = 600_000L;
+    private static final long CACHE_TTL_MS = 15_000L;
 
     private record CachedPartEntry(
             PartResponse baseResponse,

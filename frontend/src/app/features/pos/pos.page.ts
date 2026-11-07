@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { finalize, retry } from 'rxjs';
+import { finalize, retry, Subscription } from 'rxjs';
 import { Branch, Category, Order, Part } from '../../core/models/api.models';
 import { ApiConfigService } from '../../core/services/api-config.service';
 import { AuthService } from '../../core/services/auth.service';
@@ -16,6 +16,7 @@ import { LookupService } from '../../core/services/lookup.service';
 import { OrdersService } from '../../core/services/orders.service';
 import { PdfInvoiceService } from '../../core/services/pdf-invoice.service';
 import { ToastService } from '../../core/services/toast.service';
+import { SyncBusService } from '../../core/services/sync-bus.service';
 
 const POS_SESSION_KEY = 'asuncion_pos_reservation_session_id';
 const POS_TICKET_STORAGE_KEY = 'asuncion_pos_ticket_v1';
@@ -667,6 +668,7 @@ export class PosPageComponent implements OnInit, OnDestroy {
   private readonly pdfInvoiceService = inject(PdfInvoiceService);
   private readonly apiConfig = inject(ApiConfigService);
   private readonly toast = inject(ToastService);
+  private readonly syncBus = inject(SyncBusService);
 
   readonly parts = signal<Part[]>([]);
   readonly categories = signal<Category[]>([]);
@@ -683,6 +685,9 @@ export class PosPageComponent implements OnInit, OnDestroy {
   readonly onlineHolds = signal<Record<number, number>>(this.loadOnlineHoldsMap());
   private autoSyncTimer: ReturnType<typeof setInterval> | null = null;
   private storageListener: ((e: StorageEvent) => void) | null = null;
+  private syncBusSub: Subscription | null = null;
+  private focusListener: (() => void) | null = null;
+  private visibilityListener: (() => void) | null = null;
 
   invoiceType: 'BOLETA' | 'FACTURA' = 'BOLETA';
   customerDoc = '';
@@ -769,8 +774,37 @@ export class PosPageComponent implements OnInit, OnDestroy {
       });
 
     if (typeof window !== 'undefined') {
+      this.syncBusSub = this.syncBus.events$.subscribe((evt) => {
+        if (
+          evt.type === 'ONLINE_ORDER_COMPLETED' ||
+          evt.type === 'RESERVATIONS_UPDATED' ||
+          evt.type === 'ADMIN_STOCK_MUTATED' ||
+          evt.type === 'CATALOG_REFRESH_REQUESTED'
+        ) {
+          this.onlineHolds.set(this.loadOnlineHoldsMap());
+          this.silentRefreshParts();
+          if (this.ticketItems().length > 0) {
+            this.syncPosTicketReservations();
+          }
+        }
+      });
+
+      this.focusListener = () => {
+        this.onlineHolds.set(this.loadOnlineHoldsMap());
+        this.silentRefreshParts();
+      };
+      window.addEventListener('focus', this.focusListener);
+
+      this.visibilityListener = () => {
+        if (document.visibilityState === 'visible') {
+          this.onlineHolds.set(this.loadOnlineHoldsMap());
+          this.silentRefreshParts();
+        }
+      };
+      document.addEventListener('visibilitychange', this.visibilityListener);
+
       this.storageListener = (event: StorageEvent) => {
-        if (event.key === ONLINE_ACTIVE_HOLDS_KEY || event.key === 'asuncion_cart_v1') {
+        if (event.key === ONLINE_ACTIVE_HOLDS_KEY || event.key === 'asuncion_cart_v1' || event.key === 'asuncion_sync_pulse') {
           this.onlineHolds.set(this.loadOnlineHoldsMap());
           this.reconcileTicketWithAvailableStock();
         }
@@ -783,7 +817,7 @@ export class PosPageComponent implements OnInit, OnDestroy {
         if (this.ticketItems().length > 0) {
           this.syncPosTicketReservations();
         }
-      }, 8000);
+      }, 3000);
     }
   }
 
@@ -792,9 +826,23 @@ export class PosPageComponent implements OnInit, OnDestroy {
       clearInterval(this.autoSyncTimer);
       this.autoSyncTimer = null;
     }
-    if (typeof window !== 'undefined' && this.storageListener) {
-      window.removeEventListener('storage', this.storageListener);
-      this.storageListener = null;
+    if (this.syncBusSub) {
+      this.syncBusSub.unsubscribe();
+      this.syncBusSub = null;
+    }
+    if (typeof window !== 'undefined') {
+      if (this.storageListener) {
+        window.removeEventListener('storage', this.storageListener);
+        this.storageListener = null;
+      }
+      if (this.focusListener) {
+        window.removeEventListener('focus', this.focusListener);
+        this.focusListener = null;
+      }
+      if (this.visibilityListener) {
+        document.removeEventListener('visibilitychange', this.visibilityListener);
+        this.visibilityListener = null;
+      }
     }
   }
 
@@ -811,7 +859,7 @@ export class PosPageComponent implements OnInit, OnDestroy {
   private hydrateCachedCatalogForPos(): void {
     if (typeof window === 'undefined') return;
     try {
-      const raw = localStorage.getItem('asuncion_catalog_snapshot_v4');
+      const raw = localStorage.getItem('asuncion_catalog_snapshot_v7');
       if (!raw) return;
       const parsed = JSON.parse(raw) as { categories?: Category[]; parts?: Part[] };
       if (Array.isArray(parsed.categories) && parsed.categories.length > 0) {
@@ -969,6 +1017,7 @@ export class PosPageComponent implements OnInit, OnDestroy {
     if (typeof window === 'undefined') return;
     if (items.length === 0) {
       localStorage.removeItem(POS_ACTIVE_HOLDS_KEY);
+      this.syncBus.notifyReservationsUpdated([]);
       return;
     }
     const holds: Record<number, number> = {};
@@ -982,6 +1031,7 @@ export class PosPageComponent implements OnInit, OnDestroy {
         expiresAt: Date.now() + POS_HOLD_TTL_MS,
       })
     );
+    this.syncBus.notifyReservationsUpdated(items.map((i) => i.part.id));
   }
 
   private loadOnlineHoldsMap(): Record<number, number> {
@@ -1155,6 +1205,7 @@ export class PosPageComponent implements OnInit, OnDestroy {
             'Venta en Caja Registrada',
             `Comprobante #${createdOrder.orderNumber} emitido y stock actualizado.`
           );
+          this.syncBus.notifyPosSale(createdOrder.orderNumber, items.map((i) => i.part.id));
           this.clearTicket();
           this.customerDoc = '';
           this.customerName = 'Cliente en Caja';

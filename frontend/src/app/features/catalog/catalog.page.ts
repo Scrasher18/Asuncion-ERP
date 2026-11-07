@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { retry } from 'rxjs';
+import { retry, Subscription } from 'rxjs';
 import {
   Category,
   Part,
@@ -11,9 +11,14 @@ import {
   VehicleModel,
 } from '../../core/models/api.models';
 import { ApiConfigService } from '../../core/services/api-config.service';
-import { CartService } from '../../core/services/cart.service';
+import {
+  CartService,
+  ONLINE_ACTIVE_HOLDS_KEY,
+  POS_ACTIVE_HOLDS_KEY,
+} from '../../core/services/cart.service';
 import { CatalogService } from '../../core/services/catalog.service';
 import { PartPromotion, PromotionService } from '../../core/services/promotion.service';
+import { SyncBusService } from '../../core/services/sync-bus.service';
 
 interface CatalogComboCard {
   promo: PartPromotion;
@@ -882,7 +887,13 @@ export class CatalogPageComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   readonly cart = inject(CartService);
   readonly promotionService = inject(PromotionService);
+  private readonly syncBus = inject(SyncBusService);
   private stockRefreshInterval: ReturnType<typeof setInterval> | null = null;
+  private syncBusSub: Subscription | null = null;
+  private focusListener: (() => void) | null = null;
+  private visibilityListener: (() => void) | null = null;
+  private storageListener: ((e: StorageEvent) => void) | null = null;
+  private isRefreshing = false;
   private pendingQueryCategory: string | null = null;
 
   readonly categories = signal<Category[]>([]);
@@ -1247,10 +1258,46 @@ export class CatalogPageComponent implements OnInit, OnDestroy {
     this.loadCatalogBundle();
 
     if (typeof window !== 'undefined') {
-      this.stockRefreshInterval = setInterval(() => {
-        this.cart.refreshPosHoldsAndReconcile();
+      // 1. Instant event-driven sync from POS sales, Cart reservations, Online Orders, and Admin edits (0ms)
+      this.syncBusSub = this.syncBus.events$.subscribe(() => {
+        this.cart.refreshPosHoldsAndReconcile(false);
         this.silentRefreshParts();
-      }, 12000);
+      });
+
+      // 2. Instant tab focus & visibility sync (when switching between POS, Checkout, and Catalog tabs)
+      this.focusListener = () => {
+        this.cart.refreshPosHoldsAndReconcile(false);
+        this.silentRefreshParts();
+      };
+      window.addEventListener('focus', this.focusListener);
+
+      this.visibilityListener = () => {
+        if (document.visibilityState === 'visible') {
+          this.cart.refreshPosHoldsAndReconcile(false);
+          this.silentRefreshParts();
+        }
+      };
+      document.addEventListener('visibilitychange', this.visibilityListener);
+
+      // 3. Fallback cross-window storage event listener
+      this.storageListener = (evt: StorageEvent) => {
+        if (
+          evt.key === 'asuncion_sync_pulse' ||
+          evt.key === POS_ACTIVE_HOLDS_KEY ||
+          evt.key === ONLINE_ACTIVE_HOLDS_KEY ||
+          evt.key === 'asuncion_cart_v1'
+        ) {
+          this.cart.refreshPosHoldsAndReconcile(false);
+          this.silentRefreshParts();
+        }
+      };
+      window.addEventListener('storage', this.storageListener);
+
+      // 4. Ultra-responsive 3-second heartbeat polling for multi-terminal synchronization
+      this.stockRefreshInterval = setInterval(() => {
+        this.cart.refreshPosHoldsAndReconcile(false);
+        this.silentRefreshParts();
+      }, 3000);
     }
   }
 
@@ -1258,6 +1305,24 @@ export class CatalogPageComponent implements OnInit, OnDestroy {
     if (this.stockRefreshInterval) {
       clearInterval(this.stockRefreshInterval);
       this.stockRefreshInterval = null;
+    }
+    if (this.syncBusSub) {
+      this.syncBusSub.unsubscribe();
+      this.syncBusSub = null;
+    }
+    if (typeof window !== 'undefined') {
+      if (this.focusListener) {
+        window.removeEventListener('focus', this.focusListener);
+        this.focusListener = null;
+      }
+      if (this.visibilityListener) {
+        document.removeEventListener('visibilitychange', this.visibilityListener);
+        this.visibilityListener = null;
+      }
+      if (this.storageListener) {
+        window.removeEventListener('storage', this.storageListener);
+        this.storageListener = null;
+      }
     }
   }
 
@@ -1370,13 +1435,18 @@ export class CatalogPageComponent implements OnInit, OnDestroy {
   }
 
   private silentRefreshParts(): void {
+    if (this.isRefreshing) return;
+    this.isRefreshing = true;
     this.catalogService.searchParts({}).subscribe({
       next: (data) => {
+        this.isRefreshing = false;
         this.backendOffline.set(false);
         this.allParts.set(data);
         this.persistSnapshotToStorage();
       },
-      error: () => {},
+      error: () => {
+        this.isRefreshing = false;
+      },
     });
   }
 

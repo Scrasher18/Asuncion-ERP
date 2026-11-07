@@ -9,7 +9,7 @@ import { CartService } from '../../core/services/cart.service';
 import { CatalogService } from '../../core/services/catalog.service';
 import { PartPromotion, PromotionService } from '../../core/services/promotion.service';
 
-const CATALOG_CACHE_KEY = 'asuncion_catalog_snapshot_v4';
+const CATALOG_CACHE_KEY = 'asuncion_catalog_snapshot_v7';
 
 export interface HydratedComboView {
   promo: PartPromotion;

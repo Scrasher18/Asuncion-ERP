@@ -46,6 +46,7 @@ import {
   PaymentTransactionDto,
 } from '../../core/models/payment.models';
 import { ToastService } from '../../core/services/toast.service';
+import { SyncBusService } from '../../core/services/sync-bus.service';
 import { ComplaintsService, ComplaintRecord } from '../../core/services/complaints.service';
 import { DriverRatingService, DriverRatingStats, DriverRatingItem } from '../../core/services/driver-rating.service';
 import { CoverageMapComponent } from '../../shared/components/coverage-map/coverage-map.component';
@@ -4618,6 +4619,7 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
   private readonly logisticsService = inject(LogisticsService);
   private readonly notificationAdminService = inject(NotificationAdminService);
   private readonly ordersService = inject(OrdersService);
+  private readonly syncBus = inject(SyncBusService);
   private readonly apiConfig = inject(ApiConfigService);
   private readonly paymentService = inject(PaymentService);
   readonly pdfInvoiceService = inject(PdfInvoiceService);
@@ -5531,7 +5533,7 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
   loadAdminParts(): void {
     if (this.adminParts().length === 0 && !this.lowStockOnlyFilter && typeof window !== 'undefined') {
       try {
-        const raw = localStorage.getItem('asuncion_catalog_snapshot_v4');
+        const raw = localStorage.getItem('asuncion_catalog_snapshot_v7');
         if (raw) {
           const parsed = JSON.parse(raw) as { parts?: Part[] };
           if (Array.isArray(parsed.parts) && parsed.parts.length > 0) {
@@ -6589,8 +6591,11 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
 
   private finishPartSave(saved: Part, isUpdate: boolean): void {
     if (typeof window !== 'undefined') {
+      localStorage.removeItem('asuncion_catalog_snapshot_v7');
+      localStorage.removeItem('asuncion_catalog_snapshot_v6');
       localStorage.removeItem('asuncion_catalog_snapshot_v4');
     }
+    this.syncBus.notifyAdminStockMutated([saved.id]);
     const codeLabel = saved.oemCode ? `OEM ${saved.oemCode}` : saved.sku;
     this.toast.success(
       isUpdate ? 'Repuesto actualizado' : 'Repuesto registrado',
@@ -6604,8 +6609,11 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
     this.catalogService.deletePart(part.id).subscribe({
       next: () => {
         if (typeof window !== 'undefined') {
+          localStorage.removeItem('asuncion_catalog_snapshot_v7');
+          localStorage.removeItem('asuncion_catalog_snapshot_v6');
           localStorage.removeItem('asuncion_catalog_snapshot_v4');
         }
+        this.syncBus.notifyAdminStockMutated([part.id]);
         this.adminParts.update((list) => list.filter((p) => p.id !== part.id));
         this.toast.info('Repuesto retirado', `${part.sku} fue desactivado del catálogo.`);
       },
