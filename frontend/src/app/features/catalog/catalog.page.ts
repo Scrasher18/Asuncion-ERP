@@ -127,11 +127,11 @@ interface CatalogLocalSnapshot {
                   ✓
                 </span>
                 <span class="text-sm sm:text-base font-extrabold text-gray-950">
-                  Selector de Compatibilidad Vehicular Instantáneo
+                  Selector de Compatibilidad Vehicular
                 </span>
               </div>
               <span class="text-xs sm:text-[13px] text-gray-600 font-semibold">
-                Combina marca, modelo, año y sistema sin tiempos de espera
+                Combina marca, modelo, año y sistema para filtrar el inventario
               </span>
             </div>
 
@@ -238,203 +238,47 @@ interface CatalogLocalSnapshot {
                 }
               </div>
             </div>
-          </div>
-        </div>
-      </section>
 
-      <!-- Marcas Principales de Camiones y Vehículos (Logos Oficiales) -->
-      <section class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-8">
-        <div class="flex items-center justify-between gap-4 mb-3.5">
-          <div>
-            <h2 class="text-lg sm:text-xl font-extrabold tracking-tight text-gray-950 flex items-center gap-2">
-              <svg class="h-5 w-5 text-orange-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" />
-              </svg>
-              <span>Marcas Principales de Camiones y Vehículos</span>
-            </h2>
-            <p class="text-xs sm:text-sm text-gray-600 font-medium">
-              Selecciona una marca para ver sus repuestos compatibles de inmediato.
-            </p>
-          </div>
-          @if (selectedMakeId !== null) {
-            <button
-              type="button"
-              (click)="selectedMakeId = null; onMakeChange()"
-              class="text-xs sm:text-sm font-extrabold text-orange-600 hover:text-orange-700 flex items-center gap-1 cursor-pointer"
-            >
-              <span>Quitar filtro de marca</span>
-              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          }
-        </div>
-
-        <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2.5 sm:gap-3">
-          @for (brand of featuredBrands; track brand.name) {
-            <button
-              type="button"
-              (click)="selectBrandByName(brand.name)"
-              [class]="
-                isBrandActive(brand.name)
-                  ? 'border-orange-600 bg-orange-50 ring-2 ring-orange-500/30 shadow-xs'
-                  : 'border-gray-200 bg-white hover:border-orange-300 hover:shadow-xs'
-              "
-              class="group flex flex-col items-center justify-center p-3 rounded-xl border text-center transition-all duration-150 cursor-pointer"
-            >
-              <div class="h-10 w-full flex items-center justify-center mb-1.5 overflow-hidden">
-                <img
-                  [src]="brand.logo"
-                  [alt]="brand.name"
-                  (error)="onBrandImageError($event)"
-                  class="max-h-9 max-w-[82px] object-contain transition duration-200 group-hover:scale-105"
-                  loading="lazy"
-                />
+            <!-- Integrated SAE Viscosity Row inside the Selector (only when Filtros / Lubricantes is selected) -->
+            @if (shouldShowViscosityFilter()) {
+              <div class="mt-4 pt-3.5 border-t border-gray-200 flex flex-wrap items-center gap-2">
+                <span class="text-xs sm:text-[13px] font-extrabold text-gray-800 mr-1">
+                  🛢️ Grado SAE:
+                </span>
+                <button
+                  type="button"
+                  (click)="selectViscosity(null)"
+                  [class]="
+                    selectedViscosity() === null
+                      ? 'bg-orange-600 text-white border-orange-600 font-extrabold shadow-2xs'
+                      : 'bg-gray-50 text-gray-800 border-gray-300 hover:border-orange-400 font-bold'
+                  "
+                  class="rounded-lg border px-3 py-1.5 text-xs sm:text-[13px] transition cursor-pointer"
+                >
+                  Todos
+                </button>
+                @for (v of commonViscosities; track v) {
+                  <button
+                    type="button"
+                    (click)="selectViscosity(v)"
+                    [class]="
+                      selectedViscosity() === v
+                        ? 'bg-orange-600 text-white border-orange-600 font-extrabold shadow-2xs'
+                        : 'bg-gray-50 text-gray-800 border-gray-300 hover:border-orange-400 hover:bg-orange-50 font-bold'
+                    "
+                    class="rounded-lg border px-3 py-1.5 text-xs sm:text-[13px] tabular-nums transition cursor-pointer"
+                  >
+                    {{ v }}
+                  </button>
+                }
               </div>
-              <span class="text-sm font-extrabold text-gray-950 group-hover:text-orange-600 transition">
-                {{ brand.name }}
-              </span>
-              <span class="text-xs font-medium text-gray-600 line-clamp-1">
-                {{ brand.type }}
-              </span>
-            </button>
-          }
-        </div>
-      </section>
-
-      <!-- Visual Automotive Systems Category Showcase (Genuine Photography) -->
-      <section class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-8">
-        <div class="flex items-center justify-between gap-4 mb-4">
-          <div>
-            <h2 class="text-lg sm:text-xl font-extrabold tracking-tight text-gray-950">
-              Explorar por Sistema del Vehículo
-            </h2>
-            <p class="text-xs sm:text-sm text-gray-600 font-medium">
-              Haz clic en cualquier sistema automotriz para filtrar el catálogo instantáneamente.
-            </p>
-          </div>
-          @if (selectedCategoryId !== null) {
-            <button
-              type="button"
-              (click)="selectCategoryPill(null)"
-              class="text-xs sm:text-sm font-extrabold text-orange-600 hover:text-orange-700 flex items-center gap-1 cursor-pointer"
-            >
-              <span>Ver todos los sistemas</span>
-              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          }
-        </div>
-
-        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
-          @for (cat of featuredCategories; track cat.code) {
-            <div
-              (click)="selectCategoryByCode(cat.code)"
-              [class]="isCategoryActive(cat.code) ? 'ring-3 ring-orange-500 border-transparent shadow-md' : 'border-gray-200 hover:border-orange-300 hover:shadow-md'"
-              class="group relative overflow-hidden rounded-xl border bg-gray-900 cursor-pointer shadow-2xs hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200 ease-out select-none"
-            >
-              <div class="aspect-16/10 sm:aspect-16/9 overflow-hidden">
-                <img
-                  [src]="cat.image"
-                  [alt]="cat.name"
-                  class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-108 filter brightness-85 group-hover:brightness-95"
-                />
-              </div>
-
-              <div class="absolute inset-0 bg-gradient-to-t from-gray-950/95 via-gray-950/45 to-transparent flex flex-col justify-end p-3.5 sm:p-4 text-white">
-                <div class="flex items-center justify-between gap-2">
-                  <div class="flex items-center gap-1.5 min-w-0">
-                    @if (cat.icon) {
-                      <img [src]="cat.icon" [alt]="cat.name" class="h-5 w-5 object-contain rounded bg-white/20 p-0.5 shrink-0" />
-                    }
-                    <h3 class="text-sm sm:text-[15px] font-extrabold text-white group-hover:text-orange-300 transition tracking-tight truncate">
-                      {{ cat.name }}
-                    </h3>
-                  </div>
-                  @if (isCategoryActive(cat.code)) {
-                    <span class="h-2.5 w-2.5 rounded-full bg-orange-400 ring-4 ring-orange-400/35 shrink-0"></span>
-                  }
-                </div>
-                <p class="text-xs text-gray-200 line-clamp-1 mt-0.5 hidden sm:block font-medium">
-                  {{ cat.desc }}
-                </p>
-              </div>
-            </div>
-          }
-        </div>
-      </section>
-
-      <!-- Main Catalog Content -->
-      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-8 space-y-5">
-        <!-- Quick Category Pills -->
-        @if (categories().length > 0) {
-          <div class="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-            <button
-              type="button"
-              (click)="selectCategoryPill(null)"
-              [class]="
-                selectedCategoryId === null
-                  ? 'bg-orange-600 text-white border-orange-600 font-extrabold shadow-2xs'
-                  : 'bg-white text-gray-800 border-gray-300 hover:border-orange-400 hover:text-gray-950 font-bold'
-              "
-              class="shrink-0 inline-flex items-center gap-1.5 rounded-full border px-4 py-2 text-xs sm:text-[13px] transition cursor-pointer select-none"
-            >
-              <span>Todas las categorías</span>
-            </button>
-            @for (cat of categories(); track cat.id) {
-              <button
-                type="button"
-                (click)="selectCategoryPill(cat.id)"
-                [class]="
-                  selectedCategoryId === cat.id
-                    ? 'bg-orange-600 text-white border-orange-600 font-extrabold shadow-2xs'
-                    : 'bg-white text-gray-800 border-gray-300 hover:border-orange-400 hover:text-gray-950 font-bold'
-                "
-                class="shrink-0 inline-flex items-center gap-1.5 rounded-full border px-4 py-2 text-xs sm:text-[13px] transition cursor-pointer select-none"
-              >
-                <span>{{ cat.name }}</span>
-              </button>
             }
           </div>
-        }
+        </div>
+      </section>
 
-        <!-- SAE Viscosity Filter Bar (Aceites, Lubricantes y Filtros) -->
-        @if (shouldShowViscosityFilter()) {
-          <div class="flex flex-wrap items-center gap-2 p-3.5 rounded-xl border border-amber-300 bg-amber-50/70 shadow-2xs">
-            <div class="flex items-center gap-1.5 mr-1 text-xs sm:text-sm font-extrabold text-amber-950 shrink-0">
-              <span>🛢️</span>
-              <span>Grado de Viscosidad SAE:</span>
-            </div>
-            <button
-              type="button"
-              (click)="selectViscosity(null)"
-              [class]="
-                selectedViscosity() === null
-                  ? 'bg-amber-600 text-white border-amber-600 font-extrabold shadow-2xs'
-                  : 'bg-white text-gray-800 border-gray-300 hover:border-amber-400 font-bold'
-              "
-              class="rounded-lg border px-3 py-1.5 text-xs sm:text-[13px] transition cursor-pointer"
-            >
-              Todos los grados
-            </button>
-            @for (v of commonViscosities; track v) {
-              <button
-                type="button"
-                (click)="selectViscosity(v)"
-                [class]="
-                  selectedViscosity() === v
-                    ? 'bg-amber-600 text-white border-amber-600 font-extrabold shadow-2xs'
-                    : 'bg-white text-gray-800 border-gray-300 hover:border-amber-400 hover:bg-amber-100/60 font-bold'
-                "
-                class="rounded-lg border px-3 py-1.5 text-xs sm:text-[13px] tabular-nums transition cursor-pointer"
-              >
-                {{ v }}
-              </button>
-            }
-          </div>
-        }
-
+      <!-- Main Catalog Content (Directly Below Selector) -->
+      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-6 space-y-5">
         <!-- High-Legibility Results Summary & Active Filter Chips Toolbar -->
         <div class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gray-300/90 bg-white px-4 py-3.5 shadow-2xs">
           <div class="flex flex-wrap items-center gap-2.5 text-sm font-semibold text-gray-800">
@@ -485,6 +329,16 @@ interface CatalogLocalSnapshot {
                 class="inline-flex items-center gap-1 rounded-lg bg-orange-50 border border-orange-200 px-2.5 py-1 text-xs font-extrabold text-orange-800 tabular-nums hover:bg-orange-100 cursor-pointer"
               >
                 <span>Año: {{ selectedYear }}</span>
+                <span>✕</span>
+              </button>
+            }
+            @if (activeCategoryName(); as catLabel) {
+              <button
+                type="button"
+                (click)="selectCategoryPill(null)"
+                class="inline-flex items-center gap-1 rounded-lg bg-orange-50 border border-orange-200 px-2.5 py-1 text-xs font-extrabold text-orange-800 hover:bg-orange-100 cursor-pointer"
+              >
+                <span>Sistema: {{ catLabel }}</span>
                 <span>✕</span>
               </button>
             }
@@ -906,81 +760,11 @@ export class CatalogPageComponent implements OnInit, OnDestroy {
     return this.allModels().find((m) => m.id === id)?.name ?? null;
   });
 
-  readonly featuredCategories: {
-    code: string;
-    name: string;
-    desc: string;
-    image: string;
-    icon?: string | null;
-  }[] = [
-    {
-      code: 'FRENOS',
-      name: 'Sistema de Frenos',
-      desc: 'Pastillas cerámicas, discos ventilados y zapatas',
-      image: '/images/categories/frenos.jpg',
-      icon: '/images/categories/frenos.png',
-    },
-    {
-      code: 'FILTROS',
-      name: 'Filtros y Lubricación',
-      desc: 'Filtros de aceite, aire de motor y lubricantes sintéticos',
-      image: '/images/categories/filtros.jpg',
-      icon: null,
-    },
-    {
-      code: 'SUSPENSION',
-      name: 'Suspensión y Dirección',
-      desc: 'Amortiguadores a gas, terminales, rótulas y trapecios',
-      image: '/images/categories/suspension.jpg',
-      icon: '/images/categories/suspension.png',
-    },
-    {
-      code: 'MOTOR',
-      name: 'Motor y Distribución',
-      desc: 'Kits de distribución, bombas de aceite y fajas',
-      image: '/images/categories/motor.jpg',
-      icon: '/images/categories/motor.png',
-    },
-    {
-      code: 'TRANSMISION',
-      name: 'Embrague y Transmisión',
-      desc: 'Platos de embrague, discos, collarines y palieres',
-      image: '/images/categories/transmision.jpg',
-      icon: null,
-    },
-    {
-      code: 'ELECTRICO',
-      name: 'Sistema Eléctrico e Iluminación',
-      desc: 'Alternadores, arrancadores, focos halógenos y LED',
-      image: '/images/categories/electrico.jpg',
-      icon: null,
-    },
-    {
-      code: 'REFRIGERACION',
-      name: 'Refrigeración y Climatización',
-      desc: 'Radiadores, termostatos y bombas de refrigerante',
-      image: '/images/categories/refrigeracion.jpg',
-      icon: null,
-    },
-    {
-      code: 'CARROCERIA',
-      name: 'Carrocería y Faros Exteriores',
-      desc: 'Faros delanteros, biseles, espejos y parachoques',
-      image: '/images/categories/carroceria.jpg',
-      icon: null,
-    },
-  ];
-
-  readonly featuredBrands = [
-    { name: 'Toyota', logo: '/images/brands/toyota.jpg', type: 'Autos y Pickups' },
-    { name: 'Hyundai', logo: '/images/brands/hyundai.png', type: 'Autos y Comerciales' },
-    { name: 'Nissan', logo: '/images/brands/nissan.png', type: 'Pickups y Sedanes' },
-    { name: 'Kia', logo: '/images/brands/kia.png', type: 'Autos y SUVs' },
-    { name: 'Mitsubishi', logo: '/images/brands/mitsubishi.png', type: 'Pickups 4x4' },
-    { name: 'Hino', logo: '/images/brands/hino.png', type: 'Camiones y Carga' },
-    { name: 'Isuzu', logo: '/images/brands/isuzu.png', type: 'Camiones y Chasis' },
-    { name: 'Scania', logo: '/images/brands/scania.jpg', type: 'Transporte Pesado' },
-  ];
+  readonly activeCategoryName = computed<string | null>(() => {
+    const id = this.selectedCategoryIdSig();
+    if (!id) return null;
+    return this.categories().find((c) => c.id === id)?.name ?? null;
+  });
 
   readonly commonViscosities = [
     '0W-20',
