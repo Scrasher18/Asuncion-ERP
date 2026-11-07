@@ -1742,14 +1742,21 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                     </p>
                   </div>
 
-                  <!-- Estado del servicio siempre activo -->
-                  <div class="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-2 text-xs font-bold text-emerald-800 shadow-2xs">
-                    <span class="relative flex h-2.5 w-2.5">
-                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                      <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
-                    </span>
-                    <span>Envío de correos activo</span>
-                  </div>
+                  <!-- Estado real de credenciales SMTP -->
+                  @if (hasSavedMailPassword()) {
+                    <div class="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-2 text-xs font-bold text-emerald-800 shadow-2xs">
+                      <span class="relative flex h-2.5 w-2.5">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                      </span>
+                      <span>Envío real de correos activo</span>
+                    </div>
+                  } @else {
+                    <div class="inline-flex items-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-3.5 py-2 text-xs font-bold text-amber-900 shadow-2xs">
+                      <span class="h-2.5 w-2.5 rounded-full bg-amber-500"></span>
+                      <span>Falta clave de aplicación de Google (16 letras)</span>
+                    </div>
+                  }
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1816,47 +1823,82 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                   </div>
                 </div>
 
-                <!-- Tarjeta informativa limpia y comercial -->
-                <!-- Actualizar contraseña de aplicación de Google si es necesario -->
-                <div class="rounded-xl border border-gray-200 bg-gray-50/70 p-3.5 space-y-2">
-                  <div class="flex items-center justify-between gap-2">
-                    <label class="text-xs font-medium text-gray-700 flex items-center gap-1.5">
-                      <svg class="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <!-- Contraseña de aplicación de Google (16 letras) -->
+                <div
+                  [class]="
+                    hasSavedMailPassword()
+                      ? 'rounded-xl border border-gray-200 bg-gray-50/70 p-3.5 space-y-2'
+                      : 'rounded-xl border-2 border-amber-300 bg-amber-50/60 p-4 space-y-2'
+                  "
+                >
+                  <div class="flex flex-wrap items-center justify-between gap-2">
+                    <label class="text-xs font-bold text-gray-900 flex items-center gap-1.5">
+                      <svg class="h-4 w-4 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
                       </svg>
-                      <span>Actualizar contraseña de aplicación de Google (Opcional - 16 caracteres)</span>
+                      <span>Contraseña de aplicación de Google (16 letras)</span>
                     </label>
-                    <span class="text-[10px] text-gray-400 font-medium">Dejar vacío si no deseas cambiarla</span>
+                    <a
+                      href="https://myaccount.google.com/apppasswords"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="text-[11px] font-bold text-orange-700 hover:underline"
+                    >
+                      Obtener clave de 16 letras en Google ↗
+                    </a>
                   </div>
                   <input
                     type="password"
                     [(ngModel)]="mailConfigForm.password"
-                    placeholder="Escribe aquí solo si deseas ingresar una nueva clave de 16 letras"
-                    class="min-h-[40px] w-full rounded-xl border border-gray-200 bg-white px-3.5 py-1.5 font-mono text-xs text-gray-900 placeholder:font-sans placeholder:text-gray-400 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
+                    [placeholder]="
+                      hasSavedMailPassword()
+                        ? '•••••••••••• (Ya guardada — escribe aquí solo si deseas reemplazarla)'
+                        : 'Pega aquí tu Contraseña de Aplicación de 16 letras (ej: abcd efgh ijkl mnop)'
+                    "
+                    class="min-h-[42px] w-full rounded-xl border border-gray-300 bg-white px-3.5 py-1.5 font-mono text-xs text-gray-900 placeholder:font-sans placeholder:text-gray-500 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
                   />
                 </div>
 
-                <div class="rounded-xl border border-emerald-200/80 bg-emerald-50/50 p-4 flex flex-wrap items-center justify-between gap-3">
-                  <div class="flex items-center gap-3">
-                    <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
-                      <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                      </svg>
+                @if (hasSavedMailPassword()) {
+                  <div class="rounded-xl border border-emerald-200/80 bg-emerald-50/50 p-4 flex flex-wrap items-center justify-between gap-3">
+                    <div class="flex items-center gap-3">
+                      <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                      <div>
+                        <p class="text-xs font-bold text-emerald-950">Cuenta de Gmail conectada ({{ mailConfigForm.username }})</p>
+                        <p class="text-[11px] text-emerald-700">Las confirmaciones de registro, compras, despacho y reclamos se envían a la bandeja real.</p>
+                      </div>
                     </div>
-                    <div>
-                      <p class="text-xs font-bold text-emerald-950">Cuenta de Gmail conectada</p>
-                      <p class="text-[11px] text-emerald-700">Todas las notificaciones se emiten automáticamente con el membrete oficial de Repuestos Asunción.</p>
-                    </div>
+                    <button
+                      type="button"
+                      [disabled]="savingMailConfig()"
+                      (click)="saveMailConfiguration()"
+                      class="min-h-[40px] rounded-xl bg-orange-600 px-5 py-2 text-xs sm:text-sm font-semibold text-white shadow-2xs hover:bg-orange-700 disabled:opacity-50 transition cursor-pointer"
+                    >
+                      {{ savingMailConfig() ? 'Guardando...' : 'Guardar cambios' }}
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    [disabled]="savingMailConfig()"
-                    (click)="saveMailConfiguration()"
-                    class="min-h-[40px] rounded-xl bg-orange-600 px-5 py-2 text-xs sm:text-sm font-semibold text-white shadow-2xs hover:bg-orange-700 disabled:opacity-50 transition"
-                  >
-                    {{ savingMailConfig() ? 'Guardando...' : 'Guardar cambios' }}
-                  </button>
-                </div>
+                } @else {
+                  <div class="rounded-xl border border-amber-300 bg-amber-50 p-4 flex flex-wrap items-center justify-between gap-3">
+                    <div class="space-y-0.5 max-w-xl">
+                      <p class="text-xs font-bold text-amber-950">Activa el envío real pegando tu clave de 16 letras arriba</p>
+                      <p class="text-[11px] text-amber-900">
+                        Por seguridad Google exige una <strong>Contraseña de Aplicación de 16 letras</strong> de tu cuenta <strong>{{ mailConfigForm.username || 'Gmail' }}</strong>. Pégala arriba y pulsa <strong>Guardar cambios</strong>.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      [disabled]="savingMailConfig()"
+                      (click)="saveMailConfiguration()"
+                      class="min-h-[40px] rounded-xl bg-orange-600 px-5 py-2 text-xs sm:text-sm font-bold text-white shadow-2xs hover:bg-orange-700 disabled:opacity-50 transition cursor-pointer"
+                    >
+                      {{ savingMailConfig() ? 'Guardando...' : 'Guardar cambios' }}
+                    </button>
+                  </div>
+                }
               </div>
 
               <!-- BOTTOM CARD: Historial de Notificaciones Enviadas -->
@@ -1939,8 +1981,8 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                               >
                                 {{ formatNotificationStatus(mailLog.deliveryStatus) }}
                               </span>
-                              @if (mailLog.errorMessage && mailLog.deliveryStatus === 'FAILED') {
-                                <p class="mt-1 text-[10px] text-red-600 max-w-[220px] truncate" [title]="mailLog.errorMessage">
+                              @if (mailLog.errorMessage && mailLog.deliveryStatus !== 'SENT') {
+                                <p class="mt-1 text-[10px] text-red-600 max-w-[240px] truncate" [title]="mailLog.errorMessage">
                                   {{ mailLog.errorMessage }}
                                 </p>
                               }
@@ -5018,8 +5060,8 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
   partForm: PartUpsertRequest = this.emptyPartForm();
   compDraftMakeId: number | null = null;
   compDraftModelId: number | null = null;
-  compDraftYearStart = 2018;
-  compDraftYearEnd = 2025;
+  compDraftYearStart = 1980;
+  compDraftYearEnd = 2026;
   compDraftEngine = '';
 
   // Branches State
@@ -5453,7 +5495,7 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
   loadAdminParts(): void {
     if (this.adminParts().length === 0 && !this.lowStockOnlyFilter && typeof window !== 'undefined') {
       try {
-        const raw = localStorage.getItem('asuncion_catalog_snapshot_v3');
+        const raw = localStorage.getItem('asuncion_catalog_snapshot_v4');
         if (raw) {
           const parsed = JSON.parse(raw) as { parts?: Part[] };
           if (Array.isArray(parsed.parts) && parsed.parts.length > 0) {
@@ -6507,6 +6549,9 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
   }
 
   private finishPartSave(saved: Part, isUpdate: boolean): void {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('asuncion_catalog_snapshot_v4');
+    }
     const codeLabel = saved.oemCode ? `OEM ${saved.oemCode}` : saved.sku;
     this.toast.success(
       isUpdate ? 'Repuesto actualizado' : 'Repuesto registrado',
@@ -6519,6 +6564,9 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
   deletePart(part: Part): void {
     this.catalogService.deletePart(part.id).subscribe({
       next: () => {
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('asuncion_catalog_snapshot_v4');
+        }
         this.adminParts.update((list) => list.filter((p) => p.id !== part.id));
         this.toast.info('Repuesto retirado', `${part.sku} fue desactivado del catálogo.`);
       },
@@ -6737,12 +6785,13 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
 
   saveMailConfiguration(): void {
     this.savingMailConfig.set(true);
+    const cleanPassword = (this.mailConfigForm.password || '').replace(/\s+/g, '');
     const payload: MailConfigUpdateRequest = {
-      enabled: this.mailConfigForm.enabled,
+      enabled: true,
       smtpHost: (this.mailConfigForm.smtpHost || 'smtp.gmail.com').trim(),
       smtpPort: Number(this.mailConfigForm.smtpPort) || 587,
       username: (this.mailConfigForm.username || '').trim(),
-      password: '',
+      password: cleanPassword,
       fromName: (this.mailConfigForm.fromName || 'Repuestos Asunción').trim(),
       adminNotificationEmail: (this.mailConfigForm.adminNotificationEmail || '').trim(),
     };
@@ -6752,14 +6801,19 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
       .pipe(finalize(() => this.savingMailConfig.set(false)))
       .subscribe({
         next: (saved) => {
-          this.hasSavedMailPassword.set(Boolean(saved.hasPassword || payload.password));
+          this.hasSavedMailPassword.set(Boolean(saved.hasPassword || cleanPassword));
           this.mailConfigForm.password = '';
-          this.toast.success(
-            'Configuración guardada',
-            saved.enabled
-              ? 'El envío real de correos por SMTP se encuentra activo.'
-              : 'Configuración almacenada en modo de registro local.'
-          );
+          if (saved.hasPassword || cleanPassword) {
+            this.toast.success(
+              'Correo Gmail conectado',
+              `Credenciales guardadas para ${saved.username || payload.username}. El envío real está activo.`
+            );
+          } else {
+            this.toast.warning(
+              'Datos guardados (falta clave de 16 letras)',
+              'Ingresa tu Contraseña de Aplicación de Google de 16 letras para enviar correos reales.'
+            );
+          }
         },
         error: (err) => {
           this.toast.error(
@@ -6774,22 +6828,61 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
     const recipient = this.testRecipientEmail.trim();
     if (!recipient) return;
 
+    const pendingPassword = (this.mailConfigForm.password || '').replace(/\s+/g, '');
+    if (pendingPassword.length > 0) {
+      // Auto-save typed password before sending test email so user doesn't have to click two buttons
+      this.savingMailConfig.set(true);
+      const payload: MailConfigUpdateRequest = {
+        enabled: true,
+        smtpHost: (this.mailConfigForm.smtpHost || 'smtp.gmail.com').trim(),
+        smtpPort: Number(this.mailConfigForm.smtpPort) || 587,
+        username: (this.mailConfigForm.username || '').trim(),
+        password: pendingPassword,
+        fromName: (this.mailConfigForm.fromName || 'Repuestos Asunción').trim(),
+        adminNotificationEmail: (this.mailConfigForm.adminNotificationEmail || '').trim(),
+      };
+      this.notificationAdminService
+        .updateConfig(payload)
+        .pipe(finalize(() => this.savingMailConfig.set(false)))
+        .subscribe({
+          next: (saved) => {
+            this.hasSavedMailPassword.set(Boolean(saved.hasPassword || pendingPassword));
+            this.mailConfigForm.password = '';
+            this.dispatchTestEmailRequest(recipient);
+          },
+          error: () => this.dispatchTestEmailRequest(recipient),
+        });
+      return;
+    }
+
+    this.dispatchTestEmailRequest(recipient);
+  }
+
+  private dispatchTestEmailRequest(recipient: string): void {
     this.sendingTestMail.set(true);
     this.notificationAdminService
       .sendTestEmail(recipient)
       .pipe(finalize(() => this.sendingTestMail.set(false)))
       .subscribe({
         next: (res) => {
-          this.toast.success(
-            'Correo enviado con éxito',
-            `El correo de prueba para ${recipient} fue enviado correctamente. Puedes ver el diseño en el historial inferior.`
-          );
+          if (res.success) {
+            this.hasSavedMailPassword.set(true);
+            this.toast.success(
+              'Correo real enviado con éxito',
+              res.message || `Revisa la bandeja de entrada (o Spam) de ${recipient}.`
+            );
+          } else {
+            this.toast.warning(
+              'No se pudo enviar el correo real',
+              res.message || 'Falta configurar la Contraseña de Aplicación de Google de 16 letras.'
+            );
+          }
           this.loadNotificationLogs();
         },
         error: (err) => {
-          this.toast.success(
-            'Correo enviado con éxito',
-            `El correo para ${recipient} fue registrado exitosamente en el sistema.`
+          this.toast.error(
+            'Error al enviar correo de prueba',
+            err?.error?.message || 'Verifica la Contraseña de Aplicación de Google e inténtalo de nuevo.'
           );
           this.loadNotificationLogs();
         },
@@ -6923,21 +7016,33 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
     const key = eventType.trim().toUpperCase();
     const map: Record<string, string> = {
       BIENVENIDA: 'Bienvenida cliente',
+      BIENVENIDA_REGISTRO: 'Bienvenida cliente',
       WELCOME: 'Bienvenida cliente',
       NUEVO_CLIENTE: 'Bienvenida cliente',
+      ALTA_TRABAJADOR: 'Alta colaborador',
+      RECUPERACION_PASSWORD: 'Clave de recuperación',
       PRUEBA_SMTP: 'Verificación de correo',
+      COMPRA_CONFIRMADA: 'Compra confirmada',
+      NUEVO_PEDIDO_TIENDA: 'Alerta nuevo pedido',
       ORDEN_CREADA: 'Pedido confirmado',
       ORDER_CONFIRMED: 'Pedido confirmado',
       PAGO_CONFIRMADO: 'Pago verificado',
+      PEDIDO_EN_PREPARACION: 'En preparación',
       ORDER_PROCESSING: 'En preparación',
+      PEDIDO_LISTO_DESPACHO: 'Listo despacho',
+      PEDIDO_EN_CAMINO: 'En camino',
       ORDER_IN_TRANSIT: 'En camino',
       ORDER_ON_ROUTE: 'En camino',
       OUT_FOR_DELIVERY: 'En camino',
       EN_RUTA: 'En camino',
       EN_CAMINO: 'En camino',
+      PEDIDO_ENTREGADO: 'Entregado',
       ORDER_DELIVERED: 'Entregado',
       DELIVERED: 'Entregado',
       ENTREGADO: 'Entregado',
+      RECLAMO_REGISTRADO: 'Hoja reclamación',
+      ALERTA_RECLAMO: 'Alerta reclamo',
+      RECLAMO_ATENDIDO: 'Reclamo atendido',
       TEST: 'Verificación de correo',
       TEST_EMAIL: 'Verificación de correo',
       SMTP_TEST: 'Verificación de correo',
@@ -6946,10 +7051,16 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
   }
 
   formatNotificationStatus(status?: string): string {
+    const s = (status || '').trim().toUpperCase();
+    if (s === 'SIMULATED_NO_SMTP') return 'Falta clave Gmail';
+    if (s === 'FAILED') return 'Error de envío';
     return 'Enviado con éxito';
   }
 
   notificationStatusBadgeClass(status?: string): string {
+    const s = (status || '').trim().toUpperCase();
+    if (s === 'SIMULATED_NO_SMTP') return 'border-amber-300 bg-amber-50 text-amber-800';
+    if (s === 'FAILED') return 'border-red-300 bg-red-50 text-red-700';
     return 'border-emerald-200 bg-emerald-50 text-emerald-700';
   }
 

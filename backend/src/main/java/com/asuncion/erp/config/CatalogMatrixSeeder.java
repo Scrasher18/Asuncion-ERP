@@ -30,7 +30,7 @@ public class CatalogMatrixSeeder implements CommandLineRunner {
     private static final Logger log = LoggerFactory.getLogger(CatalogMatrixSeeder.class);
 
     private enum Segment {
-        LIGHT, PICKUP_VAN, HEAVY_TRUCK, UNIVERSAL
+        LIGHT, PICKUP_VAN, HEAVY_TRUCK, ALL_MAKES_CLASSIC, UNIVERSAL
     }
 
     private record SeedPartSpec(
@@ -374,6 +374,106 @@ public class CatalogMatrixSeeder implements CommandLineRunner {
                     "Conjunto exterior reforzado de alta visibilidad para cabinas de camiones Hino, Isuzu, Volvo y Scania.",
                     "CARROCERIA", "Depo", "Taiwán", "165.00", "275.00", "240.00", 16, "PAS-H2-N2",
                     "/uploads/parts/asu-car-004.webp", Segment.HEAVY_TRUCK
+            ),
+
+            // ==================== 9. LÍNEA CLÁSICA Y MULTIGENERACIÓN (1980–2026 · TODAS LAS MARCAS) ====================
+            new SeedPartSpec(
+                    "ASU-FRE-007", "47550-CLAS80",
+                    "Bombín / Cilindro Auxiliar Hidráulico de Rueda Línea Clásica y Actual Bosch",
+                    "Cilindro hidráulico de hierro fundido rectificado con copelas EPDM; compatible con generaciones clásicas (1980+) y actuales de todas las marcas.",
+                    "FRENOS", "Bosch", "Alemania", "38.00", "68.00", "56.00", 34, "PAS-A4-N1",
+                    "/uploads/parts/asu-fre-006.webp", Segment.ALL_MAKES_CLASSIC
+            ),
+            new SeedPartSpec(
+                    "ASU-FRE-008", "04495-CLAS85",
+                    "Juego de Zapatas y Resortes de Freno Posterior Serie Clásica Multimarca Brembo",
+                    "Forro de fricción remachado y vulcanizado de alta durabilidad térmica para tambores de modelos clásicos y modernos (1980–2026).",
+                    "FRENOS", "Brembo", "Italia", "72.00", "125.00", "105.00", 30, "PAS-A4-N2",
+                    "/uploads/parts/asu-fre-005.webp", Segment.ALL_MAKES_CLASSIC
+            ),
+            new SeedPartSpec(
+                    "ASU-FIL-014", "W920-CLAS80",
+                    "Filtro de Aceite Blindado Rosca Estándar Serie Clásica y Multimarca Mann-Filter",
+                    "Carcasa de acero de espesor reforzado y válvula anti-retorno; compatible con motores clásicos carburados, inyectados y diésel (1980–2026).",
+                    "FILTROS", "Mann-Filter", "Alemania", "20.00", "38.00", "31.00", 52, "PAS-B5-N1",
+                    "/uploads/parts/asu-fil-001.webp", Segment.ALL_MAKES_CLASSIC
+            ),
+            new SeedPartSpec(
+                    "ASU-FIL-015", "WK842-CLAS85",
+                    "Prefiltro / Trampa Metálica de Combustible Serie Clásica y Pesada Bosch",
+                    "Elemento decantador de impurezas y humedad para líneas de combustible de vehículos antiguos y modernos multimarca.",
+                    "FILTROS", "Bosch", "Alemania", "28.00", "52.00", "43.00", 44, "PAS-B5-N2",
+                    "/uploads/parts/asu-fil-002.webp", Segment.ALL_MAKES_CLASSIC
+            ),
+            new SeedPartSpec(
+                    "ASU-SUS-005", "344200-CLAS80",
+                    "Amortiguador Hidráulico Reforzado Doble Efecto Serie Clásica y Carga KYB",
+                    "Construcción tubular soldada de alta resistencia para chasis clásicos, camionetas y unidades comerciales (1980–2026).",
+                    "SUSPENSION", "KYB", "Japón", "115.00", "195.00", "168.00", 28, "PAS-C3-N1",
+                    "/uploads/parts/asu-sus-003.webp", Segment.ALL_MAKES_CLASSIC
+            ),
+            new SeedPartSpec(
+                    "ASU-SUS-006", "K9082-CLAS85",
+                    "Kit de Bujes y Pines de Barra Estabilizadora / Muelles Poliuretano KYB",
+                    "Elastómero de alta densidad anti-desgaste compatible con suspensiones clásicas y modernas de toda nuestra flota de marcas.",
+                    "SUSPENSION", "KYB", "Japón", "26.00", "48.00", "39.00", 42, "PAS-C3-N2",
+                    "/uploads/parts/asu-sus-004.webp", Segment.ALL_MAKES_CLASSIC
+            ),
+            new SeedPartSpec(
+                    "ASU-MOT-005", "7415-CLAS80",
+                    "Faja Trapezoidal Dentada en V Serie Clásica Alternador y Ventilador Gates",
+                    "Correa industrial y automotriz Green-Stripe resistente al calor y aceite para motores desde 1980 hasta modelos actuales.",
+                    "MOTOR", "Gates", "Estados Unidos", "24.00", "45.00", "37.00", 48, "PAS-D3-N1",
+                    "/uploads/parts/asu-mot-003.webp", Segment.ALL_MAKES_CLASSIC
+            ),
+            new SeedPartSpec(
+                    "ASU-MOT-006", "VS500-CLAS85",
+                    "Juego de Retenes de Cigüeñal y Empaquetaduras Multigeneración Denso",
+                    "Sellos radiales en Viton de alta temperatura compatibles con motores clásicos y modernos multimarca (1980–2026).",
+                    "MOTOR", "Denso", "Japón", "48.00", "85.00", "72.00", 30, "PAS-D3-N2",
+                    "/uploads/parts/asu-mot-004.webp", Segment.ALL_MAKES_CLASSIC
+            ),
+            new SeedPartSpec(
+                    "ASU-TRA-006", "GUT23-CLAS80",
+                    "Cruceta de Cardán y Eje Propulsor Acero Forjado con Grasera Aisin",
+                    "Dados templados con rodillos de agujas y grasera central para cardanes clásicos, pickups 4x4 y camiones (1980–2026).",
+                    "TRANSMISION", "Aisin", "Japón", "45.00", "79.00", "66.00", 36, "PAS-E3-N1",
+                    "/uploads/parts/asu-tra-003.webp", Segment.ALL_MAKES_CLASSIC
+            ),
+            new SeedPartSpec(
+                    "ASU-TRA-007", "BRG-CLAS85",
+                    "Rodamiento Collarín de Embrague Blindado Alta Carga Serie Clásica Valeo",
+                    "Pista de acero al cromo sellada de baja fricción para sistemas de embrague mecánico e hidráulico multimarca.",
+                    "TRANSMISION", "Valeo", "Francia", "58.00", "98.00", "84.00", 26, "PAS-E3-N2",
+                    "/uploads/parts/asu-tra-002.webp", Segment.ALL_MAKES_CLASSIC
+            ),
+            new SeedPartSpec(
+                    "ASU-ELE-008", "0580464-CLAS80",
+                    "Bomba Eléctrica Auxiliar de Combustible Externa 12V/24V Clásica Bosch",
+                    "Bomba en línea universal de caudal constante ideal para conversión, cebado y reemplazo en vehículos clásicos y actuales (1980–2026).",
+                    "ELECTRICO", "Bosch", "Alemania", "110.00", "185.00", "158.00", 30, "PAS-F4-N1",
+                    "/uploads/parts/asu-ele-006.webp", Segment.ALL_MAKES_CLASSIC
+            ),
+            new SeedPartSpec(
+                    "ASU-ELE-009", "0332019-CLAS80",
+                    "Relé Conmutador Metálico 5 Pines + Portafusible Térmico Servicio Continuo Bosch",
+                    "Contactos de aleación de plata de alta capacidad para arranque, luces y electroventiladores en vehículos clásicos y modernos.",
+                    "ELECTRICO", "Bosch", "Alemania", "18.00", "34.00", "27.00", 58, "PAS-F4-N2",
+                    "/uploads/parts/asu-ele-007.webp", Segment.ALL_MAKES_CLASSIC
+            ),
+            new SeedPartSpec(
+                    "ASU-REF-005", "TH82-CLAS80",
+                    "Termostato Mecánico de Latón y Cobre 82°C Serie Clásica y Actual Aisin",
+                    "Válvula térmica de respuesta precisa con sello de caucho incluido para sistemas de enfriamiento clásicos y modernos (1980–2026).",
+                    "REFRIGERACION", "Aisin", "Japón", "30.00", "55.00", "46.00", 38, "PAS-G3-N1",
+                    "/uploads/parts/asu-ref-002.webp", Segment.ALL_MAKES_CLASSIC
+            ),
+            new SeedPartSpec(
+                    "ASU-CAR-005", "SB700-CLAS80",
+                    "Unidad Óptica Sellada / Faro Principal Cristal H4 Serie Clásica y Pesada Depo",
+                    "Lente de vidrio templado con reflector metálico aluminizado compatible con frentes clásicos, pickups y camiones (1980–2026).",
+                    "CARROCERIA", "Depo", "Taiwán", "65.00", "115.00", "96.00", 32, "PAS-H3-N1",
+                    "/uploads/parts/asu-car-001.webp", Segment.ALL_MAKES_CLASSIC
             )
     );
 
@@ -587,6 +687,53 @@ public class CatalogMatrixSeeder implements CommandLineRunner {
 
         Set<Part> dirtyParts = new LinkedHashSet<>();
 
+        // 1. Widen any existing compatibility ranges so classic/older years (1980..2026) never come back empty
+        for (Part p : allParts) {
+            if (!p.isActive() || p.getCompatibilities() == null) continue;
+            for (PartCompatibility c : p.getCompatibilities()) {
+                boolean updated = false;
+                if (c.getYearStart() > 1980) {
+                    c.setYearStart(1980);
+                    updated = true;
+                }
+                if (c.getYearEnd() < 2026) {
+                    c.setYearEnd(2026);
+                    updated = true;
+                }
+                if (updated) {
+                    dirtyParts.add(p);
+                }
+            }
+        }
+
+        // 2. Link ALL_MAKES_CLASSIC parts to every vehicle make & model (1980..2026)
+        List<Part> classicMultiMakeParts = COMPLETE_PARTS.stream()
+                .filter(spec -> spec.segment() == Segment.ALL_MAKES_CLASSIC)
+                .map(spec -> seededBySku.get(spec.sku()))
+                .filter(Objects::nonNull)
+                .toList();
+
+        for (Part classicPart : classicMultiMakeParts) {
+            Set<Long> existingModelIds = classicPart.getCompatibilities().stream()
+                    .map(c -> c.getVehicleModel().getId())
+                    .collect(Collectors.toSet());
+            for (VehicleModel model : allModels) {
+                if (!existingModelIds.contains(model.getId())) {
+                    Segment modelSeg = classifyModelSegment(model);
+                    PartCompatibility pc = new PartCompatibility();
+                    pc.setPart(classicPart);
+                    pc.setVehicleModel(model);
+                    pc.setYearStart(1980);
+                    pc.setYearEnd(2026);
+                    pc.setEngineSpec(defaultEngineSpecForModel(model, modelSeg));
+                    pc.setNotes("Compatibilidad multimarca serie clásica y actual (" + model.getMake().getName() + " " + model.getName() + ")");
+                    classicPart.getCompatibilities().add(pc);
+                    dirtyParts.add(classicPart);
+                }
+            }
+        }
+
+        // 3. Ensure segment-matched OEM parts also cover 1980..2026 for every (model, category)
         for (VehicleModel model : allModels) {
             Segment modelSeg = classifyModelSegment(model);
             String engineLabel = defaultEngineSpecForModel(model, modelSeg);
@@ -598,32 +745,25 @@ public class CatalogMatrixSeeder implements CommandLineRunner {
                 List<Part> categoryParts = partsByCategory.getOrDefault(category.getId(), List.of());
                 if (categoryParts.isEmpty()) continue;
 
-                // Count how many parts in this category already cover full year range 1994..2026 for this model
-                int fullRangeMatches = 0;
+                int segmentMatches = 0;
                 for (Part p : categoryParts) {
-                    List<PartCompatibility> modelComps = p.getCompatibilities().stream()
-                            .filter(c -> c.getVehicleModel().getId().equals(model.getId()))
-                            .toList();
-                    if (!modelComps.isEmpty()) {
-                        boolean coversAllYears = modelComps.stream()
-                                .anyMatch(c -> c.getYearStart() <= 1994 && c.getYearEnd() >= 2026);
-                        if (!coversAllYears && modelComps.size() == 1) {
-                            PartCompatibility single = modelComps.get(0);
-                            single.setYearStart(1994);
-                            single.setYearEnd(2026);
-                            dirtyParts.add(p);
-                            fullRangeMatches++;
-                        } else if (coversAllYears) {
-                            fullRangeMatches++;
-                        }
+                    Segment pSeg = skuSegments.get(p.getSku());
+                    if (pSeg == Segment.ALL_MAKES_CLASSIC || pSeg == Segment.UNIVERSAL) {
+                        continue;
+                    }
+                    boolean coversModelAllYears = p.getCompatibilities().stream()
+                            .anyMatch(c -> c.getVehicleModel().getId().equals(model.getId())
+                                    && c.getYearStart() <= 1980
+                                    && c.getYearEnd() >= 2026);
+                    if (coversModelAllYears) {
+                        segmentMatches++;
                     }
                 }
 
-                if (fullRangeMatches > 0) {
+                if (segmentMatches > 0) {
                     continue;
                 }
 
-                // Select segment-matched mechanical parts first (falling back to any non-universal part in category)
                 List<Part> candidates = COMPLETE_PARTS.stream()
                         .filter(spec -> spec.categoryCode().equals(catCode))
                         .filter(spec -> spec.segment() == modelSeg)
@@ -634,26 +774,23 @@ public class CatalogMatrixSeeder implements CommandLineRunner {
 
                 if (candidates.isEmpty()) {
                     COMPLETE_PARTS.stream()
-                            .filter(spec -> spec.categoryCode().equals(catCode) && spec.segment() != Segment.UNIVERSAL)
+                            .filter(spec -> spec.categoryCode().equals(catCode)
+                                    && spec.segment() != Segment.UNIVERSAL
+                                    && spec.segment() != Segment.ALL_MAKES_CLASSIC)
                             .map(spec -> seededBySku.get(spec.sku()))
                             .filter(Objects::nonNull)
                             .findFirst()
                             .ifPresent(candidates::add);
                 }
-                if (candidates.isEmpty()) {
-                    candidates.add(categoryParts.get(0));
-                }
 
                 for (Part targetPart : candidates) {
-                    boolean alreadyHasExact = targetPart.getCompatibilities().stream()
-                            .anyMatch(c -> c.getVehicleModel().getId().equals(model.getId())
-                                    && c.getYearStart() == 1994
-                                    && c.getYearEnd() == 2026);
-                    if (!alreadyHasExact) {
+                    boolean alreadyLinked = targetPart.getCompatibilities().stream()
+                            .anyMatch(c -> c.getVehicleModel().getId().equals(model.getId()));
+                    if (!alreadyLinked) {
                         PartCompatibility pc = new PartCompatibility();
                         pc.setPart(targetPart);
                         pc.setVehicleModel(model);
-                        pc.setYearStart(1994);
+                        pc.setYearStart(1980);
                         pc.setYearEnd(2026);
                         pc.setEngineSpec(engineLabel);
                         pc.setNotes("Aplicación verificada OEM para " + model.getMake().getName() + " " + model.getName());

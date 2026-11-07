@@ -15,7 +15,8 @@ import { CartService } from '../../core/services/cart.service';
 import { CatalogService } from '../../core/services/catalog.service';
 import { PromotionService } from '../../core/services/promotion.service';
 
-const CATALOG_CACHE_KEY = 'asuncion_catalog_snapshot_v3';
+const CATALOG_CACHE_KEY = 'asuncion_catalog_snapshot_v4';
+const LEGACY_CATALOG_CACHE_KEY = 'asuncion_catalog_snapshot_v3';
 const CATALOG_CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
 interface CatalogLocalSnapshot {
@@ -416,43 +417,46 @@ interface CatalogLocalSnapshot {
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
             @for (part of displayedParts(); track part.id) {
               <article class="group flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xs hover:border-orange-400 hover:shadow-md transition-all duration-200">
-                <!-- Product Image Container -->
-                <a [routerLink]="['/part', part.id]" class="relative aspect-4/3 overflow-hidden bg-gray-50 border-b border-gray-200/80 block">
+                <!-- Uncropped Product Image Container -->
+                <a
+                  [routerLink]="['/part', part.id]"
+                  class="relative aspect-4/3 overflow-hidden bg-white px-4 pt-10 pb-3 flex items-center justify-center border-b border-gray-100"
+                >
                   <img
                     [src]="resolveImage(part)"
                     [alt]="part.name"
                     (error)="onPartImageError($event, part)"
-                    class="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                    class="max-h-full max-w-full object-contain transition duration-300 group-hover:scale-105"
                   />
 
                   <!-- Manufacturer Brand Pill -->
                   @if (part.manufacturerBrand) {
-                    <span class="absolute top-2.5 left-2.5 rounded-lg border border-gray-300 bg-white/95 px-2.5 py-1 text-xs font-extrabold text-gray-950 shadow-2xs">
+                    <span class="absolute top-2.5 left-2.5 rounded-lg border border-gray-200 bg-gray-50/95 px-2.5 py-0.5 text-xs font-extrabold text-gray-900">
                       {{ part.manufacturerBrand }}
                     </span>
                   }
 
                   <!-- Promo Badge -->
                   @if (promotionService.getPromotion(part.sku); as promo) {
-                    <span class="absolute bottom-2.5 left-2.5 rounded-full border border-red-500 bg-red-600 px-2.5 py-1 text-xs font-extrabold text-white shadow-md z-10 tabular-nums">
-                      🏷️ {{ promo.badgeLabel || 'OFERTA' }} -{{ promo.discountPercentage }}%
+                    <span class="absolute bottom-2.5 left-2.5 rounded-full border border-red-500 bg-red-600 px-2.5 py-0.5 text-[11px] font-extrabold text-white shadow-xs z-10 tabular-nums">
+                      -{{ promo.discountPercentage }}%
                     </span>
                   }
 
-                  <!-- Clear High-Contrast Stock & Reservation Badge -->
+                  <!-- Clean Stock & Reservation Badge -->
                   <div class="absolute top-2.5 right-2.5 flex flex-col items-end gap-1">
                     <span
                       [class]="
                         cart.getRemainingStockToAdd(part) <= 0
-                          ? 'bg-red-50 text-red-800 border-red-300'
+                          ? 'bg-red-50 text-red-800 border-red-200'
                           : part.lowStockAlert || cart.getRemainingStockToAdd(part) <= 5
-                            ? 'bg-orange-50 text-orange-800 border-orange-300'
-                            : 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                            ? 'bg-orange-50 text-orange-800 border-orange-200'
+                            : 'bg-emerald-50 text-emerald-800 border-emerald-200'
                       "
-                      class="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-extrabold shadow-2xs tabular-nums"
+                      class="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-extrabold tabular-nums"
                     >
                       <span
-                        class="h-2 w-2 rounded-full"
+                        class="h-1.5 w-1.5 rounded-full"
                         [class]="cart.getRemainingStockToAdd(part) <= 0 ? 'bg-red-600' : (part.lowStockAlert || cart.getRemainingStockToAdd(part) <= 5) ? 'bg-orange-500' : 'bg-emerald-600'"
                       ></span>
                       @if (cart.getRemainingStockToAdd(part) <= 0) {
@@ -466,113 +470,70 @@ interface CatalogLocalSnapshot {
                       } @else if (part.lowStockAlert || cart.getRemainingStockToAdd(part) <= 5) {
                         Últimas {{ cart.getRemainingStockToAdd(part) }} und.
                       } @else {
-                        Stock: {{ cart.getRemainingStockToAdd(part) }} und.
+                        {{ cart.getRemainingStockToAdd(part) }} en stock
                       }
                     </span>
 
                     @if (cart.getTotalReservedDisplay(part) > 0 && cart.getRemainingStockToAdd(part) > 0) {
-                      <span class="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50/95 px-2.5 py-0.5 text-[11px] font-extrabold text-amber-900 shadow-2xs tabular-nums">
+                      <span class="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50/95 px-2 py-0.5 text-[11px] font-extrabold text-amber-900 tabular-nums">
                         ⏳ {{ cart.getTotalReservedDisplay(part) }} en reserva
                       </span>
                     }
                   </div>
                 </a>
 
-                <!-- Card Body -->
+                <!-- Essential-Only Card Body (Zero Cut-Offs) -->
                 <div class="flex flex-1 flex-col p-4 space-y-2.5">
-                  <div class="flex items-center justify-between gap-2">
-                    @if (part.categoryName) {
-                      <span class="text-xs font-extrabold uppercase tracking-wide text-orange-700 truncate">
-                        {{ part.categoryName }}
-                      </span>
-                    }
-                    @if (getPartViscosity(part); as visc) {
-                      <span class="inline-flex items-center gap-1 rounded-md border border-amber-300 bg-amber-50 px-2 py-0.5 text-xs font-extrabold text-amber-950 shrink-0 tabular-nums">
-                        🛢️ SAE {{ visc }}
-                      </span>
-                    }
-                  </div>
-
                   <a
                     [routerLink]="['/part', part.id]"
-                    [title]="part.name"
-                    class="text-[15px] sm:text-base font-extrabold text-gray-950 line-clamp-2 leading-snug group-hover:text-orange-600 transition min-h-[2.75rem]"
+                    class="text-[15px] font-extrabold text-gray-950 leading-snug group-hover:text-orange-600 transition"
                   >
                     {{ part.name }}
                   </a>
 
-                  <!-- High-Legibility OEM & SKU Codes -->
-                  <div class="flex flex-wrap items-center gap-1.5">
-                    @if (part.oemCode) {
-                      <span class="rounded-md border border-gray-300 bg-gray-100 px-2 py-0.5 text-xs font-bold text-gray-900 tabular-nums">
-                        OEM {{ part.oemCode }}
-                      </span>
-                    }
-                    @if (part.sku) {
-                      <span class="rounded-md border border-gray-200 bg-gray-50 px-2 py-0.5 text-xs font-semibold text-gray-700 tabular-nums">
-                        {{ part.sku }}
-                      </span>
-                    }
-                  </div>
-
-                  <!-- Combo Badge Banner -->
-                  @if (promotionService.getPromotion(part.sku); as promo) {
-                    @if (promo.promoType === 'COMBO_SUGERIDO' && promo.comboComplementName) {
-                      <div class="rounded-lg bg-orange-50 border border-orange-200 px-2.5 py-1.5 text-xs text-orange-950 flex items-center justify-between gap-1">
-                        <span class="font-bold">📦 Combo: + {{ promo.comboComplementName }}</span>
-                        <span class="text-orange-700 font-extrabold tabular-nums">Ahorro S/ {{ ((promo.originalPrice + (promo.comboComplementPrice || 0)) - (promo.comboTotalPromoPrice || (promo.promoPrice + (promo.comboComplementPrice || 0) * 0.85))) | number: '1.2-2' }}</span>
-                      </div>
-                    }
+                  @if (getPartViscosity(part) || activeVehicleSummary()) {
+                    <div class="flex flex-wrap items-center gap-1.5">
+                      @if (getPartViscosity(part); as visc) {
+                        <span class="inline-flex items-center gap-1 rounded-md border border-amber-300 bg-amber-50 px-2 py-0.5 text-xs font-extrabold text-amber-950 tabular-nums">
+                          🛢️ SAE {{ visc }}
+                        </span>
+                      }
+                      @if (activeVehicleSummary(); as vehicleLabel) {
+                        <span class="inline-flex items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-bold text-emerald-800">
+                          ✓ Compatible · {{ vehicleLabel }}
+                        </span>
+                      }
+                    </div>
                   }
 
-                  <!-- Smart Vehicle Compatibility Preview -->
-                  <div class="rounded-lg bg-gray-50 border border-gray-200 px-2.5 py-1.5 text-xs text-gray-800 truncate">
-                    <span class="font-extrabold text-gray-900">Aplica:</span>
-                    <span class="font-medium ml-1">{{ formatFirstCompatibility(part) }}</span>
-                    @if (part.compatibilities && part.compatibilities.length > 1) {
-                      <span class="font-extrabold text-orange-700 ml-1 tabular-nums">
-                        +{{ part.compatibilities.length - 1 }} modelos
-                      </span>
-                    }
-                  </div>
-
-                  <!-- Pricing & CTA Footer -->
-                  <div class="mt-auto pt-3 border-t border-gray-200/80 space-y-3">
-                    <div class="flex items-stretch justify-between gap-2">
-                      <div>
-                        @if (promotionService.getPromotion(part.sku); as promo) {
-                          <span class="block text-[11px] font-extrabold text-red-600 uppercase tracking-wide">
-                            {{ promo.badgeLabel || 'OFERTA' }} -{{ promo.discountPercentage }}%
+                  <!-- Clean Price & Actions Footer -->
+                  <div class="mt-auto pt-3 border-t border-gray-100 space-y-3">
+                    <div>
+                      @if (promotionService.getPromotion(part.sku); as promo) {
+                        <div class="flex items-baseline gap-2">
+                          <span class="text-xl font-black tracking-tight text-red-600 tabular-nums">
+                            S/ {{ promo.promoPrice | number: '1.2-2' }}
                           </span>
-                          <div class="flex items-baseline gap-1.5">
-                            <span class="text-xl font-black tracking-tight text-red-600 tabular-nums">
-                              S/ {{ promo.promoPrice | number: '1.2-2' }}
-                            </span>
-                            <span class="text-xs font-semibold text-gray-500 line-through tabular-nums">
-                              S/ {{ part.salePrice | number: '1.2-2' }}
-                            </span>
-                          </div>
-                        } @else {
-                          <span class="block text-[11px] font-bold uppercase tracking-wide text-gray-600">Precio Unitario</span>
-                          <span class="text-xl font-black tracking-tight text-gray-950 tabular-nums">
+                          <span class="text-xs font-semibold text-gray-400 line-through tabular-nums">
                             S/ {{ part.salePrice | number: '1.2-2' }}
                           </span>
-                        }
-                      </div>
-                      @if (part.wholesalePrice) {
-                        <div class="rounded-lg border border-emerald-300 bg-emerald-50 px-2.5 py-1 text-right flex flex-col justify-center">
-                          <span class="block text-[11px] font-extrabold text-emerald-900">Mayorista (4+)</span>
-                          <span class="text-sm font-black text-emerald-800 tabular-nums">
-                            S/ {{ part.wholesalePrice | number: '1.2-2' }}
-                          </span>
                         </div>
+                      } @else {
+                        <span class="block text-xl font-black tracking-tight text-gray-950 tabular-nums">
+                          S/ {{ part.salePrice | number: '1.2-2' }}
+                        </span>
+                      }
+                      @if (part.wholesalePrice) {
+                        <span class="block text-xs font-bold text-emerald-700 tabular-nums mt-0.5">
+                          Mayorista (4+ und.): S/ {{ part.wholesalePrice | number: '1.2-2' }}
+                        </span>
                       }
                     </div>
 
                     <div class="grid grid-cols-5 gap-2">
                       <a
                         [routerLink]="['/part', part.id]"
-                        class="col-span-2 min-h-[44px] flex items-center justify-center rounded-xl border border-gray-300 bg-white px-2 text-[13px] font-extrabold text-gray-800 hover:border-gray-400 hover:bg-gray-50 active:scale-[0.98] transition-all duration-150 ease-out select-none"
+                        class="col-span-2 min-h-[42px] flex items-center justify-center rounded-xl border border-gray-300 bg-white px-2 text-[13px] font-extrabold text-gray-800 hover:border-gray-400 hover:bg-gray-50 active:scale-[0.98] transition-all duration-150 ease-out select-none"
                       >
                         Ver ficha
                       </a>
@@ -580,7 +541,7 @@ interface CatalogLocalSnapshot {
                         type="button"
                         [disabled]="cart.getRemainingStockToAdd(part) <= 0"
                         (click)="cart.addPart(part, 1, true)"
-                        class="col-span-3 min-h-[44px] flex items-center justify-center gap-1.5 rounded-xl bg-orange-600 px-3 text-[13px] font-extrabold text-white shadow-2xs hover:bg-orange-700 active:scale-[0.98] disabled:bg-gray-200 disabled:text-gray-500 transition-all duration-150 ease-out select-none cursor-pointer"
+                        class="col-span-3 min-h-[42px] flex items-center justify-center gap-1.5 rounded-xl bg-orange-600 px-3 text-[13px] font-extrabold text-white shadow-2xs hover:bg-orange-700 active:scale-[0.98] disabled:bg-gray-200 disabled:text-gray-500 transition-all duration-150 ease-out select-none cursor-pointer"
                       >
                         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.4">
                           <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -766,6 +727,15 @@ export class CatalogPageComponent implements OnInit, OnDestroy {
     return this.categories().find((c) => c.id === id)?.name ?? null;
   });
 
+  readonly activeVehicleSummary = computed<string | null>(() => {
+    const parts = [
+      this.activeMakeName(),
+      this.activeModelName(),
+      this.selectedYearSig() ? String(this.selectedYearSig()) : null,
+    ].filter(Boolean);
+    return parts.length > 0 ? parts.join(' ') : null;
+  });
+
   readonly commonViscosities = [
     '0W-20',
     '5W-30',
@@ -778,7 +748,7 @@ export class CatalogPageComponent implements OnInit, OnDestroy {
     '80W-90',
   ];
   readonly selectedViscosity = signal<string | null>(null);
-  readonly years: number[] = Array.from({ length: 33 }, (_, i) => 2026 - i);
+  readonly years: number[] = Array.from({ length: 47 }, (_, i) => 2026 - i);
 
   // Instant 0ms in-memory filtered and sorted parts
   readonly displayedParts = computed<Part[]>(() => {
@@ -874,6 +844,7 @@ export class CatalogPageComponent implements OnInit, OnDestroy {
   private hydrateSnapshotFromStorage(): void {
     if (typeof window === 'undefined') return;
     try {
+      localStorage.removeItem(LEGACY_CATALOG_CACHE_KEY);
       const raw = localStorage.getItem(CATALOG_CACHE_KEY);
       if (!raw) return;
       const parsed = JSON.parse(raw) as CatalogLocalSnapshot;

@@ -27,6 +27,8 @@ spring:
 app:
   seeder:
     enabled: ${APP_SEEDER_ENABLED:true}
+  mail:
+    frontend-base-url: ${FRONTEND_BASE_URL:https://asucionfrontend.vercel.app}
   storage:
     type: local
     local:

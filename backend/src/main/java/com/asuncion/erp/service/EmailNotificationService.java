@@ -1,6 +1,7 @@
 package com.asuncion.erp.service;
 
 import com.asuncion.erp.domain.entity.AppUser;
+import com.asuncion.erp.domain.entity.ComplaintRecordEntity;
 import com.asuncion.erp.domain.entity.EmailNotificationLog;
 import com.asuncion.erp.domain.entity.SystemMailConfig;
 import com.asuncion.erp.dto.auth.UserDto;
@@ -106,14 +107,20 @@ public class EmailNotificationService {
             return c;
         });
 
-        cfg.setEnabled(req.enabled());
-        cfg.setSmtpHost(req.smtpHost() != null && !req.smtpHost().isBlank() ? req.smtpHost().trim() : "smtp.gmail.com");
+        String host = req.smtpHost() != null && !req.smtpHost().isBlank() ? req.smtpHost().trim() : "smtp.gmail.com";
+        cfg.setSmtpHost(host);
         cfg.setSmtpPort(req.smtpPort() != null && req.smtpPort() > 0 ? req.smtpPort() : 587);
         cfg.setUsername(req.username() != null && !req.username().isBlank() ? req.username().trim() : null);
 
         if (req.password() != null && !req.password().isBlank()) {
-            cfg.setPassword(req.password().trim());
+            String cleanedPass = host.toLowerCase(Locale.ROOT).contains("gmail")
+                    ? req.password().replaceAll("\\s+", "")
+                    : req.password().trim();
+            cfg.setPassword(cleanedPass);
         }
+
+        boolean hasAnyPassword = (cfg.getPassword() != null && !cfg.getPassword().isBlank()) || !envMailPassword.isBlank();
+        cfg.setEnabled(req.enabled() || hasAnyPassword);
 
         cfg.setFromName(req.fromName() != null && !req.fromName().isBlank() ? req.fromName().trim() : "Repuestos Asunción");
         cfg.setAdminNotificationEmail(req.adminNotificationEmail() != null && !req.adminNotificationEmail().isBlank()
@@ -183,16 +190,23 @@ public class EmailNotificationService {
 
         try {
             sendRealMimeMessage(settings, cleanRecipient, subject, html);
+            persistLog("PRUEBA_SMTP", cleanRecipient, subject, html, null, "SENT", null);
+            return new TestEmailResponse(
+                    true,
+                    "SENT",
+                    "Correo real enviado con éxito a " + cleanRecipient
+            );
         } catch (Exception e) {
-            log.info("Notificación registrada para {}: {}", cleanRecipient, e.getMessage());
+            String friendly = extractFriendlySmtpError(e);
+            String status = !settings.hasCredentials() ? "SIMULATED_NO_SMTP" : "FAILED";
+            persistLog("PRUEBA_SMTP", cleanRecipient, subject, html, null, status, truncate(friendly, 480));
+            log.warn("No se pudo entregar correo de prueba a {}: {}", cleanRecipient, friendly);
+            return new TestEmailResponse(
+                    false,
+                    status,
+                    friendly
+            );
         }
-
-        persistLog("PRUEBA_SMTP", cleanRecipient, subject, html, null, "SENT", null);
-        return new TestEmailResponse(
-                true,
-                "SENT",
-                "Correo de prueba enviado con éxito a " + cleanRecipient
-        );
     }
 
     @Async("mailTaskExecutor")
@@ -673,6 +687,87 @@ public class EmailNotificationService {
         }
     }
 
+    @Async("mailTaskExecutor")
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void notifyComplaintRegistered(ComplaintRecordEntity claim) {
+        try {
+            if (claim == null) {
+                return;
+            }
+            EffectiveMailSettings settings = resolveEffectiveSettings();
+            String subject = "Constancia Hoja de Reclamación " + claim.getSheetNumber() + " — Repuestos Asunción";
+            String content = """
+                    <p style="margin:0 0 14px;color:#334155;font-size:15px;line-height:1.6;">
+                      Estimado(a) <strong>%s</strong>, confirmamos la recepción de su Hoja de Reclamación Virtual conforme al Código de Protección y Defensa del Consumidor (Ley N° 29571).
+                    </p>
+                    <div style="background:#FFF7ED;border:1px solid #FED7AA;border-radius:10px;padding:16px;margin:14px 0;">
+                      <p style="margin:4px 0;font-size:14px;color:#1E293B;"><strong>N° de Hoja:</strong> <span style="color:#EA580C;font-weight:700;">%s</span></p>
+                      <p style="margin:4px 0;font-size:14px;color:#1E293B;"><strong>Tipo:</strong> %s (%s)</p>
+                      <p style="margin:4px 0;font-size:14px;color:#1E293B;"><strong>Bien contratado:</strong> %s</p>
+                      <p style="margin:4px 0;font-size:14px;color:#1E293B;"><strong>Detalle registrado:</strong> %s</p>
+                    </div>
+                    """.formatted(
+                    escapeHtml(claim.getFullName()),
+                    escapeHtml(claim.getSheetNumber()),
+                    escapeHtml(claim.getClaimType()),
+                    escapeHtml(claim.getGoodType()),
+                    escapeHtml(claim.getGoodDescription()),
+                    escapeHtml(claim.getClaimDetail())
+            );
+            String html = wrapCorporateTemplate(
+                    "LIBRO DE RECLAMACIONES",
+                    "Constancia " + claim.getSheetNumber(),
+                    content,
+                    "Ir a Autopartes Asunción",
+                    frontendBaseUrl + "/libro-reclamaciones"
+            );
+
+            if (claim.getEmail() != null && !claim.getEmail().isBlank()) {
+                dispatchOrSimulateWithSettings(settings, "RECLAMO_REGISTRADO", claim.getEmail().trim(), subject, html, claim.getSheetNumber());
+            }
+            String adminRecipient = firstNonBlank(settings.adminNotificationEmail(), settings.username());
+            if (adminRecipient != null && !adminRecipient.equalsIgnoreCase(nullToEmpty(claim.getEmail()).trim())) {
+                dispatchOrSimulateWithSettings(settings, "ALERTA_RECLAMO", adminRecipient, "[NUEVO RECLAMO " + claim.getSheetNumber() + "] " + claim.getFullName(), html, claim.getSheetNumber());
+            }
+        } catch (Exception e) {
+            log.warn("Error procesando notificación de reclamo: {}", e.getMessage());
+        }
+    }
+
+    @Async("mailTaskExecutor")
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void notifyComplaintResolved(ComplaintRecordEntity claim) {
+        try {
+            if (claim == null || claim.getEmail() == null || claim.getEmail().isBlank()) {
+                return;
+            }
+            String subject = "Respuesta Oficial a su Hoja de Reclamación " + claim.getSheetNumber() + " — Repuestos Asunción";
+            String content = """
+                    <p style="margin:0 0 14px;color:#334155;font-size:15px;line-height:1.6;">
+                      Estimado(a) <strong>%s</strong>, le remitimos la respuesta formal de <strong>Repuestos Automotrices Asunción S.A.C.</strong> respecto a la Hoja de Reclamación <strong>%s</strong>:
+                    </p>
+                    <div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:10px;padding:16px;margin:14px 0;">
+                      <p style="margin:0 0 6px;font-size:12px;color:#166534;font-weight:700;text-transform:uppercase;">Respuesta del Proveedor</p>
+                      <p style="margin:4px 0;font-size:14px;color:#1E293B;line-height:1.6;">%s</p>
+                    </div>
+                    """.formatted(
+                    escapeHtml(claim.getFullName()),
+                    escapeHtml(claim.getSheetNumber()),
+                    escapeHtml(claim.getAdminResponseNote())
+            );
+            String html = wrapCorporateTemplate(
+                    "ATENCIÓN AL CONSUMIDOR",
+                    "Hoja " + claim.getSheetNumber() + " Atendida",
+                    content,
+                    "Visitar Tienda Online",
+                    frontendBaseUrl
+            );
+            dispatchOrSimulate("RECLAMO_ATENDIDO", claim.getEmail().trim(), subject, html, claim.getSheetNumber());
+        } catch (Exception e) {
+            log.warn("Error procesando notificación RECLAMO_ATENDIDO: {}", e.getMessage());
+        }
+    }
+
     private void dispatchOrSimulate(String eventType, String recipientEmail, String subject, String htmlBody, String orderNumber) {
         EffectiveMailSettings settings = resolveEffectiveSettings();
         dispatchOrSimulateWithSettings(settings, eventType, recipientEmail, subject, htmlBody, orderNumber);
@@ -688,13 +783,56 @@ public class EmailNotificationService {
     ) {
         try {
             sendRealMimeMessage(settings, recipientEmail, subject, htmlBody);
+            persistLog(eventType, recipientEmail, subject, htmlBody, orderNumber, "SENT", null);
         } catch (Exception e) {
-            log.info("Notificación registrada para {}: {}", recipientEmail, e.getMessage());
+            String friendly = extractFriendlySmtpError(e);
+            String status = !settings.hasCredentials() ? "SIMULATED_NO_SMTP" : "FAILED";
+            log.warn("Notificación {} para {} no entregada ({}): {}", eventType, recipientEmail, status, friendly);
+            persistLog(eventType, recipientEmail, subject, htmlBody, orderNumber, status, truncate(friendly, 480));
         }
-        persistLog(eventType, recipientEmail, subject, htmlBody, orderNumber, "SENT", null);
     }
 
     private void sendRealMimeMessage(
+            EffectiveMailSettings settings,
+            String recipientEmail,
+            String subject,
+            String htmlBody
+    ) throws Exception {
+        if (!settings.hasCredentials()) {
+            // Allow Vercel HTTPS relay to fulfill if MAIL_APP_PASSWORD env var is set on Vercel; otherwise throws clear error immediately
+            dispatchViaHttpsRelay(settings, recipientEmail, subject, htmlBody);
+            return;
+        }
+
+        boolean isCloudDeployment = frontendBaseUrl != null && frontendBaseUrl.startsWith("https://");
+        if (isCloudDeployment) {
+            try {
+                dispatchViaHttpsRelay(settings, recipientEmail, subject, htmlBody);
+                return;
+            } catch (Exception relayEx) {
+                String msg = relayEx.getMessage() != null ? relayEx.getMessage() : "";
+                if (msg.contains("535") || msg.contains("Google rechazó la clave")) {
+                    throw relayEx;
+                }
+                log.info("HTTPS relay fallback to direct JavaMail SMTP: {}", msg);
+                sendViaDirectSmtp(settings, recipientEmail, subject, htmlBody);
+                return;
+            }
+        }
+
+        try {
+            sendViaDirectSmtp(settings, recipientEmail, subject, htmlBody);
+        } catch (Exception smtpEx) {
+            String msg = smtpEx.getMessage() != null ? smtpEx.getMessage() : "";
+            if (msg.contains("535") || msg.toLowerCase(Locale.ROOT).contains("username and password not accepted")) {
+                throw smtpEx;
+            }
+            log.info("Direct SMTP unavailable ({}), delegating to HTTPS relay", msg);
+            dispatchViaHttpsRelay(settings, recipientEmail, subject, htmlBody);
+        }
+    }
+
+    private void sendViaDirectSmtp(
             EffectiveMailSettings settings,
             String recipientEmail,
             String subject,
@@ -705,9 +843,9 @@ public class EmailNotificationService {
         sender.setPort(settings.smtpPort());
         sender.setUsername(settings.username());
 
-        String rawPass = settings.password();
+        String rawPass = settings.password() != null ? settings.password() : "";
         String sanitizedPass = settings.smtpHost().toLowerCase(Locale.ROOT).contains("gmail")
-                ? rawPass.replace(" ", "")
+                ? rawPass.replaceAll("\\s+", "")
                 : rawPass;
         sender.setPassword(sanitizedPass);
         sender.setDefaultEncoding(StandardCharsets.UTF_8.name());
@@ -729,13 +867,7 @@ public class EmailNotificationService {
         helper.setTo(recipientEmail);
         helper.setSubject(subject);
         helper.setText(htmlBody, true);
-
-        try {
-            sender.send(mimeMessage);
-        } catch (Exception e) {
-            log.info("Direct SMTP blocked by cloud firewall ({}), delegating to Vercel HTTPS relay", e.getMessage());
-            dispatchViaHttpsRelay(settings, recipientEmail, subject, htmlBody);
-        }
+        sender.send(mimeMessage);
     }
 
     private void dispatchViaHttpsRelay(
@@ -743,34 +875,47 @@ public class EmailNotificationService {
             String recipientEmail,
             String subject,
             String htmlBody
-    ) {
-        try {
-            java.net.http.HttpClient client = java.net.http.HttpClient.newBuilder()
-                    .connectTimeout(java.time.Duration.ofSeconds(6))
-                    .build();
+    ) throws Exception {
+        String relayBase = (frontendBaseUrl != null && frontendBaseUrl.startsWith("https://"))
+                ? frontendBaseUrl
+                : "https://asucionfrontend.vercel.app";
 
-            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-            java.util.Map<String, String> payload = new java.util.HashMap<>();
-            payload.put("to", recipientEmail);
-            payload.put("subject", subject);
-            payload.put("html", htmlBody);
-            payload.put("fromName", settings.fromName());
-            payload.put("username", settings.username());
-            payload.put("pass", settings.password());
+        java.net.http.HttpClient client = java.net.http.HttpClient.newBuilder()
+                .connectTimeout(java.time.Duration.ofSeconds(6))
+                .build();
 
-            String json = mapper.writeValueAsString(payload);
+        com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+        java.util.Map<String, String> payload = new java.util.HashMap<>();
+        payload.put("to", recipientEmail);
+        payload.put("subject", subject);
+        payload.put("html", htmlBody);
+        payload.put("fromName", settings.fromName() != null ? settings.fromName() : "Repuestos Asunción");
+        payload.put("username", settings.username() != null ? settings.username() : "");
+        payload.put("pass", settings.password() != null ? settings.password().replaceAll("\\s+", "") : "");
 
-            java.net.http.HttpRequest req = java.net.http.HttpRequest.newBuilder()
-                    .uri(java.net.URI.create("https://asucionfrontend.vercel.app/mail-service/send"))
-                    .header("Content-Type", "application/json; charset=utf-8")
-                    .timeout(java.time.Duration.ofSeconds(12))
-                    .POST(java.net.http.HttpRequest.BodyPublishers.ofString(json, java.nio.charset.StandardCharsets.UTF_8))
-                    .build();
+        String json = mapper.writeValueAsString(payload);
 
-            java.net.http.HttpResponse<String> resp = client.send(req, java.net.http.HttpResponse.BodyHandlers.ofString());
-            log.info("Vercel HTTPS mail relay status HTTP {}: {}", resp.statusCode(), resp.body());
-        } catch (Exception e) {
-            log.warn("HTTPS mail relay error: {}", e.getMessage());
+        java.net.http.HttpRequest req = java.net.http.HttpRequest.newBuilder()
+                .uri(java.net.URI.create(relayBase + "/mail-service/send"))
+                .header("Content-Type", "application/json; charset=utf-8")
+                .timeout(java.time.Duration.ofSeconds(14))
+                .POST(java.net.http.HttpRequest.BodyPublishers.ofString(json, java.nio.charset.StandardCharsets.UTF_8))
+                .build();
+
+        java.net.http.HttpResponse<String> resp = client.send(req, java.net.http.HttpResponse.BodyHandlers.ofString());
+        String body = resp.body() != null ? resp.body() : "";
+        log.info("HTTPS mail relay status HTTP {}: {}", resp.statusCode(), body);
+
+        if (resp.statusCode() < 200 || resp.statusCode() >= 300 || !body.contains("\"success\":true")) {
+            String relayErr = "No se pudo enviar el correo (HTTP " + resp.statusCode() + ")";
+            try {
+                com.fasterxml.jackson.databind.JsonNode node = mapper.readTree(body);
+                if (node.hasNonNull("error")) {
+                    relayErr = node.get("error").asText();
+                }
+            } catch (Exception ignored) {
+            }
+            throw new java.io.IOException(relayErr);
         }
     }
 
@@ -819,12 +964,12 @@ public class EmailNotificationService {
         String host = firstNonBlank(cfg.getSmtpHost(), envMailHost, "smtp.gmail.com");
         int port = (cfg.getSmtpPort() != null && cfg.getSmtpPort() > 0) ? cfg.getSmtpPort() : envMailPort;
         String user = firstNonBlank(cfg.getUsername(), envMailUsername);
-        String pass = firstNonBlank(cfg.getPassword(), envMailPassword);
+        String pass = nullToEmpty(firstNonBlank(cfg.getPassword(), envMailPassword));
         String fromName = firstNonBlank(cfg.getFromName(), "Repuestos Asunción");
         String adminEmail = firstNonBlank(cfg.getAdminNotificationEmail(), user, "admin@asuncion.pe");
 
         return new EffectiveMailSettings(
-                cfg.isEnabled(),
+                cfg.isEnabled() || !pass.isBlank(),
                 host,
                 port,
                 user,

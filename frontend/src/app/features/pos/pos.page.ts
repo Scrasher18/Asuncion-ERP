@@ -811,7 +811,7 @@ export class PosPageComponent implements OnInit, OnDestroy {
   private hydrateCachedCatalogForPos(): void {
     if (typeof window === 'undefined') return;
     try {
-      const raw = localStorage.getItem('asuncion_catalog_snapshot_v3');
+      const raw = localStorage.getItem('asuncion_catalog_snapshot_v4');
       if (!raw) return;
       const parsed = JSON.parse(raw) as { categories?: Category[]; parts?: Part[] };
       if (Array.isArray(parsed.categories) && parsed.categories.length > 0) {

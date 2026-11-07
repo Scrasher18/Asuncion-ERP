@@ -489,7 +489,7 @@ export class PartDetailPageComponent implements OnInit {
   private findCachedPart(id: number): Part | null {
     if (typeof window === 'undefined') return null;
     try {
-      const raw = localStorage.getItem('asuncion_catalog_snapshot_v3');
+      const raw = localStorage.getItem('asuncion_catalog_snapshot_v4');
       if (!raw) return null;
       const parsed = JSON.parse(raw) as { parts?: Part[] };
       return parsed.parts?.find((item) => item.id === id) ?? null;

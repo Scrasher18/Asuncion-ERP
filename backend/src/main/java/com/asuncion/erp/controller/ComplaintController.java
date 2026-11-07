@@ -3,6 +3,7 @@ package com.asuncion.erp.controller;
 import com.asuncion.erp.domain.entity.ComplaintRecordEntity;
 import com.asuncion.erp.exception.ResourceNotFoundException;
 import com.asuncion.erp.repository.ComplaintRepository;
+import com.asuncion.erp.service.EmailNotificationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.PostConstruct;
@@ -69,9 +70,14 @@ public class ComplaintController {
     }
 
     private final ComplaintRepository complaintRepository;
+    private final EmailNotificationService emailNotificationService;
 
-    public ComplaintController(ComplaintRepository complaintRepository) {
+    public ComplaintController(
+            ComplaintRepository complaintRepository,
+            EmailNotificationService emailNotificationService
+    ) {
         this.complaintRepository = complaintRepository;
+        this.emailNotificationService = emailNotificationService;
     }
 
     @PostConstruct
@@ -161,6 +167,7 @@ public class ComplaintController {
         entity.setCreatedAt(now);
 
         ComplaintRecordEntity saved = complaintRepository.save(entity);
+        emailNotificationService.notifyComplaintRegistered(saved);
         return ResponseEntity.status(HttpStatus.CREATED).body(toDto(saved));
     }
 
@@ -179,6 +186,7 @@ public class ComplaintController {
         entity.setResolvedAtLabel(LIMA_FMT.format(Instant.now()));
 
         ComplaintRecordEntity saved = complaintRepository.save(entity);
+        emailNotificationService.notifyComplaintResolved(saved);
         return ResponseEntity.ok(toDto(saved));
     }
 
