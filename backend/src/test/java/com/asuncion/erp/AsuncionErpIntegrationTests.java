@@ -258,7 +258,21 @@ class AsuncionErpIntegrationTests {
         assertThat(parts.size()).isGreaterThanOrEqualTo(4);
         assertThat(parts.get(0).get("images").get(0).get("isPrimary").asBoolean()).isTrue();
 
-        // Verify genuine differentiation across Year (1980 vs 2022) and Model (Hino 500 Series vs Dutro 300)
+        // Verify genuine differentiation across real chassis generations (1998-2026) and vehicle models
+        JsonNode fullCatalog = objectMapper.readTree(mockMvc.perform(get("/api/v1/catalog/parts"))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
+        assertThat(fullCatalog.size()).isLessThanOrEqualTo(100);
+        assertThat(fullCatalog.size()).isGreaterThanOrEqualTo(60);
+        for (JsonNode pNode : fullCatalog) {
+            JsonNode comps = pNode.get("compatibilities");
+            if (comps != null && comps.isArray()) {
+                for (JsonNode cNode : comps) {
+                    assertThat(cNode.get("yearStart").asInt()).isGreaterThanOrEqualTo(1998);
+                    assertThat(cNode.get("yearEnd").asInt()).isLessThanOrEqualTo(2026);
+                }
+            }
+        }
+
         MvcResult modelsRes = mockMvc.perform(get("/api/v1/catalog/vehicle-models"))
                 .andExpect(status().isOk())
                 .andReturn();
@@ -267,6 +281,8 @@ class AsuncionErpIntegrationTests {
         Long hino500Id = null;
         Long hinoDutroId = null;
         Long yarisId = null;
+        Long onixMakeId = null;
+        Long onixId = null;
         for (JsonNode m : allModels) {
             String make = m.get("makeName").asText();
             String name = m.get("name").asText();
@@ -277,16 +293,34 @@ class AsuncionErpIntegrationTests {
                 hinoDutroId = m.get("id").asLong();
             } else if ("Toyota".equalsIgnoreCase(make) && "Yaris".equalsIgnoreCase(name)) {
                 yarisId = m.get("id").asLong();
+            } else if ("Chevrolet".equalsIgnoreCase(make) && "Onix".equalsIgnoreCase(name)) {
+                onixMakeId = m.get("makeId").asLong();
+                onixId = m.get("id").asLong();
             }
         }
         assertThat(hino500Id).isNotNull();
         assertThat(hinoDutroId).isNotNull();
         assertThat(yarisId).isNotNull();
+        assertThat(onixId).isNotNull();
 
-        JsonNode hino500Classic = objectMapper.readTree(mockMvc.perform(get("/api/v1/catalog/parts")
+        // Chevrolet Onix launched in 2013 -> year 2005 must return 0 parts, year 2022 must return compatible parts
+        JsonNode onix2005 = objectMapper.readTree(mockMvc.perform(get("/api/v1/catalog/parts")
+                        .param("makeId", String.valueOf(onixMakeId))
+                        .param("modelId", String.valueOf(onixId))
+                        .param("year", "2005"))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
+        JsonNode onix2022 = objectMapper.readTree(mockMvc.perform(get("/api/v1/catalog/parts")
+                        .param("makeId", String.valueOf(onixMakeId))
+                        .param("modelId", String.valueOf(onixId))
+                        .param("year", "2022"))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
+        assertThat(onix2005.size()).isZero();
+        assertThat(onix2022.size()).isGreaterThan(0);
+
+        JsonNode hino500Gen1 = objectMapper.readTree(mockMvc.perform(get("/api/v1/catalog/parts")
                         .param("makeId", String.valueOf(hinoMakeId))
                         .param("modelId", String.valueOf(hino500Id))
-                        .param("year", "1980"))
+                        .param("year", "2004"))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
         JsonNode hino500Modern = objectMapper.readTree(mockMvc.perform(get("/api/v1/catalog/parts")
                         .param("makeId", String.valueOf(hinoMakeId))
@@ -304,8 +338,8 @@ class AsuncionErpIntegrationTests {
                         .param("year", "2020"))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
 
-        java.util.List<String> skus500Classic = new java.util.ArrayList<>();
-        hino500Classic.forEach(n -> skus500Classic.add(n.get("sku").asText()));
+        java.util.List<String> skus500Gen1 = new java.util.ArrayList<>();
+        hino500Gen1.forEach(n -> skus500Gen1.add(n.get("sku").asText()));
         java.util.List<String> skus500Modern = new java.util.ArrayList<>();
         hino500Modern.forEach(n -> skus500Modern.add(n.get("sku").asText()));
         java.util.List<String> skusDutroModern = new java.util.ArrayList<>();
@@ -315,9 +349,9 @@ class AsuncionErpIntegrationTests {
         java.util.List<String> skusYaris2020 = new java.util.ArrayList<>();
         yaris2020.forEach(n -> skusYaris2020.add(n.get("sku").asText()));
 
-        assertThat(skus500Classic).isNotEmpty();
+        assertThat(skus500Gen1).isNotEmpty();
         assertThat(skus500Modern).isNotEmpty();
-        assertThat(skus500Classic).isNotEqualTo(skus500Modern);
+        assertThat(skus500Gen1).isNotEqualTo(skus500Modern);
         assertThat(skus500Modern).isNotEqualTo(skusDutroModern);
         assertThat(skusHilux2020).isNotEqualTo(skusYaris2020);
 

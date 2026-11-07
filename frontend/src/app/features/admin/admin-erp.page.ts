@@ -3990,6 +3990,8 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                         <label class="block text-[11px] text-gray-600 mb-1">Año desde (Opcional)</label>
                         <input
                           type="number"
+                          min="1998"
+                          max="2026"
                           [(ngModel)]="compDraftYearStart"
                           class="w-full rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs tabular-nums text-gray-900"
                         />
@@ -3998,6 +4000,8 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                         <label class="block text-[11px] text-gray-600 mb-1">Año hasta (Opcional)</label>
                         <input
                           type="number"
+                          min="1998"
+                          max="2026"
                           [(ngModel)]="compDraftYearEnd"
                           class="w-full rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs tabular-nums text-gray-900"
                         />
@@ -5092,7 +5096,7 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
   partForm: PartUpsertRequest = this.emptyPartForm();
   compDraftMakeId: number | null = null;
   compDraftModelId: number | null = null;
-  compDraftYearStart = 1980;
+  compDraftYearStart = 1998;
   compDraftYearEnd = 2026;
   compDraftEngine = '';
 
@@ -5587,6 +5591,9 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
     // Default to clean state: no pre-selected vehicle
     this.compDraftMakeId = null;
     this.compDraftModelId = null;
+    this.compDraftYearStart = 1998;
+    this.compDraftYearEnd = 2026;
+    this.compDraftEngine = '';
     this.compModels.set([]);
 
     this.showPartModal.set(true);

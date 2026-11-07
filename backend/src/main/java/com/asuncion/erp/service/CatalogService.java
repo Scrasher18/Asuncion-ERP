@@ -647,7 +647,7 @@ public class CatalogService {
         }
         List<PartCompatibilityDto> comps = entry.baseResponse().compatibilities();
         if (comps == null || comps.isEmpty()) {
-            return entry.universalFitment();
+            return false;
         }
         return comps.stream().anyMatch(c -> {
             boolean makeOk = makeId == null || makeId.equals(c.makeId());

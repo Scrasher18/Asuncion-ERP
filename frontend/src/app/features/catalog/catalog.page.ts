@@ -25,8 +25,12 @@ interface CatalogComboCard {
   complementComboPrice: number;
 }
 
-const CATALOG_CACHE_KEY = 'asuncion_catalog_snapshot_v5';
-const LEGACY_CATALOG_CACHE_KEYS = ['asuncion_catalog_snapshot_v4', 'asuncion_catalog_snapshot_v3'];
+const CATALOG_CACHE_KEY = 'asuncion_catalog_snapshot_v6';
+const LEGACY_CATALOG_CACHE_KEYS = [
+  'asuncion_catalog_snapshot_v5',
+  'asuncion_catalog_snapshot_v4',
+  'asuncion_catalog_snapshot_v3',
+];
 const CATALOG_CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
 interface CatalogLocalSnapshot {
@@ -194,7 +198,7 @@ interface CatalogLocalSnapshot {
                   class="w-full min-h-[46px] rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm font-bold text-gray-950 tabular-nums focus:border-orange-600 focus:ring-2 focus:ring-orange-500/25 focus:outline-none cursor-pointer"
                 >
                   <option [ngValue]="null">Cualquier año</option>
-                  @for (yr of years; track yr) {
+                  @for (yr of availableYears(); track yr) {
                     <option [ngValue]="yr">{{ yr }}</option>
                   }
                 </select>
@@ -1011,7 +1015,45 @@ export class CatalogPageComponent implements OnInit, OnDestroy {
     '80W-90',
   ];
   readonly selectedViscosity = signal<string | null>(null);
-  readonly years: number[] = Array.from({ length: 47 }, (_, i) => 2026 - i);
+  readonly years: number[] = Array.from({ length: 29 }, (_, i) => 2026 - i);
+
+  readonly availableYears = computed<number[]>(() => {
+    const makeId = this.selectedMakeIdSig();
+    const modelId = this.selectedModelIdSig();
+    const parts = this.allParts();
+    if ((makeId === null && modelId === null) || parts.length === 0) {
+      return this.years;
+    }
+
+    let minYear = 2026;
+    let maxYear = 1998;
+    let found = false;
+
+    for (const part of parts) {
+      if (part.active === false) continue;
+      for (const comp of part.compatibilities || []) {
+        const matchesModel =
+          modelId !== null
+            ? Number(comp.modelId) === Number(modelId)
+            : Number(comp.makeId) === Number(makeId);
+        if (!matchesModel) continue;
+
+        const start = Math.max(1998, Number(comp.yearStart) || 1998);
+        const end = Math.min(2026, Number(comp.yearEnd) || 2026);
+        if (start <= end) {
+          if (start < minYear) minYear = start;
+          if (end > maxYear) maxYear = end;
+          found = true;
+        }
+      }
+    }
+
+    if (!found || minYear > maxYear) {
+      return this.years;
+    }
+
+    return Array.from({ length: maxYear - minYear + 1 }, (_, i) => maxYear - i);
+  });
 
   readonly displayedCombos = computed<CatalogComboCard[]>(() => {
     const partsMap = new Map<string, Part>();
@@ -1363,14 +1405,7 @@ export class CatalogPageComponent implements OnInit, OnDestroy {
     if (makeId === null && modelId === null && year === null) {
       return true;
     }
-    if (this.hasDirectCompatibility(part, makeId, modelId, year)) {
-      return true;
-    }
-    const comps = part.compatibilities;
-    if (!comps || comps.length === 0) {
-      return (part.categoryName || '').toLowerCase().includes('accesorio');
-    }
-    return false;
+    return this.hasDirectCompatibility(part, makeId, modelId, year);
   }
 
   private normalizeSearchText(str: string): string {
@@ -1456,6 +1491,10 @@ export class CatalogPageComponent implements OnInit, OnDestroy {
     } else if (makeId === null) {
       this.selectedModelId = null;
     }
+    const currentYear = this.selectedYearSig();
+    if (currentYear !== null && !this.availableYears().includes(Number(currentYear))) {
+      this.selectedYear = null;
+    }
     this.applyFilters();
   }
 
@@ -1466,6 +1505,10 @@ export class CatalogPageComponent implements OnInit, OnDestroy {
       if (foundModel?.makeId && Number(this.selectedMakeIdSig()) !== Number(foundModel.makeId)) {
         this.selectedMakeId = foundModel.makeId;
       }
+    }
+    const currentYear = this.selectedYearSig();
+    if (currentYear !== null && !this.availableYears().includes(Number(currentYear))) {
+      this.selectedYear = null;
     }
     this.applyFilters();
   }
@@ -1573,20 +1616,35 @@ export class CatalogPageComponent implements OnInit, OnDestroy {
     const comps: PartCompatibility[] = part.compatibilities || [];
 
     if (comps.length > 0) {
-      const exactMatch =
-        comps.find(
-          (c) =>
-            (makeId === null || Number(c.makeId) === Number(makeId)) &&
-            (modelId === null || Number(c.modelId) === Number(modelId)) &&
-            (year === null ||
-              (Number(c.yearStart) <= Number(year) && Number(c.yearEnd) >= Number(year)))
-        ) ||
-        comps.find((c) => modelId !== null && Number(c.modelId) === Number(modelId)) ||
-        comps.find((c) => makeId !== null && Number(c.makeId) === Number(makeId)) ||
-        comps[0];
+      let chosen: PartCompatibility | undefined;
+      if (makeId !== null || modelId !== null || year !== null) {
+        chosen =
+          comps.find(
+            (c) =>
+              (makeId === null || Number(c.makeId) === Number(makeId)) &&
+              (modelId === null || Number(c.modelId) === Number(modelId)) &&
+              (year === null ||
+                (Number(c.yearStart) <= Number(year) && Number(c.yearEnd) >= Number(year)))
+          ) ||
+          comps.find((c) => modelId !== null && Number(c.modelId) === Number(modelId)) ||
+          comps.find((c) => makeId !== null && Number(c.makeId) === Number(makeId));
+      } else {
+        const lowerTitle = `${part.name || ''} ${part.technicalDescription || ''}`.toLowerCase();
+        chosen =
+          comps.find((c) => {
+            const mName = (c.modelName || '').trim().toLowerCase();
+            return mName.length >= 3 && lowerTitle.includes(mName);
+          }) ||
+          comps.find((c) => {
+            const mkName = (c.makeName || '').trim().toLowerCase();
+            return mkName.length >= 3 && lowerTitle.includes(mkName);
+          }) ||
+          comps[Math.abs(Number(part.id) || 0) % comps.length];
+      }
 
-      const vehicle = [exactMatch.makeName, exactMatch.modelName].filter(Boolean).join(' ');
-      return `${vehicle} (${exactMatch.yearStart}-${exactMatch.yearEnd})`;
+      const target = chosen || comps[0];
+      const vehicle = [target.makeName, target.modelName].filter(Boolean).join(' ');
+      return `${vehicle} (${target.yearStart}-${target.yearEnd})`;
     }
 
     const activeVehicle = [this.activeMakeName(), this.activeModelName()].filter(Boolean).join(' ');
