@@ -206,7 +206,8 @@ public class OrderService {
 
         Map<Long, BigDecimal> effectiveUnitPrices = promotionCatalogService.resolveEffectiveUnitPricesAndTrackQuota(
                 lockedPartsById,
-                requestedQuantities
+                requestedQuantities,
+                req.customCombos()
         );
 
         BigDecimal subtotal = BigDecimal.ZERO;

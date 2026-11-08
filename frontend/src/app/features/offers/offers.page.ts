@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { retry } from 'rxjs';
 import { Part } from '../../core/models/api.models';
 import { ApiConfigService } from '../../core/services/api-config.service';
@@ -57,7 +57,7 @@ export interface HydratedDirectOfferView {
                 Ofertas y Combos Automotrices
               </h1>
               <p class="text-sm sm:text-base text-gray-200 leading-relaxed font-medium">
-                Aprovecha descuentos verificados en repuestos seleccionados y combos de mantenimiento (repuesto principal + consumible complementario con doble descuento en el carrito).
+                Aprovecha combos oficiales y descuentos directos, o arma tu propio combo a medida con 10% de descuento automático en el total del par de repuestos.
               </p>
             </div>
 
@@ -95,6 +95,19 @@ export interface HydratedDirectOfferView {
             </button>
             <button
               type="button"
+              (click)="activeTab.set('CUSTOM')"
+              [class]="
+                activeTab() === 'CUSTOM'
+                  ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white border-amber-400 shadow-md ring-2 ring-amber-300/40'
+                  : 'bg-amber-500/20 text-amber-200 border-amber-400/40 hover:bg-amber-500/30'
+              "
+              class="min-h-[40px] rounded-xl border px-4 py-2 text-xs sm:text-sm font-black transition cursor-pointer flex items-center gap-1.5"
+            >
+              <span>🛠️ Armar mi Combo (-10%)</span>
+              <span class="rounded-full bg-amber-400 text-gray-950 px-1.5 py-0.2 text-[10px] font-black uppercase">Nuevo</span>
+            </button>
+            <button
+              type="button"
               (click)="activeTab.set('COMBOS')"
               [class]="
                 activeTab() === 'COMBOS'
@@ -103,7 +116,7 @@ export interface HydratedDirectOfferView {
               "
               class="min-h-[40px] rounded-xl border px-4 py-2 text-xs sm:text-sm font-extrabold transition cursor-pointer"
             >
-              📦 Combos Automotrices ({{ hydratedCombos().length }})
+              📦 Combos Oficiales ({{ hydratedCombos().length }})
             </button>
             <button
               type="button"
@@ -115,7 +128,7 @@ export interface HydratedDirectOfferView {
               "
               class="min-h-[40px] rounded-xl border px-4 py-2 text-xs sm:text-sm font-extrabold transition cursor-pointer"
             >
-              🏷️ Ofertas Individuales ({{ hydratedOffers().length }})
+              🏷️ Ofertas Directas ({{ hydratedOffers().length }})
             </button>
           </div>
         </div>
@@ -127,22 +140,284 @@ export interface HydratedDirectOfferView {
             <div class="mx-auto h-8 w-8 animate-spin rounded-full border-3 border-orange-600 border-t-transparent"></div>
             <p class="mt-3 text-sm font-bold text-gray-700">Cargando ofertas y combos disponibles...</p>
           </div>
-        } @else if (hydratedCombos().length === 0 && hydratedOffers().length === 0) {
-          <div class="rounded-2xl border border-gray-200 bg-white p-12 text-center shadow-2xs space-y-3">
-            <p class="text-lg font-extrabold text-gray-900">No hay ofertas o combos activos en este momento</p>
-            <p class="text-sm text-gray-600 max-w-md mx-auto">
-              Explora todo nuestro inventario con precios mayoristas automáticos llevando 4 o más unidades.
-            </p>
-            <a
-              routerLink="/"
-              class="inline-flex min-h-[42px] items-center justify-center rounded-xl bg-orange-600 px-5 py-2 text-sm font-extrabold text-white hover:bg-orange-700 transition"
-            >
-              Ir al Catálogo Completo
-            </a>
-          </div>
         }
 
-        <!-- ==================== 1. SECCIÓN DE COMBOS AUTOMOTRICES ==================== -->
+        <!-- ==================== CREADOR DE COMBOS PERSONALIZADOS ==================== -->
+        @if (activeTab() === 'CUSTOM' || activeTab() === 'ALL') {
+          <section class="rounded-3xl border-2 border-orange-300 bg-linear-to-b from-orange-50/70 via-white to-amber-50/50 p-5 sm:p-7 shadow-xs space-y-6">
+            <div class="flex flex-wrap items-center justify-between gap-3 border-b border-orange-200/80 pb-4">
+              <div>
+                <span class="inline-flex items-center gap-1.5 rounded-full bg-orange-600 px-3 py-0.5 text-[11px] font-black uppercase text-white tracking-wide">
+                  🛠️ Personalizador Automotriz
+                </span>
+                <h2 class="text-xl sm:text-2xl font-black text-gray-950 mt-1">
+                  Arma tu Propio Combo y Ahorra un 10%
+                </h2>
+                <p class="text-xs sm:text-sm text-gray-600 font-medium">
+                  Combina libremente 2 repuestos compatibles de nuestro almacén. Obtén 10% de descuento directo en el combo y 10 minutos de reserva garantizada.
+                </p>
+              </div>
+
+              @if (customMainPart() || customCompPart()) {
+                <button
+                  type="button"
+                  (click)="resetCustomCombo()"
+                  class="min-h-[38px] rounded-xl border border-gray-300 bg-white px-3.5 text-xs font-bold text-gray-700 hover:bg-gray-100 transition cursor-pointer"
+                >
+                  Reiniciar diseñador
+                </button>
+              }
+            </div>
+
+            <!-- 2-Step Interactive Builder Columns -->
+            <div class="grid grid-cols-1 lg:grid-cols-11 gap-4 items-center">
+              <!-- PASO 1: Repuesto Base / Principal (Col 5) -->
+              <div class="lg:col-span-5 rounded-2xl border border-gray-200 bg-white p-4 sm:p-5 shadow-2xs flex flex-col min-h-[360px]">
+                <div class="flex items-center justify-between border-b border-gray-100 pb-2.5 mb-3">
+                  <div class="flex items-center gap-2">
+                    <span class="flex h-6 w-6 items-center justify-center rounded-full bg-orange-600 text-xs font-black text-white">1</span>
+                    <h3 class="text-sm font-extrabold text-gray-900">Repuesto Base / Principal</h3>
+                  </div>
+                  @if (customMainPart()) {
+                    <button
+                      type="button"
+                      (click)="customMainPart.set(null)"
+                      class="text-xs font-bold text-orange-600 hover:text-orange-700 hover:underline cursor-pointer"
+                    >
+                      Cambiar
+                    </button>
+                  }
+                </div>
+
+                @if (customMainPart(); as main) {
+                  <!-- Selected Main Part View -->
+                  <div class="flex flex-col items-center justify-center flex-1 text-center p-3 space-y-3 animate-fadeIn">
+                    <div class="h-32 w-32 relative bg-gray-50 rounded-xl p-2 border border-gray-100 flex items-center justify-center">
+                      <img
+                        [src]="resolveImage(main)"
+                        [alt]="main.name"
+                        (error)="onPartImageError($event, main)"
+                        class="max-h-full max-w-full object-contain"
+                      />
+                      <span class="absolute top-1 right-1 rounded-full bg-emerald-600 px-1.5 py-0.2 font-mono text-[9px] font-black text-white">
+                        ✓ Base
+                      </span>
+                    </div>
+                    <div>
+                      <span class="text-[11px] font-extrabold uppercase text-orange-600 tracking-wide">
+                        {{ main.manufacturerBrand }} · {{ main.sku }}
+                      </span>
+                      <h4 class="text-sm font-black text-gray-950 line-clamp-2">
+                        {{ main.name }}
+                      </h4>
+                    </div>
+                    <div class="border-t border-gray-100 pt-2 w-full flex items-center justify-between text-xs">
+                      <span class="font-bold text-gray-500">Precio regular:</span>
+                      <span class="font-black text-gray-900 font-mono text-sm">S/ {{ main.salePrice | number: '1.2-2' }}</span>
+                    </div>
+                  </div>
+                } @else {
+                  <!-- Search & Selection Interface for Step 1 -->
+                  <div class="flex flex-col flex-1 space-y-3">
+                    <div class="relative">
+                      <input
+                        type="text"
+                        [value]="mainSearchQuery()"
+                        (input)="onMainSearchInput($event)"
+                        placeholder="Buscar por nombre o marca (ej: Pastillas, Amortiguador...)"
+                        class="w-full rounded-xl border border-gray-300 bg-gray-50/70 pl-8 pr-3 py-2 text-xs font-medium focus:border-orange-500 focus:bg-white focus:outline-hidden"
+                      />
+                      <svg class="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                      </svg>
+                    </div>
+
+                    <!-- Category Pills -->
+                    <div class="flex items-center gap-1 overflow-x-auto pb-1 text-[11px]">
+                      @for (cat of categoryFilterOptions; track cat) {
+                        <button
+                          type="button"
+                          (click)="selectedCategoryFilter.set(cat)"
+                          [class]="selectedCategoryFilter() === cat ? 'bg-orange-600 text-white font-bold' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+                          class="rounded-lg px-2.5 py-1 shrink-0 transition cursor-pointer"
+                        >
+                          {{ cat }}
+                        </button>
+                      }
+                    </div>
+
+                    <!-- Scrollable Parts List -->
+                    <div class="flex-1 max-h-56 overflow-y-auto divide-y divide-gray-100 border border-gray-100 rounded-xl pr-1">
+                      @for (part of selectableMainParts(); track part.id) {
+                        <div class="flex items-center justify-between gap-2 p-2 hover:bg-orange-50/50 transition rounded-lg">
+                          <div class="flex items-center gap-2 min-w-0">
+                            <img
+                              [src]="resolveImage(part)"
+                              [alt]="part.name"
+                              (error)="onPartImageError($event, part)"
+                              class="h-10 w-10 shrink-0 object-contain rounded-md bg-white border border-gray-100 p-0.5"
+                            />
+                            <div class="min-w-0 text-left">
+                              <p class="text-xs font-bold text-gray-900 truncate">{{ part.name }}</p>
+                              <span class="text-[10px] text-gray-500">{{ part.manufacturerBrand }} · S/ {{ part.salePrice | number: '1.2-2' }}</span>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            (click)="customMainPart.set(part)"
+                            class="shrink-0 rounded-lg bg-orange-600 px-2.5 py-1 text-[11px] font-extrabold text-white hover:bg-orange-700 transition cursor-pointer"
+                          >
+                            + Elegir
+                          </button>
+                        </div>
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
+
+              <!-- CENTRAL CONNECTOR (Col 1) -->
+              <div class="lg:col-span-1 flex flex-col items-center justify-center py-2 lg:py-0">
+                <div class="h-10 w-10 rounded-full bg-gradient-to-tr from-orange-600 to-amber-500 text-white flex items-center justify-center font-black text-lg shadow-md shadow-orange-500/30 ring-4 ring-orange-100 animate-pulse">
+                  +
+                </div>
+                <span class="text-[10px] font-black uppercase text-orange-600 tracking-tighter mt-1">Combo</span>
+              </div>
+
+              <!-- PASO 2: Repuesto Complementario (Col 5) -->
+              <div class="lg:col-span-5 rounded-2xl border border-gray-200 bg-white p-4 sm:p-5 shadow-2xs flex flex-col min-h-[360px]">
+                <div class="flex items-center justify-between border-b border-gray-100 pb-2.5 mb-3">
+                  <div class="flex items-center gap-2">
+                    <span class="flex h-6 w-6 items-center justify-center rounded-full bg-amber-500 text-xs font-black text-white">2</span>
+                    <h3 class="text-sm font-extrabold text-gray-900">Repuesto Complementario</h3>
+                  </div>
+                  @if (customCompPart()) {
+                    <button
+                      type="button"
+                      (click)="customCompPart.set(null)"
+                      class="text-xs font-bold text-amber-600 hover:text-amber-700 hover:underline cursor-pointer"
+                    >
+                      Cambiar
+                    </button>
+                  }
+                </div>
+
+                @if (customCompPart(); as comp) {
+                  <!-- Selected Complement View -->
+                  <div class="flex flex-col items-center justify-center flex-1 text-center p-3 space-y-3 animate-fadeIn">
+                    <div class="h-32 w-32 relative bg-gray-50 rounded-xl p-2 border border-gray-100 flex items-center justify-center">
+                      <img
+                        [src]="resolveImage(comp)"
+                        [alt]="comp.name"
+                        (error)="onPartImageError($event, comp)"
+                        class="max-h-full max-w-full object-contain"
+                      />
+                      <span class="absolute top-1 right-1 rounded-full bg-amber-500 px-1.5 py-0.2 font-mono text-[9px] font-black text-white">
+                        ✓ Complemento
+                      </span>
+                    </div>
+                    <div>
+                      <span class="text-[11px] font-extrabold uppercase text-amber-600 tracking-wide">
+                        {{ comp.manufacturerBrand }} · {{ comp.sku }}
+                      </span>
+                      <h4 class="text-sm font-black text-gray-950 line-clamp-2">
+                        {{ comp.name }}
+                      </h4>
+                    </div>
+                    <div class="border-t border-gray-100 pt-2 w-full flex items-center justify-between text-xs">
+                      <span class="font-bold text-gray-500">Precio regular:</span>
+                      <span class="font-black text-gray-900 font-mono text-sm">S/ {{ comp.salePrice | number: '1.2-2' }}</span>
+                    </div>
+                  </div>
+                } @else {
+                  <!-- Search & Selection Interface for Step 2 -->
+                  <div class="flex flex-col flex-1 space-y-3">
+                    <div class="relative">
+                      <input
+                        type="text"
+                        [value]="compSearchQuery()"
+                        (input)="onCompSearchInput($event)"
+                        placeholder="Buscar fluido, filtro o accesorio (ej: Líquido DOT 4, Aceite...)"
+                        class="w-full rounded-xl border border-gray-300 bg-gray-50/70 pl-8 pr-3 py-2 text-xs font-medium focus:border-amber-500 focus:bg-white focus:outline-hidden"
+                      />
+                      <svg class="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                      </svg>
+                    </div>
+
+                    <div class="flex items-center justify-between text-[11px] text-gray-500 font-semibold">
+                      <span>{{ customMainPart() ? '💡 Sugeridos para tu repuesto base:' : 'Repuestos del catálogo:' }}</span>
+                      <span class="text-amber-700 font-bold">-10% en el combo</span>
+                    </div>
+
+                    <!-- Scrollable Parts List for Complement -->
+                    <div class="flex-1 max-h-56 overflow-y-auto divide-y divide-gray-100 border border-gray-100 rounded-xl pr-1">
+                      @for (part of selectableCompParts(); track part.id) {
+                        <div class="flex items-center justify-between gap-2 p-2 hover:bg-amber-50/50 transition rounded-lg">
+                          <div class="flex items-center gap-2 min-w-0">
+                            <img
+                              [src]="resolveImage(part)"
+                              [alt]="part.name"
+                              (error)="onPartImageError($event, part)"
+                              class="h-10 w-10 shrink-0 object-contain rounded-md bg-white border border-gray-100 p-0.5"
+                            />
+                            <div class="min-w-0 text-left">
+                              <p class="text-xs font-bold text-gray-900 truncate">{{ part.name }}</p>
+                              <span class="text-[10px] text-gray-500">{{ part.manufacturerBrand }} · S/ {{ part.salePrice | number: '1.2-2' }}</span>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            (click)="customCompPart.set(part)"
+                            class="shrink-0 rounded-lg bg-amber-500 px-2.5 py-1 text-[11px] font-extrabold text-white hover:bg-amber-600 transition cursor-pointer"
+                          >
+                            + Elegir
+                          </button>
+                        </div>
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+
+            <!-- Custom Combo Pricing & Action Footer -->
+            <div class="rounded-2xl border border-orange-200 bg-white p-4 sm:p-5 flex flex-wrap items-center justify-between gap-4 shadow-2xs">
+              <div class="space-y-1">
+                @if (customMainPart() && customCompPart()) {
+                  <div class="flex items-center gap-2 text-xs text-gray-500">
+                    <span>Precio por separado: <del>S/ {{ customComboRegularTotal() | number: '1.2-2' }}</del></span>
+                    <span class="rounded bg-emerald-100 text-emerald-800 px-1.5 py-0.2 font-black text-[11px]">
+                      ¡Ahorras S/ {{ customComboDiscount() | number: '1.2-2' }}!
+                    </span>
+                  </div>
+                  <div class="flex items-baseline gap-2">
+                    <span class="text-2xl sm:text-3xl font-black text-orange-600 font-mono">
+                      S/ {{ customComboFinalTotal() | number: '1.2-2' }}
+                    </span>
+                    <span class="text-xs font-bold text-gray-600">por el combo completo (10% OFF aplicado)</span>
+                  </div>
+                } @else {
+                  <p class="text-xs sm:text-sm font-bold text-gray-700">
+                    {{ !customMainPart() ? '👉 Selecciona primero el Repuesto Base (Paso 1)' : '👉 Ahora selecciona el Repuesto Complementario (Paso 2)' }}
+                  </p>
+                  <p class="text-[11px] text-gray-500">El descuento del 10% se calculará y apartará en almacén de inmediato.</p>
+                }
+              </div>
+
+              <button
+                type="button"
+                [disabled]="!canAddCustomCombo()"
+                (click)="addCustomComboToCart()"
+                class="min-h-[46px] inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-orange-600 to-amber-500 px-6 py-2.5 text-sm font-black text-white shadow-md shadow-orange-500/25 hover:from-orange-700 hover:to-amber-600 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none transition cursor-pointer"
+              >
+                <span>🛒 Llevar mi Combo Personalizado (10% OFF)</span>
+              </button>
+            </div>
+          </section>
+        }
+
+        <!-- ==================== 1. SECCIÓN DE COMBOS AUTOMOTRICES OFICIALES ==================== -->
         @if ((activeTab() === 'ALL' || activeTab() === 'COMBOS') && hydratedCombos().length > 0) {
           <section class="space-y-4">
             <div class="flex flex-wrap items-end justify-between gap-2">
@@ -151,36 +426,31 @@ export interface HydratedDirectOfferView {
                   Paquetes Inteligentes de Mantenimiento
                 </span>
                 <h2 class="text-xl sm:text-2xl font-black text-gray-950">
-                  📦 Combos Automotrices con Doble Descuento
+                  📦 Combos Automotrices Oficiales
                 </h2>
               </div>
               <p class="text-xs sm:text-sm font-semibold text-gray-600">
-                Lleva ambos productos juntos y el descuento se activa automáticamente en tu carrito y comprobante.
+                Paquetes sugeridos con doble descuento aplicable de inmediato.
               </p>
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               @for (combo of hydratedCombos(); track combo.promo.sku) {
-                <article class="flex flex-col justify-between rounded-2xl border-2 border-orange-200/90 bg-white shadow-xs hover:shadow-lg hover:border-orange-400 transition overflow-hidden">
-                  <!-- Combo Top Header -->
-                  <div class="flex flex-wrap items-center justify-between gap-2 border-b border-orange-100 bg-orange-50/70 px-4 py-3">
-                    <div class="flex items-center gap-2">
-                      <span class="rounded-lg bg-orange-600 px-2.5 py-1 text-[11px] font-black uppercase tracking-wide text-white shadow-2xs">
-                        📦 {{ combo.promo.badgeLabel || 'COMBO AUTOMOTRIZ' }}
-                      </span>
-                      <span class="rounded-lg border border-emerald-300 bg-emerald-50 px-2.5 py-0.5 text-xs font-extrabold text-emerald-800 tabular-nums">
-                        Ahorras S/ {{ combo.totalSavings | number: '1.2-2' }}
-                      </span>
-                    </div>
-                    <span class="text-xs font-bold text-gray-600 tabular-nums">
-                      Cupo disponible: {{ combo.remainingQuota }} combos
+                <article class="group flex flex-col rounded-2xl border border-orange-200 bg-white overflow-hidden shadow-2xs hover:shadow-lg hover:border-orange-400 transition-all duration-200">
+                  <!-- Header Badge -->
+                  <div class="border-b border-orange-100 bg-orange-50/60 px-4 py-2.5 flex items-center justify-between">
+                    <span class="inline-flex items-center gap-1.5 rounded-full bg-orange-600 px-2.5 py-0.5 text-[11px] font-black text-white uppercase tracking-wider">
+                      {{ combo.promo.badgeLabel || 'COMBO RECOMENDADO' }}
+                    </span>
+                    <span class="font-mono text-xs font-black text-emerald-700">
+                      Ahorras S/ {{ combo.totalSavings | number: '1.2-2' }}
                     </span>
                   </div>
 
-                  <!-- Dual Product Showcase -->
-                  <div class="p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-11 gap-3 items-center">
-                    <!-- Main Part -->
-                    <div class="sm:col-span-5 rounded-xl border border-gray-200 bg-gray-50/50 p-3 flex flex-col items-center text-center space-y-2">
+                  <!-- 2-Part Combined Visual Display -->
+                  <div class="p-4 sm:p-5 grid grid-cols-2 gap-3 relative items-stretch">
+                    <!-- Main Part Preview -->
+                    <div class="flex flex-col items-center text-center space-y-2">
                       <a [routerLink]="['/part', combo.mainPart.id]" class="h-32 w-full flex items-center justify-center bg-white rounded-lg p-2 border border-gray-100">
                         <img
                           [src]="resolveImage(combo.mainPart)"
@@ -189,30 +459,18 @@ export interface HydratedDirectOfferView {
                           class="max-h-full max-w-full object-contain"
                         />
                       </a>
-                      <span class="rounded bg-red-100 px-2 py-0.5 text-[10px] font-extrabold text-red-700">
-                        Principal -{{ combo.promo.discountPercentage }}%
-                      </span>
-                      <a
-                        [routerLink]="['/part', combo.mainPart.id]"
-                        class="text-xs sm:text-[13px] font-extrabold text-gray-950 leading-snug hover:text-orange-600 transition"
-                      >
+                      <span class="text-[10px] font-extrabold uppercase text-orange-600">Principal</span>
+                      <a [routerLink]="['/part', combo.mainPart.id]" class="text-xs font-bold text-gray-900 line-clamp-2 hover:text-orange-600 transition">
                         {{ combo.mainPart.name }}
                       </a>
-                      <div class="text-xs tabular-nums">
+                      <div class="text-xs font-mono">
                         <span class="text-gray-400 line-through mr-1.5">S/ {{ combo.mainPart.salePrice | number: '1.2-2' }}</span>
                         <strong class="text-gray-950 font-black">S/ {{ combo.promo.promoPrice | number: '1.2-2' }}</strong>
                       </div>
                     </div>
 
-                    <!-- Plus Connector -->
-                    <div class="sm:col-span-1 flex items-center justify-center">
-                      <span class="flex h-9 w-9 items-center justify-center rounded-full bg-orange-100 text-orange-700 text-lg font-black shadow-2xs">
-                        +
-                      </span>
-                    </div>
-
-                    <!-- Complement Part -->
-                    <div class="sm:col-span-5 rounded-xl border border-gray-200 bg-gray-50/50 p-3 flex flex-col items-center text-center space-y-2">
+                    <!-- Complement Part Preview -->
+                    <div class="flex flex-col items-center text-center space-y-2">
                       <a [routerLink]="['/part', combo.complementPart.id]" class="h-32 w-full flex items-center justify-center bg-white rounded-lg p-2 border border-gray-100">
                         <img
                           [src]="resolveImage(combo.complementPart)"
@@ -221,16 +479,11 @@ export interface HydratedDirectOfferView {
                           class="max-h-full max-w-full object-contain"
                         />
                       </a>
-                      <span class="rounded bg-emerald-100 px-2 py-0.5 text-[10px] font-extrabold text-emerald-800">
-                        Complemento -15% en Combo
-                      </span>
-                      <a
-                        [routerLink]="['/part', combo.complementPart.id]"
-                        class="text-xs sm:text-[13px] font-extrabold text-gray-950 leading-snug hover:text-orange-600 transition"
-                      >
+                      <span class="text-[10px] font-extrabold uppercase text-emerald-600">Complemento</span>
+                      <a [routerLink]="['/part', combo.complementPart.id]" class="text-xs font-bold text-gray-900 line-clamp-2 hover:text-orange-600 transition">
                         {{ combo.complementPart.name }}
                       </a>
-                      <div class="text-xs tabular-nums">
+                      <div class="text-xs font-mono">
                         <span class="text-gray-400 line-through mr-1.5">S/ {{ combo.complementPart.salePrice | number: '1.2-2' }}</span>
                         <strong class="text-emerald-800 font-black">S/ {{ combo.complementComboPrice | number: '1.2-2' }}</strong>
                       </div>
@@ -238,7 +491,7 @@ export interface HydratedDirectOfferView {
                   </div>
 
                   <!-- Combo Price & CTA Footer -->
-                  <div class="border-t border-gray-100 bg-gray-50/70 px-4 sm:px-5 py-3.5 flex flex-wrap items-center justify-between gap-3">
+                  <div class="border-t border-gray-100 bg-gray-50/70 px-4 sm:px-5 py-3.5 flex flex-wrap items-center justify-between gap-3 mt-auto">
                     <div>
                       <span class="block text-xs font-semibold text-gray-500 tabular-nums">
                         Por separado: <span class="line-through">S/ {{ combo.regularCombinedPrice | number: '1.2-2' }}</span>
@@ -247,30 +500,18 @@ export interface HydratedDirectOfferView {
                         <span class="text-2xl font-black tracking-tight text-orange-600 tabular-nums">
                           S/ {{ combo.comboTotalPrice | number: '1.2-2' }}
                         </span>
-                        <span class="text-xs font-bold text-gray-600">por ambos repuestos</span>
+                        <span class="text-xs font-bold text-gray-600">por ambos</span>
                       </div>
                     </div>
 
-                    <div class="flex items-center gap-2">
-                      @if (auth.canAccessAdmin()) {
-                        <button
-                          type="button"
-                          (click)="promotionService.removePromotion(combo.promo.sku)"
-                          class="min-h-[42px] rounded-xl border border-red-200 bg-white px-3 text-xs font-bold text-red-600 hover:bg-red-50 transition cursor-pointer"
-                          title="Quitar este combo"
-                        >
-                          Quitar
-                        </button>
-                      }
-                      <button
-                        type="button"
-                        [disabled]="!canAddCombo(combo)"
-                        (click)="cart.addCombo(combo.mainPart, combo.complementPart, true)"
-                        class="min-h-[44px] inline-flex items-center justify-center gap-2 rounded-xl bg-orange-600 px-5 py-2.5 text-sm font-extrabold text-white shadow-sm hover:bg-orange-700 active:scale-[0.98] disabled:bg-gray-300 disabled:text-gray-500 transition cursor-pointer"
-                      >
-                        <span>{{ canAddCombo(combo) ? '🛒 Llevar Combo Completo' : 'Sin stock disponible' }}</span>
-                      </button>
-                    </div>
+                    <button
+                      type="button"
+                      [disabled]="!canAddCombo(combo)"
+                      (click)="cart.addCombo(combo.mainPart, combo.complementPart, true)"
+                      class="min-h-[44px] inline-flex items-center justify-center gap-2 rounded-xl bg-orange-600 px-5 py-2.5 text-sm font-extrabold text-white shadow-sm hover:bg-orange-700 active:scale-[0.98] disabled:bg-gray-300 disabled:text-gray-500 transition cursor-pointer"
+                    >
+                      <span>{{ canAddCombo(combo) ? '🛒 Llevar Combo' : 'Sin stock' }}</span>
+                    </button>
                   </div>
                 </article>
               }
@@ -368,13 +609,22 @@ export interface HydratedDirectOfferView {
 export class OffersPageComponent implements OnInit {
   private readonly catalogService = inject(CatalogService);
   private readonly apiConfig = inject(ApiConfigService);
+  private readonly route = inject(ActivatedRoute);
   readonly promotionService = inject(PromotionService);
   readonly cart = inject(CartService);
   readonly auth = inject(AuthService);
 
   readonly allParts = signal<Part[]>([]);
   readonly isLoading = signal<boolean>(true);
-  readonly activeTab = signal<'ALL' | 'COMBOS' | 'OFFERS'>('ALL');
+  readonly activeTab = signal<'ALL' | 'COMBOS' | 'CUSTOM' | 'OFFERS'>('ALL');
+
+  // Custom Combo Builder State
+  readonly customMainPart = signal<Part | null>(null);
+  readonly customCompPart = signal<Part | null>(null);
+  readonly mainSearchQuery = signal<string>('');
+  readonly compSearchQuery = signal<string>('');
+  readonly selectedCategoryFilter = signal<string>('TODOS');
+  readonly categoryFilterOptions = ['TODOS', 'FRENOS', 'FILTROS', 'MOTOR', 'LUBRICANTES', 'SUSPENSION', 'ENCENDIDO'];
 
   readonly partsBySku = computed(() => {
     const map = new Map<string, Part>();
@@ -435,6 +685,108 @@ export class OffersPageComponent implements OnInit {
     return out;
   });
 
+  // Custom Combo Calculations
+  readonly selectableMainParts = computed<Part[]>(() => {
+    const q = this.mainSearchQuery().toLowerCase().trim();
+    const cat = this.selectedCategoryFilter();
+    const comp = this.customCompPart();
+
+    return this.allParts().filter((p) => {
+      if (!p.active || p.stockQuantity <= 0) return false;
+      if (comp && p.id === comp.id) return false;
+      if (cat !== 'TODOS') {
+        const pCat = (p.categoryName || '').toUpperCase();
+        if (!pCat.includes(cat)) return false;
+      }
+      if (!q) return true;
+      return (
+        p.name.toLowerCase().includes(q) ||
+        (p.sku && p.sku.toLowerCase().includes(q)) ||
+        (p.manufacturerBrand && p.manufacturerBrand.toLowerCase().includes(q))
+      );
+    });
+  });
+
+  readonly selectableCompParts = computed<Part[]>(() => {
+    const q = this.compSearchQuery().toLowerCase().trim();
+    const main = this.customMainPart();
+
+    return this.allParts().filter((p) => {
+      if (!p.active || p.stockQuantity <= 0) return false;
+      if (main && p.id === main.id) return false;
+      if (!q) {
+        // If main is chosen, prioritize smart complements
+        if (main) {
+          const mCat = (main.categoryName || '').toUpperCase();
+          const pCat = (p.categoryName || '').toUpperCase();
+          if (mCat.includes('FRENO') && (pCat.includes('LUBRI') || pCat.includes('FRENO'))) return true;
+          if (mCat.includes('MOTOR') && (pCat.includes('FILTRO') || pCat.includes('LUBRI'))) return true;
+          if (mCat.includes('FILTRO') && (pCat.includes('LUBRI') || pCat.includes('MOTOR'))) return true;
+        }
+        return true;
+      }
+      return (
+        p.name.toLowerCase().includes(q) ||
+        (p.sku && p.sku.toLowerCase().includes(q)) ||
+        (p.manufacturerBrand && p.manufacturerBrand.toLowerCase().includes(q))
+      );
+    });
+  });
+
+  readonly customComboRegularTotal = computed<number>(() => {
+    const m = this.customMainPart();
+    const c = this.customCompPart();
+    const total = (m?.salePrice ?? 0) + (c?.salePrice ?? 0);
+    return Number(total.toFixed(2));
+  });
+
+  readonly customComboDiscount = computed<number>(() => {
+    const total = this.customComboRegularTotal();
+    return Number((total * 0.10).toFixed(2));
+  });
+
+  readonly customComboFinalTotal = computed<number>(() => {
+    const total = this.customComboRegularTotal();
+    const disc = this.customComboDiscount();
+    return Number(Math.max(0, total - disc).toFixed(2));
+  });
+
+  canAddCustomCombo(): boolean {
+    const m = this.customMainPart();
+    const c = this.customCompPart();
+    if (!m || !c) return false;
+    return (
+      (this.cart.getRemainingStockToAdd(m) > 0 || this.cart.getMyCartQuantity(m.id) > 0) &&
+      (this.cart.getRemainingStockToAdd(c) > 0 || this.cart.getMyCartQuantity(c.id) > 0) &&
+      m.stockQuantity > 0 &&
+      c.stockQuantity > 0
+    );
+  }
+
+  addCustomComboToCart(): void {
+    const m = this.customMainPart();
+    const c = this.customCompPart();
+    if (!m || !c) return;
+    this.cart.addCustomCombo(m, c, true);
+  }
+
+  resetCustomCombo(): void {
+    this.customMainPart.set(null);
+    this.customCompPart.set(null);
+    this.mainSearchQuery.set('');
+    this.compSearchQuery.set('');
+  }
+
+  onMainSearchInput(event: Event): void {
+    const val = (event.target as HTMLInputElement).value || '';
+    this.mainSearchQuery.set(val);
+  }
+
+  onCompSearchInput(event: Event): void {
+    const val = (event.target as HTMLInputElement).value || '';
+    this.compSearchQuery.set(val);
+  }
+
   ngOnInit(): void {
     this.hydratePartsFromLocalCache();
     this.promotionService.refreshFromCloud();
@@ -445,11 +797,26 @@ export class OffersPageComponent implements OnInit {
         next: (parts) => {
           this.allParts.set(parts);
           this.isLoading.set(false);
+          this.checkQueryParamPreselection();
         },
         error: () => {
           this.isLoading.set(false);
         },
       });
+
+    this.checkQueryParamPreselection();
+  }
+
+  private checkQueryParamPreselection(): void {
+    const paramId = this.route.snapshot.queryParamMap.get('comboPartId');
+    if (paramId && this.allParts().length > 0) {
+      const id = Number(paramId);
+      const found = this.allParts().find((p) => p.id === id);
+      if (found) {
+        this.customMainPart.set(found);
+        this.activeTab.set('CUSTOM');
+      }
+    }
   }
 
   private hydratePartsFromLocalCache(): void {

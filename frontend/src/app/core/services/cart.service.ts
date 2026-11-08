@@ -2,7 +2,7 @@ import { computed, effect, inject, Injectable, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { catchError, tap } from 'rxjs/operators';
-import { CartItem, Part, ReservationSyncResponse } from '../models/api.models';
+import { CartItem, CustomComboPair, Part, ReservationSyncResponse } from '../models/api.models';
 import { ApiConfigService } from './api-config.service';
 import { ToastService } from './toast.service';
 import { AuthService } from './auth.service';
@@ -11,6 +11,7 @@ import { SyncBusService } from './sync-bus.service';
 
 const GUEST_CART_KEY = 'asuncion_cart_guest_v2';
 const RESERVATION_SESSION_KEY = 'asuncion_reservation_session_id';
+const CUSTOM_COMBOS_KEY = 'asuncion_custom_combos_v1';
 export const POS_ACTIVE_HOLDS_KEY = 'asuncion_pos_active_holds';
 export const ONLINE_ACTIVE_HOLDS_KEY = 'asuncion_online_active_holds';
 
@@ -51,6 +52,7 @@ export class CartService {
   readonly reservedByOthersMap = signal<Record<number, number>>({});
   readonly posActiveHolds = signal<Record<number, number>>(this.loadPosActiveHolds());
   readonly isSyncingReservation = signal<boolean>(false);
+  readonly customCombos = signal<CustomComboPair[]>(this.loadCustomCombos());
 
   readonly hasActiveReservation = computed(() =>
     this.items().length > 0 && this.reservationRemainingSeconds() > 0
@@ -267,6 +269,12 @@ export class CartService {
       basePrice = Math.min(basePrice, compPrice);
     }
 
+    // Custom Combo Armado por el Cliente (10% de ahorro en el conjunto)
+    if (this.isCustomComboActiveOnItem(item)) {
+      const customComboDiscounted = Number((item.part.salePrice * 0.90).toFixed(2));
+      basePrice = Math.min(basePrice, customComboDiscounted);
+    }
+
     if (
       item.part.wholesalePrice &&
       item.part.wholesalePrice > 0 &&
@@ -292,6 +300,80 @@ export class CartService {
       return true;
     }
     return Boolean(this.promotionService.findComboWhereComplementIs(itemSku, cartSkus));
+  }
+
+  isCustomComboActiveOnItem(item: CartItem): boolean {
+    const currentPartIds = new Set(this.items().map((i) => i.part.id));
+    return this.customCombos().some(
+      (c) =>
+        (c.mainPartId === item.part.id || c.complementPartId === item.part.id) &&
+        currentPartIds.has(c.mainPartId) &&
+        currentPartIds.has(c.complementPartId)
+    );
+  }
+
+  addCustomCombo(mainPart: Part, complementPart: Part, openDrawerAfter = true): void {
+    this.refreshPosHoldsAndReconcile(false);
+    const remMain = this.getRemainingStockToAdd(mainPart);
+    const remComp = this.getRemainingStockToAdd(complementPart);
+
+    if (remMain <= 0 && this.getMyCartQuantity(mainPart.id) === 0) {
+      this.toast.warning(
+        'Stock insuficiente en el repuesto principal',
+        `No hay unidades libres de ${mainPart.name} en este momento.`
+      );
+      return;
+    }
+    if (remComp <= 0 && this.getMyCartQuantity(complementPart.id) === 0) {
+      this.toast.warning(
+        'Stock insuficiente en el complemento',
+        `No hay unidades libres de ${complementPart.name} en este momento.`
+      );
+      return;
+    }
+
+    this.items.update((current) => {
+      let next = [...current];
+      const upsertOne = (target: Part) => {
+        const maxAvail = this.getAvailableStockForPart(target);
+        if (maxAvail <= 0) return;
+        const idx = next.findIndex((i) => i.part.id === target.id);
+        if (idx >= 0) {
+          next[idx] = {
+            part: target,
+            quantity: Math.min(next[idx].quantity + 1, maxAvail),
+          };
+        } else {
+          next.push({ part: target, quantity: 1 });
+        }
+      };
+      upsertOne(mainPart);
+      upsertOne(complementPart);
+      return next;
+    });
+
+    this.customCombos.update((list) => {
+      const exists = list.some(
+        (c) =>
+          (c.mainPartId === mainPart.id && c.complementPartId === complementPart.id) ||
+          (c.mainPartId === complementPart.id && c.complementPartId === mainPart.id)
+      );
+      if (!exists) {
+        return [...list, { mainPartId: mainPart.id, complementPartId: complementPart.id, discountPercent: 10 }];
+      }
+      return list;
+    });
+
+    this.persist();
+    this.persistCustomCombos();
+    this.toast.success(
+      '¡Combo Personalizado activado en tu carrito!',
+      `Se combinaron ${mainPart.name} + ${complementPart.name} con 10% de ahorro conjunto.`
+    );
+    this.syncReservationWithServer(true);
+    if (openDrawerAfter) {
+      this.isDrawerOpen.set(true);
+    }
   }
 
   getMyCartQuantity(partId: number): number {
@@ -473,6 +555,10 @@ export class CartService {
 
   removePart(partId: number): void {
     this.items.update((current) => current.filter((i) => i.part.id !== partId));
+    this.customCombos.update((list) =>
+      list.filter((c) => c.mainPartId !== partId && c.complementPartId !== partId)
+    );
+    this.persistCustomCombos();
     this.reservedByOthersMap.update((map) => {
       const next = { ...map };
       delete next[partId];
@@ -488,6 +574,8 @@ export class CartService {
 
   clear(): void {
     this.items.set([]);
+    this.customCombos.set([]);
+    this.persistCustomCombos();
     this.reservationExpiresAt.set(null);
     this.reservationRemainingSeconds.set(0);
     this.reservedByOthersMap.set({});
@@ -646,6 +734,22 @@ export class CartService {
       const key = this.getStorageKey();
       localStorage.setItem(key, JSON.stringify(this.items()));
       this.publishOnlineHolds(this.items());
+    }
+  }
+
+  private loadCustomCombos(): CustomComboPair[] {
+    if (typeof window === 'undefined') return [];
+    try {
+      const raw = localStorage.getItem(CUSTOM_COMBOS_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  private persistCustomCombos(): void {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(CUSTOM_COMBOS_KEY, JSON.stringify(this.customCombos()));
     }
   }
 

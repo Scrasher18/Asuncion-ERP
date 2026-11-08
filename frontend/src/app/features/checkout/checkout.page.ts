@@ -553,6 +553,7 @@ export class CheckoutPageComponent implements OnInit, OnDestroy {
         partId: i.part.id,
         quantity: i.quantity,
       })),
+      customCombos: this.cart.customCombos(),
     };
   }
 

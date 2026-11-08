@@ -159,6 +159,22 @@ public class PromotionCatalogService {
             Map<Long, Part> lockedPartsById,
             Map<Long, Integer> requestedQuantities
     ) {
+        return resolveEffectiveUnitPricesAndTrackQuota(lockedPartsById, requestedQuantities, null);
+    }
+
+    /**
+     * Calcula los precios unitarios efectivos al facturar un pedido considerando:
+     * 1) Ofertas directas activas.
+     * 2) Combos automotrices sugeridos activos (cuando el pedido lleva AMBOS repuestos del combo).
+     * 3) Combos personalizados creados manualmente por el cliente (10% de ahorro conjunto).
+     * 4) Tarifa mayorista (4+ unidades), eligiendo siempre el mejor precio a favor del cliente.
+     */
+    @Transactional
+    public Map<Long, BigDecimal> resolveEffectiveUnitPricesAndTrackQuota(
+            Map<Long, Part> lockedPartsById,
+            Map<Long, Integer> requestedQuantities,
+            List<com.asuncion.erp.dto.order.CustomComboPairRequest> customCombos
+    ) {
         Map<Long, BigDecimal> result = new HashMap<>();
         Map<String, Part> orderPartsBySku = new HashMap<>();
         for (Part p : lockedPartsById.values()) {
@@ -207,6 +223,32 @@ public class PromotionCatalogService {
                     result.put(mainPart.getId(), promo.getPromoPrice());
                     incrementSoldQuota(promo, requestedQuantities.getOrDefault(mainPart.getId(), 1));
                     cacheDirty = true;
+                }
+            }
+        }
+
+        // 3. Combos armados manualmente por el cliente (10% de descuento en el conjunto)
+        if (customCombos != null && !customCombos.isEmpty()) {
+            for (com.asuncion.erp.dto.order.CustomComboPairRequest pair : customCombos) {
+                if (pair == null || pair.mainPartId() == null || pair.complementPartId() == null) continue;
+                if (pair.mainPartId().equals(pair.complementPartId())) continue;
+
+                Part mainPart = lockedPartsById.get(pair.mainPartId());
+                Part compPart = lockedPartsById.get(pair.complementPartId());
+
+                if (mainPart != null && compPart != null) {
+                    BigDecimal customFactor = BigDecimal.valueOf(0.90);
+                    BigDecimal discountedMain = mainPart.getSalePrice().multiply(customFactor).setScale(2, RoundingMode.HALF_UP);
+                    BigDecimal discountedComp = compPart.getSalePrice().multiply(customFactor).setScale(2, RoundingMode.HALF_UP);
+
+                    BigDecimal currentMain = result.get(mainPart.getId());
+                    if (currentMain == null || discountedMain.compareTo(currentMain) < 0) {
+                        result.put(mainPart.getId(), discountedMain);
+                    }
+                    BigDecimal currentComp = result.get(compPart.getId());
+                    if (currentComp == null || discountedComp.compareTo(currentComp) < 0) {
+                        result.put(compPart.getId(), discountedComp);
+                    }
                 }
             }
         }

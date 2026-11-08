@@ -272,6 +272,12 @@ export interface CreateOrderItemInput {
   quantity: number;
 }
 
+export interface CustomComboPair {
+  mainPartId: number;
+  complementPartId: number;
+  discountPercent?: number;
+}
+
 export interface CreateOrderRequest {
   branchId: number;
   deliveryType: DeliveryType;
@@ -290,6 +296,7 @@ export interface CreateOrderRequest {
   notes?: string;
   reservationSessionId?: string;
   items: CreateOrderItemInput[];
+  customCombos?: CustomComboPair[];
 }
 
 export interface ReservedItemStatusDto {
