@@ -208,11 +208,28 @@ public class OrderService {
             lockedPartsById.put(part.getId(), part);
         }
 
-        Map<Long, BigDecimal> effectiveUnitPrices = promotionCatalogService.resolveEffectiveUnitPricesAndTrackQuota(
-                lockedPartsById,
-                requestedQuantities,
-                req.customCombos()
-        );
+        // Combos y ofertas promocionales son exclusivos de la web. En tienda física (POS) rige precio normal (o mayorista 4+).
+        Map<Long, BigDecimal> effectiveUnitPrices;
+        if (isCounterSale) {
+            effectiveUnitPrices = new HashMap<>();
+            for (Map.Entry<Long, Integer> entry : requestedQuantities.entrySet()) {
+                Part part = lockedPartsById.get(entry.getKey());
+                int qty = entry.getValue();
+                BigDecimal price = part.getSalePrice();
+                if (qty >= 4 && part.getWholesalePrice() != null
+                        && part.getWholesalePrice().compareTo(BigDecimal.ZERO) > 0
+                        && part.getWholesalePrice().compareTo(price) < 0) {
+                    price = part.getWholesalePrice();
+                }
+                effectiveUnitPrices.put(part.getId(), price);
+            }
+        } else {
+            effectiveUnitPrices = promotionCatalogService.resolveEffectiveUnitPricesAndTrackQuota(
+                    lockedPartsById,
+                    requestedQuantities,
+                    req.customCombos()
+            );
+        }
 
         BigDecimal subtotal = BigDecimal.ZERO;
         for (Map.Entry<Long, Integer> entry : requestedQuantities.entrySet()) {

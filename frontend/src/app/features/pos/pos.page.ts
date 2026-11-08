@@ -226,6 +226,12 @@ const POS_HOLD_TTL_MS = 15 * 60 * 1000;
                 </div>
               </div>
 
+              <!-- Physical store pricing banner: web promotions exclusive to web -->
+              <div class="rounded-xl border border-blue-200 bg-blue-50/80 p-3 flex items-center gap-2.5 text-xs text-blue-950 font-medium">
+                <span class="text-lg">🏪</span>
+                <span><strong>Precios de Venta Presencial (Mostrador / Tienda Física):</strong> Rige tarifa estándar de mostrador o mayorista desde 4 und. Los combos automotrices y ofertas promocionales son exclusivos de la tienda web online.</span>
+              </div>
+
               <!-- Search Input -->
               <div class="relative">
                 <svg class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -851,6 +857,14 @@ export class PosPageComponent implements OnInit, OnDestroy {
         document.removeEventListener('visibilitychange', this.visibilityListener);
         this.visibilityListener = null;
       }
+      // Release POS active holds so they don't block online catalog
+      try {
+        localStorage.removeItem(POS_ACTIVE_HOLDS_KEY);
+      } catch {
+        // ignore
+      }
+      this.syncBus.notifyReservationsUpdated([]);
+      this.syncBus.notifyCatalogRefresh();
     }
   }
 

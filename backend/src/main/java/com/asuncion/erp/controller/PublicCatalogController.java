@@ -84,7 +84,20 @@ public class PublicCatalogController {
     @Operation(summary = "Liberar reserva temporal de stock de una sesión de compra")
     public ResponseEntity<Map<String, Object>> releaseCartReservation(@PathVariable String sessionId) {
         stockReservationService.releaseSession(sessionId);
+        catalogService.evictCatalogCache();
         return ResponseEntity.ok(Map.of("released", true, "sessionId", sessionId));
+    }
+
+    public record ReleaseSessionRequest(String sessionId) {}
+
+    @PostMapping("/reservations/release")
+    @Operation(summary = "Liberar reserva temporal de stock vía POST")
+    public ResponseEntity<Map<String, Object>> releaseCartReservationPost(@RequestBody ReleaseSessionRequest req) {
+        if (req != null && req.sessionId() != null) {
+            stockReservationService.releaseSession(req.sessionId());
+        }
+        catalogService.evictCatalogCache();
+        return ResponseEntity.ok(Map.of("released", true));
     }
 
     @GetMapping("/reservations/status")

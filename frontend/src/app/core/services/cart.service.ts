@@ -75,6 +75,8 @@ export class CartService {
       this.publishOnlineHolds(loaded);
       if (loaded.length > 0) {
         this.syncReservationWithServer(false);
+      } else {
+        this.clear();
       }
     }, { allowSignalWrites: true });
 
@@ -601,6 +603,7 @@ export class CartService {
   }
 
   clear(): void {
+    const currentSessionId = this.reservationSessionId;
     this.items.set([]);
     this.customCombos.set([]);
     this.persistCustomCombos();
@@ -609,16 +612,29 @@ export class CartService {
     this.reservedByOthersMap.set({});
     this.persist();
     if (typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem(ONLINE_ACTIVE_HOLDS_KEY);
+        localStorage.removeItem('asuncion_cart_expires_at');
+      } catch {
+        // ignore
+      }
       this.http
-        .delete(`${this.apiConfig.apiUrl}/catalog/reservations/${this.reservationSessionId}`)
-        .pipe(
-          tap(() => {
-            this.syncBus.notifyReservationsUpdated([]);
-            this.syncBus.notifyCatalogRefresh();
-          }),
-          catchError(() => of(null))
-        )
+        .delete(`${this.apiConfig.apiUrl}/catalog/reservations/${encodeURIComponent(currentSessionId)}`)
+        .pipe(catchError(() => of(null)))
         .subscribe();
+
+      this.http
+        .post(`${this.apiConfig.apiUrl}/catalog/reservations/release`, { sessionId: currentSessionId })
+        .pipe(catchError(() => of(null)))
+        .subscribe();
+
+      this.http
+        .post(`${this.apiConfig.apiUrl}/catalog/reservations/sync`, { sessionId: currentSessionId, items: [] })
+        .pipe(catchError(() => of(null)))
+        .subscribe();
+
+      this.syncBus.notifyReservationsUpdated([]);
+      this.syncBus.notifyCatalogRefresh();
     }
   }
 
@@ -630,19 +646,8 @@ export class CartService {
     if (typeof window === 'undefined') return of(null);
     const currentItems = this.items();
     if (currentItems.length === 0) {
-      this.setReservationExpiresAt(null);
-      this.reservationRemainingSeconds.set(0);
-      this.reservedByOthersMap.set({});
-      return this.http
-        .delete(`${this.apiConfig.apiUrl}/catalog/reservations/${this.reservationSessionId}`)
-        .pipe(
-          tap(() => {
-            this.syncBus.notifyReservationsUpdated([]);
-            this.syncBus.notifyCatalogRefresh();
-          }),
-          mapToNull(),
-          catchError(() => of(null))
-        );
+      this.clear();
+      return of(null);
     }
 
     // Optimistic local 10-minute timer while server responds

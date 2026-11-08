@@ -153,40 +153,37 @@ export class LiveDriverMapComponent implements AfterViewInit, OnChanges, OnDestr
     const destLat = tel.destinationLatitude ?? curLat + 0.015;
     const destLng = tel.destinationLongitude ?? curLng + 0.015;
 
-    // 1. Origin Store Marker (compact circle, doesn't obscure the driver icon)
+    // 1. Origin Store Marker (Icono oficial de tienda Asuncion - sin circulo negro)
     if (!this.originMarker) {
       const storeIcon = L.divIcon({
         className: 'custom-store-pin',
         html: `
-          <div style="width:32px;height:32px;border-radius:50%;background:#0F172A;border:2px solid #FFFFFF;box-shadow:0 3px 10px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;" title="${tel.branchName || 'Sede Santa Anita'}">
-            <img src="/images/icons/local.png" style="width:16px;height:16px;object-fit:contain;" alt="Tienda" />
+          <div style="display:flex;flex-direction:column;align-items:center;transform:translate(-50%, -50%);">
+            <div style="position:relative;width:44px;height:44px;border-radius:50%;background:#FFFFFF;border:3px solid #EA580C;box-shadow:0 4px 14px rgba(234,88,12,0.35);display:flex;align-items:center;justify-content:center;padding:4px;" title="${tel.branchName || 'Sede Santa Anita'}">
+              <img src="/local.png" onerror="this.src='/images/icons/local.png'" style="width:30px;height:30px;object-fit:contain;" alt="Tienda Asuncion" />
+            </div>
+            <div style="background:#FFFFFF;color:#EA580C;border:1.5px solid #EA580C;border-radius:8px;padding:2px 8px;font-size:10px;font-weight:800;box-shadow:0 2px 6px rgba(0,0,0,0.18);white-space:nowrap;margin-top:2px;">
+              🏢 Tienda Asunción
+            </div>
           </div>
         `,
-        iconSize: [32, 32],
-        iconAnchor: [16, 16],
+        iconSize: [0, 0],
       });
       this.originMarker = L.marker([origLat, origLng], { icon: storeIcon, draggable: false }).addTo(this.map);
     } else {
       this.originMarker.setLatLng([origLat, origLng]);
     }
 
-    // 2. Customer Destination Marker (Clean High-Contrast House Pin)
+    // 2. Customer Destination Marker (Icono oficial casa.png - alta resolucion y contraste)
     if (!this.destMarker) {
       const destIcon = L.divIcon({
         className: 'custom-dest-pin',
         html: `
           <div style="display:flex;flex-direction:column;align-items:center;transform:translate(-50%, -100%);">
-            <div style="width:38px;height:46px;filter:drop-shadow(0 4px 8px rgba(0,0,0,0.28));position:relative;display:flex;align-items:center;justify-content:center;">
-              <svg viewBox="0 0 36 44" width="38" height="46" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M18 0C8.059 0 0 8.059 0 18C0 28.5 18 44 18 44C18 44 36 28.5 36 18C36 8.059 27.941 0 18 0Z" fill="#16A34A"/>
-                <path d="M18 1C8.611 1 1 8.611 1 18C1 27.8 17.5 42.5 18 43C18.5 42.5 35 27.8 35 18C35 8.611 27.389 1 18 1Z" stroke="#FFFFFF" stroke-width="2"/>
-                <circle cx="18" cy="18" r="13" fill="#FFFFFF"/>
-              </svg>
-              <div style="position:absolute;top:9px;left:50%;transform:translateX(-50%);font-size:16px;line-height:1;">
-                🏠
-              </div>
+            <div style="position:relative;width:48px;height:48px;border-radius:50%;background:#FFFFFF;border:3px solid #16A34A;box-shadow:0 4px 14px rgba(22,163,74,0.35);display:flex;align-items:center;justify-content:center;padding:4px;">
+              <img src="/casa.png" onerror="this.src='/images/icons/casa.png'" style="width:34px;height:34px;object-fit:contain;" alt="Casa Destino" />
             </div>
-            <div style="background:#FFFFFF;color:#0F172A;border:1.5px solid #16A34A;border-radius:8px;padding:2px 7px;font-size:10px;font-weight:800;box-shadow:0 2px 6px rgba(0,0,0,0.18);white-space:nowrap;margin-top:2px;">
+            <div style="background:#FFFFFF;color:#16A34A;border:1.5px solid #16A34A;border-radius:8px;padding:2px 8px;font-size:10px;font-weight:800;box-shadow:0 2px 6px rgba(0,0,0,0.18);white-space:nowrap;margin-top:3px;">
               🏠 Casa / Destino
             </div>
           </div>
@@ -198,19 +195,17 @@ export class LiveDriverMapComponent implements AfterViewInit, OnChanges, OnDestr
       this.destMarker.setLatLng([destLat, destLng]);
     }
 
-    // 3. Driver Motorized Marker (Distinct Motorcycle Pin with Sonar Pulse)
+    // 3. Driver Motorized Marker (Icono oficial repartidor.png con sonar pulse)
     const heading = tel.headingDegrees || 0;
     const driverHtml = `
       <div style="display:flex;flex-direction:column;align-items:center;transform:translate(-50%, -50%);">
-        <div style="position:relative;width:52px;height:52px;display:flex;align-items:center;justify-content:center;">
-          <div style="position:absolute;width:48px;height:48px;border-radius:50%;background:rgba(234,88,12,0.3);animation:ping 2s cubic-bezier(0,0,0.2,1) infinite;"></div>
-          <div style="position:relative;width:42px;height:42px;border-radius:50%;background:#FFFFFF;border:3px solid #EA580C;box-shadow:0 4px 14px rgba(234,88,12,0.5);display:flex;align-items:center;justify-content:center;">
-            <span style="font-size:22px;line-height:1;transform:rotate(${heading}deg);transition:transform 0.4s ease;display:inline-block;">
-              🛵
-            </span>
+        <div style="position:relative;width:56px;height:56px;display:flex;align-items:center;justify-content:center;">
+          <div style="position:absolute;width:54px;height:54px;border-radius:50%;background:rgba(234,88,12,0.25);animation:ping 2s cubic-bezier(0,0,0.2,1) infinite;"></div>
+          <div style="position:relative;width:48px;height:48px;border-radius:50%;background:#FFFFFF;border:3px solid #EA580C;box-shadow:0 4px 14px rgba(234,88,12,0.5);display:flex;align-items:center;justify-content:center;padding:4px;">
+            <img src="/repartidor.png" onerror="this.src='/images/icons/repartidor.png'" style="width:34px;height:34px;object-fit:contain;" alt="Motorizado en ruta" />
           </div>
         </div>
-        <div style="background:#FFFFFF;color:#0F172A;border:1.5px solid #EA580C;border-radius:8px;padding:2px 7px;font-size:10px;font-weight:800;box-shadow:0 2px 6px rgba(0,0,0,0.18);white-space:nowrap;margin-top:-2px;">
+        <div style="background:#EA580C;color:#FFFFFF;border:1.5px solid #FFFFFF;border-radius:8px;padding:2px 8px;font-size:10px;font-weight:800;box-shadow:0 2px 8px rgba(0,0,0,0.25);white-space:nowrap;margin-top:-2px;">
           🛵 Motorizado en ruta
         </div>
       </div>

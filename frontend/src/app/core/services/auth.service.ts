@@ -128,8 +128,21 @@ export class AuthService {
 
   logout(redirect = true): void {
     if (typeof window !== 'undefined') {
-      localStorage.removeItem(TOKEN_KEY);
-      localStorage.removeItem(USER_KEY);
+      try {
+        const sessId = localStorage.getItem('asuncion_reservation_session_id');
+        if (sessId) {
+          fetch(`${this.apiConfig.apiUrl}/catalog/reservations/${encodeURIComponent(sessId)}`, {
+            method: 'DELETE',
+            keepalive: true,
+          }).catch(() => {});
+        }
+        localStorage.removeItem('asuncion_online_active_holds');
+        localStorage.removeItem('asuncion_cart_expires_at');
+        localStorage.removeItem(TOKEN_KEY);
+        localStorage.removeItem(USER_KEY);
+      } catch {
+        // ignore
+      }
     }
     this.token.set(null);
     this.currentUser.set(null);

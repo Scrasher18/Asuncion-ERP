@@ -240,7 +240,9 @@ public class StockReservationService {
 
     public synchronized void releaseSession(String sessionId) {
         if (sessionId != null && !sessionId.isBlank()) {
-            activeHolds.remove(sessionId.trim());
+            String clean = sessionId.trim();
+            activeHolds.remove(clean);
+            activeHolds.keySet().removeIf(k -> k != null && k.equalsIgnoreCase(clean));
         }
     }
 

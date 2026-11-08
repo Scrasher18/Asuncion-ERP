@@ -336,13 +336,7 @@ import { PromotionService } from '../../core/services/promotion.service';
                 </button>
               </div>
 
-              <a
-                [routerLink]="['/offers']"
-                [queryParams]="{ comboPartId: p.id }"
-                class="w-full min-h-[44px] inline-flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-amber-300 bg-linear-to-r from-orange-50/80 via-amber-50/80 to-yellow-50/60 py-2.5 px-4 text-xs sm:text-sm font-black text-amber-900 hover:border-amber-400 hover:bg-amber-100/70 active:scale-[0.98] transition shadow-2xs select-none cursor-pointer"
-              >
-                <span>🛠️ Armar un Combo con este repuesto (-10% de ahorro)</span>
-              </a>
+
 
               <!-- Oil & Filter Cross-Sell Recommendation -->
               @if (isOilOrFilter(p)) {

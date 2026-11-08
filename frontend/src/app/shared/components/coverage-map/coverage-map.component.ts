@@ -283,15 +283,17 @@ export class CoverageMapComponent implements AfterViewInit, OnChanges, OnDestroy
     const storeLng = this.currentStoreLng;
     const radius = this.currentCoverageRadiusMeters;
 
-    // 1. Branch Store Marker
+    // 1. Branch Store Marker (Icono local.png oficial)
     const storeIcon = L.divIcon({
       className: 'store-pin-wrapper',
       html: `
-        <div style="background:#0F172A;color:#FFFFFF;border:2px solid #FFFFFF;border-radius:12px;padding:6px 12px;font-size:12px;font-weight:700;display:flex;align-items:center;gap:6px;box-shadow:0 4px 14px rgba(0,0,0,0.35);white-space:nowrap;transform:translate(-50%, -100%);cursor:default;">
-          <svg style="width:16px;height:16px;color:#EA580C;flex-shrink:0;" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-          </svg>
-          <span>${this.effectiveBranch.name || 'Local Asunción'}</span>
+        <div style="display:flex;flex-direction:column;align-items:center;transform:translate(-50%, -100%);cursor:default;">
+          <div style="position:relative;width:48px;height:48px;border-radius:50%;background:#FFFFFF;border:3px solid #EA580C;box-shadow:0 4px 14px rgba(234,88,12,0.35);display:flex;align-items:center;justify-content:center;padding:4px;">
+            <img src="/local.png" onerror="this.src='/images/icons/local.png'" style="width:34px;height:34px;object-fit:contain;" alt="Tienda Asuncion" />
+          </div>
+          <div style="background:#FFFFFF;color:#EA580C;border:1.5px solid #EA580C;border-radius:8px;padding:2px 8px;font-size:11px;font-weight:800;box-shadow:0 2px 8px rgba(0,0,0,0.18);white-space:nowrap;margin-top:3px;">
+            🏢 ${this.effectiveBranch.name || 'Local Asunción'}
+          </div>
         </div>
       `,
       iconSize: [0, 0],
@@ -350,17 +352,10 @@ export class CoverageMapComponent implements AfterViewInit, OnChanges, OnDestroy
       className: 'cust-pin-wrapper',
       html: `
         <div style="display:flex;flex-direction:column;align-items:center;transform:translate(-50%, -100%);">
-          <div style="width:38px;height:46px;filter:drop-shadow(0 4px 8px rgba(0,0,0,0.28));position:relative;display:flex;align-items:center;justify-content:center;">
-            <svg viewBox="0 0 36 44" width="38" height="46" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M18 0C8.059 0 0 8.059 0 18C0 28.5 18 44 18 44C18 44 36 28.5 36 18C36 8.059 27.941 0 18 0Z" fill="#EA580C"/>
-              <path d="M18 1C8.611 1 1 8.611 1 18C1 27.8 17.5 42.5 18 43C18.5 42.5 35 27.8 35 18C35 8.611 27.389 1 18 1Z" stroke="#FFFFFF" stroke-width="2"/>
-              <circle cx="18" cy="18" r="13" fill="#FFFFFF"/>
-            </svg>
-            <div style="position:absolute;top:9px;left:50%;transform:translateX(-50%);font-size:16px;line-height:1;">
-              🏠
-            </div>
+          <div style="position:relative;width:48px;height:48px;border-radius:50%;background:#FFFFFF;border:3px solid #16A34A;box-shadow:0 4px 14px rgba(22,163,74,0.35);display:flex;align-items:center;justify-content:center;padding:4px;">
+            <img src="/casa.png" onerror="this.src='/images/icons/casa.png'" style="width:34px;height:34px;object-fit:contain;" alt="Casa Destino" />
           </div>
-          <div style="background:#FFFFFF;color:#0F172A;border:1.5px solid #EA580C;border-radius:8px;padding:2px 7px;font-size:10px;font-weight:800;box-shadow:0 2px 6px rgba(0,0,0,0.18);white-space:nowrap;margin-top:2px;">
+          <div style="background:#FFFFFF;color:#16A34A;border:1.5px solid #16A34A;border-radius:8px;padding:2px 8px;font-size:11px;font-weight:800;box-shadow:0 2px 6px rgba(0,0,0,0.18);white-space:nowrap;margin-top:3px;">
             🏠 Dirección de Entrega
           </div>
         </div>

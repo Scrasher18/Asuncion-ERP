@@ -1260,6 +1260,14 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
 
               <button
                 type="button"
+                (click)="openManualComboCreator()"
+                class="inline-flex min-h-[42px] items-center gap-2 rounded-xl border-2 border-amber-400 bg-amber-50 px-4 py-2.5 text-sm font-bold text-amber-900 shadow-2xs hover:bg-amber-100 transition cursor-pointer"
+                title="Crear un Combo Automotriz manualmente para la web"
+              >
+                <span>📦 Crear Combo Automotriz</span>
+              </button>
+              <button
+                type="button"
                 (click)="openCreatePartModal()"
                 class="inline-flex min-h-[42px] items-center gap-2 rounded-xl bg-orange-600 px-4 py-2.5 text-sm font-semibold text-white shadow-2xs hover:bg-orange-700 transition cursor-pointer"
               >
@@ -3161,7 +3169,7 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                       <span class="text-xs font-bold text-gray-900">Combo Automotriz Sugerido</span>
                     </div>
                     <p class="text-[11px] text-gray-500 mt-1">
-                      Empareja este repuesto estancado con uno de alta rotación (aceite, filtro o líquido) con ahorro conjunto.
+                      Empareja este repuesto con uno complementario (aceite, filtro, pastilla o líquido) con ahorro conjunto exclusivo en la web.
                     </p>
                   </button>
                 </div>
@@ -4962,6 +4970,28 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
 
   get promoRecoverableCapital(): number {
     return Number((this.promoCalculatedPrice * this.promoUnitsQuota).toFixed(2));
+  }
+
+  openManualComboCreator(partItem?: any): void {
+    const item = partItem || (this.adminParts().length > 0 ? this.adminParts()[0] : null);
+    if (!item) {
+      this.toast.info('Sin repuestos', 'Primero registra al menos un repuesto en inventario para crear un combo.');
+      return;
+    }
+    this.openPromotionModal(item);
+    this.promoType = 'COMBO_SUGERIDO';
+    this.promoBadgeLabel = 'COMBO RECOMENDADO';
+    if (!this.promoDiscountPercent || this.promoDiscountPercent < 5) {
+      this.promoDiscountPercent = 10;
+    }
+  }
+
+  onPrimaryPartSelect(sku: string): void {
+    const p = this.adminParts().find((it: Part) => it.sku === sku);
+    if (p) {
+      this.openPromotionModal(p);
+      this.promoType = 'COMBO_SUGERIDO';
+    }
   }
 
   openPromotionModal(item: any): void {
