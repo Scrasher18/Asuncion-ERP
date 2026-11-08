@@ -1,8 +1,9 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, OnDestroy, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { finalize, retry } from 'rxjs';
+import { finalize, retry, Subscription } from 'rxjs';
+import { SyncBusService } from '../../core/services/sync-bus.service';
 import { Part } from '../../core/models/api.models';
 import { ApiConfigService } from '../../core/services/api-config.service';
 import { AuthService } from '../../core/services/auth.service';
@@ -442,7 +443,7 @@ import { PromotionService } from '../../core/services/promotion.service';
     </div>
   `,
 })
-export class PartDetailPageComponent implements OnInit {
+export class PartDetailPageComponent implements OnInit, OnDestroy {
   protected readonly Math = Math;
   readonly auth = inject(AuthService);
   private readonly toast = inject(ToastService);
@@ -452,6 +453,9 @@ export class PartDetailPageComponent implements OnInit {
   private readonly catalogService = inject(CatalogService);
   private readonly apiConfig = inject(ApiConfigService);
   readonly cart = inject(CartService);
+  private readonly syncBus = inject(SyncBusService);
+  private pollInterval: ReturnType<typeof setInterval> | null = null;
+  private syncSub: Subscription | null = null;
 
   readonly part = signal<Part | null>(null);
   readonly isLoading = signal<boolean>(true);
@@ -490,6 +494,45 @@ export class PartDetailPageComponent implements OnInit {
       if (id) {
         this.fetchPart(id);
       }
+    });
+
+    if (typeof window !== 'undefined') {
+      this.syncSub = this.syncBus.events$.subscribe(() => {
+        this.pollPartStatus();
+      });
+      this.pollInterval = setInterval(() => {
+        this.pollPartStatus();
+      }, 3000);
+    }
+  }
+
+  ngOnDestroy(): void {
+    if (this.pollInterval) {
+      clearInterval(this.pollInterval);
+      this.pollInterval = null;
+    }
+    if (this.syncSub) {
+      this.syncSub.unsubscribe();
+      this.syncSub = null;
+    }
+  }
+
+  private pollPartStatus(): void {
+    const current = this.part();
+    if (!current) return;
+    this.catalogService.getReservationsStatus().subscribe({
+      next: (statusMap) => {
+        if (!statusMap) return;
+        const newReserved = statusMap[current.id] ?? 0;
+        if (current.reservedQuantity !== newReserved) {
+          this.part.set({
+            ...current,
+            reservedQuantity: newReserved,
+            availableStock: Math.max(0, current.stockQuantity - newReserved),
+          });
+        }
+      },
+      error: () => {},
     });
   }
 

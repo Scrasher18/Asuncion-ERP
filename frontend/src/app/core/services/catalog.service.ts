@@ -83,6 +83,12 @@ export class CatalogService {
     );
   }
 
+  getReservationsStatus(): Observable<Record<number, number>> {
+    return this.http.get<Record<number, number>>(
+      `${this.apiConfig.apiUrl}/catalog/reservations/status`
+    );
+  }
+
   // ===================== ADMIN ERP ENDPOINTS =====================
 
   getAdminParts(lowStockOnly = false): Observable<Part[]> {

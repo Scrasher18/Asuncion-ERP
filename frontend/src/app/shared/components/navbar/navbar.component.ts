@@ -804,7 +804,7 @@ import {
     </nav>
     <!-- Desktop Floating Quick-Cart Dock (PC & Laptop Ergonomics: NEVER scroll up) -->
     @if (auth.canAccessCart() && cart.totalItems() > 0) {
-      <div class="hidden lg:flex fixed bottom-6 right-6 z-40 items-center gap-3 rounded-2xl bg-gradient-to-r from-orange-600 via-orange-500 to-amber-500 p-2 pl-4 text-white shadow-xl shadow-orange-600/35 ring-2 ring-white/90">
+      <div class="hidden lg:flex fixed bottom-6 left-6 z-40 items-center gap-3 rounded-2xl bg-gradient-to-r from-orange-600 via-orange-500 to-amber-500 p-2 pl-4 text-white shadow-xl shadow-orange-600/35 ring-2 ring-white/90">
         <div class="flex items-center gap-2.5">
           <div class="relative flex h-8 w-8 items-center justify-center rounded-xl bg-white text-orange-600 font-bold shadow-xs">
             <svg class="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">

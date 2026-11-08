@@ -889,6 +889,8 @@ export class CatalogPageComponent implements OnInit, OnDestroy {
   readonly promotionService = inject(PromotionService);
   private readonly syncBus = inject(SyncBusService);
   private stockRefreshInterval: ReturnType<typeof setInterval> | null = null;
+  private reservationsPollInterval: ReturnType<typeof setInterval> | null = null;
+  private isPollingReservations = false;
   private syncBusSub: Subscription | null = null;
   private focusListener: (() => void) | null = null;
   private visibilityListener: (() => void) | null = null;
@@ -1259,9 +1261,12 @@ export class CatalogPageComponent implements OnInit, OnDestroy {
 
     if (typeof window !== 'undefined') {
       // 1. Instant event-driven sync from POS sales, Cart reservations, Online Orders, and Admin edits (0ms)
-      this.syncBusSub = this.syncBus.events$.subscribe(() => {
+      this.syncBusSub = this.syncBus.events$.subscribe((evt) => {
         this.cart.refreshPosHoldsAndReconcile(false);
-        this.silentRefreshParts();
+        this.pollReservationStatus();
+        if (evt.type === 'POS_SALE_COMPLETED' || evt.type === 'ONLINE_ORDER_COMPLETED' || evt.type === 'ADMIN_STOCK_MUTATED') {
+          this.silentRefreshParts();
+        }
       });
 
       // 2. Instant tab focus & visibility sync (when switching between POS, Checkout, and Catalog tabs)
@@ -1293,15 +1298,24 @@ export class CatalogPageComponent implements OnInit, OnDestroy {
       };
       window.addEventListener('storage', this.storageListener);
 
-      // 4. Ultra-responsive 3-second heartbeat polling for multi-terminal synchronization
+      // 4. Ultra-lightweight real-time reservation sync (<100 bytes, updates tag in 3s without F5)
+      this.reservationsPollInterval = setInterval(() => {
+        this.pollReservationStatus();
+      }, 3000);
+
+      // 5. Background physical stock sync (every 25s)
       this.stockRefreshInterval = setInterval(() => {
         this.cart.refreshPosHoldsAndReconcile(false);
         this.silentRefreshParts();
-      }, 20000);
+      }, 25000);
     }
   }
 
   ngOnDestroy(): void {
+    if (this.reservationsPollInterval) {
+      clearInterval(this.reservationsPollInterval);
+      this.reservationsPollInterval = null;
+    }
     if (this.stockRefreshInterval) {
       clearInterval(this.stockRefreshInterval);
       this.stockRefreshInterval = null;
@@ -1432,6 +1446,36 @@ export class CatalogPageComponent implements OnInit, OnDestroy {
           }
         },
       });
+  }
+
+  private pollReservationStatus(): void {
+    if (this.isPollingReservations) return;
+    this.isPollingReservations = true;
+    this.catalogService.getReservationsStatus().subscribe({
+      next: (statusMap) => {
+        this.isPollingReservations = false;
+        if (!statusMap) return;
+        const current = this.allParts();
+        if (current.length === 0) return;
+        let modified = false;
+        const updated = current.map((p) => {
+          const newReserved = statusMap[p.id] ?? 0;
+          if (p.reservedQuantity === newReserved) return p;
+          modified = true;
+          return {
+            ...p,
+            reservedQuantity: newReserved,
+            availableStock: Math.max(0, p.stockQuantity - newReserved),
+          };
+        });
+        if (modified) {
+          this.allParts.set(updated);
+        }
+      },
+      error: () => {
+        this.isPollingReservations = false;
+      },
+    });
   }
 
   private silentRefreshParts(): void {
