@@ -57,9 +57,6 @@ public class DatabaseSchemaPatcher implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        if (asyncWarmup) {
-            return;
-        }
         executePatch();
     }
 

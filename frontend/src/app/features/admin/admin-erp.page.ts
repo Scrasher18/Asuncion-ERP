@@ -1614,12 +1614,12 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                   type="button"
                   (click)="exportOrdersToExcelForSunat()"
                   class="inline-flex min-h-[38px] items-center gap-1.5 rounded-xl border border-emerald-300 bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-1.5 text-xs font-bold shadow-xs transition cursor-pointer"
-                  title="Exportar Registro de Ventas en formato Excel para declaración tributaria SUNAT"
+                  title="Exportar Registro de Ventas en formato Excel para contabilidad y declaración tributaria"
                 >
                   <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
                   </svg>
-                  <span>Exportar Excel para SUNAT</span>
+                  <span>Exportar Ventas a Excel</span>
                 </button>
 
                 <div class="inline-flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800 shadow-2xs">

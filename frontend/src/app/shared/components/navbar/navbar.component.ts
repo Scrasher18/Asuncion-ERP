@@ -439,8 +439,8 @@ import {
                 type="button"
                 (click)="cart.toggleDrawer()"
                 [class]="cart.totalItems() > 0
-                  ? 'relative inline-flex shrink-0 whitespace-nowrap min-h-[40px] items-center gap-2 rounded-xl bg-gradient-to-r from-orange-600 via-orange-500 to-amber-500 px-3.5 py-2 text-xs font-black text-white shadow-md shadow-orange-500/35 ring-2 ring-orange-300 hover:scale-103 active:scale-95 transition-all cursor-pointer'
-                  : 'relative inline-flex shrink-0 whitespace-nowrap min-h-[40px] items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-bold text-gray-800 shadow-2xs hover:border-orange-300 hover:bg-orange-50/40 hover:text-gray-950 transition cursor-pointer'
+                  ? 'hidden lg:inline-flex relative shrink-0 whitespace-nowrap min-h-[40px] items-center gap-2 rounded-xl bg-gradient-to-r from-orange-600 via-orange-500 to-amber-500 px-3.5 py-2 text-xs font-black text-white shadow-md shadow-orange-500/35 ring-2 ring-orange-300 hover:scale-103 active:scale-95 transition-all cursor-pointer'
+                  : 'hidden lg:inline-flex relative shrink-0 whitespace-nowrap min-h-[40px] items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-bold text-gray-800 shadow-2xs hover:border-orange-300 hover:bg-orange-50/40 hover:text-gray-950 transition cursor-pointer'
                 "
               >
                 <div class="relative flex items-center justify-center">
@@ -765,7 +765,8 @@ import {
         } @else if (auth.isAuthenticated()) {
           <a
             routerLink="/my-orders"
-            routerLinkActive="text-orange-600"
+            [routerLinkActiveOptions]="{ exact: true }"
+            routerLinkActive="text-orange-600 font-bold"
             class="flex flex-1 flex-col items-center justify-center gap-0.5 py-2 min-h-[56px] text-gray-500 hover:text-gray-900 transition"
           >
             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
@@ -801,6 +802,42 @@ import {
         }
       </div>
     </nav>
+    <!-- Desktop Floating Quick-Cart Dock (PC & Laptop Ergonomics: NEVER scroll up) -->
+    @if (auth.canAccessCart() && cart.totalItems() > 0) {
+      <div class="hidden lg:flex fixed bottom-6 right-6 z-40 items-center gap-3 rounded-2xl bg-gradient-to-r from-orange-600 via-orange-500 to-amber-500 p-2 pl-4 text-white shadow-xl shadow-orange-600/35 ring-2 ring-white/90">
+        <div class="flex items-center gap-2.5">
+          <div class="relative flex h-8 w-8 items-center justify-center rounded-xl bg-white text-orange-600 font-bold shadow-xs">
+            <svg class="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
+            </svg>
+            <span class="absolute -top-1 -right-1 flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-red-600 px-1 font-mono text-[9px] font-black text-white ring-1 ring-white">
+              {{ cart.totalItems() }}
+            </span>
+          </div>
+          <div class="leading-tight select-none">
+            <span class="block text-xs font-black tracking-tight text-white">
+              {{ cart.totalItems() }} {{ cart.totalItems() === 1 ? 'repuesto' : 'repuestos' }} · S/ {{ cart.subtotal() | number: '1.2-2' }}
+            </span>
+            @if (cart.hasActiveReservation()) {
+              <span class="block text-[10px] font-bold text-amber-100 font-mono">
+                ⏳ Reserva asegurada: {{ cart.reservationFormattedTimer() }}
+              </span>
+            }
+          </div>
+        </div>
+        <button
+          type="button"
+          (click)="cart.toggleDrawer()"
+          class="inline-flex items-center gap-1.5 rounded-xl bg-white px-3.5 py-2 text-xs font-black text-orange-700 shadow-xs hover:bg-orange-50 active:scale-95 transition cursor-pointer"
+        >
+          <span>Ver Carrito</span>
+          <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+          </svg>
+        </button>
+      </div>
+    }
+
   `,
 })
 export class NavbarComponent {

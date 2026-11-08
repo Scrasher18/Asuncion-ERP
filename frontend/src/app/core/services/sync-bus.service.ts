@@ -59,15 +59,6 @@ export class SyncBusService {
         }
       });
 
-      // 3. Custom DOM event (same-window listener)
-      window.addEventListener('asuncion-sync-pulse', (evt: Event) => {
-        const custom = evt as CustomEvent<SyncEventPayload>;
-        if (custom.detail && custom.detail.type) {
-          this.ngZone.run(() => {
-            this.bus$.next(custom.detail);
-          });
-        }
-      });
     }
   }
 
@@ -102,12 +93,6 @@ export class SyncBusService {
         // ignore quota/privacy errors
       }
 
-      // Dispatch DOM event for same-window listeners
-      try {
-        window.dispatchEvent(new CustomEvent('asuncion-sync-pulse', { detail: payload }));
-      } catch {
-        // ignore
-      }
     }
   }
 

@@ -58,8 +58,7 @@ import { RouterLink } from '@angular/router';
             <h2 class="text-base font-bold text-gray-900">3. Precios, Moneda y Comprobantes</h2>
             <p>
               Todos los precios de los repuestos automotrices figuran en <strong>Soles (PEN - S/.)</strong> e incluyen el 
-              Impuesto General a las Ventas (IGV - 18%). Emitimos Boleta de Venta Electrónica y Factura Electrónica conforme a 
-              la normativa de la SUNAT, validadas con DNI o RUC del comprador al momento de finalizar la compra.
+              Impuesto General a las Ventas (IGV - 18%). Emitimos Boleta de Venta o Factura Comercial en formato digital PDF, validadas con DNI o RUC del comprador al momento de finalizar la compra.
             </p>
           </section>
 
@@ -98,7 +97,7 @@ import { RouterLink } from '@angular/router';
             <h2 class="text-base font-bold text-gray-900">7. Protección de Datos Personales</h2>
             <p>
               En cumplimiento de la Ley N° 29733 (Ley de Protección de Datos Personales del Perú), la información personal ingresada 
-              será utilizada estrictamente para el procesamiento de pedidos, facturación electrónica y comunicación logística de entrega.
+              será utilizada estrictamente para el procesamiento de pedidos, emisión de comprobantes comerciales y comunicación logística de entrega.
             </p>
           </section>
         </div>

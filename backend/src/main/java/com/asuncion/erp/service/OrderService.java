@@ -127,7 +127,7 @@ public class OrderService {
         boolean isOnlinePayment = !isCounterSale && isOnlinePaymentMethod(paymentMethod);
         OrderStatus initialStatus = isCounterSale
                 ? OrderStatus.ENTREGADO
-                : (isOnlinePayment ? OrderStatus.RESERVADO : OrderStatus.CONFIRMADO);
+                : (isOnlinePayment ? OrderStatus.PENDIENTE : OrderStatus.CONFIRMADO);
 
         CustomerOrder order = new CustomerOrder();
         order.setOrderNumber(generateNextOrderNumber());

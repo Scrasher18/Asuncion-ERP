@@ -1297,7 +1297,7 @@ export class CatalogPageComponent implements OnInit, OnDestroy {
       this.stockRefreshInterval = setInterval(() => {
         this.cart.refreshPosHoldsAndReconcile(false);
         this.silentRefreshParts();
-      }, 3000);
+      }, 20000);
     }
   }
 

@@ -72,11 +72,13 @@ export class CartService {
       const storageKey = user && user.id ? `asuncion_cart_user_${user.id}_v2` : GUEST_CART_KEY;
       const loaded = this.loadCartFromKey(storageKey);
       this.items.set(loaded);
-      this.publishOnlineHolds(loaded);
       if (loaded.length > 0) {
+        this.publishOnlineHolds(loaded);
         this.syncReservationWithServer(false);
       } else {
-        this.clear();
+        this.setReservationExpiresAt(null);
+        this.reservationRemainingSeconds.set(0);
+        this.reservedByOthersMap.set({});
       }
     }, { allowSignalWrites: true });
 
@@ -179,7 +181,6 @@ export class CartService {
         );
       }
       window.dispatchEvent(new CustomEvent('asuncion-online-holds-updated'));
-      this.syncBus.notifyReservationsUpdated(cartItems ? cartItems.map((i) => i.part.id) : []);
     } catch {
       // ignore storage errors
     }
@@ -618,23 +619,13 @@ export class CartService {
       } catch {
         // ignore
       }
-      this.http
-        .delete(`${this.apiConfig.apiUrl}/catalog/reservations/${encodeURIComponent(currentSessionId)}`)
-        .pipe(catchError(() => of(null)))
-        .subscribe();
-
-      this.http
-        .post(`${this.apiConfig.apiUrl}/catalog/reservations/release`, { sessionId: currentSessionId })
-        .pipe(catchError(() => of(null)))
-        .subscribe();
-
-      this.http
-        .post(`${this.apiConfig.apiUrl}/catalog/reservations/sync`, { sessionId: currentSessionId, items: [] })
-        .pipe(catchError(() => of(null)))
-        .subscribe();
-
+      if (currentSessionId) {
+        this.http
+          .post(`${this.apiConfig.apiUrl}/catalog/reservations/release`, { sessionId: currentSessionId })
+          .pipe(catchError(() => of(null)))
+          .subscribe();
+      }
       this.syncBus.notifyReservationsUpdated([]);
-      this.syncBus.notifyCatalogRefresh();
     }
   }
 

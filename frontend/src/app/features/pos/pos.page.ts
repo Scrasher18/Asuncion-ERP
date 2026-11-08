@@ -176,9 +176,9 @@ const POS_HOLD_TTL_MS = 15 * 60 * 1000;
                     type="button"
                     (click)="exportPosSalesToExcelForSunat()"
                     class="rounded-lg border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-800 hover:bg-emerald-100 transition cursor-pointer"
-                    title="Exportar comprobantes de caja a Excel para SUNAT"
+                    title="Exportar comprobantes de caja a Excel para declaración tributaria"
                   >
-                    📥 Excel SUNAT
+                    📥 Exportar Ventas a Excel
                   </button>
                 }
               </div>
