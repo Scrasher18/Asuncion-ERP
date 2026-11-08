@@ -12,8 +12,17 @@ import {
   selector: 'app-navbar',
   standalone: true,
   imports: [CommonModule, RouterLink, RouterLinkActive],
+  styles: [`
+    :host {
+      display: block;
+      position: sticky;
+      top: 0;
+      z-index: 40;
+      width: 100%;
+    }
+  `],
   template: `
-    <header class="sticky top-0 z-40 border-b border-gray-200/90 bg-white/95 text-gray-900 backdrop-blur-md shadow-2xs">
+    <header class="w-full border-b border-gray-200/90 bg-white/95 text-gray-900 backdrop-blur-md shadow-2xs">
       <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div class="flex h-16 items-center justify-between gap-3">
           <!-- Real Store Brand Logo (User's Official Logo) -->

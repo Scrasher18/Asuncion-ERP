@@ -22,7 +22,7 @@ import { ToastContainerComponent } from './shared/components/toast-container/toa
   ],
   template: `
     <div class="min-h-screen flex flex-col bg-[#F8F9FA] text-gray-900">
-      <app-navbar />
+      <app-navbar class="sticky top-0 z-40 block w-full" />
 
       <main class="flex-1">
         <router-outlet />

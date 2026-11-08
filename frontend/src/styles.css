@@ -28,7 +28,7 @@
     color: #111827;
     line-height: 1.5;
     -webkit-tap-highlight-color: transparent;
-    overflow-x: hidden;
+    overflow-x: clip;
   }
 
   h1,
