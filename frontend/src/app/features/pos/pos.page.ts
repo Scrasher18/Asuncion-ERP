@@ -169,7 +169,19 @@ const POS_HOLD_TTL_MS = 15 * 60 * 1000;
           <div class="rounded-2xl border border-gray-200 bg-white p-4 flex items-center justify-between shadow-2xs">
             <div>
               <span class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Comprobantes Emitidos</span>
-              <span class="font-mono text-xl font-extrabold text-gray-900 mt-0.5 block">{{ counterOrders().length }}</span>
+              <div class="flex items-center gap-2 mt-0.5">
+                <span class="font-mono text-xl font-extrabold text-gray-900">{{ counterOrders().length }}</span>
+                @if (counterOrders().length > 0) {
+                  <button
+                    type="button"
+                    (click)="exportPosSalesToExcelForSunat()"
+                    class="rounded-lg border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-800 hover:bg-emerald-100 transition cursor-pointer"
+                    title="Exportar comprobantes de caja a Excel para SUNAT"
+                  >
+                    📥 Excel SUNAT
+                  </button>
+                }
+              </div>
             </div>
             <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-50 border border-orange-200 text-orange-600 font-bold">
               🧾
@@ -490,7 +502,7 @@ const POS_HOLD_TTL_MS = 15 * 60 * 1000;
                       (click)="lookupCustomerDoc()"
                       class="rounded-xl border border-orange-200 bg-orange-50 px-3.5 py-2 text-xs font-bold text-orange-700 hover:bg-orange-100 transition cursor-pointer shrink-0"
                     >
-                      {{ lookingUpDoc() ? 'Consultando...' : 'Consultar RENIEC/SUNAT' }}
+                      {{ lookingUpDoc() ? 'Consultando...' : 'Consultar DNI / RUC' }}
                     </button>
                   </div>
                 </div>
@@ -777,28 +789,27 @@ export class PosPageComponent implements OnInit, OnDestroy {
       this.syncBusSub = this.syncBus.events$.subscribe((evt) => {
         if (
           evt.type === 'ONLINE_ORDER_COMPLETED' ||
-          evt.type === 'RESERVATIONS_UPDATED' ||
           evt.type === 'ADMIN_STOCK_MUTATED' ||
           evt.type === 'CATALOG_REFRESH_REQUESTED'
         ) {
           this.onlineHolds.set(this.loadOnlineHoldsMap());
           this.silentRefreshParts();
-          if (this.ticketItems().length > 0) {
-            this.syncPosTicketReservations();
-          }
+        } else if (evt.type === 'RESERVATIONS_UPDATED') {
+          this.onlineHolds.set(this.loadOnlineHoldsMap());
+          this.reconcileTicketWithAvailableStock();
         }
       });
 
       this.focusListener = () => {
         this.onlineHolds.set(this.loadOnlineHoldsMap());
-        this.silentRefreshParts();
+        this.reconcileTicketWithAvailableStock();
       };
       window.addEventListener('focus', this.focusListener);
 
       this.visibilityListener = () => {
         if (document.visibilityState === 'visible') {
           this.onlineHolds.set(this.loadOnlineHoldsMap());
-          this.silentRefreshParts();
+          this.reconcileTicketWithAvailableStock();
         }
       };
       document.addEventListener('visibilitychange', this.visibilityListener);
@@ -813,11 +824,8 @@ export class PosPageComponent implements OnInit, OnDestroy {
 
       this.autoSyncTimer = setInterval(() => {
         this.onlineHolds.set(this.loadOnlineHoldsMap());
-        this.silentRefreshParts();
-        if (this.ticketItems().length > 0) {
-          this.syncPosTicketReservations();
-        }
-      }, 3000);
+        this.reconcileTicketWithAvailableStock();
+      }, 15000);
     }
   }
 
@@ -846,13 +854,19 @@ export class PosPageComponent implements OnInit, OnDestroy {
     }
   }
 
+  private isRefreshingParts = false;
   private silentRefreshParts(): void {
+    if (this.isRefreshingParts) return;
+    this.isRefreshingParts = true;
     this.catalogService.getAdminParts(false).subscribe({
       next: (list) => {
+        this.isRefreshingParts = false;
         this.parts.set(list);
         this.reconcileTicketWithAvailableStock();
       },
-      error: () => {},
+      error: () => {
+        this.isRefreshingParts = false;
+      },
     });
   }
 
@@ -1129,6 +1143,76 @@ export class PosPageComponent implements OnInit, OnDestroy {
     this.ticketItems.set([]);
     this.cashReceived = null;
     this.syncPosTicketReservations();
+  }
+
+  exportPosSalesToExcelForSunat(): void {
+    const orders = this.counterOrders();
+    if (!orders || orders.length === 0) {
+      this.toast.info('Sin ventas de mostrador', 'Aún no hay comprobantes emitidos en este turno de caja.');
+      return;
+    }
+
+    const headers = [
+      'NRO_COMPROBANTE',
+      'FECHA_EMISION',
+      'TIPO_COMPROBANTE',
+      'SERIE',
+      'CORRELATIVO',
+      'TIPO_DOC',
+      'NUMERO_DOC',
+      'CLIENTE_RAZON_SOCIAL',
+      'BASE_IMPONIBLE_PEN',
+      'IGV_18_PEN',
+      'TOTAL_PEN',
+      'MONEDA',
+      'METODO_PAGO',
+      'ESTADO'
+    ];
+
+    const rows = orders.map((ord, idx) => {
+      const docNum = (ord.customerTaxId || ord.billingDocumentNumber || '').trim();
+      const invType = ord.invoiceType || (docNum.length === 11 ? 'FACTURA' : 'BOLETA');
+      const tipo = invType === 'FACTURA' ? '01 (Factura)' : '03 (Boleta)';
+      const serie = invType === 'FACTURA' ? 'F001' : 'B001';
+      const docType = docNum.length === 11 ? '6 (RUC)' : (docNum.length === 8 ? '1 (DNI)' : '0 (Otros)');
+      const fecha = ord.createdAt ? new Date(ord.createdAt).toISOString().slice(0, 10) : '';
+
+      const subtotal = Number(ord.subtotal || 0).toFixed(2);
+      const igv = Number(ord.igvAmount ?? ord.taxAmount ?? 0).toFixed(2);
+      const total = Number(ord.totalAmount ?? ord.total ?? 0).toFixed(2);
+
+      const sanitize = (val: any) => `"${String(val ?? '').replace(/"/g, '""')}"`;
+
+      return [
+        sanitize(ord.orderNumber || `POS-2026-${String(idx + 1).padStart(4, '0')}`),
+        sanitize(fecha),
+        sanitize(tipo),
+        sanitize(serie),
+        sanitize(ord.orderNumber || String(idx + 1)),
+        sanitize(docType),
+        sanitize(docNum),
+        sanitize(ord.billingBusinessName || ord.customerBusinessName || ord.recipientName || ord.customerName || 'Cliente en Caja'),
+        subtotal,
+        igv,
+        total,
+        sanitize('PEN (Soles)'),
+        sanitize(ord.paymentMethod || 'EFECTIVO'),
+        sanitize('EMITIDO')
+      ].join(';');
+    });
+
+    const csvContent = [headers.join(';'), ...rows].join('\r\n');
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Ventas_Caja_POS_SUNAT_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    this.toast.success('Excel de Caja Generado', `Se descargaron ${orders.length} ventas de mostrador para declaración.`);
   }
 
   setInvoiceType(type: 'BOLETA' | 'FACTURA'): void {

@@ -596,8 +596,8 @@ import { RecaptchaV3Service } from '../../core/services/recaptcha-v3.service';
         <!-- Security & Commercial Trust Strip -->
         <div class="grid grid-cols-3 gap-2 text-center">
           <div class="rounded-xl border border-gray-200/80 bg-white p-2.5 shadow-2xs">
-            <span class="block text-[10px] font-extrabold text-gray-900">SUNAT / RENIEC</span>
-            <span class="block text-[10px] text-gray-500">Autocompletado</span>
+            <span class="block text-[10px] font-extrabold text-gray-900">Validación DNI / RUC</span>
+            <span class="block text-[10px] text-gray-500">Datos Oficiales</span>
           </div>
           <div class="rounded-xl border border-gray-200/80 bg-white p-2.5 shadow-2xs">
             <span class="block text-[10px] font-extrabold text-emerald-700">Precios Mayoristas</span>

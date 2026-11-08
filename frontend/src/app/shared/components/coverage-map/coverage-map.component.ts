@@ -65,20 +65,6 @@ export interface SelectedGeoPoint {
         </div>
 
         <div class="flex items-center gap-2">
-          @if (!adminMode) {
-            <button
-              type="button"
-              (click)="locateUserGps()"
-              [disabled]="isLocatingGps()"
-              class="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-2.5 py-1 text-xs font-semibold text-gray-700 hover:border-orange-400 hover:text-orange-700 shadow-2xs transition disabled:opacity-50"
-            >
-              <svg class="h-3.5 w-3.5 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-              </svg>
-              <span>{{ isLocatingGps() ? 'Ubicando...' : 'Mi ubicación' }}</span>
-            </button>
-          }
           <div class="rounded-lg bg-gray-50 border border-gray-200/80 px-2.5 py-1 text-xs font-bold tabular-nums text-gray-700">
             Radio: {{ (currentCoverageRadiusMeters / 1000) | number: '1.1-2' }} km
           </div>
@@ -363,11 +349,20 @@ export class CoverageMapComponent implements AfterViewInit, OnChanges, OnDestroy
     const custIcon = L.divIcon({
       className: 'cust-pin-wrapper',
       html: `
-        <div style="background:#EA580C;color:#FFFFFF;border:2px solid #FFFFFF;border-radius:12px;padding:5px 10px;font-size:11px;font-weight:700;display:flex;align-items:center;gap:5px;box-shadow:0 4px 12px rgba(234,88,12,0.4);white-space:nowrap;transform:translate(-50%, -100%);">
-          <svg style="width:14px;height:14px;color:#FFFFFF;flex-shrink:0;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
-          </svg>
-          <span>Entrega aquí</span>
+        <div style="display:flex;flex-direction:column;align-items:center;transform:translate(-50%, -100%);">
+          <div style="width:38px;height:46px;filter:drop-shadow(0 4px 8px rgba(0,0,0,0.28));position:relative;display:flex;align-items:center;justify-content:center;">
+            <svg viewBox="0 0 36 44" width="38" height="46" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 0C8.059 0 0 8.059 0 18C0 28.5 18 44 18 44C18 44 36 28.5 36 18C36 8.059 27.941 0 18 0Z" fill="#EA580C"/>
+              <path d="M18 1C8.611 1 1 8.611 1 18C1 27.8 17.5 42.5 18 43C18.5 42.5 35 27.8 35 18C35 8.611 27.389 1 18 1Z" stroke="#FFFFFF" stroke-width="2"/>
+              <circle cx="18" cy="18" r="13" fill="#FFFFFF"/>
+            </svg>
+            <div style="position:absolute;top:9px;left:50%;transform:translateX(-50%);font-size:16px;line-height:1;">
+              🏠
+            </div>
+          </div>
+          <div style="background:#FFFFFF;color:#0F172A;border:1.5px solid #EA580C;border-radius:8px;padding:2px 7px;font-size:10px;font-weight:800;box-shadow:0 2px 6px rgba(0,0,0,0.18);white-space:nowrap;margin-top:2px;">
+            🏠 Dirección de Entrega
+          </div>
         </div>
       `,
       iconSize: [0, 0],
@@ -421,7 +416,12 @@ export class CoverageMapComponent implements AfterViewInit, OnChanges, OnDestroy
     });
   }
 
-  private handleCustomerSelection(lat: number, lng: number, address?: string): void {
+  public setGpsLocation(lat: number, lng: number, address = 'Mi ubicación GPS actual'): void {
+    this.handleCustomerSelection(lat, lng, address);
+    this.map?.flyTo([lat, lng], 15, { duration: 1.0 });
+  }
+
+  public handleCustomerSelection(lat: number, lng: number, address?: string): void {
     this.customerLat.set(lat);
     this.customerLng.set(lng);
     this.updateCustomerMarkerAndRoute();

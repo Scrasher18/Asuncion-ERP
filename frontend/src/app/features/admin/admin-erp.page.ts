@@ -1602,6 +1602,18 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                   </svg>
                 </div>
 
+                <button
+                  type="button"
+                  (click)="exportOrdersToExcelForSunat()"
+                  class="inline-flex min-h-[38px] items-center gap-1.5 rounded-xl border border-emerald-300 bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-1.5 text-xs font-bold shadow-xs transition cursor-pointer"
+                  title="Exportar Registro de Ventas en formato Excel para declaración tributaria SUNAT"
+                >
+                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                  </svg>
+                  <span>Exportar Excel para SUNAT</span>
+                </button>
+
                 <div class="inline-flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800 shadow-2xs">
                   <span class="relative flex h-2 w-2">
                     <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -6708,6 +6720,89 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
   }
 
   
+  exportOrdersToExcelForSunat(): void {
+    const orders = this.globalOrders();
+    if (!orders || orders.length === 0) {
+      this.toast.info('Sin registros', 'No hay pedidos disponibles para exportar.');
+      return;
+    }
+
+    // Cabecera estándar según formato 14.1 de Registro de Ventas para Contabilidad / SUNAT
+    const headers = [
+      'NRO_PEDIDO',
+      'FECHA_EMISION',
+      'TIPO_COMPROBANTE',
+      'SERIE_COMPROBANTE',
+      'NUMERO_COMPROBANTE',
+      'TIPO_DOC_IDENTIDAD',
+      'NUMERO_DOC_IDENTIDAD',
+      'RAZON_SOCIAL_O_CLIENTE',
+      'BASE_IMPONIBLE_SUBTOTAL_PEN',
+      'IGV_18_PEN',
+      'FLETE_DELIVERY_PEN',
+      'TOTAL_VENTA_PEN',
+      'MONEDA',
+      'METODO_PAGO',
+      'ESTADO_OPERATIVO',
+      'ESTADO_PAGO',
+      'MODALIDAD_ENTREGA',
+      'DIRECCION_ENTREGA'
+    ];
+
+    const rows = orders.map((ord, idx) => {
+      const docNum = (ord.customerTaxId || ord.billingDocumentNumber || '').trim();
+      const invType = ord.invoiceType || (docNum.length === 11 ? 'FACTURA' : 'BOLETA');
+      const tipoComprobante = invType === 'FACTURA' ? '01 (Factura)' : '03 (Boleta)';
+      const serie = invType === 'FACTURA' ? 'F001' : 'B001';
+      const docType = docNum.length === 11 ? '6 (RUC)' : (docNum.length === 8 ? '1 (DNI)' : '0 (Otros)');
+      const fecha = ord.createdAt ? new Date(ord.createdAt).toISOString().slice(0, 10) : '';
+
+      const subtotal = Number(ord.subtotal || 0).toFixed(2);
+      const igv = Number(ord.igvAmount ?? ord.taxAmount ?? 0).toFixed(2);
+      const deliveryFee = Number(ord.deliveryFee || 0).toFixed(2);
+      const total = Number(ord.totalAmount ?? ord.total ?? 0).toFixed(2);
+
+      const sanitize = (val: any) => `"${String(val ?? '').replace(/"/g, '""')}"`;
+
+      return [
+        sanitize(ord.orderNumber || `ASN-2026-${String(idx + 1).padStart(4, '0')}`),
+        sanitize(fecha),
+        sanitize(tipoComprobante),
+        sanitize(serie),
+        sanitize(ord.orderNumber || String(idx + 1)),
+        sanitize(docType),
+        sanitize(docNum),
+        sanitize(ord.billingBusinessName || ord.customerBusinessName || ord.recipientName || ord.customerName || 'Cliente Asunción'),
+        subtotal,
+        igv,
+        deliveryFee,
+        total,
+        sanitize('PEN (Soles)'),
+        sanitize(ord.paymentMethod || 'CONTRA_ENTREGA'),
+        sanitize(ord.status || 'PENDIENTE'),
+        sanitize(ord.status === 'ENTREGADO' || ord.status === 'CONFIRMADO' ? 'PAGADO' : 'PENDIENTE'),
+        sanitize(ord.deliveryType || 'DELIVERY'),
+        sanitize(ord.deliveryAddress || 'Recojo en tienda')
+      ].join(';');
+    });
+
+    const csvContent = [headers.join(';'), ...rows].join('\r\n');
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Registro_Ventas_SUNAT_Asuncion_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    this.toast.success(
+      'Excel generado con éxito',
+      `Se exportaron ${orders.length} registros contables en formato listo para SUNAT / Microsoft Excel.`
+    );
+  }
+
   loadDrivers(): void {
     this.loadingDrivers.set(true);
     this.ordersService.getDrivers().subscribe({

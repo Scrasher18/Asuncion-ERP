@@ -64,8 +64,8 @@ import { ToastContainerComponent } from './shared/components/toast-container/toa
                 </svg>
               </div>
               <div>
-                <h5 class="text-xs font-extrabold text-gray-900">Facturación Electrónica SUNAT</h5>
-                <p class="text-[11px] text-gray-500 mt-0.5 leading-snug">Emisión inmediata de Factura Comercial o Boleta en PDF.</p>
+                <h5 class="text-xs font-extrabold text-gray-900">Comprobantes de Pago Oficiales</h5>
+                <p class="text-[11px] text-gray-500 mt-0.5 leading-snug">Emisión formal de Factura Comercial o Boleta de Venta en PDF.</p>
               </div>
             </div>
 

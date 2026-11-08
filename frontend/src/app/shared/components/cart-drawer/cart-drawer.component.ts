@@ -40,7 +40,7 @@ import { ToastService } from '../../../core/services/toast.service';
                   </span>
                 </div>
                 <p class="mt-0.5 text-xs text-gray-500">
-                  Precios incluyen IGV · Facturación electrónica SUNAT
+                  Precios incluyen IGV · Boleta o Factura en PDF
                 </p>
               </div>
               <button

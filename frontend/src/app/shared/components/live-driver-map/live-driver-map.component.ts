@@ -170,31 +170,48 @@ export class LiveDriverMapComponent implements AfterViewInit, OnChanges, OnDestr
       this.originMarker.setLatLng([origLat, origLng]);
     }
 
-    // 2. Customer Destination Marker
+    // 2. Customer Destination Marker (Clean High-Contrast House Pin)
     if (!this.destMarker) {
       const destIcon = L.divIcon({
         className: 'custom-dest-pin',
         html: `
-          <div style="background:#16A34A;color:#FFFFFF;border:2px solid #FFFFFF;border-radius:12px;padding:4px 8px;font-size:11px;font-weight:700;display:flex;align-items:center;gap:5px;box-shadow:0 4px 12px rgba(22,163,74,0.3);white-space:nowrap;">
-            <img src="/images/icons/casa.png" style="width:14px;height:14px;object-fit:contain;" alt="" />
-            <span>Destino Cliente</span>
+          <div style="display:flex;flex-direction:column;align-items:center;transform:translate(-50%, -100%);">
+            <div style="width:38px;height:46px;filter:drop-shadow(0 4px 8px rgba(0,0,0,0.28));position:relative;display:flex;align-items:center;justify-content:center;">
+              <svg viewBox="0 0 36 44" width="38" height="46" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M18 0C8.059 0 0 8.059 0 18C0 28.5 18 44 18 44C18 44 36 28.5 36 18C36 8.059 27.941 0 18 0Z" fill="#16A34A"/>
+                <path d="M18 1C8.611 1 1 8.611 1 18C1 27.8 17.5 42.5 18 43C18.5 42.5 35 27.8 35 18C35 8.611 27.389 1 18 1Z" stroke="#FFFFFF" stroke-width="2"/>
+                <circle cx="18" cy="18" r="13" fill="#FFFFFF"/>
+              </svg>
+              <div style="position:absolute;top:9px;left:50%;transform:translateX(-50%);font-size:16px;line-height:1;">
+                🏠
+              </div>
+            </div>
+            <div style="background:#FFFFFF;color:#0F172A;border:1.5px solid #16A34A;border-radius:8px;padding:2px 7px;font-size:10px;font-weight:800;box-shadow:0 2px 6px rgba(0,0,0,0.18);white-space:nowrap;margin-top:2px;">
+              🏠 Casa / Destino
+            </div>
           </div>
         `,
-        iconSize: [110, 30],
-        iconAnchor: [55, 15],
+        iconSize: [0, 0],
       });
       this.destMarker = L.marker([destLat, destLng], { icon: destIcon }).addTo(this.map);
     } else {
       this.destMarker.setLatLng([destLat, destLng]);
     }
 
-    // 3. Driver Motorized Marker (with heading & pulse ring)
+    // 3. Driver Motorized Marker (Distinct Motorcycle Pin with Sonar Pulse)
     const heading = tel.headingDegrees || 0;
     const driverHtml = `
-      <div style="position:relative;width:44px;height:44px;display:flex;align-items:center;justify-content:center;">
-        <div style="position:absolute;width:40px;height:40px;border-radius:50%;background:rgba(234,88,12,0.25);animation:ping 2s cubic-bezier(0,0,0.2,1) infinite;"></div>
-        <div style="position:relative;width:34px;height:34px;border-radius:50%;background:#EA580C;border:3px solid #FFFFFF;box-shadow:0 4px 14px rgba(234,88,12,0.45);display:flex;align-items:center;justify-content:center;transform:rotate(${heading}deg);transition:transform 0.4s ease;">
-          <img src="/images/icons/en_ruta.png" style="width:18px;height:18px;object-fit:contain;transform:rotate(-${heading}deg);" alt="" />
+      <div style="display:flex;flex-direction:column;align-items:center;transform:translate(-50%, -50%);">
+        <div style="position:relative;width:52px;height:52px;display:flex;align-items:center;justify-content:center;">
+          <div style="position:absolute;width:48px;height:48px;border-radius:50%;background:rgba(234,88,12,0.3);animation:ping 2s cubic-bezier(0,0,0.2,1) infinite;"></div>
+          <div style="position:relative;width:42px;height:42px;border-radius:50%;background:#FFFFFF;border:3px solid #EA580C;box-shadow:0 4px 14px rgba(234,88,12,0.5);display:flex;align-items:center;justify-content:center;">
+            <span style="font-size:22px;line-height:1;transform:rotate(${heading}deg);transition:transform 0.4s ease;display:inline-block;">
+              🛵
+            </span>
+          </div>
+        </div>
+        <div style="background:#FFFFFF;color:#0F172A;border:1.5px solid #EA580C;border-radius:8px;padding:2px 7px;font-size:10px;font-weight:800;box-shadow:0 2px 6px rgba(0,0,0,0.18);white-space:nowrap;margin-top:-2px;">
+          🛵 Motorizado en ruta
         </div>
       </div>
     `;
@@ -202,8 +219,7 @@ export class LiveDriverMapComponent implements AfterViewInit, OnChanges, OnDestr
     const driverIcon = L.divIcon({
       className: 'custom-driver-pin',
       html: driverHtml,
-      iconSize: [44, 44],
-      iconAnchor: [22, 22],
+      iconSize: [0, 0],
     });
 
     if (!this.driverMarker) {

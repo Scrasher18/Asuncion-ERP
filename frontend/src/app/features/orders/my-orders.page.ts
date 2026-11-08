@@ -357,7 +357,7 @@ import { DriverRatingService } from '../../core/services/driver-rating.service';
                 </p>
               </div>
               <span class="rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1 text-[11px] font-bold text-emerald-700">
-                Sincronización SUNAT / RENIEC activa
+                Validación oficial DNI / RUC activa
               </span>
             </div>
 
@@ -476,12 +476,12 @@ import { DriverRatingService } from '../../core/services/driver-rating.service';
                   <svg class="h-4 w-4 text-orange-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
                   </svg>
-                  <span>Normativa SUNAT para Comprobantes Electrónicos:</span>
+                  <span>Emisión de Comprobantes de Pago:</span>
                 </div>
                 <ul class="list-disc list-inside space-y-1 text-gray-600 text-[11px] pt-0.5">
                   <li><strong class="text-gray-800">Boleta de venta menor a S/ 700:</strong> Emisión rápida sin DNI obligatorio.</li>
                   <li><strong class="text-gray-800">Boleta de venta desde S/ 700:</strong> Es obligatorio consignar DNI o Carnet de Extranjería vigente.</li>
-                  <li><strong class="text-gray-800">Factura electrónica comercial:</strong> Requiere RUC de 11 dígitos activo y habido en SUNAT.</li>
+                  <li><strong class="text-gray-800">Factura comercial:</strong> Requiere RUC de 11 dígitos con razón social y dirección fiscal válidas.</li>
                 </ul>
               </div>
 

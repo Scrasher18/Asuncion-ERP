@@ -47,8 +47,8 @@ export class CartService {
 
   // Stock Reservation (Estado RESERVADO) Signals
   readonly reservationSessionId: string = this.initOrLoadSessionId();
-  readonly reservationExpiresAt = signal<number | null>(null);
-  readonly reservationRemainingSeconds = signal<number>(0);
+  readonly reservationExpiresAt = signal<number | null>(this.loadStoredExpiresAt());
+  readonly reservationRemainingSeconds = signal<number>(this.calculateInitialRemainingSeconds());
   readonly reservedByOthersMap = signal<Record<number, number>>({});
   readonly posActiveHolds = signal<Record<number, number>>(this.loadPosActiveHolds());
   readonly isSyncingReservation = signal<boolean>(false);
@@ -107,6 +107,34 @@ export class CartService {
         const diff = Math.max(0, Math.floor((exp - Date.now()) / 1000));
         this.reservationRemainingSeconds.set(diff);
       }, 1000);
+    }
+  }
+
+  private loadStoredExpiresAt(): number | null {
+    if (typeof window === 'undefined') return null;
+    const raw = localStorage.getItem('asuncion_cart_expires_at');
+    if (!raw) return null;
+    const val = Number(raw);
+    if (!val || isNaN(val) || val <= Date.now()) {
+      localStorage.removeItem('asuncion_cart_expires_at');
+      return null;
+    }
+    return val;
+  }
+
+  private calculateInitialRemainingSeconds(): number {
+    const exp = this.loadStoredExpiresAt();
+    if (!exp) return 0;
+    return Math.max(0, Math.floor((exp - Date.now()) / 1000));
+  }
+
+  setReservationExpiresAt(timestamp: number | null): void {
+    this.reservationExpiresAt.set(timestamp);
+    if (typeof window === 'undefined') return;
+    if (timestamp && timestamp > Date.now()) {
+      localStorage.setItem('asuncion_cart_expires_at', String(timestamp));
+    } else {
+      localStorage.removeItem('asuncion_cart_expires_at');
     }
   }
 
@@ -576,7 +604,7 @@ export class CartService {
     this.items.set([]);
     this.customCombos.set([]);
     this.persistCustomCombos();
-    this.reservationExpiresAt.set(null);
+    this.setReservationExpiresAt(null);
     this.reservationRemainingSeconds.set(0);
     this.reservedByOthersMap.set({});
     this.persist();
@@ -602,7 +630,7 @@ export class CartService {
     if (typeof window === 'undefined') return of(null);
     const currentItems = this.items();
     if (currentItems.length === 0) {
-      this.reservationExpiresAt.set(null);
+      this.setReservationExpiresAt(null);
       this.reservationRemainingSeconds.set(0);
       this.reservedByOthersMap.set({});
       return this.http
@@ -619,7 +647,8 @@ export class CartService {
 
     // Optimistic local 10-minute timer while server responds
     if (!this.reservationExpiresAt() || this.reservationRemainingSeconds() <= 0) {
-      this.reservationExpiresAt.set(Date.now() + 600 * 1000);
+      const initExp = Date.now() + 600 * 1000;
+      this.setReservationExpiresAt(initExp);
       this.reservationRemainingSeconds.set(600);
     }
 
@@ -639,8 +668,19 @@ export class CartService {
           this.isSyncingReservation.set(false);
           if (!res) return;
 
-          const expMs = res.expiresAt ? new Date(res.expiresAt).getTime() : Date.now() + 600 * 1000;
-          this.reservationExpiresAt.set(expMs);
+          const currentExp = this.reservationExpiresAt();
+          let expMs: number;
+          if (res.expiresAt) {
+            const serverExp = new Date(res.expiresAt).getTime();
+            if (currentExp && currentExp > Date.now() && Math.abs(currentExp - serverExp) < 90000) {
+              expMs = currentExp;
+            } else {
+              expMs = serverExp;
+            }
+          } else {
+            expMs = currentExp && currentExp > Date.now() ? currentExp : Date.now() + 600 * 1000;
+          }
+          this.setReservationExpiresAt(expMs);
           this.reservationRemainingSeconds.set(Math.max(0, Math.floor((expMs - Date.now()) / 1000)));
 
           const currentMap = new Map(this.items().map((i) => [i.part.id, i.quantity]));

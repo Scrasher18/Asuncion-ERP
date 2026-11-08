@@ -220,7 +220,15 @@ public class StockReservationService {
             ));
         }
 
-        Instant expiresAt = Instant.now().plusSeconds(RESERVATION_TTL_SECONDS);
+        SessionHold existing = activeHolds.get(sessionId);
+        Instant expiresAt;
+        if (existing != null && existing.expiresAt != null && existing.expiresAt.isAfter(Instant.now())) {
+            // Preservar la hora original de expiración para evitar que el contador de 10 min se reinicie continuamente
+            expiresAt = existing.expiresAt;
+        } else {
+            expiresAt = Instant.now().plusSeconds(RESERVATION_TTL_SECONDS);
+        }
+
         if (grantedMap.isEmpty()) {
             activeHolds.remove(sessionId);
         } else {

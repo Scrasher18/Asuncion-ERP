@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnDestroy, OnInit, signal, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { finalize, firstValueFrom } from 'rxjs';
@@ -54,6 +54,36 @@ export class CheckoutPageComponent implements OnInit, OnDestroy {
   readonly deliveryType = signal<DeliveryType>('DELIVERY');
   readonly invoiceType = signal<InvoiceType>('BOLETA');
   selectedBranchId: number | null = null;
+
+  @ViewChild(CoverageMapComponent) coverageMap?: CoverageMapComponent;
+  readonly isLocatingGps = signal<boolean>(false);
+
+  useCurrentLocationGps(): void {
+    if (typeof window === 'undefined' || !navigator.geolocation) {
+      this.toast.error('Geolocalización no disponible', 'Tu navegador o dispositivo no soporta detección GPS.');
+      return;
+    }
+    this.isLocatingGps.set(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        this.isLocatingGps.set(false);
+        const { latitude, longitude } = pos.coords;
+        this.deliveryLatitude.set(latitude);
+        this.deliveryLongitude.set(longitude);
+        this.deliveryAddress = 'Mi ubicación GPS actual';
+        if (this.coverageMap) {
+          this.coverageMap.setGpsLocation(latitude, longitude, 'Mi ubicación GPS actual');
+        }
+        this.toast.success('Ubicación GPS fijada', 'Se fijó tu punto de entrega en tiempo real.');
+      },
+      (err) => {
+        this.isLocatingGps.set(false);
+        const msg = err.code === 1 ? 'Permiso de ubicación denegado en tu navegador.' : 'No se pudo obtener tu ubicación GPS en este momento.';
+        this.toast.warning('Aviso de GPS', msg);
+      },
+      { timeout: 10000, enableHighAccuracy: true }
+    );
+  }
 
   readonly deliveryLatitude = signal<number>(-12.045000);
   readonly deliveryLongitude = signal<number>(-76.952000);

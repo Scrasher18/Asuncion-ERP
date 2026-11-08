@@ -77,8 +77,38 @@ public class DatabaseSchemaPatcher implements CommandLineRunner {
             jdbcTemplate.execute("ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_reference VARCHAR(150)");
             jdbcTemplate.execute("ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_security_code VARCHAR(10)");
             jdbcTemplate.execute("ALTER TABLE orders ADD COLUMN IF NOT EXISTS proximity_alert_sent BOOLEAN DEFAULT FALSE");
+
+            // Update chk_orders_status to permit 'RESERVADO' status used by online checkout and stock reservations
+            jdbcTemplate.execute("ALTER TABLE orders DROP CONSTRAINT IF EXISTS chk_orders_status");
+            jdbcTemplate.execute("""
+                ALTER TABLE orders ADD CONSTRAINT chk_orders_status CHECK (status IN (
+                    'RESERVADO',
+                    'PENDIENTE',
+                    'CONFIRMADO',
+                    'EN_PREPARACION',
+                    'LISTO_PARA_DESPACHO',
+                    'EN_RUTA',
+                    'ENTREGADO',
+                    'CANCELADO'
+                ))
+            """);
+
+            // Update chk_history_new_status to permit 'RESERVADO' in status history
+            jdbcTemplate.execute("ALTER TABLE order_status_history DROP CONSTRAINT IF EXISTS chk_history_new_status");
+            jdbcTemplate.execute("""
+                ALTER TABLE order_status_history ADD CONSTRAINT chk_history_new_status CHECK (new_status IN (
+                    'RESERVADO',
+                    'PENDIENTE',
+                    'CONFIRMADO',
+                    'EN_PREPARACION',
+                    'LISTO_PARA_DESPACHO',
+                    'EN_RUTA',
+                    'ENTREGADO',
+                    'CANCELADO'
+                ))
+            """);
         } catch (Exception e) {
-            log.debug("Columnas de pago y seguridad en orders verificadas ({})", e.getMessage());
+            log.debug("Columnas de pago, seguridad y restricciones de estado en orders verificadas ({})", e.getMessage());
         }
 
         // Ensure system_payment_config default row exists

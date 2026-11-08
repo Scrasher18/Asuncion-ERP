@@ -293,6 +293,7 @@ CREATE TABLE IF NOT EXISTS orders (
     status                     VARCHAR(30) NOT NULL DEFAULT 'PENDIENTE'
                                CONSTRAINT chk_orders_status
                                CHECK (status IN (
+                                   'RESERVADO',
                                    'PENDIENTE',
                                    'CONFIRMADO',
                                    'EN_PREPARACION',
@@ -363,6 +364,7 @@ CREATE TABLE IF NOT EXISTS order_status_history (
     new_status         VARCHAR(30) NOT NULL
                        CONSTRAINT chk_history_new_status
                        CHECK (new_status IN (
+                           'RESERVADO',
                            'PENDIENTE',
                            'CONFIRMADO',
                            'EN_PREPARACION',
