@@ -424,21 +424,37 @@ import {
               </div>
             }
 
-            <!-- 2. Cart Drawer Button -->
+            <!-- 2. Cart Drawer Button (Dazzling Highlight when cart has items) -->
             @if (auth.canAccessCart()) {
               <button
                 type="button"
                 (click)="cart.toggleDrawer()"
-                class="relative inline-flex shrink-0 whitespace-nowrap min-h-[40px] items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-bold text-gray-800 shadow-2xs hover:border-orange-300 hover:bg-orange-50/40 hover:text-gray-950 transition cursor-pointer"
+                [class]="cart.totalItems() > 0
+                  ? 'relative inline-flex shrink-0 whitespace-nowrap min-h-[40px] items-center gap-2 rounded-xl bg-gradient-to-r from-orange-600 via-orange-500 to-amber-500 px-3.5 py-2 text-xs font-black text-white shadow-md shadow-orange-500/35 ring-2 ring-orange-300 hover:scale-103 active:scale-95 transition-all cursor-pointer'
+                  : 'relative inline-flex shrink-0 whitespace-nowrap min-h-[40px] items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-bold text-gray-800 shadow-2xs hover:border-orange-300 hover:bg-orange-50/40 hover:text-gray-950 transition cursor-pointer'
+                "
               >
-                <svg class="h-4 w-4 shrink-0 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
-                </svg>
+                <div class="relative flex items-center justify-center">
+                  @if (cart.totalItems() > 0) {
+                    <span class="absolute -inset-1 rounded-full bg-white/40 animate-ping"></span>
+                  }
+                  <svg class="h-4 w-4 shrink-0" [class.text-white]="cart.totalItems() > 0" [class.text-orange-600]="cart.totalItems() <= 0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
+                  </svg>
+                </div>
                 <span class="hidden sm:inline">Carrito</span>
                 @if (cart.totalItems() > 0) {
-                  <span class="flex h-5 min-w-5 items-center justify-center rounded-full bg-orange-600 px-1.5 font-mono text-[11px] font-bold text-white">
+                  <span class="flex h-5 min-w-5 items-center justify-center rounded-full bg-white px-1.5 font-mono text-[11px] font-black text-orange-600 shadow-xs">
                     {{ cart.totalItems() }}
                   </span>
+                  <span class="hidden md:inline font-black text-white text-[11px]">
+                    · S/ {{ cart.subtotal() | number: '1.2-2' }}
+                  </span>
+                  @if (cart.hasActiveReservation()) {
+                    <span class="hidden lg:inline-flex items-center gap-1 rounded-full bg-black/30 px-1.5 py-0.5 text-[10px] font-bold text-amber-200 ring-1 ring-white/20 font-mono">
+                      ⏳ {{ cart.reservationFormattedTimer() }}
+                    </span>
+                  }
                 }
               </button>
             }
@@ -645,52 +661,6 @@ import {
           </div>
         </div>
       }
-
-      <!-- Sticky Integrated Cart Companion Strip (Zero Content Overlap) -->
-      @if (shouldShowCartBanner()) {
-        <div class="border-t border-orange-500/30 bg-gradient-to-r from-gray-950 via-gray-900 to-gray-950 text-white px-3 sm:px-6 py-2 shadow-xs transition-all">
-          <div class="mx-auto max-w-7xl flex items-center justify-between gap-2.5 sm:gap-4 text-xs">
-            <div class="flex items-center gap-2 min-w-0">
-              <span class="relative flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-orange-600 text-white shadow-xs">
-                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
-                </svg>
-                <span class="absolute -top-1 -right-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-white px-0.5 text-[8px] font-black text-gray-950 tabular-nums">
-                  {{ cart.totalItems() }}
-                </span>
-              </span>
-
-              <div class="flex items-center gap-1.5 truncate">
-                <span class="font-extrabold text-white text-[11px] sm:text-xs truncate">
-                  {{ cart.totalItems() }} {{ cart.totalItems() === 1 ? 'repuesto en carrito' : 'repuestos en carrito' }}
-                </span>
-                <span class="text-gray-500 hidden sm:inline">·</span>
-                <span class="font-black text-orange-400 tabular-nums text-xs">
-                  Total: S/ {{ cart.subtotal() | number: '1.2-2' }}
-                </span>
-              </div>
-
-              @if (cart.hasActiveReservation()) {
-                <span class="inline-flex items-center gap-1 rounded-full bg-amber-500/20 px-2 py-0.5 font-mono text-[10px] font-bold text-amber-300 ring-1 ring-amber-400/30 tabular-nums shrink-0">
-                  <span class="h-1.5 w-1.5 rounded-full bg-amber-400 animate-ping"></span>
-                  ⏳ {{ cart.reservationFormattedTimer() }}
-                </span>
-              }
-            </div>
-
-            <button
-              type="button"
-              (click)="cart.openDrawer()"
-              class="inline-flex items-center gap-1.5 rounded-xl bg-orange-600 hover:bg-orange-500 active:scale-95 px-3 py-1.5 text-[11px] sm:text-xs font-black text-white shadow-xs transition cursor-pointer shrink-0"
-            >
-              <span>Ver carrito</span>
-              <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-              </svg>
-            </button>
-          </div>
-        </div>
-      }
     </header>
 
     <!-- Mobile Bottom Navigation Bar (Thumb-Friendly Smartphone Ergonomics) -->
@@ -731,19 +701,49 @@ import {
           <button
             type="button"
             (click)="cart.toggleDrawer()"
-            class="relative flex flex-1 flex-col items-center justify-center gap-0.5 py-2 min-h-[56px] text-gray-500 hover:text-gray-900 transition"
+            [class]="cart.totalItems() > 0 ? 'text-orange-600' : 'text-gray-500 hover:text-gray-900'"
+            class="relative flex flex-1 flex-col items-center justify-center gap-0.5 py-1.5 min-h-[56px] transition-all select-none cursor-pointer"
           >
-            <div class="relative">
-              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
-              </svg>
-              @if (cart.totalItems() > 0) {
-                <span class="absolute -top-1.5 -right-2.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-orange-600 px-1 text-[10px] font-bold text-white">
+            @if (cart.totalItems() > 0) {
+              <!-- Glowing Dazzle Halo effect when cart has items -->
+              <div class="relative flex items-center justify-center">
+                <!-- Outer Pulsing Glow Aura (Deslumbre) -->
+                <span class="absolute -inset-1.5 rounded-full bg-gradient-to-r from-orange-500 via-amber-400 to-yellow-400 opacity-75 blur-[3px] animate-pulse"></span>
+                <span class="absolute -inset-2.5 rounded-full bg-orange-400/30 animate-ping"></span>
+
+                <!-- Central Radiant Cart Icon Container -->
+                <div class="relative flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-tr from-orange-600 to-amber-500 text-white shadow-md shadow-orange-500/40 ring-2 ring-white">
+                  <svg class="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
+                  </svg>
+                </div>
+
+                <!-- Live Item Count Badge with subtle bounce -->
+                <span class="absolute -top-1 -right-2 flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-red-600 px-1 font-mono text-[9px] font-black text-white shadow-xs ring-2 ring-white animate-bounce">
                   {{ cart.totalItems() }}
                 </span>
-              }
-            </div>
-            <span class="text-[11px] font-medium">Carrito</span>
+              </div>
+
+              <!-- Live Amount & Timer Tag -->
+              <div class="flex flex-col items-center leading-none mt-0.5">
+                <span class="text-[11px] font-black text-orange-600 tracking-tight">
+                  Carrito · S/ {{ cart.subtotal() | number: '1.0-0' }}
+                </span>
+                @if (cart.hasActiveReservation()) {
+                  <span class="text-[9px] font-extrabold text-amber-600 font-mono tracking-tighter">
+                    ⏳ {{ cart.reservationFormattedTimer() }}
+                  </span>
+                }
+              </div>
+            } @else {
+              <!-- Normal Flat Quiet State when cart is empty -->
+              <div class="relative">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
+                </svg>
+              </div>
+              <span class="text-[11px] font-medium">Carrito</span>
+            }
           </button>
         }
 
@@ -805,16 +805,6 @@ export class NavbarComponent {
   readonly mobileOpen = signal(false);
   readonly notifOpen = signal(false);
   readonly notifFilter = signal<'ALL' | 'UNREAD' | 'SALES' | 'DELIVERY' | 'STOCK'>('ALL');
-
-  readonly shouldShowCartBanner = computed(() => {
-    if (this.cart.totalItems() <= 0) return false;
-    if (this.cart.isDrawerOpen()) return false;
-    const url = this.router.url;
-    if (url.startsWith('/checkout') || url.startsWith('/admin') || url.startsWith('/pos')) {
-      return false;
-    }
-    return true;
-  });
 
   readonly filteredNotifications = computed(() => {
     const list = this.notifService.notifications();
