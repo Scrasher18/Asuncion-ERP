@@ -58,7 +58,8 @@ public class DeliveryController {
             @RequestParam(value = "receiverDocument", required = false) String receiverDocument,
             @RequestParam(value = "deliveryNotes", required = false) String deliveryNotes,
             @RequestParam(value = "capturedLatitude", required = false) Double capturedLatitude,
-            @RequestParam(value = "capturedLongitude", required = false) Double capturedLongitude
+            @RequestParam(value = "capturedLongitude", required = false) Double capturedLongitude,
+            @RequestParam(value = "securityCode", required = false) String securityCode
     ) {
         AppUser currentUser = authService.getCurrentUser();
         return ResponseEntity.ok(orderService.completeDelivery(
@@ -69,6 +70,7 @@ public class DeliveryController {
                 deliveryNotes,
                 capturedLatitude,
                 capturedLongitude,
+                securityCode,
                 currentUser
         ));
     }
@@ -85,9 +87,10 @@ public class DeliveryController {
         String notes = body.get("deliveryNotes") != null ? String.valueOf(body.get("deliveryNotes")) : null;
         Double lat = body.get("capturedLatitude") instanceof Number n ? n.doubleValue() : null;
         Double lng = body.get("capturedLongitude") instanceof Number n ? n.doubleValue() : null;
+        String securityCode = body.get("securityCode") != null ? String.valueOf(body.get("securityCode")) : null;
 
         return ResponseEntity.ok(orderService.completeDelivery(
-                id, null, receiverName, receiverDoc, notes, lat, lng, currentUser
+                id, null, receiverName, receiverDoc, notes, lat, lng, securityCode, currentUser
         ));
     }
 

@@ -53,6 +53,9 @@ public class CustomerOrder {
     @Column(name = "delivery_reference", length = 255)
     private String deliveryReference;
 
+    @Column(name = "delivery_security_code", length = 10)
+    private String deliverySecurityCode;
+
     @Column(name = "delivery_location", columnDefinition = "geometry(Point, 4326)")
     private Point deliveryLocation;
 
@@ -374,5 +377,13 @@ public class CustomerOrder {
 
     public void setDeliveryProof(DeliveryProof deliveryProof) {
         this.deliveryProof = deliveryProof;
+    }
+
+    public String getDeliverySecurityCode() {
+        return deliverySecurityCode;
+    }
+
+    public void setDeliverySecurityCode(String deliverySecurityCode) {
+        this.deliverySecurityCode = deliverySecurityCode;
     }
 }

@@ -48,6 +48,7 @@ public record OrderResponse(
         Instant deliveredAt,
         List<OrderItemDto> items,
         List<OrderStatusHistoryDto> statusHistory,
-        DeliveryProofDto deliveryProof
+        DeliveryProofDto deliveryProof,
+        String deliverySecurityCode
 ) {
 }

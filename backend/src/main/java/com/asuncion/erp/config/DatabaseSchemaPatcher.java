@@ -71,12 +71,13 @@ public class DatabaseSchemaPatcher implements CommandLineRunner {
             log.debug("Verificación nullable en parts.oem_code completada ({})", e.getMessage());
         }
 
-        // Ensure orders table has payment status and reference columns if not present
+        // Ensure orders table has payment status, reference columns, and delivery security code if not present
         try {
             jdbcTemplate.execute("ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_status VARCHAR(30) DEFAULT 'PENDIENTE'");
             jdbcTemplate.execute("ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_reference VARCHAR(150)");
+            jdbcTemplate.execute("ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_security_code VARCHAR(10)");
         } catch (Exception e) {
-            log.debug("Columnas de pago en orders verificadas ({})", e.getMessage());
+            log.debug("Columnas de pago y seguridad en orders verificadas ({})", e.getMessage());
         }
 
         // Ensure system_payment_config default row exists

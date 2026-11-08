@@ -17,6 +17,7 @@ export interface CompleteDeliveryPayload {
   deliveryNotes?: string;
   capturedLatitude?: number | null;
   capturedLongitude?: number | null;
+  securityCode?: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -101,6 +102,9 @@ export class OrdersService {
     }
     if (payload.capturedLongitude !== undefined && payload.capturedLongitude !== null) {
       formData.append('capturedLongitude', String(payload.capturedLongitude));
+    }
+    if (payload.securityCode) {
+      formData.append('securityCode', payload.securityCode.trim());
     }
     return this.http.post<Order>(
       `${this.apiConfig.apiUrl}/delivery/orders/${orderId}/complete`,

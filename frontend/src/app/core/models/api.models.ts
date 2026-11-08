@@ -283,6 +283,7 @@ export interface CreateOrderRequest {
   deliveryType: DeliveryType;
   deliveryAddress?: string;
   deliveryReference?: string;
+  deliverySecurityCode?: string;
   deliveryLatitude?: number | null;
   deliveryLongitude?: number | null;
   invoiceType: InvoiceType;
@@ -387,6 +388,7 @@ export interface Order {
   deliveryType: DeliveryType;
   deliveryAddress?: string;
   deliveryReference?: string;
+  deliverySecurityCode?: string;
   deliveryLatitude?: number;
   deliveryLongitude?: number;
   distanceMeters?: number;

@@ -1602,18 +1602,13 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                   </svg>
                 </div>
 
-                <button
-                  type="button"
-                  (click)="loadGlobalOrders()"
-                  class="inline-flex min-h-[38px] items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-gray-700 hover:border-orange-300 hover:text-orange-700 transition cursor-pointer"
-                >
-                  <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M3 3v5h5" />
-                    <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
-                    <path d="M16 16h5v5" />
-                  </svg>
-                  <span>Actualizar</span>
-                </button>
+                <div class="inline-flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800 shadow-2xs">
+                  <span class="relative flex h-2 w-2">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                  </span>
+                  <span>Sincronizado en tiempo real</span>
+                </div>
               </div>
             </div>
 
@@ -7451,7 +7446,10 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
     this.checkNewOrders();
     this.orderMonitorInterval = setInterval(() => {
       this.checkNewOrders();
-    }, 20000); // Poll every 20 seconds
+      if (this.activeTab() === 'orders') {
+        this.loadDrivers();
+      }
+    }, 4000); // Poll every 4 seconds in real-time
   }
 
   private checkNewOrders(): void {
@@ -7461,6 +7459,10 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
 
         // Only monitor online orders (counter sales in Caja do not trigger notifications/chimes)
         const onlineOrders = orders.filter((o) => !this.isCounterSaleOrder(o));
+
+        if (this.activeTab() === 'orders') {
+          this.globalOrders.set(onlineOrders);
+        }
 
         if (!this.hasInitializedOrderMonitor) {
           // First run: populate known IDs without chiming

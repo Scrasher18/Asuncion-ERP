@@ -194,6 +194,39 @@ const ORDER_STAGES = [
               </div>
             </div>
 
+            <!-- Delivery Security PIN Card for Client Protection -->
+            @if (ord.deliveryType === 'DELIVERY' && ord.status !== 'CANCELADO') {
+              <div class="rounded-2xl border-2 border-orange-500 bg-linear-to-r from-orange-50 via-amber-50 to-orange-50 p-4 sm:p-5 shadow-xs">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div class="space-y-1.5">
+                    <div class="inline-flex items-center gap-1.5 rounded-full bg-orange-600 px-2.5 py-0.5 text-[11px] font-extrabold text-white uppercase tracking-wider">
+                      <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+                      </svg>
+                      <span>Medida de Protección Antifraude</span>
+                    </div>
+                    <h3 class="text-sm sm:text-base font-black text-gray-900">
+                      Código Único de Seguridad para la Entrega
+                    </h3>
+                    <p class="text-xs text-gray-600 max-w-xl leading-relaxed">
+                      @if (ord.status === 'ENTREGADO') {
+                        Entrega finalizada y verificada conforme con tu código de seguridad.
+                      } @else {
+                        Por tu seguridad, <strong>muestra o dicta este PIN de 4 dígitos al repartidor</strong> al momento de recibir tus repuestos. El repartidor debe ingresarlo para finalizar la entrega.
+                      }
+                    </p>
+                  </div>
+
+                  <div class="flex items-center gap-3 bg-white px-5 py-3 rounded-2xl border-2 border-orange-300 shadow-sm shrink-0 self-start sm:self-center">
+                    <div class="text-center">
+                      <span class="block text-[10px] font-extrabold uppercase tracking-widest text-orange-600">PIN DE ENTREGA</span>
+                      <span class="font-mono text-3xl font-black text-gray-950 tracking-widest">{{ ord.deliverySecurityCode || '----' }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            }
+
             <!-- 5-Stage Visual Stepper -->
             <div class="space-y-2">
               <div class="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
@@ -813,6 +846,8 @@ export class TrackOrderPageComponent implements OnInit, OnDestroy {
         this.disconnectSse();
         return;
       }
+      this.searchOrder(true);
+      // Silently refresh order details to catch status changes in real time
       this.searchOrder(true);
       this.telemetryService.getOrderLiveTelemetry(orderNumber).subscribe({
         next: (telemetry: LiveTrackingResponse) => {

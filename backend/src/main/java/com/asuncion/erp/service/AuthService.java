@@ -215,6 +215,9 @@ public class AuthService {
         if (!newPassword.matches(".*[0-9].*")) {
             throw new BadRequestException("La nueva contraseña debe contener al menos un número (0-9).");
         }
+        if (!newPassword.matches(".*[^A-Za-z0-9].*")) {
+            throw new BadRequestException("La nueva contraseña debe contener al menos un caracter especial (ej: @, #, $, !, %, *, etc.).");
+        }
 
         AppUser user = userRepository.findByEmailIgnoreCase(normalizedEmail)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado con el correo: " + normalizedEmail));

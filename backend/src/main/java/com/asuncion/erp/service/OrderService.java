@@ -156,6 +156,10 @@ public class OrderService {
                 : "TARJETA");
         order.setNotes(req.notes() != null ? req.notes().trim() : null);
 
+        // Generar PIN único de 4 dígitos de seguridad para entrega de pedidos delivery
+        String securityPin = String.format(Locale.US, "%04d", java.util.concurrent.ThreadLocalRandom.current().nextInt(1000, 10000));
+        order.setDeliverySecurityCode(securityPin);
+
         if (req.salespersonId() != null) {
             userRepository.findById(req.salespersonId()).ifPresent(order::setSalesperson);
         } else if (hasRole(currentUser, RoleName.VENDEDOR) || (isCounterSale && hasRole(currentUser, RoleName.ADMIN))) {
@@ -354,7 +358,8 @@ public class OrderService {
                 null,
                 items,
                 history,
-                null
+                null,
+                "7492"
         );
     }
 
@@ -489,6 +494,41 @@ public class OrderService {
         return response;
     }
 
+    @Transactional
+    public void autoReconcileReturningDrivers() {
+        try {
+            List<AppUser> returningDrivers = userRepository.findAll().stream()
+                    .filter(u -> u.getDriverStatus() == DriverStatus.RETORNANDO)
+                    .toList();
+            if (returningDrivers.isEmpty()) return;
+
+            Instant now = Instant.now();
+            for (AppUser driver : returningDrivers) {
+                List<CustomerOrder> deliveredOrders = orderRepository.findAll().stream()
+                        .filter(o -> o.getStatus() == OrderStatus.ENTREGADO && o.getAssignedDriver() != null && o.getAssignedDriver().getId().equals(driver.getId()))
+                        .filter(o -> o.getDeliveryProof() != null && o.getDeliveryProof().getDeliveredAt() != null)
+                        .sorted((a, b) -> b.getDeliveryProof().getDeliveredAt().compareTo(a.getDeliveryProof().getDeliveredAt()))
+                        .toList();
+
+                if (!deliveredOrders.isEmpty()) {
+                    CustomerOrder lastOrder = deliveredOrders.get(0);
+                    Instant deliveredAt = lastOrder.getDeliveryProof().getDeliveredAt();
+                    double distance = lastOrder.getCalculatedDistanceMeters() != null ? lastOrder.getCalculatedDistanceMeters() : 4000.0;
+                    long maxReturnMinutes = Math.min(25, Math.max(3, (long) Math.ceil((distance / 350.0) + 3)));
+                    if (deliveredAt.plus(java.time.Duration.ofMinutes(maxReturnMinutes)).isBefore(now)) {
+                        driver.setDriverStatus(DriverStatus.DISPONIBLE);
+                        userRepository.save(driver);
+                    }
+                } else {
+                    driver.setDriverStatus(DriverStatus.DISPONIBLE);
+                    userRepository.save(driver);
+                }
+            }
+        } catch (Exception e) {
+            // Non-blocking
+        }
+    }
+
     @Transactional(readOnly = true)
     public List<DriverSummaryDto> getDrivers() {
         List<OrderStatus> activeDeliveryStatuses = List.of(OrderStatus.EN_RUTA, OrderStatus.LISTO_PARA_DESPACHO);
@@ -518,8 +558,9 @@ public class OrderService {
                 .toList();
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public List<OrderResponse> getDeliveryOrders(AppUser currentUser) {
+        autoReconcileReturningDrivers();
         boolean isAdmin = hasRole(currentUser, RoleName.ADMIN);
         List<OrderStatus> statuses = List.of(
                 OrderStatus.LISTO_PARA_DESPACHO,
@@ -594,7 +635,37 @@ public class OrderService {
             Double capturedLongitude,
             AppUser currentUser
     ) {
+        return completeDelivery(orderId, evidenceImage, receiverName, receiverDocument, deliveryNotes, capturedLatitude, capturedLongitude, null, currentUser);
+    }
+
+    @Transactional
+    public OrderResponse completeDelivery(
+            Long orderId,
+            MultipartFile evidenceImage,
+            String receiverName,
+            String receiverDocument,
+            String deliveryNotes,
+            Double capturedLatitude,
+            Double capturedLongitude,
+            String securityCode,
+            AppUser currentUser
+    ) {
         CustomerOrder order = findOrderOrThrow(orderId);
+        if (order.getStatus() == OrderStatus.CANCELADO) {
+            throw new BadRequestException("No se puede completar la entrega de un pedido cancelado.");
+        }
+
+        // Validación estricta del código único de seguridad del cliente antes de permitir finalizar la entrega
+        if ("DELIVERY".equalsIgnoreCase(order.getDeliveryType())) {
+            String expectedCode = order.getDeliverySecurityCode();
+            if (expectedCode == null || expectedCode.isBlank()) {
+                expectedCode = String.format(Locale.US, "%04d", Math.abs((order.getId() != null ? order.getId() : 1L) * 37L + 1000L) % 9000L + 1000L);
+                order.setDeliverySecurityCode(expectedCode);
+            }
+            if (securityCode == null || !expectedCode.trim().equalsIgnoreCase(securityCode.trim())) {
+                throw new BadRequestException("Código de seguridad de entrega incorrecto. Solicita al cliente su PIN de 4 dígitos que figura en su pantalla de seguimiento.");
+            }
+        }
         if (order.getStatus() == OrderStatus.CANCELADO) {
             throw new BadRequestException("No se puede completar la entrega de un pedido cancelado.");
         }
@@ -748,6 +819,11 @@ public class OrderService {
         Double brLat = o.getBranch() != null && o.getBranch().getLocation() != null ? o.getBranch().getLocation().getY() : null;
         Double brLng = o.getBranch() != null && o.getBranch().getLocation() != null ? o.getBranch().getLocation().getX() : null;
 
+        String secCode = o.getDeliverySecurityCode();
+        if (secCode == null || secCode.isBlank()) {
+            secCode = String.format(Locale.US, "%04d", Math.abs((o.getId() != null ? o.getId() : 1L) * 37L + 1000L) % 9000L + 1000L);
+        }
+
         return new OrderResponse(
                 o.getId(),
                 o.getOrderNumber(),
@@ -792,7 +868,8 @@ public class OrderService {
                 deliveredAt,
                 itemDtos,
                 historyDtos,
-                proofDto
+                proofDto,
+                secCode
         );
     }
 

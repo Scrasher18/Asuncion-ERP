@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { finalize } from 'rxjs';
+import { finalize, interval, Subscription } from 'rxjs';
 import { DriverStatus, Order } from '../../core/models/api.models';
 import { LiveTrackingResponse } from '../../core/models/telemetry.models';
 import { AuthService } from '../../core/services/auth.service';
@@ -55,21 +55,38 @@ import { LiveDriverMapComponent } from '../../shared/components/live-driver-map/
                 <span class="text-gray-500">Asignados:</span>
                 <strong class="font-mono font-bold text-gray-900 tabular-nums">{{ displayOrders().length }}</strong>
               </div>
-              <button
-                type="button"
-                (click)="loadDeliveryOrders()"
-                class="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 shadow-2xs hover:border-orange-300 hover:text-orange-700 transition cursor-pointer"
-              >
-                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.85">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
-                </svg>
-                <span>Actualizar</span>
-              </button>
+              <div class="inline-flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800 shadow-2xs">
+                <span class="relative flex h-2 w-2">
+                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+                <span>Sincronizado en vivo</span>
+              </div>
             </div>
           </div>
 
           <!-- Driver Status Controls -->
           <div class="rounded-xl border border-gray-200 bg-gray-50/70 p-3 space-y-2">
+            @if (myDriverStatus() === 'RETORNANDO') {
+              <div class="rounded-xl border border-amber-200 bg-amber-50 p-2.5 text-xs text-amber-900 flex flex-wrap items-center justify-between gap-2">
+                <div class="flex items-center gap-2">
+                  <span class="text-base">🛵</span>
+                  <div>
+                    <p class="font-bold">Retornando a tienda en curso</p>
+                    <p class="text-[11px] text-amber-800">
+                      Al llegar a la sede pulsa "Disponible en tienda" o el sistema te pondrá en Disponible automáticamente.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  (click)="setOperationalStatus('DISPONIBLE')"
+                  class="px-2.5 py-1 rounded-lg bg-emerald-600 text-white font-bold text-[11px] hover:bg-emerald-700 transition cursor-pointer"
+                >
+                  Llegué a tienda
+                </button>
+              </div>
+            }
             <div class="flex flex-wrap items-center justify-between gap-1 text-xs">
               <span class="font-bold text-gray-700">Estado operativo en turno:</span>
               <span class="text-[11px] text-gray-500">
@@ -433,6 +450,33 @@ import { LiveDriverMapComponent } from '../../shared/components/live-driver-map/
                 </button>
               </div>
 
+              <!-- Security PIN Input -->
+              <div class="rounded-xl border-2 border-orange-200 bg-orange-50/50 p-3.5 space-y-1.5">
+                <label class="block font-bold text-gray-900 text-xs flex items-center justify-between">
+                  <span class="flex items-center gap-1.5 text-orange-800">
+                    <svg class="h-4 w-4 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+                    </svg>
+                    Código de Seguridad del Cliente (PIN de 4 dígitos) *
+                  </span>
+                  <span class="text-[10px] uppercase font-mono font-bold tracking-wider text-orange-600 bg-white px-2 py-0.5 rounded border border-orange-200">Obligatorio</span>
+                </label>
+                <input
+                  type="text"
+                  name="securityCode"
+                  [(ngModel)]="securityCode"
+                  maxlength="4"
+                  pattern="[0-9]*"
+                  inputmode="numeric"
+                  required
+                  placeholder="PIN de 4 dígitos (Ej: 1234)"
+                  class="w-full min-h-[46px] rounded-xl border border-orange-300 bg-white px-3.5 py-2 text-center font-mono text-xl font-black tracking-widest text-gray-900 placeholder-gray-300 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none transition"
+                />
+                <p class="text-[10.5px] text-gray-500 leading-tight">
+                  Pide al cliente el PIN único que aparece en su pantalla de seguimiento para finalizar la entrega de forma segura.
+                </p>
+              </div>
+
               <div>
                 <label class="block font-medium text-gray-700 mb-1">Observaciones</label>
                 <input
@@ -454,7 +498,7 @@ import { LiveDriverMapComponent } from '../../shared/components/live-driver-map/
                 </button>
                 <button
                   type="submit"
-                  [disabled]="submittingProof() || !receiverName.trim() || !receiverDocument.trim()"
+                  [disabled]="submittingProof() || !receiverName.trim() || !receiverDocument.trim() || !securityCode || securityCode.trim().length !== 4" 
                   class="min-h-[44px] rounded-xl bg-orange-600 py-2.5 font-semibold text-white shadow-xs hover:bg-orange-700 disabled:opacity-50 transition"
                 >
                   {{ submittingProof() ? 'Guardando...' : 'Finalizar entrega' }}
@@ -620,6 +664,9 @@ export class DeliveryPageComponent implements OnInit, OnDestroy {
   receiverName = '';
   receiverDocument = '';
   deliveryNotes = 'Entregado conforme en dirección indicada.';
+  securityCode = '';
+  private pollSubscription?: Subscription;
+  private autoReturnTimeout?: any;
 
   ngOnInit(): void {
     this.walletConfig.set(this.paymentService.getStoreWalletConfig());
@@ -627,6 +674,12 @@ export class DeliveryPageComponent implements OnInit, OnDestroy {
       next: (cfg) => this.walletConfig.set(cfg),
     });
     this.loadDeliveryOrders();
+    // Auto-sync polling every 4 seconds
+    this.pollSubscription = interval(4000).subscribe(() => {
+      if (!this.completingOrder() && !this.qrCobroOrder() && !this.isUpdatingStatus()) {
+        this.loadDeliveryOrders(true);
+      }
+    });
   }
 
   formatStatus(status: string): string {
@@ -703,11 +756,17 @@ export class DeliveryPageComponent implements OnInit, OnDestroy {
       });
   }
 
-  loadDeliveryOrders(): void {
-    this.isLoading.set(true);
+  loadDeliveryOrders(silent: boolean = false): void {
+    if (!silent) {
+      this.isLoading.set(true);
+    }
     this.ordersService
       .getDeliveryOrders()
-      .pipe(finalize(() => this.isLoading.set(false)))
+      .pipe(finalize(() => {
+        if (!silent) {
+          this.isLoading.set(false);
+        }
+      }))
       .subscribe({
         next: (list) => {
           this.orders.set(list);
@@ -790,6 +849,7 @@ export class DeliveryPageComponent implements OnInit, OnDestroy {
 
   openCompletionModal(order: Order): void {
     this.completingOrder.set(order);
+    this.securityCode = '';
     this.receiverName = order.recipientName || order.customerName || '';
     this.receiverDocument = '';
     this.receiverDocVerified.set(false);
@@ -885,15 +945,24 @@ export class DeliveryPageComponent implements OnInit, OnDestroy {
           deliveryNotes: this.deliveryNotes.trim(),
           capturedLatitude: this.capturedLat(),
           capturedLongitude: this.capturedLng(),
+          securityCode: this.securityCode.trim(),
         })
         .pipe(finalize(() => this.submittingProof.set(false)))
         .subscribe({
           next: (updated) => {
             this.orders.update((list) => list.map((o) => (o.id === updated.id ? updated : o)));
             this.myDriverStatus.set('RETORNANDO');
+            const dist = order.distanceMeters || order.calculatedDistanceMeters || 4000;
+            const returnMins = Math.min(25, Math.max(3, Math.ceil((dist / 350) + 3)));
+            if (this.autoReturnTimeout) clearTimeout(this.autoReturnTimeout);
+            this.autoReturnTimeout = setTimeout(() => {
+              if (this.myDriverStatus() === 'RETORNANDO') {
+                this.setOperationalStatus('DISPONIBLE');
+              }
+            }, returnMins * 60 * 1000);
             this.toast.success(
-              `Pedido ${updated.orderNumber} entregado`,
-              'Se registró la constancia de recepción correctamente. Tu estado cambió a: Retornando.'
+              `Pedido ${updated.orderNumber} entregado con éxito`,
+              `Código PIN verificado conforme. Tu estado cambió a: Retornando a tienda (máx. ${returnMins} min).`
             );
             this.closeCompletionModal();
           },
@@ -1114,6 +1183,12 @@ export class DeliveryPageComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    if (this.pollSubscription) {
+      this.pollSubscription.unsubscribe();
+    }
+    if (this.autoReturnTimeout) {
+      clearTimeout(this.autoReturnTimeout);
+    }
     this.clearAllGpsWatches();
     this.clearPreview();
   }

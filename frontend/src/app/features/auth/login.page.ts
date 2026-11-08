@@ -251,7 +251,7 @@ import { RecaptchaV3Service } from '../../core/services/recaptcha-v3.service';
 
                   <div>
                     <label class="block text-xs font-medium text-gray-700 mb-1.5">
-                      Nueva contraseña (mínimo 8 caracteres)
+                      Nueva contraseña (mínimo 8 caracteres y 1 carácter especial)
                     </label>
                     <div class="relative">
                       <input
@@ -259,7 +259,7 @@ import { RecaptchaV3Service } from '../../core/services/recaptcha-v3.service';
                         name="newResetPassword"
                         [(ngModel)]="newResetPassword"
                         required
-                        placeholder="Nueva contraseña segura"
+                        placeholder="Nueva contraseña segura (ej: Repuesto#2026)"
                         class="w-full min-h-[44px] rounded-xl border border-gray-200 bg-white pl-3.5 pr-11 py-2.5 text-base sm:text-sm text-gray-900 placeholder-gray-400 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
                       />
                       <button
@@ -278,6 +278,30 @@ import { RecaptchaV3Service } from '../../core/services/recaptcha-v3.service';
                           </svg>
                         }
                       </button>
+                    </div>
+                    <!-- Live Password Complexity Checklist for Reset -->
+                    <div class="mt-2 grid grid-cols-3 gap-1.5 text-[10px]">
+                      <span
+                        class="flex items-center justify-center gap-1 rounded py-1 border transition"
+                        [class]="isResetPassLengthValid() ? 'bg-emerald-50 text-emerald-700 border-emerald-200 font-bold' : 'bg-gray-50 text-gray-400 border-gray-200'"
+                      >
+                        <span>{{ isResetPassLengthValid() ? '✓' : '○' }}</span>
+                        <span>8+ carac.</span>
+                      </span>
+                      <span
+                        class="flex items-center justify-center gap-1 rounded py-1 border transition"
+                        [class]="isResetPassNumberValid() ? 'bg-emerald-50 text-emerald-700 border-emerald-200 font-bold' : 'bg-gray-50 text-gray-400 border-gray-200'"
+                      >
+                        <span>{{ isResetPassNumberValid() ? '✓' : '○' }}</span>
+                        <span>Número</span>
+                      </span>
+                      <span
+                        class="flex items-center justify-center gap-1 rounded py-1 border transition"
+                        [class]="isResetPassSpecialValid() ? 'bg-emerald-50 text-emerald-700 border-emerald-200 font-bold' : 'bg-gray-50 text-gray-400 border-gray-200'"
+                      >
+                        <span>{{ isResetPassSpecialValid() ? '✓' : '○' }}</span>
+                        <span>Especial</span>
+                      </span>
                     </div>
                   </div>
 
@@ -303,7 +327,7 @@ import { RecaptchaV3Service } from '../../core/services/recaptcha-v3.service';
 
                   <button
                     type="submit"
-                    [disabled]="isLoading() || !forgotCode || !newResetPassword || !confirmResetPassword"
+                    [disabled]="isLoading() || !forgotCode || forgotCode.length !== 6 || !isResetPasswordFullyValid()"
                     class="w-full min-h-[44px] rounded-xl bg-orange-600 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-orange-700 disabled:opacity-50 transition cursor-pointer"
                   >
                     {{ isLoading() ? 'Guardando contraseña...' : 'Guardar y cambiar contraseña' }}
@@ -641,6 +665,14 @@ export class LoginPageComponent implements OnInit {
     this.isPassLengthValid() && this.isPassNumberValid() && this.isPassSpecialValid()
   );
 
+  readonly isResetPassLengthValid = computed(() => (this.newResetPassword || '').length >= 8);
+  readonly isResetPassNumberValid = computed(() => /\d/.test(this.newResetPassword || ''));
+  readonly isResetPassSpecialValid = computed(() => /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/.test(this.newResetPassword || ''));
+  readonly isResetPassMatch = computed(() => Boolean(this.newResetPassword && this.newResetPassword === this.confirmResetPassword));
+  readonly isResetPasswordFullyValid = computed(() =>
+    this.isResetPassLengthValid() && this.isResetPassNumberValid() && this.isResetPassSpecialValid() && this.isResetPassMatch()
+  );
+
   readonly isEmailFormatValid = computed(() => {
     this.formVersion();
     const email = (this.registerData.email || '').trim();
@@ -868,6 +900,10 @@ export class LoginPageComponent implements OnInit {
     }
     if (!/\d/.test(newPass)) {
       this.errorMessage.set('La nueva contraseña debe incluir al menos un número.');
+      return;
+    }
+    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/.test(newPass)) {
+      this.errorMessage.set('La nueva contraseña debe incluir al menos un carácter especial (ej: @, #, $, !, %, *, etc.).');
       return;
     }
     if (newPass !== confirmPass) {
