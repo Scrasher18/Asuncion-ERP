@@ -232,6 +232,17 @@ import { LiveDriverMapComponent } from '../../shared/components/live-driver-map/
                   </span>
                 </div>
 
+                <!-- Cash Payment / Collection Instruction Strip for Driver -->
+                @if (ord.notes && ord.notes.includes('[PAGO')) {
+                  <div class="rounded-xl border-2 border-amber-300 bg-amber-50 p-3 text-xs text-amber-950 font-bold flex items-start gap-2.5 shadow-2xs">
+                    <span class="text-base shrink-0">💵</span>
+                    <div class="space-y-0.5">
+                      <span class="block text-[10px] font-black uppercase tracking-wider text-amber-800">Instrucción de Cobro Presencial</span>
+                      <p class="text-xs font-extrabold text-amber-950">{{ ord.notes }}</p>
+                    </div>
+                  </div>
+                }
+
                 <!-- Driver Real-Time Navigation Map -->
                 @if (ord.status === 'EN_RUTA') {
                   <div class="space-y-2 pt-2">

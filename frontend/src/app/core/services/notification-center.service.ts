@@ -464,12 +464,19 @@ export class NotificationCenterService {
               accentColor = 'blue';
               break;
             case 'EN_RUTA':
-              title = `¡Tu Pedido está en Camino! #${ord.orderNumber}`;
-              message = ord.assignedDriverName
-                ? `El repartidor ${ord.assignedDriverName} se encuentra en camino a tu dirección.`
-                : `Tu pedido va en camino a tu dirección con navegación GPS en vivo.`;
-              iconType = 'truck';
-              accentColor = 'purple';
+              if (ord.proximityAlertSent) {
+                title = `🛵 ¡Tu Repartidor está muy cerca! #${ord.orderNumber}`;
+                message = `El repartidor está a menos de 500m de tu domicilio. Prepara tu PIN de entrega: ${ord.deliverySecurityCode || ''}`;
+                iconType = 'truck';
+                accentColor = 'orange';
+              } else {
+                title = `¡Tu Pedido está en Camino! #${ord.orderNumber}`;
+                message = ord.assignedDriverName
+                  ? `El repartidor ${ord.assignedDriverName} se encuentra en camino a tu dirección.`
+                  : `Tu pedido va en camino a tu dirección con navegación GPS en vivo.`;
+                iconType = 'truck';
+                accentColor = 'purple';
+              }
               break;
             case 'ENTREGADO':
               title = `¡Pedido Entregado! #${ord.orderNumber}`;

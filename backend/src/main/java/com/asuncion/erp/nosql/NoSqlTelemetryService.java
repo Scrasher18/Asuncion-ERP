@@ -48,6 +48,7 @@ public class NoSqlTelemetryService {
 
     private final CustomerOrderRepository orderRepository;
     private final ObjectMapper objectMapper;
+    private final com.asuncion.erp.service.EmailNotificationService emailNotificationService;
 
     @Value("${app.nosql.mongodb.enabled:false}")
     private boolean mongoEnabled;
@@ -72,9 +73,10 @@ public class NoSqlTelemetryService {
 
     private Path jsonlFile;
 
-    public NoSqlTelemetryService(CustomerOrderRepository orderRepository, ObjectMapper objectMapper) {
+    public NoSqlTelemetryService(CustomerOrderRepository orderRepository, ObjectMapper objectMapper, com.asuncion.erp.service.EmailNotificationService emailNotificationService) {
         this.orderRepository = orderRepository;
         this.objectMapper = objectMapper;
+        this.emailNotificationService = emailNotificationService;
     }
 
     @PostConstruct
@@ -179,8 +181,14 @@ public class NoSqlTelemetryService {
         }
 
         String status = "EN_CAMINO";
-        if (remainingMeters > 0 && remainingMeters < 120) {
+        if (remainingMeters > 0 && remainingMeters <= 600) {
             status = "LLEGANDO";
+            if (order.getProximityAlertSent() == null || !order.getProximityAlertSent()) {
+                order.setProximityAlertSent(true);
+                orderRepository.save(order);
+                emailNotificationService.notifyDriverApproaching(order, remainingMeters, etaMinutes);
+                log.info("Alerta de repartidor cerca disparada para pedido {}. Distancia: {}m, ETA: {}min", orderNum, remainingMeters, etaMinutes);
+            }
         }
 
         String driverName = driverUser != null ? driverUser.getFullName() : (order.getAssignedDriver() != null ? order.getAssignedDriver().getFullName() : "Repartidor Asunción");

@@ -389,6 +389,7 @@ export interface Order {
   deliveryAddress?: string;
   deliveryReference?: string;
   deliverySecurityCode?: string;
+  proximityAlertSent?: boolean;
   deliveryLatitude?: number;
   deliveryLongitude?: number;
   distanceMeters?: number;

@@ -359,7 +359,8 @@ public class OrderService {
                 items,
                 history,
                 null,
-                "7492"
+                "7492",
+                false
         );
     }
 
@@ -869,7 +870,8 @@ public class OrderService {
                 itemDtos,
                 historyDtos,
                 proofDto,
-                secCode
+                secCode,
+                Boolean.TRUE.equals(o.getProximityAlertSent())
         );
     }
 

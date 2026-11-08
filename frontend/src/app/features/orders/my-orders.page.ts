@@ -9,6 +9,7 @@ import { LookupService } from '../../core/services/lookup.service';
 import { OrdersService } from '../../core/services/orders.service';
 import { PdfInvoiceService } from '../../core/services/pdf-invoice.service';
 import { ToastService } from '../../core/services/toast.service';
+import { DriverRatingService } from '../../core/services/driver-rating.service';
 
 @Component({
   selector: 'app-my-orders-page',
@@ -278,7 +279,30 @@ import { ToastService } from '../../core/services/toast.service';
                         </span>
                       </div>
 
-                      <div class="flex items-center gap-2">
+                      <div class="flex flex-wrap items-center gap-2">
+                        @if (ord.status === 'ENTREGADO') {
+                          @if (driverRatingService.getRatingByOrder(ord.orderNumber); as myRating) {
+                            <button
+                              type="button"
+                              (click)="openRatingModalForOrder(ord)"
+                              class="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-800 hover:bg-amber-100 transition cursor-pointer"
+                              title="Ver o modificar calificación del repartidor"
+                            >
+                              <span class="text-amber-500">★</span>
+                              <span>{{ myRating.stars }}/5</span>
+                            </button>
+                          } @else {
+                            <button
+                              type="button"
+                              (click)="openRatingModalForOrder(ord)"
+                              class="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-800 hover:bg-amber-100 transition cursor-pointer"
+                            >
+                              <span>⭐</span>
+                              <span>Calificar atención</span>
+                            </button>
+                          }
+                        }
+
                         <button
                           type="button"
                           (click)="downloadBoletaPdf(ord)"
@@ -490,18 +514,170 @@ import { ToastService } from '../../core/services/toast.service';
             </form>
           </div>
         }
+        <!-- Full-Screen Driver Rating Pop-up Modal for My Orders -->
+        @if (showRatingModal() && selectedRatingOrder(); as ord) {
+          <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-950/70 backdrop-blur-sm animate-fadeIn">
+            <!-- Click backdrop to dismiss -->
+            <div class="absolute inset-0" (click)="dismissRatingModal()"></div>
+
+            <div class="relative w-full max-w-md rounded-3xl border border-amber-200 bg-white p-6 sm:p-7 shadow-2xl z-10 space-y-5 animate-scaleUp">
+              <!-- Close (X) button -->
+              <button
+                type="button"
+                (click)="dismissRatingModal()"
+                class="absolute top-4 right-4 flex h-8 w-8 items-center justify-center rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition cursor-pointer"
+                aria-label="Cerrar modal"
+              >
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+
+              <!-- Header -->
+              <div class="text-center space-y-2 pt-2">
+                <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-tr from-amber-400 to-amber-500 text-white shadow-md shadow-amber-500/25 text-2xl">
+                  🛵
+                </div>
+                <h3 class="text-lg font-black text-gray-900 tracking-tight">Calificar al Repartidor</h3>
+                <p class="text-xs text-gray-500 max-w-xs mx-auto">
+                  Pedido #{{ ord.orderNumber }} · Repartidor: <strong class="text-gray-800">{{ ord.assignedDriverName || ord.deliveryProof?.driverName || 'Miguel Ángel Flores' }}</strong>
+                </p>
+              </div>
+
+              <!-- Star Rating -->
+              <div class="flex flex-col items-center justify-center py-2 space-y-2">
+                <div class="flex items-center gap-2">
+                  @for (star of [1, 2, 3, 4, 5]; track star) {
+                    <button
+                      type="button"
+                      (click)="selectedStars.set(star)"
+                      class="text-3xl transition-transform hover:scale-125 active:scale-95 cursor-pointer focus:outline-none"
+                      [class.text-amber-400]="star <= selectedStars()"
+                      [class.text-gray-200]="star > selectedStars()"
+                    >
+                      ★
+                    </button>
+                  }
+                </div>
+                <span class="rounded-full bg-amber-50 border border-amber-200 px-3 py-0.5 text-xs font-bold text-amber-900">
+                  {{ selectedStars() }} de 5 estrellas
+                </span>
+              </div>
+
+              <!-- Compliment Tags -->
+              <div class="space-y-2">
+                <label class="block text-xs font-bold text-gray-700">¿Qué destacarías de la entrega?</label>
+                <div class="flex flex-wrap gap-1.5 justify-center">
+                  @for (tag of availableRatingTags; track tag) {
+                    <button
+                      type="button"
+                      (click)="toggleRatingTag(tag)"
+                      [class]="selectedRatingTags().includes(tag) ? 'bg-amber-500 text-white border-amber-500 shadow-2xs' : 'bg-gray-50 text-gray-700 border-gray-200 hover:border-amber-300'"
+                      class="rounded-xl border px-3 py-1.5 text-xs font-medium transition cursor-pointer"
+                    >
+                      {{ tag }}
+                    </button>
+                  }
+                </div>
+              </div>
+
+              <!-- Comment Textarea -->
+              <div class="space-y-1.5">
+                <label class="block text-xs font-bold text-gray-700">Comentario para el repartidor (opcional)</label>
+                <textarea
+                  [(ngModel)]="ratingComment"
+                  rows="2"
+                  placeholder="Ej: Llegó muy rápido y con el repuesto debidamente sellado..."
+                  class="w-full rounded-xl border border-gray-200 bg-gray-50/50 p-3 text-xs text-gray-900 placeholder:text-gray-400 focus:border-amber-500 focus:bg-white focus:outline-none transition resize-none"
+                ></textarea>
+              </div>
+
+              <!-- Action Buttons -->
+              <div class="space-y-2 pt-1">
+                <button
+                  type="button"
+                  (click)="submitDriverRating()"
+                  class="w-full min-h-[46px] rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-bold text-sm shadow-md shadow-orange-500/20 transition cursor-pointer flex items-center justify-center gap-2"
+                >
+                  <span>Guardar Calificación</span>
+                  <span>→</span>
+                </button>
+
+                <button
+                  type="button"
+                  (click)="dismissRatingModal()"
+                  class="w-full py-2 text-xs font-medium text-gray-400 hover:text-gray-600 transition cursor-pointer"
+                >
+                  Cerrar
+                </button>
+              </div>
+            </div>
+          </div>
+        }
       </div>
     </div>
   `,
 })
 export class MyOrdersPageComponent implements OnInit, OnDestroy {
   private pollSubscription?: Subscription;
+  readonly driverRatingService = inject(DriverRatingService);
   private readonly ordersService = inject(OrdersService);
   readonly auth = inject(AuthService);
   private readonly lookupService = inject(LookupService);
   private readonly toast = inject(ToastService);
   readonly pdfInvoiceService = inject(PdfInvoiceService);
   private readonly route = inject(ActivatedRoute);
+
+  readonly showRatingModal = signal(false);
+  readonly selectedRatingOrder = signal<Order | null>(null);
+  readonly selectedStars = signal<number>(5);
+  readonly selectedRatingTags = signal<string[]>(['Muy puntual', 'Amable']);
+  ratingComment = '';
+  readonly availableRatingTags = ['Muy puntual', 'Amable', 'Repuesto sellado', 'Llegó rápido', 'Excelente servicio'];
+
+  openRatingModalForOrder(ord: Order): void {
+    this.selectedRatingOrder.set(ord);
+    const existing = this.driverRatingService.getRatingByOrder(ord.orderNumber);
+    if (existing) {
+      this.selectedStars.set(existing.stars);
+      this.selectedRatingTags.set([...existing.tags]);
+      this.ratingComment = existing.comment || '';
+    } else {
+      this.selectedStars.set(5);
+      this.selectedRatingTags.set(['Muy puntual', 'Amable']);
+      this.ratingComment = '';
+    }
+    this.showRatingModal.set(true);
+  }
+
+  dismissRatingModal(): void {
+    this.showRatingModal.set(false);
+  }
+
+  toggleRatingTag(tag: string): void {
+    const current = this.selectedRatingTags();
+    if (current.includes(tag)) {
+      this.selectedRatingTags.set(current.filter((t) => t !== tag));
+    } else {
+      this.selectedRatingTags.set([...current, tag]);
+    }
+  }
+
+  submitDriverRating(): void {
+    const ord = this.selectedRatingOrder();
+    if (!ord) return;
+    this.driverRatingService.submitRating({
+      orderNumber: ord.orderNumber,
+      driverName: ord.assignedDriverName || ord.deliveryProof?.driverName || 'Miguel Ángel Flores',
+      driverEmail: 'motorizado@asuncion.pe',
+      customerName: ord.recipientName || ord.customerName || 'Cliente Asunción',
+      stars: this.selectedStars(),
+      tags: this.selectedRatingTags(),
+      comment: this.ratingComment.trim() || undefined,
+    });
+    this.showRatingModal.set(false);
+    this.toast.success('¡Gracias por tu opinión!', 'Tu calificación ha sido registrada para el repartidor.');
+  }
 
   readonly orders = signal<Order[]>([]);
   readonly isLoading = signal(true);

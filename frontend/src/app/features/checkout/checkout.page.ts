@@ -80,7 +80,15 @@ export class CheckoutPageComponent implements OnInit, OnDestroy {
   recipientName = '';
   recipientPhone = '+51 987 654 321';
   paymentMethod = 'TARJETA_CREDITO';
+  cashPaymentSubtype: 'EFECTIVO' | 'POS' = 'EFECTIVO';
+  cashAmountToPay: number | null = null;
   notes = '';
+
+  readonly cashChangeAmount = computed<number>(() => {
+    if (this.paymentMethod !== 'CONTRA_ENTREGA' || this.cashPaymentSubtype !== 'EFECTIVO') return 0;
+    if (!this.cashAmountToPay || this.cashAmountToPay <= this.grandTotal()) return 0;
+    return Number((this.cashAmountToPay - this.grandTotal()).toFixed(2));
+  });
 
   // Card Payment Form & Dynamic Bank Detection
   cardForm = {
@@ -524,6 +532,26 @@ export class CheckoutPageComponent implements OnInit, OnDestroy {
     }
   }
 
+  private buildFormattedNotes(): string {
+    let finalNotes = (this.notes || '').trim();
+    if (this.paymentMethod === 'CONTRA_ENTREGA') {
+      if (this.cashPaymentSubtype === 'EFECTIVO') {
+        if (this.cashAmountToPay && this.cashAmountToPay > 0) {
+          const change = this.cashChangeAmount();
+          const tag = change > 0
+            ? `[PAGO CONTRAENTREGA EN EFECTIVO: Cliente paga con S/ ${this.cashAmountToPay.toFixed(2)} - Llevar vuelto de S/ ${change.toFixed(2)}]`
+            : `[PAGO CONTRAENTREGA EN EFECTIVO: Cliente paga monto exacto S/ ${this.cashAmountToPay.toFixed(2)}]`;
+          finalNotes = `${tag} ${finalNotes}`.trim();
+        } else {
+          finalNotes = `[PAGO CONTRAENTREGA EN EFECTIVO: Monto exacto / Llevar cambio estándar] ${finalNotes}`.trim();
+        }
+      } else {
+        finalNotes = `[PAGO CONTRAENTREGA CON TARJETA: Llevar terminal POS móvil] ${finalNotes}`.trim();
+      }
+    }
+    return finalNotes;
+  }
+
   private buildCreateOrderPayload(): CreateOrderRequest {
     const branchId = this.selectedBranch()?.id ?? this.selectedBranchId ?? 1;
     const isFactura = this.invoiceType() === 'FACTURA';
@@ -547,7 +575,7 @@ export class CheckoutPageComponent implements OnInit, OnDestroy {
       recipientName: this.recipientName.trim(),
       recipientPhone: this.recipientPhone.trim(),
       paymentMethod: this.paymentMethod,
-      notes: this.notes.trim(),
+      notes: this.buildFormattedNotes(),
       reservationSessionId: this.cart.reservationSessionId,
       items: this.cart.items().map((i) => ({
         partId: i.part.id,

@@ -542,132 +542,116 @@ import {
         </div>
       </div>
 
-      <!-- Mobile Dropdown Menu (Secondary Links & Session Details) -->
+      <!-- Mobile Dropdown Menu (Clean, Non-Redundant Operational & Session Access) -->
       @if (mobileOpen()) {
-        <div class="lg:hidden border-t border-gray-200 bg-white px-4 py-3 space-y-1 shadow-lg">
-          @if (auth.canAccessCatalog()) {
-            <a
-              routerLink="/"
-              (click)="mobileOpen.set(false)"
-              class="block rounded-lg px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-orange-50 hover:text-orange-700"
-            >
-              Catálogo
-            </a>
-          }
-          @if (auth.canAccessTracking()) {
-            <a
-              routerLink="/track"
-              (click)="mobileOpen.set(false)"
-              class="block rounded-lg px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-orange-50 hover:text-orange-700"
-            >
-              Seguimiento de pedido
-            </a>
-          }
-          @if (auth.canAccessMyOrders()) {
-            <a
-              routerLink="/my-orders"
-              (click)="mobileOpen.set(false)"
-              class="block rounded-lg px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-orange-50 hover:text-orange-700"
-            >
-              Mis pedidos
-            </a>
-          }
-          @if (auth.canAccessAdmin()) {
-            <a
-              routerLink="/admin"
-              (click)="mobileOpen.set(false)"
-              class="block rounded-lg px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-orange-50 hover:text-orange-700"
-            >
-              {{ auth.primaryRole() === 'VENDEDOR' ? 'Panel de Ventas' : 'Administración' }}
-            </a>
-            <a
-              routerLink="/pos"
-              (click)="mobileOpen.set(false)"
-              class="block rounded-lg px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-orange-50 hover:text-orange-700"
-            >
-              Caja / Punto de Venta
-            </a>
-          }
-          @if (auth.canAccessDelivery()) {
-            <a
-              routerLink="/delivery"
-              (click)="mobileOpen.set(false)"
-              class="block rounded-lg px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-orange-50 hover:text-orange-700"
-            >
-              Reparto
-            </a>
-          }
-
-          <!-- Notifications shortcut on mobile menu (only when authenticated) -->
+        <div class="lg:hidden border-t border-gray-200 bg-white px-4 py-3 space-y-2 shadow-lg animate-fadeIn">
           @if (auth.isAuthenticated()) {
-            <button
-              type="button"
-              (click)="toggleNotifications($event); mobileOpen.set(false);"
-              class="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-orange-50 hover:text-orange-700"
-            >
-              <div class="flex items-center gap-2">
-                <svg class="h-4 w-4 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
-                </svg>
-                <span>Notificaciones</span>
-              </div>
-              <div class="flex items-center gap-1.5">
-                @if (notifService.unreadStockAlertsCount() > 0) {
-                  <span class="rounded-full bg-red-600 px-2 py-0.5 text-xs font-black text-white animate-pulse">
-                    🚨 {{ notifService.unreadStockAlertsCount() }} Stock
-                  </span>
-                }
-                @if (notifService.unreadCount() > 0) {
-                  <span class="rounded-full bg-orange-600 px-2 py-0.5 text-xs font-bold text-white">
-                    {{ notifService.unreadCount() }}
-                  </span>
-                }
-              </div>
-            </button>
-          }
-
-          <div class="pt-3 mt-2 border-t border-gray-100 flex items-center justify-between gap-2">
-            @if (auth.isAuthenticated()) {
+            <!-- User Profile Summary Card -->
+            <div class="rounded-xl border border-orange-100 bg-orange-50/50 p-3 flex items-center justify-between gap-2">
               <div class="min-w-0">
-                <p class="truncate text-xs font-semibold text-gray-900">{{ auth.currentUser()?.fullName }}</p>
-                <p class="text-[11px] font-medium text-orange-700">{{ roleLabel() }}</p>
+                <div class="flex items-center gap-1.5">
+                  <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
+                  <p class="truncate text-xs font-bold text-gray-950">{{ auth.currentUser()?.fullName }}</p>
+                </div>
+                <p class="text-[11px] font-semibold text-orange-700 mt-0.5">{{ roleLabel() }} • {{ auth.currentUser()?.email }}</p>
               </div>
-              <div class="flex items-center gap-2 shrink-0">
+              <a
+                routerLink="/my-orders"
+                [queryParams]="{ tab: 'profile' }"
+                (click)="mobileOpen.set(false)"
+                class="shrink-0 rounded-lg border border-orange-200 bg-white px-2.5 py-1 text-xs font-bold text-orange-700 shadow-2xs hover:bg-orange-50"
+              >
+                Mi perfil
+              </a>
+            </div>
+
+            <!-- Staff-only Quick Links -->
+            @if (auth.canAccessAdmin()) {
+              <div class="pt-1 space-y-1">
                 <a
-                  routerLink="/login"
+                  routerLink="/admin"
                   (click)="mobileOpen.set(false)"
-                  class="rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-700"
+                  class="flex items-center gap-2.5 rounded-xl border border-gray-200 bg-gray-50/70 px-3.5 py-2 text-xs font-semibold text-gray-800 hover:bg-orange-50 hover:text-orange-700"
                 >
-                  Cambiar cuenta
+                  <svg class="h-4 w-4 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6a7.5 7.5 0 107.5 7.5h-7.5V6z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 10.5H21A7.5 7.5 0 0013.5 3v7.5z" />
+                  </svg>
+                  <span>{{ auth.primaryRole() === 'VENDEDOR' ? 'Panel de Ventas ERP' : 'Panel de Administración' }}</span>
                 </a>
-                <button
-                  type="button"
-                  (click)="onLogout(); mobileOpen.set(false)"
-                  class="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700"
-                >
-                  Salir
-                </button>
-              </div>
-            } @else {
-              <div class="grid grid-cols-2 gap-2 w-full">
                 <a
-                  routerLink="/login"
+                  routerLink="/pos"
                   (click)="mobileOpen.set(false)"
-                  class="text-center rounded-lg border border-gray-200 bg-white py-2.5 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                  class="flex items-center gap-2.5 rounded-xl border border-gray-200 bg-gray-50/70 px-3.5 py-2 text-xs font-semibold text-gray-800 hover:bg-orange-50 hover:text-orange-700"
                 >
-                  Iniciar sesión
-                </a>
-                <a
-                  routerLink="/login"
-                  [queryParams]="{ tab: 'register' }"
-                  (click)="mobileOpen.set(false)"
-                  class="text-center rounded-lg bg-orange-600 py-2.5 text-xs font-semibold text-white hover:bg-orange-700"
-                >
-                  Registrarse
+                  <svg class="h-4 w-4 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25" />
+                  </svg>
+                  <span>Caja / Punto de Venta POS</span>
                 </a>
               </div>
             }
-          </div>
+
+            @if (auth.canAccessDelivery()) {
+              <a
+                routerLink="/delivery"
+                (click)="mobileOpen.set(false)"
+                class="flex items-center gap-2.5 rounded-xl border border-gray-200 bg-gray-50/70 px-3.5 py-2 text-xs font-semibold text-gray-800 hover:bg-orange-50 hover:text-orange-700"
+              >
+                <svg class="h-4 w-4 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125" />
+                </svg>
+                <span>Panel de Reparto Motorizado</span>
+              </a>
+            }
+
+            <!-- Institutional Links & Session Termination -->
+            <div class="pt-2 flex items-center justify-between gap-2 border-t border-gray-100">
+              <a
+                routerLink="/libro-de-reclamaciones"
+                (click)="mobileOpen.set(false)"
+                class="text-xs text-gray-500 hover:text-orange-600 font-medium"
+              >
+                Libro de Reclamaciones
+              </a>
+              <div class="flex items-center gap-2">
+                <button
+                  type="button"
+                  (click)="onLogout(); mobileOpen.set(false)"
+                  class="rounded-xl border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-bold text-red-700 hover:bg-red-100 transition cursor-pointer"
+                >
+                  Cerrar sesión
+                </button>
+              </div>
+            </div>
+          } @else {
+            <div class="grid grid-cols-2 gap-2 w-full pt-1">
+              <a
+                routerLink="/login"
+                (click)="mobileOpen.set(false)"
+                class="text-center rounded-xl border border-gray-200 bg-white py-2.5 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+              >
+                Iniciar sesión
+              </a>
+              <a
+                routerLink="/login"
+                [queryParams]="{ tab: 'register' }"
+                (click)="mobileOpen.set(false)"
+                class="text-center rounded-xl bg-orange-600 py-2.5 text-xs font-semibold text-white hover:bg-orange-700"
+              >
+                Registrarse
+              </a>
+            </div>
+            <div class="pt-2 text-center border-t border-gray-100">
+              <a
+                routerLink="/libro-de-reclamaciones"
+                (click)="mobileOpen.set(false)"
+                class="text-xs text-gray-500 hover:text-orange-600 font-medium"
+              >
+                Libro de Reclamaciones INDECOPI
+              </a>
+            </div>
+          }
         </div>
       }
     </header>
@@ -791,16 +775,30 @@ import {
           </a>
         }
 
-        <a
-          routerLink="/login"
-          routerLinkActive="text-orange-600"
-          class="flex flex-1 flex-col items-center justify-center gap-0.5 py-2 min-h-[56px] text-gray-500 hover:text-gray-900 transition"
-        >
-          <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-          </svg>
-          <span class="text-[11px] font-medium">{{ auth.isAuthenticated() ? 'Cuenta' : 'Ingresar' }}</span>
-        </a>
+        @if (auth.isAuthenticated()) {
+          <a
+            routerLink="/my-orders"
+            [queryParams]="{ tab: 'profile' }"
+            routerLinkActive="text-orange-600"
+            class="flex flex-1 flex-col items-center justify-center gap-0.5 py-2 min-h-[56px] text-gray-500 hover:text-gray-900 transition"
+          >
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+            </svg>
+            <span class="text-[11px] font-medium">Cuenta</span>
+          </a>
+        } @else {
+          <a
+            routerLink="/login"
+            routerLinkActive="text-orange-600"
+            class="flex flex-1 flex-col items-center justify-center gap-0.5 py-2 min-h-[56px] text-gray-500 hover:text-gray-900 transition"
+          >
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+            </svg>
+            <span class="text-[11px] font-medium">Ingresar</span>
+          </a>
+        }
       </div>
     </nav>
   `,

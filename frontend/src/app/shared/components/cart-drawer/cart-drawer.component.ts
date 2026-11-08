@@ -14,14 +14,21 @@ import { ToastService } from '../../../core/services/toast.service';
   template: `
     @if (cart.isDrawerOpen()) {
       <div class="fixed inset-0 z-50 overflow-hidden">
-        <!-- Backdrop -->
+        <!-- Backdrop (Clicking outside closes cart drawer) -->
         <div
           (click)="cart.closeDrawer()"
-          class="fixed inset-0 bg-gray-900/40 backdrop-blur-xs transition-opacity"
+          class="fixed inset-0 bg-gray-900/40 backdrop-blur-xs transition-opacity cursor-pointer"
+          aria-hidden="true"
         ></div>
 
-        <div class="fixed inset-y-0 right-0 flex max-w-full pl-8 sm:pl-10">
-          <div class="w-screen max-w-md bg-white shadow-2xl border-l border-gray-200 flex flex-col">
+        <div
+          class="fixed inset-y-0 right-0 flex max-w-full pl-8 sm:pl-10"
+          (click)="cart.closeDrawer()"
+        >
+          <div
+            class="w-screen max-w-md bg-white shadow-2xl border-l border-gray-200 flex flex-col"
+            (click)="$event.stopPropagation()"
+          >
             <!-- Header -->
             <div class="border-b border-gray-200 bg-white px-5 py-4 flex items-center justify-between relative">
               <div class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-orange-600 via-orange-500 to-amber-500"></div>

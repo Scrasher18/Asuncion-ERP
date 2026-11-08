@@ -1,6 +1,7 @@
 package com.asuncion.erp.service;
 
 import com.asuncion.erp.domain.entity.AppUser;
+import com.asuncion.erp.domain.entity.CustomerOrder;
 import com.asuncion.erp.domain.entity.ComplaintRecordEntity;
 import com.asuncion.erp.domain.entity.EmailNotificationLog;
 import com.asuncion.erp.domain.entity.SystemMailConfig;
@@ -636,6 +637,63 @@ public class EmailNotificationService {
             dispatchOrSimulate("PEDIDO_EN_CAMINO", order.customerEmail(), subject, html, order.orderNumber());
         } catch (Exception e) {
             log.warn("Error procesando notificación PEDIDO_EN_CAMINO: {}", e.getMessage());
+        }
+    }
+
+    @Async("mailTaskExecutor")
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void notifyDriverApproaching(CustomerOrder order, double remainingMeters, int etaMinutes) {
+        try {
+            if (order == null || order.getCustomer() == null || order.getCustomer().getEmail() == null || order.getCustomer().getEmail().isBlank()) {
+                return;
+            }
+            String customerEmail = order.getCustomer().getEmail();
+            String customerName = order.getRecipientName() != null && !order.getRecipientName().isBlank()
+                    ? order.getRecipientName()
+                    : (order.getCustomer().getFullName() != null ? order.getCustomer().getFullName() : "Cliente");
+            String driverName = order.getAssignedDriver() != null ? order.getAssignedDriver().getFullName() : "Motorizado Asunción";
+            String driverPhone = order.getAssignedDriver() != null && order.getAssignedDriver().getPhone() != null
+                    ? order.getAssignedDriver().getPhone() : "+51 987 654 321";
+            String secCode = order.getDeliverySecurityCode() != null && !order.getDeliverySecurityCode().isBlank()
+                    ? order.getDeliverySecurityCode() : "1234";
+
+            String subject = "🛵 ¡Tu repartidor está muy cerca! Pedido #" + order.getOrderNumber() + " — Repuestos Asunción";
+            String content = """
+                    <p style="margin:0 0 14px;color:#334155;font-size:15px;line-height:1.6;">
+                      Hola <strong>%s</strong>, ¡tu repartidor está por llegar a tu puerta!
+                    </p>
+                    <div style="background:#FFF7ED;border:2px solid #EA580C;border-radius:12px;padding:16px;margin:14px 0;">
+                      <p style="margin:4px 0;font-size:14px;color:#1E293B;"><strong>Distancia Restante:</strong> <span style="color:#EA580C;font-weight:800;">Aprox. %.0f metros</span></p>
+                      <p style="margin:4px 0;font-size:14px;color:#1E293B;"><strong>Tiempo Estimado de Llegada:</strong> <span style="color:#047857;font-weight:800;">~%d minutos</span></p>
+                      <p style="margin:4px 0;font-size:14px;color:#1E293B;"><strong>Motorizado:</strong> %s (Cel: %s)</p>
+                      <p style="margin:4px 0;font-size:14px;color:#1E293B;"><strong>Dirección:</strong> %s</p>
+                      
+                      <div style="margin-top:14px;background:#FFFFFF;border:2px dashed #EA580C;border-radius:10px;padding:14px;text-align:center;">
+                        <span style="font-size:11px;font-weight:800;color:#EA580C;text-transform:uppercase;letter-spacing:1px;display:block;">Tu Código PIN de Seguridad para la Entrega</span>
+                        <span style="font-family:monospace;font-size:32px;font-weight:900;color:#111827;letter-spacing:4px;display:block;margin:6px 0;">%s</span>
+                        <p style="margin:4px 0 0;font-size:11px;color:#64748B;">Díctale este código de 4 dígitos al motorizado al momento de recibir tus repuestos para validar la entrega.</p>
+                      </div>
+                    </div>
+                    """.formatted(
+                    escapeHtml(customerName),
+                    remainingMeters,
+                    Math.max(1, etaMinutes),
+                    escapeHtml(driverName),
+                    escapeHtml(driverPhone),
+                    escapeHtml(order.getDeliveryAddress() != null ? order.getDeliveryAddress() : "Dirección indicada"),
+                    secCode
+            );
+
+            String html = wrapCorporateTemplate(
+                    "REPARTIDOR MUY CERCA",
+                    "¡Tu repartidor está a punto de llegar!",
+                    content,
+                    "Ver Seguimiento GPS en Vivo",
+                    frontendBaseUrl + "/track?code=" + order.getOrderNumber()
+            );
+            dispatchOrSimulate("REPARTIDOR_CERCA", customerEmail, subject, html, order.getOrderNumber());
+        } catch (Exception e) {
+            log.warn("Error procesando notificación REPARTIDOR_CERCA: {}", e.getMessage());
         }
     }
 

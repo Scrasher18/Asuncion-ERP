@@ -76,6 +76,7 @@ public class DatabaseSchemaPatcher implements CommandLineRunner {
             jdbcTemplate.execute("ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_status VARCHAR(30) DEFAULT 'PENDIENTE'");
             jdbcTemplate.execute("ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_reference VARCHAR(150)");
             jdbcTemplate.execute("ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_security_code VARCHAR(10)");
+            jdbcTemplate.execute("ALTER TABLE orders ADD COLUMN IF NOT EXISTS proximity_alert_sent BOOLEAN DEFAULT FALSE");
         } catch (Exception e) {
             log.debug("Columnas de pago y seguridad en orders verificadas ({})", e.getMessage());
         }

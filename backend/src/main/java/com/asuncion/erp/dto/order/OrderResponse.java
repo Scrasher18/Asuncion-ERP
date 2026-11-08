@@ -49,6 +49,7 @@ public record OrderResponse(
         List<OrderItemDto> items,
         List<OrderStatusHistoryDto> statusHistory,
         DeliveryProofDto deliveryProof,
-        String deliverySecurityCode
+        String deliverySecurityCode,
+        Boolean proximityAlertSent
 ) {
 }

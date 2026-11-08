@@ -423,114 +423,54 @@ const ORDER_STAGES = [
               }
             </div>
 
-            <!-- Customer Courier Rating Card -->
-            <div class="rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50/60 via-white to-white p-6 space-y-4 shadow-xs animate-fadeIn">
-              <div class="flex flex-wrap items-center justify-between gap-3">
-                <div class="flex items-center gap-3">
-                  <span class="flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-100 text-amber-700 border border-amber-200 text-xl font-bold shadow-2xs">
-                    ★
-                  </span>
-                  <div>
-                    <h3 class="text-base font-bold text-gray-950">Califica la experiencia de entrega</h3>
-                    <p class="text-xs text-gray-600">
-                      Repartidor asignado: <strong class="text-gray-900">{{ ord.assignedDriverName || ord.deliveryProof?.driverName || 'Miguel Ángel Flores' }}</strong>
-                    </p>
-                  </div>
+            <!-- Customer Courier Rating Compact Status -->
+            <div class="rounded-2xl border border-amber-200/80 bg-gradient-to-r from-amber-50/60 via-white to-amber-50/30 p-4 flex flex-wrap items-center justify-between gap-3 shadow-2xs">
+              <div class="flex items-center gap-3">
+                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700 text-lg font-bold shadow-2xs">
+                  ★
                 </div>
-                @if (driverRatingService.hasRated(ord.orderNumber)) {
-                  <div class="flex flex-col items-end gap-1">
-                    <span class="inline-flex items-center gap-1.5 rounded-full border border-emerald-300 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-800">
-                      <span>✓</span>
-                      <span>¡Gracias por tu calificación!</span>
-                    </span>
-                    @if (driverRatingService.getRatingByOrder(ord.orderNumber); as myRating) {
-                      <div class="flex items-center gap-1">
-                        <span class="text-sm font-bold text-amber-500">
-                          {{ '★'.repeat(myRating.stars) }}{{ '☆'.repeat(5 - myRating.stars) }}
-                        </span>
-                        <span class="text-[11px] text-gray-500 font-semibold">({{ myRating.stars }}/5)</span>
-                      </div>
-                    }
-                  </div>
-                }
+                <div>
+                  <h4 class="text-xs sm:text-sm font-bold text-gray-900">
+                    Calificación del servicio de entrega: <strong class="text-gray-950">{{ ord.assignedDriverName || ord.deliveryProof?.driverName || 'Miguel Ángel Flores' }}</strong>
+                  </h4>
+                  @if (driverRatingService.getRatingByOrder(ord.orderNumber); as myRating) {
+                    <div class="flex items-center gap-2 mt-0.5">
+                      <span class="text-xs font-bold text-amber-500">
+                        {{ '★'.repeat(myRating.stars) }}{{ '☆'.repeat(5 - myRating.stars) }}
+                      </span>
+                      <span class="text-[11px] font-semibold text-gray-700">({{ myRating.stars }}/5)</span>
+                      @if (myRating.comment) {
+                        <span class="text-[11px] text-gray-500 italic max-w-xs truncate">"{{ myRating.comment }}"</span>
+                      }
+                    </div>
+                  } @else {
+                    <p class="text-[11px] text-gray-500 mt-0.5">
+                      Entrega concluida. Tu opinión ayuda a mantener la máxima calidad de atención.
+                    </p>
+                  }
+                </div>
               </div>
 
-              @if (driverRatingService.hasRated(ord.orderNumber)) {
-                @if (driverRatingService.getRatingByOrder(ord.orderNumber); as myRating) {
-                  @if (myRating.comment || (myRating.tags && myRating.tags.length > 0)) {
-                    <div class="rounded-xl bg-amber-50/50 border border-amber-200/80 p-3.5 text-xs space-y-2">
-                      @if (myRating.tags && myRating.tags.length > 0) {
-                        <div class="flex flex-wrap gap-1.5">
-                          @for (t of myRating.tags; track t) {
-                            <span class="rounded-lg bg-white border border-amber-200 px-2.5 py-0.5 text-[11px] font-semibold text-amber-900">
-                              ✓ {{ t }}
-                            </span>
-                          }
-                        </div>
-                      }
-                      @if (myRating.comment) {
-                        <p class="text-gray-700 italic text-xs">"{{ myRating.comment }}"</p>
-                      }
-                    </div>
-                  }
+              <div>
+                @if (driverRatingService.hasRated(ord.orderNumber)) {
+                  <button
+                    type="button"
+                    (click)="openRatingModal()"
+                    class="inline-flex items-center gap-1.5 rounded-xl border border-emerald-300 bg-emerald-50 px-3.5 py-2 text-xs font-bold text-emerald-800 hover:bg-emerald-100 transition cursor-pointer"
+                  >
+                    <span>✓ Calificado</span>
+                    <span class="text-[10px] text-emerald-600 font-semibold underline">Modificar</span>
+                  </button>
+                } @else {
+                  <button
+                    type="button"
+                    (click)="openRatingModal()"
+                    class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 px-4 py-2 text-xs font-bold text-white shadow-xs hover:from-amber-600 hover:to-orange-700 transition cursor-pointer"
+                  >
+                    <span>⭐ Calificar al Repartidor</span>
+                  </button>
                 }
-              }
-
-              @if (!driverRatingService.hasRated(ord.orderNumber)) {
-                <div class="space-y-4 pt-1">
-                  <div class="flex flex-wrap items-center gap-3">
-                    <span class="text-xs font-bold text-gray-800">Tu puntuación:</span>
-                    <div class="flex items-center gap-1">
-                      @for (star of [1, 2, 3, 4, 5]; track star) {
-                        <button
-                          type="button"
-                          (click)="selectedStars.set(star)"
-                          class="text-2xl transition-transform hover:scale-125 cursor-pointer focus:outline-none"
-                          [class.text-amber-400]="star <= selectedStars()"
-                          [class.text-gray-300]="star > selectedStars()"
-                        >
-                          ★
-                        </button>
-                      }
-                    </div>
-                    <span class="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-bold text-amber-900">
-                      {{ selectedStars() }} de 5 estrellas
-                    </span>
-                  </div>
-
-                  <div class="space-y-1.5">
-                    <span class="text-xs font-semibold text-gray-700 block">¿Qué aspectos destacarías del servicio?</span>
-                    <div class="flex flex-wrap gap-2">
-                      @for (tag of availableRatingTags; track tag) {
-                        <button
-                          type="button"
-                          (click)="toggleRatingTag(tag)"
-                          [class]="selectedRatingTags().includes(tag) ? 'bg-amber-600 text-white border-amber-600 shadow-2xs' : 'bg-white text-gray-700 border-gray-200 hover:border-amber-300'"
-                          class="rounded-xl border px-3 py-1.5 text-xs font-semibold transition cursor-pointer"
-                        >
-                          {{ tag }}
-                        </button>
-                      }
-                    </div>
-                  </div>
-
-                  <div class="flex flex-col sm:flex-row gap-2.5">
-                    <input
-                      type="text"
-                      [(ngModel)]="ratingComment"
-                      placeholder="Escribe un comentario adicional sobre tu entrega (opcional)..."
-                      class="flex-1 min-h-[42px] rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-xs text-gray-900 placeholder:text-gray-400 focus:border-amber-500 focus:outline-none"
-                    />
-                    <button
-                      type="button"
-                      (click)="submitDriverRating(ord)"
-                      class="min-h-[42px] rounded-xl bg-amber-600 px-5 py-2 text-xs font-bold text-white shadow-xs hover:bg-amber-700 transition cursor-pointer shrink-0"
-                    >
-                      Enviar calificación
-                    </button>
-                  </div>
-                </div>
-              }
+              </div>
             </div>
           }
 
@@ -637,6 +577,107 @@ const ORDER_STAGES = [
             </div>
           </div>
         }
+
+        <!-- Full-Screen Driver Rating Pop-up Modal -->
+        @if (showRatingModal() && order(); as ord) {
+          <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-950/70 backdrop-blur-sm animate-fadeIn">
+            <!-- Click backdrop to dismiss -->
+            <div class="absolute inset-0" (click)="dismissRatingModal()"></div>
+
+            <div class="relative w-full max-w-md rounded-3xl border border-amber-200 bg-white p-6 sm:p-7 shadow-2xl z-10 space-y-5 animate-scaleUp">
+              <!-- Close (X) button -->
+              <button
+                type="button"
+                (click)="dismissRatingModal()"
+                class="absolute top-4 right-4 flex h-8 w-8 items-center justify-center rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition cursor-pointer"
+                aria-label="Cerrar modal"
+              >
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+
+              <!-- Header -->
+              <div class="text-center space-y-2 pt-2">
+                <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-tr from-amber-400 to-amber-500 text-white shadow-md shadow-amber-500/25 text-2xl">
+                  🛵
+                </div>
+                <h3 class="text-lg font-black text-gray-900 tracking-tight">¡Pedido Entregado con Éxito!</h3>
+                <p class="text-xs text-gray-500 max-w-xs mx-auto">
+                  ¿Cómo calificarías la atención de tu repartidor <strong class="text-gray-800">{{ ord.assignedDriverName || ord.deliveryProof?.driverName || 'Miguel Ángel Flores' }}</strong>?
+                </p>
+              </div>
+
+              <!-- Star Rating -->
+              <div class="flex flex-col items-center justify-center py-2 space-y-2">
+                <div class="flex items-center gap-2">
+                  @for (star of [1, 2, 3, 4, 5]; track star) {
+                    <button
+                      type="button"
+                      (click)="selectedStars.set(star)"
+                      class="text-3xl transition-transform hover:scale-125 active:scale-95 cursor-pointer focus:outline-none"
+                      [class.text-amber-400]="star <= selectedStars()"
+                      [class.text-gray-200]="star > selectedStars()"
+                    >
+                      ★
+                    </button>
+                  }
+                </div>
+                <span class="rounded-full bg-amber-50 border border-amber-200 px-3 py-0.5 text-xs font-bold text-amber-900">
+                  {{ selectedStars() }} de 5 estrellas
+                </span>
+              </div>
+
+              <!-- Compliment Tags -->
+              <div class="space-y-2">
+                <label class="block text-xs font-bold text-gray-700">¿Qué destacarías de la entrega?</label>
+                <div class="flex flex-wrap gap-1.5 justify-center">
+                  @for (tag of availableRatingTags; track tag) {
+                    <button
+                      type="button"
+                      (click)="toggleRatingTag(tag)"
+                      [class]="selectedRatingTags().includes(tag) ? 'bg-amber-500 text-white border-amber-500 shadow-2xs' : 'bg-gray-50 text-gray-700 border-gray-200 hover:border-amber-300'"
+                      class="rounded-xl border px-3 py-1.5 text-xs font-medium transition cursor-pointer"
+                    >
+                      {{ tag }}
+                    </button>
+                  }
+                </div>
+              </div>
+
+              <!-- Comment Textarea -->
+              <div class="space-y-1.5">
+                <label class="block text-xs font-bold text-gray-700">Comentario para el repartidor (opcional)</label>
+                <textarea
+                  [(ngModel)]="ratingComment"
+                  rows="2"
+                  placeholder="Ej: Llegó muy rápido y con el repuesto debidamente sellado..."
+                  class="w-full rounded-xl border border-gray-200 bg-gray-50/50 p-3 text-xs text-gray-900 placeholder:text-gray-400 focus:border-amber-500 focus:bg-white focus:outline-none transition resize-none"
+                ></textarea>
+              </div>
+
+              <!-- Action Buttons -->
+              <div class="space-y-2 pt-1">
+                <button
+                  type="button"
+                  (click)="submitDriverRating(ord)"
+                  class="w-full min-h-[46px] rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-bold text-sm shadow-md shadow-orange-500/20 transition cursor-pointer flex items-center justify-center gap-2"
+                >
+                  <span>Enviar Calificación</span>
+                  <span>→</span>
+                </button>
+
+                <button
+                  type="button"
+                  (click)="dismissRatingModal()"
+                  class="w-full py-2 text-xs font-medium text-gray-400 hover:text-gray-600 transition cursor-pointer"
+                >
+                  Omitir por ahora
+                </button>
+              </div>
+            </div>
+          </div>
+        }
       </div>
     </div>
   `,
@@ -648,6 +689,32 @@ export class TrackOrderPageComponent implements OnInit, OnDestroy {
   readonly selectedRatingTags = signal<string[]>(['Muy puntual', 'Amable']);
   ratingComment = '';
   readonly availableRatingTags = ['Muy puntual', 'Amable', 'Repuesto sellado', 'Llegó rápido', 'Excelente servicio'];
+  readonly showRatingModal = signal(false);
+  private dismissedModalOrders = new Set<string>();
+
+  openRatingModal(): void {
+    const ord = this.order();
+    if (!ord) return;
+    const existing = this.driverRatingService.getRatingByOrder(ord.orderNumber);
+    if (existing) {
+      this.selectedStars.set(existing.stars);
+      this.selectedRatingTags.set([...existing.tags]);
+      this.ratingComment = existing.comment || '';
+    } else {
+      this.selectedStars.set(5);
+      this.selectedRatingTags.set(['Muy puntual', 'Amable']);
+      this.ratingComment = '';
+    }
+    this.showRatingModal.set(true);
+  }
+
+  dismissRatingModal(): void {
+    const ord = this.order();
+    if (ord) {
+      this.dismissedModalOrders.add(ord.orderNumber);
+    }
+    this.showRatingModal.set(false);
+  }
 
   toggleRatingTag(tag: string): void {
     const current = this.selectedRatingTags();
@@ -669,6 +736,8 @@ export class TrackOrderPageComponent implements OnInit, OnDestroy {
       comment: this.ratingComment.trim() || undefined,
     });
     this.ratingComment = '';
+    this.showRatingModal.set(false);
+    this.toast.success('¡Gracias por tu opinión!', 'Tu calificación ha sido registrada para el repartidor.');
   }
 
   readonly auth = inject(AuthService);
@@ -805,6 +874,12 @@ export class TrackOrderPageComponent implements OnInit, OnDestroy {
       this.liveTelemetry.set(null);
       this.stopPolling();
       this.disconnectSse();
+
+      if (current === 'ENTREGADO' && !this.driverRatingService.hasRated(ord.orderNumber) && !this.dismissedModalOrders.has(ord.orderNumber)) {
+        setTimeout(() => {
+          this.openRatingModal();
+        }, 500);
+      }
     }
 
     if (prev && prev !== current && isSilent) {
