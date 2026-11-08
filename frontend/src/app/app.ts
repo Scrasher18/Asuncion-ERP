@@ -3,7 +3,6 @@ import { Component, inject } from '@angular/core';
 import { NavigationEnd, Router, RouterLink, RouterOutlet } from '@angular/router';
 import { ApiConfigService } from './core/services/api-config.service';
 import { CartDrawerComponent } from './shared/components/cart-drawer/cart-drawer.component';
-import { FloatingCartComponent } from './shared/components/floating-cart/floating-cart.component';
 import { StockAlertModalComponent } from './shared/components/stock-alert-modal/stock-alert-modal.component';
 import { ChatbotWidgetComponent } from './shared/components/chatbot-widget/chatbot-widget.component';
 import { NavbarComponent } from './shared/components/navbar/navbar.component';
@@ -17,7 +16,6 @@ import { ToastContainerComponent } from './shared/components/toast-container/toa
     RouterLink,
     NavbarComponent,
     CartDrawerComponent,
-    FloatingCartComponent,
     StockAlertModalComponent,
     ChatbotWidgetComponent,
     ToastContainerComponent,
@@ -228,7 +226,6 @@ import { ToastContainerComponent } from './shared/components/toast-container/toa
         </div>
       </footer>
 
-      <app-floating-cart />
       <app-cart-drawer />
       <app-stock-alert-modal />
       <app-chatbot-widget />

@@ -645,6 +645,52 @@ import {
           </div>
         </div>
       }
+
+      <!-- Sticky Integrated Cart Companion Strip (Zero Content Overlap) -->
+      @if (shouldShowCartBanner()) {
+        <div class="border-t border-orange-500/30 bg-gradient-to-r from-gray-950 via-gray-900 to-gray-950 text-white px-3 sm:px-6 py-2 shadow-xs transition-all">
+          <div class="mx-auto max-w-7xl flex items-center justify-between gap-2.5 sm:gap-4 text-xs">
+            <div class="flex items-center gap-2 min-w-0">
+              <span class="relative flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-orange-600 text-white shadow-xs">
+                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
+                </svg>
+                <span class="absolute -top-1 -right-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-white px-0.5 text-[8px] font-black text-gray-950 tabular-nums">
+                  {{ cart.totalItems() }}
+                </span>
+              </span>
+
+              <div class="flex items-center gap-1.5 truncate">
+                <span class="font-extrabold text-white text-[11px] sm:text-xs truncate">
+                  {{ cart.totalItems() }} {{ cart.totalItems() === 1 ? 'repuesto en carrito' : 'repuestos en carrito' }}
+                </span>
+                <span class="text-gray-500 hidden sm:inline">·</span>
+                <span class="font-black text-orange-400 tabular-nums text-xs">
+                  Total: S/ {{ cart.subtotal() | number: '1.2-2' }}
+                </span>
+              </div>
+
+              @if (cart.hasActiveReservation()) {
+                <span class="inline-flex items-center gap-1 rounded-full bg-amber-500/20 px-2 py-0.5 font-mono text-[10px] font-bold text-amber-300 ring-1 ring-amber-400/30 tabular-nums shrink-0">
+                  <span class="h-1.5 w-1.5 rounded-full bg-amber-400 animate-ping"></span>
+                  ⏳ {{ cart.reservationFormattedTimer() }}
+                </span>
+              }
+            </div>
+
+            <button
+              type="button"
+              (click)="cart.openDrawer()"
+              class="inline-flex items-center gap-1.5 rounded-xl bg-orange-600 hover:bg-orange-500 active:scale-95 px-3 py-1.5 text-[11px] sm:text-xs font-black text-white shadow-xs transition cursor-pointer shrink-0"
+            >
+              <span>Ver carrito</span>
+              <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      }
     </header>
 
     <!-- Mobile Bottom Navigation Bar (Thumb-Friendly Smartphone Ergonomics) -->
@@ -759,6 +805,16 @@ export class NavbarComponent {
   readonly mobileOpen = signal(false);
   readonly notifOpen = signal(false);
   readonly notifFilter = signal<'ALL' | 'UNREAD' | 'SALES' | 'DELIVERY' | 'STOCK'>('ALL');
+
+  readonly shouldShowCartBanner = computed(() => {
+    if (this.cart.totalItems() <= 0) return false;
+    if (this.cart.isDrawerOpen()) return false;
+    const url = this.router.url;
+    if (url.startsWith('/checkout') || url.startsWith('/admin') || url.startsWith('/pos')) {
+      return false;
+    }
+    return true;
+  });
 
   readonly filteredNotifications = computed(() => {
     const list = this.notifService.notifications();
