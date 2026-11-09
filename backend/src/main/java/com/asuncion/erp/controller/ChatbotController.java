@@ -25,4 +25,10 @@ public class ChatbotController {
     public ResponseEntity<ChatbotResponse> sendMessage(@Valid @RequestBody ChatbotRequest request) {
         return ResponseEntity.ok(chatbotService.processMessage(request));
     }
+
+    @GetMapping("/diagnostics")
+    @Operation(summary = "Diagnóstico en tiempo real del estado de conexión con Google Gemini AI")
+    public ResponseEntity<java.util.Map<String, Object>> getDiagnostics() {
+        return ResponseEntity.ok(chatbotService.getDiagnostics());
+    }
 }

@@ -1243,4 +1243,40 @@ public class ChatbotService {
         if (name.contains("embrague")) return 8;
         return 9;
     }
+    public java.util.Map<String, Object> getDiagnostics() {
+        java.util.Map<String, Object> diag = new java.util.LinkedHashMap<>();
+        diag.put("geminiKeyConfigured", !geminiApiKey.isEmpty());
+        diag.put("geminiKeyMasked", geminiApiKey.isEmpty() ? "NOT_CONFIGURED" : (geminiApiKey.substring(0, Math.min(8, geminiApiKey.length())) + "..." + geminiApiKey.substring(Math.max(0, geminiApiKey.length() - 4))));
+        diag.put("geminiModel", geminiModel);
+        if (!geminiApiKey.isEmpty()) {
+            try {
+                URI uri = URI.create("https://generativelanguage.googleapis.com/v1beta/models/" + geminiModel + ":generateContent?key=" + geminiApiKey);
+                String testJson = "{\"contents\":[{\"parts\":[{\"text\":\"Test ping\"}]}]}";
+                HttpRequest req = HttpRequest.newBuilder(uri)
+                        .header("Content-Type", "application/json")
+                        .header("x-goog-api-key", geminiApiKey)
+                        .timeout(Duration.ofSeconds(10))
+                        .POST(HttpRequest.BodyPublishers.ofString(testJson))
+                        .build();
+                HttpResponse<String> resp = httpClient.send(req, HttpResponse.BodyHandlers.ofString());
+                diag.put("testHttpStatus", resp.statusCode());
+                if (resp.statusCode() == 200) {
+                    JsonNode root = objectMapper.readTree(resp.body());
+                    String text = root.path("candidates").path(0).path("content").path("parts").path(0).path("text").asText();
+                    diag.put("testResponse", text.trim());
+                    diag.put("connectionSuccessful", true);
+                } else {
+                    diag.put("testErrorBody", resp.body());
+                    diag.put("connectionSuccessful", false);
+                }
+            } catch (Exception e) {
+                diag.put("testException", e.getClass().getSimpleName() + ": " + e.getMessage());
+                diag.put("connectionSuccessful", false);
+            }
+        } else {
+            diag.put("connectionSuccessful", false);
+            diag.put("reason", "Variable GEMINI_API_KEY no presente en entorno");
+        }
+        return diag;
+    }
 }
