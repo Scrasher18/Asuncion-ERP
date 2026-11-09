@@ -126,6 +126,50 @@ export class CheckoutPageComponent implements OnInit, OnDestroy {
     return opts;
   }
 
+  readonly scheduleInfo = computed(() => {
+    const now = new Date();
+    const limaDateStr = now.toLocaleString('en-US', { timeZone: 'America/Lima' });
+    const limaDate = new Date(limaDateStr);
+    const hours = limaDate.getHours();
+    const minutes = limaDate.getMinutes();
+    const totalMinutes = hours * 60 + minutes;
+
+    const isOpen = totalMinutes >= 480 && totalMinutes < 1200;
+    const isSameDayDelivery = totalMinutes >= 480 && totalMinutes <= 1110;
+
+    let deliveryTimeLabel = '';
+    let deliveryEstimatedWindow = '';
+
+    if (isSameDayDelivery) {
+      deliveryTimeLabel = 'Despacho HOY mismo';
+      const estMinHours = Math.floor((totalMinutes + 45) / 60);
+      const estMinMins = (totalMinutes + 45) % 60;
+      const formattedMin = `${String(estMinHours).padStart(2, '0')}:${String(estMinMins).padStart(2, '0')}`;
+      deliveryEstimatedWindow = `Llegada estimada hoy entre las ${formattedMin} y las 20:00 hrs. Horario de despacho: 08:00 a 20:00 hrs.`;
+    } else if (totalMinutes > 1110) {
+      deliveryTimeLabel = 'Despacho programado para MAÑANA a primera hora';
+      deliveryEstimatedWindow = `Por la hora actual (corte diario de despacho 06:30 p.m., cierre de almacén 08:00 p.m.), tu pedido se despachará mañana entre las 08:30 a.m. y 10:00 a.m.`;
+    } else {
+      deliveryTimeLabel = 'Despacho HOY en el primer turno';
+      deliveryEstimatedWindow = `Nuestra tienda y almacén abren a las 08:00 a.m. Tu pedido saldrá en el primer turno de hoy entre las 08:30 a.m. y 10:00 a.m.`;
+    }
+
+    let pickupTimeLabel = isOpen
+      ? 'Listo para recojo en tienda en 30 min'
+      : 'Listo para recojo mañana desde las 08:30 a.m.';
+    let pickupEstimatedWindow = 'Horario de atención en tienda: Lunes a Sábado de 08:00 a.m. a 08:00 p.m. (Sede Central Santa Anita).';
+    let pickupExpirationLimit = 'Plazo límite de retiro: Tienes hasta 48 horas (2 días calendario) para recoger tu pedido. Vencido este plazo, la reserva se cancela automáticamente y el stock regresa a almacén.';
+
+    return {
+      isDeliveryTimeAllowedSameDay: isSameDayDelivery,
+      deliveryTimeLabel,
+      deliveryEstimatedWindow,
+      pickupTimeLabel,
+      pickupEstimatedWindow,
+      pickupExpirationLimit,
+    };
+  });
+
   setExactCashAmount(val: number): void {
     this.cashAmountToPay = val;
     this.formattedCashAmountToPay = new Intl.NumberFormat('en-US', {
@@ -636,6 +680,16 @@ export class CheckoutPageComponent implements OnInit, OnDestroy {
 
   private buildFormattedNotes(): string {
     let finalNotes = (this.notes || '').trim();
+    const sched = this.scheduleInfo();
+    if (this.deliveryType() === 'DELIVERY') {
+      const deliveryTag = sched.isDeliveryTimeAllowedSameDay
+        ? '[HORARIO DESPACHO: Mismo día (08:00 - 20:00)]'
+        : '[HORARIO DESPACHO: Programado siguiente turno 08:30 AM (Fuera de corte 18:30)]';
+      finalNotes = `${deliveryTag} ${finalNotes}`.trim();
+    } else {
+      const pickupTag = `[RECOJO EN TIENDA: Plazo 48h - Horario Lun-Sáb 08:00 a 20:00]`;
+      finalNotes = `${pickupTag} ${finalNotes}`.trim();
+    }
     if (this.paymentMethod === 'CONTRA_ENTREGA') {
       if (this.cashPaymentSubtype === 'EFECTIVO') {
         if (this.cashAmountToPay && this.cashAmountToPay > 0) {

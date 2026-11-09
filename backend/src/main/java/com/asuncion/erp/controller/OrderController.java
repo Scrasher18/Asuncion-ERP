@@ -68,4 +68,16 @@ public class OrderController {
         String reason = body != null ? body.get("reason") : null;
         return ResponseEntity.ok(orderService.cancelOrder(id, reason, currentUser));
     }
+
+    @PostMapping("/admin/cleanup-expired-pickups")
+    @Operation(summary = "Ejecutar manualmente la limpieza y retorno de stock de pedidos de recojo vencidos (+48h)")
+    public ResponseEntity<Map<String, Object>> cleanupExpiredPickups() {
+        int count = orderService.autoCancelExpiredPickupOrders();
+        return ResponseEntity.ok(Map.of(
+                "cancelledOrdersCount", count,
+                "message", count > 0 
+                        ? "Se cancelaron " + count + " pedidos de recojo vencidos y su stock fue reincorporado al inventario." 
+                        : "No hay pedidos de recojo con más de 48 horas vencidas."
+        ));
+    }
 }

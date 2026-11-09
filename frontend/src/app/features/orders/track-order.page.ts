@@ -318,6 +318,46 @@ const ORDER_STAGES = [
           </div>
 
           <!-- ======================================================================= -->
+          <!-- INFORMACIÓN DE RECOJO EN TIENDA & PLAZO DE 48H -->
+          <!-- ======================================================================= -->
+          @if (ord.deliveryType === 'PICKUP' && ord.status !== 'ENTREGADO' && ord.status !== 'CANCELADO') {
+            <div class="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-5 shadow-xs space-y-3">
+              <div class="flex items-center gap-3 flex-wrap justify-between">
+                <div class="flex items-center gap-2.5">
+                  <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+                    <img src="/images/icons/local.png" alt="Recojo" class="h-6 w-6 object-contain" />
+                  </div>
+                  <div>
+                    <h4 class="text-sm font-extrabold text-emerald-950">Modalidad: Recojo en Tienda Mostrador</h4>
+                    <p class="text-xs text-emerald-800">{{ ord.branchName || 'Sede Central Santa Anita' }} — Av. Sta. Ana 441 (Frente a Tecsup)</p>
+                  </div>
+                </div>
+                <span class="rounded-full bg-emerald-200/70 text-emerald-900 px-3 py-1 text-xs font-bold">
+                  Sede Central Activa
+                </span>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs pt-1">
+                <div class="rounded-xl bg-white p-3 border border-emerald-200 shadow-2xs space-y-1">
+                  <span class="block font-bold text-gray-900 flex items-center gap-1">
+                    <span>⏰</span> Horario de Atención en Tienda:
+                  </span>
+                  <span class="text-gray-600 block">Lunes a Sábado de 08:00 a.m. a 08:00 p.m.</span>
+                  <span class="text-[11px] text-gray-500 block">Acércate a mostrador con tu código de pedido: <strong>#{{ ord.orderNumber }}</strong></span>
+                </div>
+
+                <div class="rounded-xl bg-white p-3 border border-emerald-200 shadow-2xs space-y-1">
+                  <span class="block font-bold text-gray-900 flex items-center gap-1">
+                    <span>⏳</span> Plazo Máximo de Retiro:
+                  </span>
+                  <span class="text-gray-600 block">Plazo de <strong>48 horas hábiles</strong> desde la compra.</span>
+                  <span class="text-[11px] text-amber-700 font-semibold block">Vencido el plazo, el sistema cancela el pedido y restituye los repuestos al inventario disponible.</span>
+                </div>
+              </div>
+            </div>
+          }
+
+          <!-- ======================================================================= -->
           <!-- REAL-TIME GPS MAP: ONLY DISPLAYED WHILE ORDER IS ACTIVE (NOT COMPLETED) -->
           <!-- ======================================================================= -->
           @if (ord.status !== 'ENTREGADO' && ord.status !== 'CANCELADO' && (liveTelemetry() || ord.status === 'EN_RUTA' || ord.deliveryType === 'DELIVERY')) {

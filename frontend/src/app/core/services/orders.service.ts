@@ -131,4 +131,11 @@ export class OrdersService {
       reason: reason || 'Cliente ausente o rechazó entrega',
     });
   }
+
+  cleanupExpiredPickups(): Observable<{ cancelledOrdersCount: number; message: string }> {
+    return this.http.post<{ cancelledOrdersCount: number; message: string }>(
+      `${this.apiConfig.apiUrl}/orders/admin/cleanup-expired-pickups`,
+      {}
+    );
+  }
 }

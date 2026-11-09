@@ -13,6 +13,7 @@ import com.asuncion.erp.repository.CustomerOrderRepository;
 import com.asuncion.erp.repository.PartRepository;
 import com.asuncion.erp.repository.UserRepository;
 import com.asuncion.erp.service.storage.StorageService;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -21,6 +22,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.time.Year;
 import java.util.*;
 
@@ -785,9 +787,10 @@ public class OrderService {
             userRepository.save(driver);
         }
 
+        String actorName = currentUser != null ? currentUser.getFullName() : "Sistema Automático ERP Asunción";
         String cancelComment = (reason != null && !reason.isBlank())
                 ? "Pedido cancelado / no recibido. Motivo: " + reason.trim() + ". Stock de repuestos reincorporado al inventario disponible."
-                : "Pedido cancelado por " + currentUser.getFullName() + ". Stock restituido automáticamente al almacén.";
+                : "Pedido cancelado por " + actorName + ". Stock restituido automáticamente al almacén.";
 
         order.getStatusHistory().add(new OrderStatusHistory(
                 order,
@@ -801,6 +804,40 @@ public class OrderService {
         CustomerOrder saved = orderRepository.save(order);
         catalogService.evictCatalogCache();
         return toOrderResponse(saved);
+    }
+
+
+    /**
+     * Automatización de Logística Inversa para Recojo en Tienda:
+     * Cancela automáticamente pedidos de recojo en tienda que hayan excedido el plazo límite
+     * de 48 horas sin ser retirados, devolviendo los repuestos al stock disponible.
+     */
+    @Scheduled(fixedDelay = 600_000) // Se ejecuta automáticamente cada 10 minutos
+    @Transactional
+    public int autoCancelExpiredPickupOrders() {
+        Instant threshold = Instant.now().minus(48, ChronoUnit.HOURS);
+        List<OrderStatus> activeStatuses = List.of(
+                OrderStatus.CONFIRMADO,
+                OrderStatus.RESERVADO,
+                OrderStatus.PENDIENTE,
+                OrderStatus.LISTO_PARA_DESPACHO
+        );
+
+        List<CustomerOrder> expiredPickups = orderRepository.findByStatusInOrderByCreatedAtDesc(activeStatuses).stream()
+                .filter(o -> "PICKUP".equalsIgnoreCase(o.getDeliveryType()))
+                .filter(o -> o.getCreatedAt() != null && o.getCreatedAt().isBefore(threshold))
+                .toList();
+
+        int cancelledCount = 0;
+        for (CustomerOrder order : expiredPickups) {
+            cancelOrder(
+                    order.getId(),
+                    "Vencimiento automático de plazo límite de 48 horas (2 días hábiles) para recojo en tienda. Stock devuelto al inventario disponible.",
+                    null
+            );
+            cancelledCount++;
+        }
+        return cancelledCount;
     }
 
     @Transactional

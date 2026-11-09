@@ -472,10 +472,52 @@
                 (locationSelected)="onMapLocationSelected($event)"
                 (coverageValidated)="onCoverageValidated($event)"
               />
+
+              <!-- Delivery Schedule & Operating Hours Box -->
+              <div class="rounded-xl border border-blue-200 bg-blue-50/70 p-3.5 space-y-1.5 text-xs">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="font-extrabold text-blue-950">🛵 Horario y Despacho de Delivery:</span>
+                  <span [class]="scheduleInfo().isDeliveryTimeAllowedSameDay ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-amber-100 text-amber-900 border-amber-300'" class="rounded-full border px-2.5 py-0.5 text-[11px] font-bold">
+                    {{ scheduleInfo().deliveryTimeLabel }}
+                  </span>
+                </div>
+                <p class="text-blue-900 leading-relaxed text-[11px]">
+                  {{ scheduleInfo().deliveryEstimatedWindow }}
+                </p>
+                <div class="pt-1 flex items-center gap-2 text-[10px] text-blue-700 font-semibold flex-wrap">
+                  <span>⏰ Horario de reparto: 08:00 a.m. a 08:00 p.m.</span>
+                  <span>•</span>
+                  <span>⚠️ Hora de corte para envíos hoy: 06:30 p.m. (pedidos después de las 6:30 p.m. salen a las 8:30 a.m.)</span>
+                </div>
+              </div>
             } @else {
-              <div class="rounded-xl border border-emerald-200 bg-emerald-50/50 p-4 text-xs text-emerald-900">
-                <strong>Tienda seleccionada para recojo:</strong> {{ selectedBranch()?.name }} —
-                {{ selectedBranch()?.address }}. Prepararemos tus repuestos para entrega inmediata en mostrador.
+              <!-- Pickup in Store Details & 48h Expiration Notice -->
+              <div class="rounded-xl border border-emerald-200 bg-emerald-50/70 p-4 space-y-3 text-xs text-emerald-950">
+                <div class="flex items-center justify-between gap-2 flex-wrap">
+                  <div class="flex items-center gap-2">
+                    <img src="/images/icons/local.png" alt="Tienda Asunción" class="h-6 w-6 object-contain" />
+                    <div>
+                      <strong class="font-extrabold text-sm text-gray-900">Sede Central Santa Anita</strong>
+                      <p class="text-[11px] text-gray-600">{{ selectedBranch()?.address || 'Av. Sta. Ana 441, Santa Anita - Lima (Frente a Tecsup)' }}</p>
+                    </div>
+                  </div>
+                  <span class="rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 px-2.5 py-0.5 text-[11px] font-bold">
+                    {{ scheduleInfo().pickupTimeLabel }}
+                  </span>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] pt-1">
+                  <div class="rounded-xl bg-white p-3 border border-emerald-200 shadow-2xs space-y-0.5">
+                    <span class="block font-bold text-gray-900">⏰ Horario de Atención:</span>
+                    <span class="text-gray-600">Lunes a Sábado: 08:00 a.m. a 08:00 p.m.</span>
+                    <span class="block text-[10px] text-emerald-700 font-medium">Entrega inmediata en mostrador</span>
+                  </div>
+                  <div class="rounded-xl bg-white p-3 border border-emerald-200 shadow-2xs space-y-0.5">
+                    <span class="block font-bold text-gray-900">⏳ Plazo Límite de Retiro (Stock):</span>
+                    <span class="text-gray-600">Hasta <strong>48 horas (2 días)</strong> para recoger.</span>
+                    <span class="block text-[10px] text-amber-700 font-medium">Vencido el plazo, la reserva se cancela automáticamente y el stock regresa a almacén.</span>
+                  </div>
+                </div>
               </div>
             }
 
