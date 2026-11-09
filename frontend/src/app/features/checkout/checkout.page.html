@@ -639,28 +639,8 @@
                   </div>
 
                   <div class="rounded-xl border border-amber-200 bg-amber-50/80 p-3 text-xs text-amber-900 leading-relaxed">
-                    <strong>Importante:</strong> Al dar clic en el botón de abajo o en "Pagar en línea", se abrirá la ventana emergente segura oficial de Culqi donde ingresarás los datos de tu tarjeta. <em>No se creará ningún pedido ni se cobrará nada hasta que completes exitosamente el pago en la pasarela.</em>
+                    <strong>Importante:</strong> Al dar clic en el botón inferior <strong>"Pagar en línea con Culqi"</strong>, se abrirá la ventana emergente oficial y cifrada de Culqi Checkout donde podrás ingresar los datos de tu tarjeta de crédito o débito de cualquier banco. <em>No se creará ningún pedido ni se cobrará nada hasta que completes exitosamente el pago en la pasarela.</em>
                   </div>
-
-                  <button
-                    type="button"
-                    (click)="payWithCulqiCheckoutModal()"
-                    [disabled]="isSubmitting() || isProcessingPayment()"
-                    class="w-full flex items-center justify-center gap-2 rounded-xl bg-orange-600 px-5 py-3.5 text-sm font-bold text-white shadow-md hover:bg-orange-700 transition active:scale-98 disabled:opacity-50 cursor-pointer"
-                  >
-                    @if (isProcessingPayment() || isSubmitting()) {
-                      <svg class="h-4 w-4 animate-spin text-white" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
-                      </svg>
-                      <span>Abriendo pasarela protegida Culqi...</span>
-                    } @else {
-                      <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15A2.25 2.25 0 002.25 6.75v10.5A2.25 2.25 0 004.5 19.5z" />
-                      </svg>
-                      <span>Abrir pasarela emergente Culqi (S/ {{ grandTotal() | number: '1.2-2' }})</span>
-                    }
-                  </button>
                 </div>
               </div>
             }

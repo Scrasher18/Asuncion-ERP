@@ -506,9 +506,16 @@ export class CheckoutPageComponent implements OnInit, OnDestroy {
       this.toast.warning('Datos de contacto requeridos', 'Por favor ingresa el nombre y teléfono de quien recibe.');
       return;
     }
-    if (this.deliveryType() === 'DELIVERY' && !this.deliveryAddress.trim()) {
-      this.toast.warning('Dirección requerida', 'Por favor ingresa la dirección de entrega.');
-      return;
+    if (this.deliveryType() === 'DELIVERY') {
+      if (!this.deliveryAddress.trim()) {
+        this.toast.warning('Dirección requerida', 'Por favor ingresa la dirección de entrega.');
+        return;
+      }
+      const cov = this.coverageState();
+      if (cov && !cov.covered) {
+        this.toast.error('Dirección fuera de cobertura', 'Tu ubicación se encuentra fuera del área de reparto autorizada.');
+        return;
+      }
     }
     if (this.invoiceType() === 'FACTURA' && (!this.customerTaxId.trim() || !this.customerBusinessName.trim())) {
       this.toast.warning('Datos de facturación requeridos', 'Por favor ingresa tu RUC y Razón Social.');
@@ -581,7 +588,11 @@ export class CheckoutPageComponent implements OnInit, OnDestroy {
             this.paymentService.closeCulqiModal();
             this.isProcessingPayment.set(false);
             this.isSubmitting.set(false);
-            this.toast.error('Error al registrar pedido', orderErr?.error?.message || 'No se pudo crear la orden.');
+            const serverMsg = orderErr?.error?.message || orderErr?.error?.detail || 'No se pudo crear la orden.';
+            if (orderErr?.status === 422 || orderErr?.status === 400) {
+              this.geospatialRejectionAlert.set(serverMsg);
+            }
+            this.toast.error('Error al registrar pedido', serverMsg);
           },
         });
       } else if (res.error) {
@@ -670,27 +681,8 @@ export class CheckoutPageComponent implements OnInit, OnDestroy {
     }
 
     if (this.paymentMethod === 'TARJETA_CREDITO') {
-      const cleanNum = this.cardAnalysis().cleanNumber;
-      if (cleanNum.length < 14) {
-        this.toast.error('Tarjeta inválida', 'Ingresa un número de tarjeta válido de 16 dígitos.');
-        return;
-      }
-      if (!this.cardAnalysis().luhnValid) {
-        this.toast.error('Tarjeta no válida', 'El número de tarjeta no supera el algoritmo de verificación bancaria.');
-        return;
-      }
-      if (!this.cardForm.holder.trim()) {
-        this.toast.error('Falta el titular', 'Ingresa el nombre del titular de la tarjeta.');
-        return;
-      }
-      if (this.cardForm.expiry.length !== 5) {
-        this.toast.error('Fecha inválida', 'Ingresa la fecha de vencimiento en formato MM/AA.');
-        return;
-      }
-      if (this.cardForm.cvv.trim().length < 3) {
-        this.toast.error('Código CVV', 'Ingresa el código de seguridad de 3 o 4 dígitos.');
-        return;
-      }
+      void this.payWithCulqiCheckoutModal();
+      return;
     }
 
     this.geospatialRejectionAlert.set('');
