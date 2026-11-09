@@ -124,6 +124,20 @@ interface ChatMessageItem {
                   }
 
 
+                  @if (msg.sender === 'bot' && msg.engineUsed) {
+                    <div class="pt-1 flex items-center justify-between text-[10px] text-gray-400">
+                      @if (msg.engineUsed === 'HYBRID_DB_PLUS_GEMINI') {
+                        <span class="inline-flex items-center gap-1 font-medium text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded">
+                          <span>✨ Google Gemini AI</span>
+                        </span>
+                      } @else {
+                        <span class="inline-flex items-center gap-1 text-gray-400">
+                          <span>Motor Asunción DB</span>
+                        </span>
+                      }
+                      <span>{{ msg.timestamp | date:'shortTime' }}</span>
+                    </div>
+                  }
                 </div>
               </div>
             }
