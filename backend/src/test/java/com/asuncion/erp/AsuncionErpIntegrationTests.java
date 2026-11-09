@@ -442,6 +442,27 @@ class AsuncionErpIntegrationTests {
         String partName = filterJson.get("suggestedParts").get(0).get("name").asText();
         assertThat(partName.toLowerCase()).contains("filtro").contains("aceite");
         assertThat(partName.toLowerCase()).doesNotContain("cabina");
+
+        // Specific Nissan Frontier oil filter query ("¿Qué filtro de aceite le hace a un Nissan Frontier 2.5L?")
+        String frontierFilterMsg = objectMapper.writeValueAsString(Map.of(
+                "message", "¿Qué filtro de aceite le hace a un Nissan Frontier 2.5L?",
+                "sessionId", "test-session-frontier-filter"
+        ));
+
+        MvcResult frontierResult = mockMvc.perform(post("/api/v1/chatbot/message")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(frontierFilterMsg))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.intent").value("VEHICLE_FITMENT_SEARCH"))
+                .andExpect(jsonPath("$.suggestedParts.length()").value(1))
+                .andReturn();
+
+        JsonNode frontierJson = objectMapper.readTree(frontierResult.getResponse().getContentAsString());
+        String frontierReply = frontierJson.get("reply").asText();
+        assertThat(frontierReply).doesNotContain("piezas de tipo");
+        assertThat(frontierReply).doesNotContain("filtro, aceite, hace");
+        String frontierPart = frontierJson.get("suggestedParts").get(0).get("name").asText();
+        assertThat(frontierPart.toLowerCase()).contains("filtro").contains("aceite");
     }
 
     @Test

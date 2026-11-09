@@ -51,7 +51,13 @@ public class ChatbotService {
             "de", "en", "un", "es", "son", "me", "te", "se", "nos", "le", "les",
             "todos", "todas", "todo", "toda", "algo", "algun", "alguno", "alguna",
             "mostrar", "muestrame", "ver", "dame", "dar", "venden", "vende", "ofrecen",
-            "ofrece", "catalogo", "tienda", "almacen"
+            "ofrece", "catalogo", "tienda", "almacen",
+            "hace", "hacen", "hacerle", "sirve", "sirven", "servir", "queda", "quedan", "quedar",
+            "calza", "calzan", "calzar", "da", "dan", "darle", "va", "van", "entra", "entran",
+            "lleva", "llevan", "usa", "usan", "usar", "pone", "ponen", "poner", "ponerle",
+            "colocar", "cambiar", "cambio", "saber", "indica", "indicame", "dime",
+            "recomienda", "recomiendas", "recomiendame", "modelo", "marca", "ano", "anos",
+            "motor", "cilindrada", "litros", "tipo"
     );
 
     private static final List<String> DEFAULT_QUICK_REPLIES = List.of(
@@ -586,7 +592,12 @@ public class ChatbotService {
         boolean isLookingForTransmission = containsAny(normalized, "caja", "transmision", "transmisión", "caja de cambios", "caja cambios", "diferencial", "corona", "mecanica", "automatica");
         boolean isGasolinePassengerVehicle = (detectedModel != null && containsAny(CatalogService.normalizeText(detectedModel.getName()), "probox", "yaris", "corolla", "accent", "rio", "tiida", "sentra", "versa", "picanto", "cerato", "elantra", "caldina"))
                 || (detectedMake != null && !isDieselVehicle);
-        boolean isAskingRecommendation = containsAny(normalized, "recomiendas", "recomiendame", "recomendar", "cual me recomiendas", "cual elijo", "cual compro", "cual es mejor", "la mejor", "el mejor", "solo 1", "solo uno", "dame el mejor", "dame la mejor");
+        boolean isAskingRecommendation = containsAny(normalized,
+                "recomiendas", "recomiendame", "recomendar", "cual me recomiendas", "cual elijo",
+                "cual compro", "cual es mejor", "la mejor", "el mejor", "solo 1", "solo uno",
+                "dame el mejor", "dame la mejor", "le hace", "le queda", "le calza", "le da",
+                "le sirve", "cual le hace", "que le hace", "cual le queda", "que filtro", "que pastilla"
+        );
         boolean isAccessoryQuery = containsAny(normalized, "articulo", "articulos", "accesorio", "accesorios", "cuidado", "limpieza", "estetica", "ambientador", "ambientadores", "franela", "franelas", "silicona", "shampoo");
 
         // 0. If user specifically asks for accessories / car care articles (franelas, ambientadores, ceras, WD-40, silicone, etc.):
@@ -749,32 +760,28 @@ public class ChatbotService {
         // SCENARIO 2: No exact match for the component requested
         if (suggested.isEmpty()) {
             if (hasVehicleContext && !partKeywords.isEmpty()) {
-                String kw = String.join(", ", partKeywords);
-                if (!fitmentFiltered.isEmpty()) {
-                    List<PartResponse> vehicleAvailable = fitmentFiltered.stream()
-                            .sorted(Comparator.comparingInt(this::getVehiclePartPriority)
-                                    .thenComparing(Part::getStockQuantity, Comparator.reverseOrder()))
-                            .limit(4)
-                            .map(catalogService::toPartResponse)
-                            .toList();
-                    StringBuilder altSb = new StringBuilder();
-                    altSb.append(String.format("Por el momento no disponemos de piezas de tipo \"%s\" para %s en almacén.\n\n", kw, vehicleDesc));
-                    altSb.append(String.format("Para %s actualmente contamos con estos repuestos certificados disponibles:\n", vehicleDesc));
-                    for (PartResponse p : vehicleAvailable) {
-                        String oemLabel = (p.oemCode() != null && !p.oemCode().isBlank()) ? p.oemCode() : "S/N";
-                        altSb.append(String.format("• %s (%s | OEM: %s) — S/ %.2f | Stock: %d und.\n",
-                                p.name(), p.manufacturerBrand(), oemLabel, p.salePrice(), p.stockQuantity()));
-                    }
-                    return enrichAndBuild(sessionId, rawMessage, altSb.toString(), "VEHICLE_FITMENT_SEARCH", null, vehicleAvailable);
+                String requestedItemLabel;
+                if (isLookingForOilFilter) {
+                    requestedItemLabel = "filtro de aceite";
+                } else if (isLookingForAirFilter) {
+                    requestedItemLabel = "filtro de aire de motor";
+                } else if (isLookingForCabinFilter) {
+                    requestedItemLabel = "filtro de cabina";
+                } else if (isLookingForFuelFilter) {
+                    requestedItemLabel = "filtro de combustible";
+                } else if (isLookingForLiquidOil) {
+                    requestedItemLabel = "aceite de motor";
                 } else {
-                    String noMatchMsg = String.format("Por el momento no contamos con repuestos de tipo \"%s\" para %s en stock.", kw, vehicleDesc);
-                    return enrichAndBuild(sessionId, rawMessage, noMatchMsg, "VEHICLE_FITMENT_SEARCH", null, List.of());
+                    requestedItemLabel = String.join(" ", partKeywords);
                 }
+
+                String noMatchMsg = String.format("Por el momento no disponemos de %s compatible con %s en almacén. En nuestro catálogo disponemos de sistemas de frenos, suspensión, distribución y lubricación certificada para otras aplicaciones.", requestedItemLabel, vehicleDesc);
+                return enrichAndBuild(sessionId, rawMessage, noMatchMsg, "VEHICLE_FITMENT_SEARCH", null, List.of());
             } else if (hasVehicleContext) {
                 String noMatchMsg = String.format("Por el momento no encontré repuestos con stock exacto para %s con ese criterio específico.", vehicleDesc);
                 return enrichAndBuild(sessionId, rawMessage, noMatchMsg, "VEHICLE_FITMENT_SEARCH", null, List.of());
             } else {
-                String noMatchMsg = "No encontré repuestos que coincidan exactamente con esa descripción. Prueba indicándome la marca, modelo y año de tu vehículo (ej. Toyota Probox o Hilux).";
+                String noMatchMsg = "No encontré repuestos que coincidan exactamente con esa descripción. Prueba indicándome la marca, modelo y año de tu vehículo (ej. Toyota Hilux, Probox o Nissan Frontier).";
                 return enrichAndBuild(sessionId, rawMessage, noMatchMsg, "VEHICLE_FITMENT_SEARCH", null, List.of());
             }
         }

@@ -245,7 +245,8 @@ public class DataSeeder implements CommandLineRunner {
                         compat(hilux, 2012, 2024, "2.4L / 2.8L / 3.0L Diésel", "Rosca 3/4-16 UNF"),
                         compat(hiace, 2014, 2024, "2.8L / 3.0L Diésel", "Mantenimiento cada 10,000 km"),
                         compat(corolla, 2015, 2022, "1.8L 2ZR-FE", "Compatible versión gasolina"),
-                        compat(probox, 2002, 2024, "1.3L 2NZ / 1.5L 1NZ-FE VVT-i", "Rosca M20 / 3/4-16 UNF")
+                        compat(probox, 2002, 2024, "1.3L 2NZ / 1.5L 1NZ-FE VVT-i", "Rosca M20 / 3/4-16 UNF"),
+                        compat(frontier, 2008, 2024, "2.5L YD25DDTi / 2.4L KA24DE", "Rosca 3/4-16 UNF Spin-On")
                 )
         );
 

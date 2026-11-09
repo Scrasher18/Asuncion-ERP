@@ -1105,6 +1105,8 @@ public class CatalogMatrixSeeder implements CommandLineRunner {
             new SpecificFitment("ASU-FIL-001", "Toyota", "Hiace", 2005, 2024, "2.5L / 2.8L / 3.0L", "Filtro aceite Denso First Time Fit"),
             new SpecificFitment("ASU-FIL-001", "Toyota", "Fortuner", 2005, 2024, "2.7L 2TR / 3.0L 1KD / 2.8L 1GD", "Filtro de aceite blindado"),
             new SpecificFitment("ASU-FIL-001", "Toyota", "Probox", 2002, 2024, "1.3L 2NZ / 1.5L 1NZ-FE", "Filtro blindado rosca 3/4-16 UNF"),
+            new SpecificFitment("ASU-FIL-001", "Nissan", "Frontier", 2005, 2024, "2.5L YD25DDTi / 2.4L KA24DE", "Filtro de aceite blindado Denso First Time Fit"),
+            new SpecificFitment("ASU-FIL-001", "Mitsubishi", "L200", 2006, 2024, "2.5L 4D56 / 2.4L 4N15", "Filtro de aceite blindado Denso First Time Fit"),
 
             // ASU-FIL-002: Filtro Aire Motor Bosch
             new SpecificFitment("ASU-FIL-002", "Toyota", "Hilux", 2005, 2015, "2.5L 2KD / 3.0L 1KD D-4D", "Filtro de aire microfibra Bosch"),
