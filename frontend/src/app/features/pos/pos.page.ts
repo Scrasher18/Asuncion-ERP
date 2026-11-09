@@ -520,15 +520,31 @@ const POS_HOLD_TTL_MS = 15 * 60 * 1000;
 
                   @if (paymentMethod === 'MOSTRADOR_EFECTIVO') {
                     <div>
-                      <label class="block text-xs font-bold text-gray-700 mb-1">Efectivo Recibido (S/)</label>
+                      <div class="flex items-center justify-between mb-1">
+                        <label class="block text-xs font-bold text-gray-700">Efectivo Recibido (S/)</label>
+                        @if (ticketTotal() > 0) {
+                          <span class="text-[10px] font-semibold text-gray-500 font-mono">
+                            Mínimo: S/ {{ ticketTotal() | number: '1.2-2' }}
+                          </span>
+                        }
+                      </div>
                       <input
                         type="text"
                         inputmode="decimal"
                         [value]="formattedCashReceived"
                         (input)="onCashReceivedInput($event)"
                         placeholder="0.00"
-                        class="w-full min-h-[40px] rounded-xl border border-gray-200 bg-white px-3 py-2 font-mono text-xs font-bold text-gray-900 focus:border-orange-600 focus:outline-none"
+                        [class]="cashReceived !== null && ticketTotal() > 0 && cashReceived < ticketTotal() ? 'border-red-500 bg-red-50/50 text-red-900 ring-2 ring-red-500/20' : 'border-gray-200 bg-white text-gray-900 focus:border-orange-600'"
+                        class="w-full min-h-[40px] rounded-xl border px-3 py-2 font-mono text-xs font-bold focus:outline-none transition"
                       />
+                      <p class="text-[11px] text-gray-500 mt-1">
+                        El monto ingresado debe ser igual o mayor al total a cobrar.
+                      </p>
+                      @if (cashReceived !== null && ticketTotal() > 0 && cashReceived < ticketTotal()) {
+                        <div class="rounded-lg bg-red-50 border border-red-200 p-2 text-red-800 text-[11px] font-bold flex items-center gap-1.5 mt-1.5">
+                          <span>⚠️ Monto menor al total: Faltan S/ {{ (ticketTotal() - cashReceived) | number: '1.2-2' }}</span>
+                        </div>
+                      }
                     </div>
                   } @else {
                     <div>
@@ -559,18 +575,30 @@ const POS_HOLD_TTL_MS = 15 * 60 * 1000;
                   <span class="font-mono text-orange-600">S/ {{ ticketTotal() | number: '1.2-2' }}</span>
                 </div>
 
-                @if (paymentMethod === 'MOSTRADOR_EFECTIVO' && cashReceived && cashReceived > ticketTotal()) {
-                  <div class="flex justify-between text-xs font-bold text-emerald-700 pt-1">
-                    <span>Vuelto a entregar al cliente:</span>
-                    <span class="font-mono">S/ {{ (cashReceived - ticketTotal()) | number: '1.2-2' }}</span>
-                  </div>
+                @if (paymentMethod === 'MOSTRADOR_EFECTIVO' && cashReceived !== null && ticketTotal() > 0) {
+                  @if (cashReceived > ticketTotal()) {
+                    <div class="flex justify-between text-xs font-bold text-emerald-700 pt-1 border-t border-emerald-100">
+                      <span>Vuelto a entregar al cliente:</span>
+                      <span class="font-mono">S/ {{ (cashReceived - ticketTotal()) | number: '1.2-2' }}</span>
+                    </div>
+                  } @else if (cashReceived === ticketTotal()) {
+                    <div class="flex justify-between text-xs font-bold text-gray-700 pt-1 border-t border-gray-200">
+                      <span>Pago con monto exacto:</span>
+                      <span class="font-mono text-gray-800">S/ 0.00 de vuelto</span>
+                    </div>
+                  } @else {
+                    <div class="flex justify-between text-xs font-bold text-red-600 pt-1 border-t border-red-200">
+                      <span>Monto insuficiente:</span>
+                      <span class="font-mono">Faltan S/ {{ (ticketTotal() - cashReceived) | number: '1.2-2' }}</span>
+                    </div>
+                  }
                 }
               </div>
 
               <!-- Submit Sale CTA -->
               <button
                 type="button"
-                [disabled]="ticketItems().length === 0 || submitting()"
+                [disabled]="ticketItems().length === 0 || submitting() || (paymentMethod === 'MOSTRADOR_EFECTIVO' && ticketTotal() > 0 && (cashReceived === null || cashReceived < ticketTotal()))"
                 (click)="submitCounterSale()"
                 class="w-full min-h-[48px] rounded-xl bg-orange-600 py-3 px-5 text-sm font-extrabold text-white shadow-sm hover:bg-orange-700 active:scale-[0.99] disabled:bg-gray-200 disabled:text-gray-400 transition cursor-pointer"
               >
@@ -1220,6 +1248,16 @@ export class PosPageComponent implements OnInit, OnDestroy {
     if (this.invoiceType === 'FACTURA' && cleanDoc.length !== 11) {
       this.toast.warning('RUC requerido', 'Para emitir Factura Electrónica ingresa un RUC válido de 11 dígitos.');
       return;
+    }
+
+    if (this.paymentMethod === 'MOSTRADOR_EFECTIVO') {
+      if (this.cashReceived === null || this.cashReceived < this.ticketTotal()) {
+        this.toast.error(
+          'Efectivo insuficiente',
+          `El monto ingresado debe ser igual o mayor al total a cobrar (mínimo S/ ${this.ticketTotal().toFixed(2)}).`
+        );
+        return;
+      }
     }
 
     this.submitting.set(true);

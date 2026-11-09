@@ -119,4 +119,16 @@ export class OrdersService {
   updateDriverStatus(driverId: number, status: DriverStatus): Observable<DriverSummary> {
     return this.http.patch<DriverSummary>(`${this.apiConfig.apiUrl}/delivery/drivers/${driverId}/status`, { status });
   }
+
+  cancelOrder(orderId: number, reason?: string): Observable<Order> {
+    return this.http.patch<Order>(`${this.apiConfig.apiUrl}/orders/${orderId}/cancel`, {
+      reason: reason || 'Cancelado por administración / cliente',
+    });
+  }
+
+  failDelivery(orderId: number, reason: string): Observable<Order> {
+    return this.http.post<Order>(`${this.apiConfig.apiUrl}/delivery/orders/${orderId}/fail`, {
+      reason: reason || 'Cliente ausente o rechazó entrega',
+    });
+  }
 }

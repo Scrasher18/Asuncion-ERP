@@ -798,11 +798,11 @@
                   <div class="rounded-xl border border-orange-200 bg-white p-3.5 space-y-3">
                     <div>
                       <label class="block font-bold text-gray-900 text-xs flex items-center justify-between">
-                        <span>¿Con cuánto vas a pagar?</span>
-                        <span class="text-[11px] font-normal text-gray-500 font-mono">(Opcional)</span>
+                        <span>¿Con cuánto vas a pagar en efectivo?</span>
+                        <span class="text-[11px] font-normal text-gray-500 font-mono">(Para calcular tu vuelto)</span>
                       </label>
                       <p class="text-[11px] text-gray-500 mt-0.5">
-                        Si vas a pagar con billetes grandes, ingresa el monto para que el motorizado lleve tu vuelto exacto. Si no deseas especificarlo, no hay problema.
+                        El monto ingresado debe ser igual o mayor al total a cobrar (mínimo S/ {{ grandTotal() | number: '1.2-2' }}) para que el repartidor lleve tu vuelto exacto.
                       </p>
                     </div>
 
@@ -815,7 +815,8 @@
                           [value]="formattedCashAmountToPay"
                           (input)="onCashAmountInput($event)"
                           [placeholder]="grandTotal().toFixed(2)"
-                          class="w-full min-h-[42px] rounded-xl border border-gray-200 pl-8 pr-3 py-2 text-sm font-mono font-bold text-gray-900 placeholder:text-gray-300 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
+                          [class]="cashAmountToPay && cashAmountToPay < grandTotal() ? 'border-red-500 bg-red-50/50 text-red-900 ring-2 ring-red-500/20' : 'border-gray-200 text-gray-900 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20'"
+                          class="w-full min-h-[42px] rounded-xl border pl-8 pr-3 py-2 text-sm font-mono font-bold placeholder:text-gray-300 focus:outline-none transition"
                         />
                       </div>
 
@@ -825,39 +826,33 @@
                         (click)="setExactCashAmount(grandTotal())"
                         class="px-2.5 py-2 rounded-lg border border-gray-200 bg-gray-50 text-[11px] font-bold text-gray-700 hover:border-orange-300 hover:text-orange-700 cursor-pointer"
                       >
-                        Exacto
+                        Exacto (S/ {{ grandTotal() | number: '1.2-2' }})
                       </button>
-                      <button
-                        type="button"
-                        (click)="setExactCashAmount(50)"
-                        class="px-2.5 py-2 rounded-lg border border-gray-200 bg-gray-50 text-[11px] font-bold text-gray-700 hover:border-orange-300 hover:text-orange-700 cursor-pointer"
-                      >
-                        S/ 50
-                      </button>
-                      <button
-                        type="button"
-                        (click)="setExactCashAmount(100)"
-                        class="px-2.5 py-2 rounded-lg border border-gray-200 bg-gray-50 text-[11px] font-bold text-gray-700 hover:border-orange-300 hover:text-orange-700 cursor-pointer"
-                      >
-                        S/ 100
-                      </button>
-                      <button
-                        type="button"
-                        (click)="setExactCashAmount(200)"
-                        class="px-2.5 py-2 rounded-lg border border-gray-200 bg-gray-50 text-[11px] font-bold text-gray-700 hover:border-orange-300 hover:text-orange-700 cursor-pointer"
-                      >
-                        S/ 200
-                      </button>
+                      @for (chip of quickCashOptions(); track chip) {
+                        <button
+                          type="button"
+                          (click)="setExactCashAmount(chip)"
+                          class="px-2.5 py-2 rounded-lg border border-gray-200 bg-gray-50 text-[11px] font-bold text-gray-700 hover:border-orange-300 hover:text-orange-700 cursor-pointer"
+                        >
+                          S/ {{ chip }}
+                        </button>
+                      }
                     </div>
 
                     @if (cashChangeAmount() > 0) {
-                      <div class="rounded-lg bg-emerald-50 border border-emerald-200 p-2 text-emerald-900 text-xs flex items-center justify-between">
+                      <div class="rounded-lg bg-emerald-50 border border-emerald-200 p-2.5 text-emerald-900 text-xs flex items-center justify-between">
                         <span class="font-medium">El repartidor te entregará de vuelto:</span>
                         <strong class="font-mono text-sm font-black text-emerald-700">S/ {{ cashChangeAmount().toFixed(2) }}</strong>
                       </div>
                     } @else if (cashAmountToPay && cashAmountToPay < grandTotal()) {
-                      <div class="rounded-lg bg-amber-50 border border-amber-200 p-2 text-amber-900 text-[11px]">
-                        ⚠️ El monto ingresado (S/ {{ cashAmountToPay.toFixed(2) }}) es menor al total del pedido (S/ {{ grandTotal().toFixed(2) }}).
+                      <div class="rounded-xl bg-red-50 border border-red-300 p-3 text-red-800 text-xs font-semibold flex items-start gap-2 shadow-2xs">
+                        <svg class="h-4 w-4 text-red-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        <div>
+                          <p class="font-bold">Monto menor al total a pagar:</p>
+                          <p class="text-[11px] text-red-700 mt-0.5">El monto ingresado (S/ {{ cashAmountToPay | number: '1.2-2' }}) debe ser igual o mayor al total del pedido (mínimo S/ {{ grandTotal() | number: '1.2-2' }}). Faltan S/ {{ (grandTotal() - cashAmountToPay) | number: '1.2-2' }}.</p>
+                        </div>
                       </div>
                     }
                   </div>

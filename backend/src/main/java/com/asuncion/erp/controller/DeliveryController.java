@@ -114,4 +114,15 @@ public class DeliveryController {
         DriverStatus status = DriverStatus.valueOf(statusStr.toUpperCase().trim());
         return ResponseEntity.ok(orderService.updateDriverStatus(id, status, currentUser));
     }
+
+    @PostMapping("/orders/{id}/fail")
+    @Operation(summary = "Registrar entrega no completada por el motorizado (motivo de rechazo/ausencia y retorno de stock)")
+    public ResponseEntity<OrderResponse> failDelivery(
+            @PathVariable Long id,
+            @RequestBody(required = false) Map<String, String> body
+    ) {
+        AppUser currentUser = authService.getCurrentUser();
+        String reason = body != null ? body.get("reason") : "Cliente ausente o rechazó entrega";
+        return ResponseEntity.ok(orderService.cancelOrder(id, reason, currentUser));
+    }
 }

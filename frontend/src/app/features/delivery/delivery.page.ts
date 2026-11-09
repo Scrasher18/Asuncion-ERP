@@ -301,16 +301,30 @@ import { LiveDriverMapComponent } from '../../shared/components/live-driver-map/
                       <span>Iniciar ruta de entrega</span>
                     </button>
                   } @else if (ord.status === 'EN_RUTA') {
-                    <button
-                      type="button"
-                      (click)="openCompletionModal(ord)"
-                      class="min-h-[48px] inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 px-4 text-xs font-bold text-white shadow-xs hover:bg-emerald-700 transition cursor-pointer"
-                    >
-                      <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      <span>Confirmar entrega</span>
-                    </button>
+                    <div class="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        (click)="openCompletionModal(ord)"
+                        class="min-h-[48px] flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 px-4 text-xs font-bold text-white shadow-xs hover:bg-emerald-700 transition cursor-pointer"
+                      >
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span>Confirmar entrega</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        (click)="openIncidentModal(ord)"
+                        class="min-h-[48px] inline-flex items-center justify-center gap-1.5 rounded-xl border border-rose-300 bg-rose-50 px-3.5 py-3 text-xs font-bold text-rose-700 hover:bg-rose-100 transition cursor-pointer"
+                        title="Reportar que el cliente no recibió el pedido para reincorporar el stock"
+                      >
+                        <svg class="h-4 w-4 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                        </svg>
+                        <span>No recibido</span>
+                      </button>
+                    </div>
                   }
                 </div>
               </div>
@@ -521,6 +535,78 @@ import { LiveDriverMapComponent } from '../../shared/components/live-driver-map/
         </div>
       }
 
+      <!-- MODAL DE INCIDENCIA / ENTREGA NO REALIZADA -->
+      @if (incidentOrder(); as incTarget) {
+        <div class="fixed inset-0 z-[9999] overflow-y-auto bg-gray-900/60 backdrop-blur-xs p-4 flex items-center justify-center" style="isolation: isolate;">
+          <div class="w-full max-w-md rounded-2xl border border-rose-200 bg-white shadow-2xl overflow-hidden">
+            <div class="border-b border-rose-100 bg-rose-50/70 px-5 py-4 flex items-center justify-between">
+              <div>
+                <span class="font-mono text-[11px] font-bold text-rose-700">
+                  INCIDENCIA · {{ incTarget.orderNumber }}
+                </span>
+                <h3 class="text-sm font-extrabold text-gray-900">
+                  Reportar Entrega No Realizada
+                </h3>
+              </div>
+              <button
+                type="button"
+                (click)="closeIncidentModal()"
+                class="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div class="p-5 space-y-4 text-xs">
+              <div class="rounded-xl border border-amber-200 bg-amber-50 p-3 text-amber-900 leading-relaxed">
+                <strong>Reincorporación de Stock:</strong> Al registrar que el cliente no recibió o rechazó el pedido, los repuestos se restituirán de forma automática al stock disponible en el inventario del almacén central.
+              </div>
+
+              <div>
+                <label class="block font-bold text-gray-700 mb-1">Motivo principal:</label>
+                <select
+                  [(ngModel)]="incidentReason"
+                  class="w-full min-h-[42px] rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-900 focus:border-rose-600 focus:outline-none"
+                >
+                  <option value="Cliente rechazó el pedido en puerta">Cliente rechazó el pedido en puerta</option>
+                  <option value="Cliente ausente (no atiende llamadas ni timbre)">Cliente ausente (no atiende llamadas ni timbre)</option>
+                  <option value="Cliente no contaba con el dinero en efectivo acordado">Cliente no contaba con el dinero en efectivo acordado</option>
+                  <option value="Dirección errónea o zona de alto riesgo inaccesible">Dirección errónea o zona inaccesible</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="block font-bold text-gray-700 mb-1">Detalle u observaciones del motorizado:</label>
+                <textarea
+                  [(ngModel)]="incidentNotes"
+                  rows="2"
+                  placeholder="Detalla qué ocurrió al llegar a la dirección..."
+                  class="w-full rounded-xl border border-gray-200 p-2.5 text-xs text-gray-900 focus:border-rose-600 focus:outline-none"
+                ></textarea>
+              </div>
+
+              <div class="grid grid-cols-2 gap-2.5 pt-2">
+                <button
+                  type="button"
+                  (click)="closeIncidentModal()"
+                  class="min-h-[44px] rounded-xl border border-gray-200 bg-white py-2.5 font-semibold text-gray-700 hover:bg-gray-50 transition cursor-pointer"
+                >
+                  Regresar
+                </button>
+                <button
+                  type="button"
+                  [disabled]="submittingIncident()"
+                  (click)="confirmDeliveryIncident()"
+                  class="min-h-[44px] rounded-xl bg-rose-600 py-2.5 font-bold text-white shadow-xs hover:bg-rose-700 disabled:opacity-50 transition cursor-pointer"
+                >
+                  {{ submittingIncident() ? 'Restituyendo stock...' : 'Confirmar no entrega' }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+
       <!-- MODAL DE COBRO CON QR (YAPE / PLIN) EN RUTA -->
       @if (qrCobroOrder(); as qrOrd) {
         <div class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 p-4 backdrop-blur-xs animate-fadeIn" style="isolation: isolate;">
@@ -660,6 +746,11 @@ export class DeliveryPageComponent implements OnInit, OnDestroy {
 
   readonly myDriverStatus = signal<DriverStatus>('DISPONIBLE');
   readonly isUpdatingStatus = signal<boolean>(false);
+
+  readonly incidentOrder = signal<Order | null>(null);
+  incidentReason = 'Cliente rechazó el pedido en puerta';
+  incidentNotes = '';
+  readonly submittingIncident = signal<boolean>(false);
 
   readonly completingOrder = signal<Order | null>(null);
   readonly submittingProof = signal<boolean>(false);
@@ -867,6 +958,39 @@ export class DeliveryPageComponent implements OnInit, OnDestroy {
 
   closeQrCobroModal(): void {
     this.qrCobroOrder.set(null);
+  }
+
+  openIncidentModal(order: Order): void {
+    this.incidentOrder.set(order);
+    this.incidentReason = 'Cliente rechazó el pedido en puerta';
+    this.incidentNotes = '';
+  }
+
+  closeIncidentModal(): void {
+    this.incidentOrder.set(null);
+  }
+
+  confirmDeliveryIncident(): void {
+    const ord = this.incidentOrder();
+    if (!ord) return;
+
+    this.submittingIncident.set(true);
+    const fullReason = `${this.incidentReason}${this.incidentNotes ? ' - ' + this.incidentNotes.trim() : ''}`;
+    this.ordersService.failDelivery(ord.id, fullReason).subscribe({
+      next: () => {
+        this.submittingIncident.set(false);
+        this.closeIncidentModal();
+        this.toast.success(
+          'Incidencia registrada y stock reincorporado',
+          `El pedido #${ord.orderNumber} fue cancelado y las unidades regresaron al inventario disponible.`
+        );
+        this.loadDeliveryOrders();
+      },
+      error: (err: any) => {
+        this.submittingIncident.set(false);
+        this.toast.error('Error al registrar incidencia', err?.error?.message || 'No se pudo procesar la incidencia.');
+      },
+    });
   }
 
   openCompletionModal(order: Order): void {

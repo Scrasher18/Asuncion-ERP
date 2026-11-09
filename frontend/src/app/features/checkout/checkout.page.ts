@@ -114,6 +114,18 @@ export class CheckoutPageComponent implements OnInit, OnDestroy {
   cashAmountToPay: number | null = null;
   formattedCashAmountToPay = '';
 
+  quickCashOptions(): number[] {
+    const total = this.grandTotal();
+    const denominations = [50, 100, 200, 300, 500, 1000, 2000];
+    const opts: number[] = [];
+    for (const d of denominations) {
+      if (d > total && opts.length < 3) {
+        opts.push(d);
+      }
+    }
+    return opts;
+  }
+
   setExactCashAmount(val: number): void {
     this.cashAmountToPay = val;
     this.formattedCashAmountToPay = new Intl.NumberFormat('en-US', {
@@ -489,6 +501,12 @@ export class CheckoutPageComponent implements OnInit, OnDestroy {
       }
     }
 
+    if (this.paymentMethod === 'CONTRA_ENTREGA' && this.cashPaymentSubtype === 'EFECTIVO') {
+      if (this.cashAmountToPay !== null && this.cashAmountToPay > 0 && this.cashAmountToPay < this.grandTotal()) {
+        return false;
+      }
+    }
+
     return true;
   }
 
@@ -683,6 +701,16 @@ export class CheckoutPageComponent implements OnInit, OnDestroy {
     if (this.paymentMethod === 'TARJETA_CREDITO') {
       void this.payWithCulqiCheckoutModal();
       return;
+    }
+
+    if (this.paymentMethod === 'CONTRA_ENTREGA' && this.cashPaymentSubtype === 'EFECTIVO') {
+      if (this.cashAmountToPay !== null && this.cashAmountToPay > 0 && this.cashAmountToPay < this.grandTotal()) {
+        this.toast.error(
+          'Monto insuficiente',
+          `El monto para pagar en efectivo debe ser igual o mayor al total del pedido (mínimo S/ ${this.grandTotal().toFixed(2)}).`
+        );
+        return;
+      }
     }
 
     this.geospatialRejectionAlert.set('');

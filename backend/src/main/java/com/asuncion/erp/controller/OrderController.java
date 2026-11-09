@@ -14,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/orders")
@@ -55,5 +56,16 @@ public class OrderController {
             @RequestParam(required = false) OrderStatus status
     ) {
         return ResponseEntity.ok(orderService.getAllOrders(status));
+    }
+
+    @PatchMapping("/{id}/cancel")
+    @Operation(summary = "Cancelar pedido o registrar entrega fallida (restituyendo stock físico automáticamente)")
+    public ResponseEntity<OrderResponse> cancelOrder(
+            @PathVariable Long id,
+            @RequestBody(required = false) Map<String, String> body
+    ) {
+        AppUser currentUser = authService.getCurrentUser();
+        String reason = body != null ? body.get("reason") : null;
+        return ResponseEntity.ok(orderService.cancelOrder(id, reason, currentUser));
     }
 }

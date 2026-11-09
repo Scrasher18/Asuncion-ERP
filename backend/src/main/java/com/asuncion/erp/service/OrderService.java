@@ -755,6 +755,54 @@ public class OrderService {
         return response;
     }
 
+
+    @Transactional
+    public OrderResponse cancelOrder(Long orderId, String reason, AppUser currentUser) {
+        CustomerOrder order = findOrderOrThrow(orderId);
+        if (order.getStatus() == OrderStatus.ENTREGADO) {
+            throw new BadRequestException("No se puede cancelar un pedido que ya figura como ENTREGADO.");
+        }
+        if (order.getStatus() == OrderStatus.CANCELADO) {
+            throw new BadRequestException("El pedido ya se encuentra CANCELADO.");
+        }
+
+        // Restituir stock físico en almacén para cada repuesto del pedido
+        for (OrderItem item : order.getItems()) {
+            Part part = item.getPart();
+            int newStock = part.getStockQuantity() + item.getQuantity();
+            part.setStockQuantity(newStock);
+            partRepository.save(part);
+            stockReservationService.reconcileHoldsForPart(part.getId(), newStock);
+        }
+
+        OrderStatus prev = order.getStatus();
+        order.setStatus(OrderStatus.CANCELADO);
+
+        // Si tenía un motorizado asignado y estaba en ruta, liberar al motorizado
+        if (order.getAssignedDriver() != null) {
+            AppUser driver = order.getAssignedDriver();
+            driver.setDriverStatus(DriverStatus.DISPONIBLE);
+            userRepository.save(driver);
+        }
+
+        String cancelComment = (reason != null && !reason.isBlank())
+                ? "Pedido cancelado / no recibido. Motivo: " + reason.trim() + ". Stock de repuestos reincorporado al inventario disponible."
+                : "Pedido cancelado por " + currentUser.getFullName() + ". Stock restituido automáticamente al almacén.";
+
+        order.getStatusHistory().add(new OrderStatusHistory(
+                order,
+                prev,
+                OrderStatus.CANCELADO,
+                currentUser,
+                cancelComment,
+                Instant.now()
+        ));
+
+        CustomerOrder saved = orderRepository.save(order);
+        catalogService.evictCatalogCache();
+        return toOrderResponse(saved);
+    }
+
     @Transactional
     public DriverSummaryDto updateDriverStatus(Long driverId, DriverStatus newStatus, AppUser currentUser) {
         AppUser driver = userRepository.findById(driverId)

@@ -18,27 +18,8 @@ import { LiveTrackingResponse } from '../../../core/models/telemetry.models';
   imports: [CommonModule],
   template: `
     <div class="relative w-full rounded-2xl overflow-hidden border border-gray-200 bg-white shadow-2xs z-0" style="isolation: isolate;">
-      <!-- Top Live Status Badge -->
-      @if (telemetry?.isLive || telemetry?.orderStatus === 'EN_RUTA') {
-        <div class="absolute top-3 left-3 z-20 pointer-events-none">
-          <div class="inline-flex items-center gap-2 rounded-xl border border-gray-200/80 bg-white/95 px-3 py-1.5 shadow-md backdrop-blur-xs pointer-events-auto">
-            <span class="relative flex h-2.5 w-2.5">
-              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
-            </span>
-            <span class="text-xs font-bold text-gray-900">
-              Repartidor en camino
-            </span>
-            @if (telemetry?.speedKmh && telemetry!.speedKmh > 3) {
-              <span class="font-mono text-[11px] font-semibold text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded border border-orange-200">
-                {{ telemetry?.speedKmh | number: '1.0-0' }} km/h
-              </span>
-            }
-          </div>
-        </div>
-      }
 
-      <!-- Map Container -->
+<!-- Map Container -->
       <div #mapContainer class="h-80 sm:h-96 w-full z-0 bg-[#F8F9FA]"></div>
 
       <!-- Bottom Floating Route Bar -->
