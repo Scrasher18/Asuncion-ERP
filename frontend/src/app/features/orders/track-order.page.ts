@@ -337,6 +337,43 @@ const ORDER_STAGES = [
                 </span>
               </div>
 
+              <!-- Payment status card inside Store Pickup -->
+              <div
+                class="rounded-xl p-3.5 border shadow-2xs"
+                [class]="isPaidOnline(ord) ? 'bg-emerald-100/70 border-emerald-300 text-emerald-950' : 'bg-amber-100/70 border-amber-300 text-amber-950'"
+              >
+                <div class="flex items-center justify-between gap-3 flex-wrap">
+                  <div class="space-y-0.5">
+                    <span
+                      class="text-[10px] uppercase font-black tracking-wider block"
+                      [class]="isPaidOnline(ord) ? 'text-emerald-700' : 'text-amber-800'"
+                    >
+                      Estado de Pago del Pedido
+                    </span>
+                    <p class="font-extrabold text-sm flex items-center gap-1.5">
+                      @if (isPaidOnline(ord)) {
+                        <span>✓ PAGADO (Tarjeta en Línea)</span>
+                      } @else {
+                        <span>⏳ FALTA COBRAR EN TIENDA</span>
+                      }
+                    </p>
+                    <p class="text-xs" [class]="isPaidOnline(ord) ? 'text-emerald-800' : 'text-amber-900'">
+                      @if (isPaidOnline(ord)) {
+                        Pago completado vía pasarela bancaria. Tus repuestos están separados y listos para retirar mostrando tu DNI.
+                      } @else {
+                        Por favor cancela <strong>S/ {{ (ord.totalAmount ?? ord.total) | number: '1.2-2' }}</strong> en mostrador con <strong>{{ formatPaymentMethodLabel(ord.paymentMethod) }}</strong> al momento de retirar.
+                      }
+                    </p>
+                  </div>
+                  <div
+                    class="font-mono text-base font-black px-3 py-1 rounded-lg bg-white border"
+                    [class]="isPaidOnline(ord) ? 'text-emerald-700 border-emerald-300' : 'text-amber-800 border-amber-300'"
+                  >
+                    S/ {{ (ord.totalAmount ?? ord.total) | number: '1.2-2' }}
+                  </div>
+                </div>
+              </div>
+
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs pt-1">
                 <div class="rounded-xl bg-white p-3 border border-emerald-200 shadow-2xs space-y-1">
                   <span class="block font-bold text-gray-900 flex items-center gap-1">
@@ -358,9 +395,9 @@ const ORDER_STAGES = [
           }
 
           <!-- ======================================================================= -->
-          <!-- REAL-TIME GPS MAP: ONLY DISPLAYED WHILE ORDER IS ACTIVE (NOT COMPLETED) -->
+          <!-- REAL-TIME GPS MAP: ONLY DISPLAYED WHILE ORDER IS ACTIVE FOR DELIVERY    -->
           <!-- ======================================================================= -->
-          @if (ord.status !== 'ENTREGADO' && ord.status !== 'CANCELADO' && (liveTelemetry() || ord.status === 'EN_RUTA' || ord.deliveryType === 'DELIVERY')) {
+          @if (ord.deliveryType === 'DELIVERY' && ord.status !== 'ENTREGADO' && ord.status !== 'CANCELADO') {
             <div class="rounded-2xl border border-gray-200 bg-white p-5 sm:p-6 shadow-xs space-y-4 animate-fadeIn">
               <div class="flex flex-wrap items-center justify-between gap-2">
                 <div class="flex items-center gap-2.5">
@@ -448,9 +485,15 @@ const ORDER_STAGES = [
                     </div>
 
                     <div class="rounded-xl border border-gray-200 bg-white p-3.5">
-                      <span class="block text-[10px] font-bold uppercase tracking-wider text-gray-400">Unidad de reparto</span>
-                      <span class="mt-1 block font-bold text-gray-900 text-sm">{{ ord.assignedDriverName || proof.driverName || 'Despacho Oficial Asunción' }}</span>
-                      <span class="mt-0.5 block text-[11px] text-emerald-700 font-medium">✓ Verificación presencial completada</span>
+                      <span class="block text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                        {{ ord.deliveryType === 'PICKUP' ? 'Modalidad de Entrega' : 'Unidad de reparto' }}
+                      </span>
+                      <span class="mt-1 block font-bold text-gray-900 text-sm">
+                        {{ ord.deliveryType === 'PICKUP' ? (ord.branchName || 'Recojo en Mostrador - Sede Santa Anita') : (ord.assignedDriverName || proof.driverName || 'Despacho Oficial Asunción') }}
+                      </span>
+                      <span class="mt-0.5 block text-[11px] text-emerald-700 font-medium">
+                        {{ ord.deliveryType === 'PICKUP' ? '✓ Retiro en tienda completado' : '✓ Verificación presencial completada' }}
+                      </span>
                     </div>
 
                     @if (proof.deliveryNotes || proof.notes) {
@@ -574,6 +617,7 @@ const ORDER_STAGES = [
 
       <!-- Full-Screen Driver Rating Pop-up Modal -->
         @if (showRatingModal() && !auth.hasAnyRole(['ADMIN', 'VENDEDOR', 'MOTORIZADO']) && order(); as ord) {
+          @if (ord.deliveryType === 'DELIVERY') {
           <div class="fixed inset-0 z-[9999] overflow-y-auto flex items-center justify-center p-4 bg-gray-950/80 backdrop-blur-md animate-fadeIn">
             <!-- Click backdrop to dismiss -->
             <div class="absolute inset-0" (click)="dismissRatingModal()"></div>
@@ -671,6 +715,7 @@ const ORDER_STAGES = [
               </div>
             </div>
           </div>
+          }
         }
     </div>
   `,
@@ -686,10 +731,27 @@ export class TrackOrderPageComponent implements OnInit, OnDestroy {
   readonly showRatingModal = signal(false);
   private dismissedModalOrders = new Set<string>();
 
+  isPaidOnline(ord: Order): boolean {
+    if (ord.status === 'ENTREGADO') return true;
+    const pm = (ord.paymentMethod || '').toUpperCase();
+    return pm.includes('TARJETA') || pm.includes('CULQI') || pm.includes('CARD') || pm === 'PAGO_ONLINE';
+  }
+
+  formatPaymentMethodLabel(method?: string): string {
+    if (!method) return 'Efectivo';
+    const m = method.toUpperCase();
+    if (m.includes('YAPE')) return 'Yape';
+    if (m.includes('PLIN')) return 'Plin';
+    if (m.includes('EFECTIVO')) return 'Efectivo';
+    if (m.includes('TARJETA') || m.includes('CULQI')) return 'Tarjeta Culqi';
+    if (m.includes('CONTRA_ENTREGA')) return 'Pago al recibir';
+    return method.replace(/^MOSTRADOR_/, '').replace(/_/g, ' ');
+  }
+
   openRatingModal(): void {
     if (this.auth.hasAnyRole(['ADMIN', 'VENDEDOR', 'MOTORIZADO'])) return;
     const ord = this.order();
-    if (!ord) return;
+    if (!ord || ord.deliveryType !== 'DELIVERY') return;
     const existing = this.driverRatingService.getRatingByOrder(ord.orderNumber);
     if (existing) {
       this.selectedStars.set(existing.stars);

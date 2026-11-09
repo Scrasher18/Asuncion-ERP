@@ -66,11 +66,57 @@ export class CartService {
   });
 
   constructor() {
-    // Automatically switch cart storage when user logs in, logs out, or switches account
+    // Automatically switch and seamlessly migrate cart storage when user logs in, logs out, or registers
     effect(() => {
       const user = this.authService.currentUser();
-      const storageKey = user && user.id ? `asuncion_cart_user_${user.id}_v2` : GUEST_CART_KEY;
-      const loaded = this.loadCartFromKey(storageKey);
+      let loaded: CartItem[] = [];
+
+      if (user && user.id) {
+        const userKey = `asuncion_cart_user_${user.id}_v2`;
+        const userSaved = this.loadCartFromKey(userKey);
+        const guestSaved = this.loadCartFromKey(GUEST_CART_KEY);
+        const memoryCurrent = this.items();
+
+        // Items from unauthenticated / guest session to preserve
+        const unauthedItems = guestSaved.length > 0 ? guestSaved : memoryCurrent;
+
+        if (unauthedItems.length > 0) {
+          const map = new Map<number, CartItem>();
+          for (const it of userSaved) {
+            map.set(it.part.id, { ...it });
+          }
+          for (const it of unauthedItems) {
+            if (map.has(it.part.id)) {
+              const existing = map.get(it.part.id)!;
+              existing.quantity = Math.min(
+                existing.part.stockQuantity,
+                existing.quantity + it.quantity
+              );
+            } else {
+              map.set(it.part.id, { ...it });
+            }
+          }
+          loaded = Array.from(map.values());
+          if (typeof window !== 'undefined') {
+            localStorage.setItem(userKey, JSON.stringify(loaded));
+            localStorage.removeItem(GUEST_CART_KEY);
+          }
+        } else {
+          loaded = userSaved;
+        }
+      } else {
+        // Guest user without active session
+        const guestSaved = this.loadCartFromKey(GUEST_CART_KEY);
+        if (guestSaved.length === 0 && this.items().length > 0) {
+          loaded = this.items();
+          if (typeof window !== 'undefined') {
+            localStorage.setItem(GUEST_CART_KEY, JSON.stringify(loaded));
+          }
+        } else {
+          loaded = guestSaved;
+        }
+      }
+
       this.items.set(loaded);
       if (loaded.length > 0) {
         this.publishOnlineHolds(loaded);
@@ -768,7 +814,12 @@ export class CartService {
   private persist(): void {
     if (typeof window !== 'undefined') {
       const key = this.getStorageKey();
-      localStorage.setItem(key, JSON.stringify(this.items()));
+      const serialized = JSON.stringify(this.items());
+      localStorage.setItem(key, serialized);
+      // Keep GUEST_CART_KEY synchronized as fallback safeguard so guest items are never lost
+      if (key !== GUEST_CART_KEY && this.items().length > 0) {
+        localStorage.setItem(GUEST_CART_KEY, serialized);
+      }
       this.publishOnlineHolds(this.items());
     }
   }

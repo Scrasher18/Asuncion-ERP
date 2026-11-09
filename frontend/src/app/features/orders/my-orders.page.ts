@@ -214,8 +214,33 @@ import { SoundService } from '../../core/services/sound.service';
                           {{ ord.invoiceType === 'FACTURA' ? 'Factura Electrónica' : 'Boleta de Venta' }}
                         </span>
                         <span class="rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-0.5 text-[11px] font-medium text-gray-600">
-                          {{ ord.deliveryType === 'PICKUP' ? 'Recojo en sede' : 'Despacho a domicilio' }}
+                          {{ ord.deliveryType === 'PICKUP' ? '🏬 Recojo en sede' : '🛵 Despacho a domicilio' }}
                         </span>
+
+                        <!-- Payment & Collection Status Badge -->
+                        @if (ord.deliveryType === 'PICKUP') {
+                          @if (isPaidOnline(ord)) {
+                            <span class="inline-flex items-center gap-1 rounded-full border border-emerald-300 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-extrabold text-emerald-800 shadow-2xs">
+                              <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+                              ✓ PAGADO (Tarjeta en línea)
+                            </span>
+                          } @else {
+                            <span class="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-2.5 py-0.5 text-[11px] font-extrabold text-amber-800 shadow-2xs">
+                              <span class="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                              ⏳ FALTA COBRAR EN TIENDA ({{ formatPaymentMethodLabel(ord.paymentMethod) }})
+                            </span>
+                          }
+                        } @else {
+                          @if (isPaidOnline(ord)) {
+                            <span class="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-emerald-700">
+                              ✓ Pagado
+                            </span>
+                          } @else {
+                            <span class="inline-flex items-center gap-1 rounded-full border border-orange-200 bg-orange-50 px-2 py-0.5 text-[11px] font-bold text-orange-700">
+                              ⏳ Cobro contra entrega ({{ formatPaymentMethodLabel(ord.paymentMethod) }})
+                            </span>
+                          }
+                        }
                       </div>
 
                       <!-- Metadata line -->
@@ -252,7 +277,7 @@ import { SoundService } from '../../core/services/sound.service';
                         </div>
                       }
 
-                      <!-- Delivery Security PIN Pill -->
+                      <!-- Delivery Security PIN Pill (Only for Home Delivery) -->
                       @if (ord.deliveryType === 'DELIVERY' && ord.status !== 'CANCELADO') {
                         <div class="mt-2.5 inline-flex flex-wrap items-center gap-2 rounded-xl border border-orange-200 bg-orange-50/80 px-3 py-1.5 text-xs text-orange-900">
                           <span class="font-bold flex items-center gap-1 text-orange-800">
@@ -269,6 +294,33 @@ import { SoundService } from '../../core/services/sound.service';
                           </span>
                         </div>
                       }
+
+                      <!-- Store Pickup Information Pill (Zero driver mentions) -->
+                      @if (ord.deliveryType === 'PICKUP' && ord.status !== 'CANCELADO') {
+                        <div class="mt-2.5 inline-flex flex-wrap items-center gap-2 rounded-xl border border-blue-200 bg-blue-50/80 px-3 py-1.5 text-xs text-blue-900">
+                          <span class="font-bold flex items-center gap-1 text-blue-800">
+                            <svg class="h-3.5 w-3.5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 21v-7.5a.75.75 0 01.75-.75h3a.75.75 0 01.75.75V21m-4.5 0H2.25A2.25 2.25 0 010 18.75V10.5m18 10.5h2.25A2.25 2.25 0 0022.5 18.75V10.5M6.75 21v-7.5a.75.75 0 01.75-.75h3a.75.75 0 01.75.75V21" />
+                            </svg>
+                            Recojo en Mostrador:
+                          </span>
+                          <span class="font-semibold text-blue-950">
+                            {{ ord.branchName || 'Sede Santa Anita' }} · Av. Santa Ana 441
+                          </span>
+                          <span class="text-[11px] text-blue-700">
+                            (Horario: Lun a Sáb 8:00 AM - 8:00 PM)
+                          </span>
+                          @if (!isPaidOnline(ord) && ord.status !== 'ENTREGADO') {
+                            <span class="font-bold text-amber-800 bg-amber-100/90 px-2 py-0.5 rounded text-[11px] border border-amber-300">
+                              Monto por abonar en caja: S/ {{ (ord.totalAmount ?? ord.total ?? ord.subtotal) | number: '1.2-2' }}
+                            </span>
+                          } @else if (isPaidOnline(ord)) {
+                            <span class="font-bold text-emerald-800 bg-emerald-100/90 px-2 py-0.5 rounded text-[11px] border border-emerald-300">
+                              ✓ Pagado en línea — Acércate con tu DNI para retirar
+                            </span>
+                          }
+                        </div>
+                      }
                     </div>
 
                     <!-- Right Price & Actions -->
@@ -281,7 +333,7 @@ import { SoundService } from '../../core/services/sound.service';
                       </div>
 
                       <div class="flex flex-wrap items-center gap-2">
-                        @if (ord.status === 'ENTREGADO' && !auth.hasAnyRole(['ADMIN', 'VENDEDOR', 'MOTORIZADO'])) {
+                        @if (ord.status === 'ENTREGADO' && ord.deliveryType === 'DELIVERY' && !auth.hasAnyRole(['ADMIN', 'VENDEDOR', 'MOTORIZADO'])) {
                           @if (driverRatingService.getRatingByOrder(ord.orderNumber); as myRating) {
                             <button
                               type="button"
@@ -326,11 +378,13 @@ import { SoundService } from '../../core/services/sound.service';
                           "
                           class="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl border px-4 py-2 text-xs font-bold transition"
                         >
-                          @if (ord.status === 'ENTREGADO' && !auth.hasAnyRole(['ADMIN', 'VENDEDOR', 'MOTORIZADO'])) {
+                          @if (ord.status === 'ENTREGADO' && ord.deliveryType === 'DELIVERY' && !auth.hasAnyRole(['ADMIN', 'VENDEDOR', 'MOTORIZADO'])) {
                             <svg class="h-4 w-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
                               <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                             <span>Ver constancia</span>
+                          } @else if (ord.deliveryType === 'PICKUP') {
+                            <span>Detalle de recojo</span>
                           } @else {
                             <span>Rastrear pedido</span>
                             <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -853,6 +907,23 @@ export class MyOrdersPageComponent implements OnInit, OnDestroy {
           this.toast.error('Error al actualizar', msg);
         },
       });
+  }
+
+  isPaidOnline(ord: Order): boolean {
+    if (ord.status === 'ENTREGADO') return true;
+    const pm = (ord.paymentMethod || '').toUpperCase();
+    return pm.includes('TARJETA') || pm.includes('CULQI') || pm.includes('CARD') || pm === 'PAGO_ONLINE';
+  }
+
+  formatPaymentMethodLabel(method?: string): string {
+    if (!method) return 'Efectivo';
+    const m = method.toUpperCase();
+    if (m.includes('YAPE')) return 'Yape';
+    if (m.includes('PLIN')) return 'Plin';
+    if (m.includes('EFECTIVO')) return 'Efectivo';
+    if (m.includes('TARJETA') || m.includes('CULQI')) return 'Tarjeta Culqi';
+    if (m.includes('CONTRA_ENTREGA')) return 'Pago al recibir';
+    return method.replace(/^MOSTRADOR_/, '').replace(/_/g, ' ');
   }
 
   formatStatus(status: string): string {

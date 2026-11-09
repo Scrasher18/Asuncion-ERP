@@ -1675,6 +1675,17 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                         >
                           {{ formatOrderStatus(ord.status) }}
                         </span>
+                        @if (ord.deliveryType === 'PICKUP') {
+                          @if (isPaidOnline(ord)) {
+                            <span class="block mt-1 text-[10px] font-black text-emerald-800 bg-emerald-50 border border-emerald-300 px-2 py-0.5 rounded-md w-fit">
+                              ✓ PAGADO
+                            </span>
+                          } @else {
+                            <span class="block mt-1 text-[10px] font-black text-amber-800 bg-amber-50 border border-amber-300 px-2 py-0.5 rounded-md w-fit">
+                              ⏳ FALTA COBRAR
+                            </span>
+                          }
+                        }
                       </td>
                       <td class="px-4 py-3.5">
                         @if (ord.deliveryType === 'DELIVERY') {
@@ -5539,6 +5550,12 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
     if (type === 'PICKUP') return 'Recojo en tienda';
     if (type === 'DELIVERY') return 'Envío a domicilio';
     return type || 'Envío estándar';
+  }
+
+  isPaidOnline(ord: Order): boolean {
+    if (ord.status === 'ENTREGADO') return true;
+    const pm = (ord.paymentMethod || '').toUpperCase();
+    return pm.includes('TARJETA') || pm.includes('CULQI') || pm.includes('CARD') || pm === 'PAGO_ONLINE';
   }
 
   formatOrderStatus(status?: string): string {
