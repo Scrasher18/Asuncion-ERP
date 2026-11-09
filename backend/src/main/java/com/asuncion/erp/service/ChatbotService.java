@@ -64,7 +64,7 @@ public class ChatbotService {
             "¿Tienen pastillas de freno para Toyota Hilux 2020?",
             "¿Tienen filtros de aire para Nissan Frontier?",
             "¿Cuál es su radio de cobertura y costo de delivery?",
-            "¿Emiten factura electrónica con RUC para empresas?"
+            "¿Qué comprobante de venta emiten?"
     );
 
     // Dictionary of external makes not in Asunción's core catalog
@@ -254,8 +254,8 @@ public class ChatbotService {
             return enrichAndBuild(sessionId, rawMessage, sb.toString(), "FAQ_COVERAGE", null, List.of());
         }
 
-        if (containsAny(normalized, "factura", "ruc", "boleta", "mayorista", "flota", "empresa", "cotizacion", "igv")) {
-            String reply = "Sí, emitimos **Boleta de Venta** y **Factura Electrónica SUNAT** (con desglose automático de 18% IGV). Además, para empresas de transporte, talleres y flotas con **RUC 20/10**, contamos con precios mayoristas corporativos y atención ejecutiva especializada.";
+        if (containsAny(normalized, "factura", "ruc", "boleta", "comprobante", "sunat", "tributario", "igv", "mayorista", "empresa")) {
+            String reply = "En Repuestos Asunción emitimos exclusivamente **Boleta de Venta Electrónica** para todas nuestras operaciones. Siempre entregamos boleta con el desglose de tus repuestos (no emitimos facturas comerciales ni gestionamos créditos fiscales de SUNAT). Tu boleta se genera automáticamente y se envía a tu correo.";
             return enrichAndBuild(sessionId, rawMessage, reply, "FAQ_INVOICING", null, List.of());
         }
 
@@ -592,11 +592,16 @@ public class ChatbotService {
         boolean isLookingForTransmission = containsAny(normalized, "caja", "transmision", "transmisión", "caja de cambios", "caja cambios", "diferencial", "corona", "mecanica", "automatica");
         boolean isGasolinePassengerVehicle = (detectedModel != null && containsAny(CatalogService.normalizeText(detectedModel.getName()), "probox", "yaris", "corolla", "accent", "rio", "tiida", "sentra", "versa", "picanto", "cerato", "elantra", "caldina"))
                 || (detectedMake != null && !isDieselVehicle);
-        boolean isAskingRecommendation = containsAny(normalized,
-                "recomiendas", "recomiendame", "recomendar", "cual me recomiendas", "cual elijo",
-                "cual compro", "cual es mejor", "la mejor", "el mejor", "solo 1", "solo uno",
-                "dame el mejor", "dame la mejor", "le hace", "le queda", "le calza", "le da",
-                "le sirve", "cual le hace", "que le hace", "cual le queda", "que filtro", "que pastilla"
+        boolean isAskingRecommendation = containsAny(normalized,
+
+                "recomiendas", "recomiendame", "recomendar", "cual me recomiendas", "cual elijo",
+
+                "cual compro", "cual es mejor", "la mejor", "el mejor", "solo 1", "solo uno",
+
+                "dame el mejor", "dame la mejor", "le hace", "le queda", "le calza", "le da",
+
+                "le sirve", "cual le hace", "que le hace", "cual le queda", "que filtro", "que pastilla"
+
         );
         boolean isAccessoryQuery = containsAny(normalized, "articulo", "articulos", "accesorio", "accesorios", "cuidado", "limpieza", "estetica", "ambientador", "ambientadores", "franela", "franelas", "silicona", "shampoo");
 
@@ -775,8 +780,28 @@ public class ChatbotService {
                     requestedItemLabel = String.join(" ", partKeywords);
                 }
 
-                String noMatchMsg = String.format("Por el momento no disponemos de %s compatible con %s en almacén. En nuestro catálogo disponemos de sistemas de frenos, suspensión, distribución y lubricación certificada para otras aplicaciones.", requestedItemLabel, vehicleDesc);
-                return enrichAndBuild(sessionId, rawMessage, noMatchMsg, "VEHICLE_FITMENT_SEARCH", null, List.of());
+                List<Part> storeWideMatches = activeParts.stream()
+                        .filter(p -> matchesStemmedKeywords(p, partKeywords))
+                        .limit(3)
+                        .toList();
+
+                StringBuilder noMatchSb = new StringBuilder();
+                noMatchSb.append(String.format("Por el momento no disponemos de %s compatible con %s en almacén.", requestedItemLabel, vehicleDesc));
+
+                if (!storeWideMatches.isEmpty()) {
+                    noMatchSb.append(String.format("\n\nSin embargo, en nuestro catálogo general contamos con estos %s certificados disponibles:\n", requestedItemLabel));
+                    for (Part p : storeWideMatches) {
+                        PartResponse pr = catalogService.toPartResponse(p);
+                        String oem = (pr.oemCode() != null && !pr.oemCode().isBlank()) ? pr.oemCode() : "S/N";
+                        noMatchSb.append(String.format("• %s (%s | OEM: %s) — S/ %.2f | Stock: %d und.\n",
+                                pr.name(), pr.manufacturerBrand(), oem, pr.salePrice(), pr.stockQuantity()));
+                    }
+                    noMatchSb.append("\nSi buscas para otro vehículo, por favor indícanos la marca, modelo y año.");
+                    return enrichAndBuild(sessionId, rawMessage, noMatchSb.toString(), "VEHICLE_FITMENT_SEARCH", null, storeWideMatches.stream().map(catalogService::toPartResponse).toList());
+                } else {
+                    noMatchSb.append(" En nuestro catálogo para este modelo disponemos de sistemas de frenos, suspensión, distribución y lubricación.");
+                    return enrichAndBuild(sessionId, rawMessage, noMatchSb.toString(), "VEHICLE_FITMENT_SEARCH", null, List.of());
+                }
             } else if (hasVehicleContext) {
                 String noMatchMsg = String.format("Por el momento no encontré repuestos con stock exacto para %s con ese criterio específico.", vehicleDesc);
                 return enrichAndBuild(sessionId, rawMessage, noMatchMsg, "VEHICLE_FITMENT_SEARCH", null, List.of());
@@ -915,6 +940,8 @@ public class ChatbotService {
                     7. AMPLITUD TEMÁTICA AUTOMOTRIZ: Si el cliente consulta sobre diagnóstico de fallas (ruidos, vibraciones, frenado esponjoso, sobrecalentamiento, chirridos), intervalos de cambio de fajas o fluidos, o diferencias de materiales (cerámico vs semimetálico), responde con fundamento técnico automotriz claro y sugiere la solución con las piezas OEM y Aftermarket de Repuestos Asunción.
                     8. HONESTIDAD ESTRICTA Y CERO ALUCINACIONES (REGLA MANDATORIA): Si el cliente pregunta por información que NO está en los DATOS OFICIALES DE ALMACÉN, o por temas que no tenemos configurados, repuestos de marcas que no vendemos, o preguntas no automotrices o fuera de catálogo: DI LA VERDAD con total transparencia. NUNCA inventes repuestos, compatibilidades ni afirmes cosas que no están configuradas. Responde con claridad: "Actualmente no tengo configurada esa información en mi base de datos técnica. Como Asistente de Autopartes Asunción, estoy especializado únicamente en consultas de repuestos de nuestro catálogo, compatibilidad vehicular por marca y modelo, stock en almacén y horarios de atención."
                     9. SEGUIMIENTO DE PEDIDOS: El seguimiento de pedidos ya NO se realiza en este chat. Si el usuario pregunta por rastreo de pedidos o escribe un código ASN-2026-XXXX, indícale claramente que debe consultar en la sección "Seguimiento" (/track) del menú superior para ver el monitoreo GPS satelital en vivo.
+                    10. COMPROBANTES DE PAGO: En Repuestos Asunción SIEMPRE entregamos exclusivamente Boleta de Venta. NUNCA ofrezcas facturas comerciales ni menciones trámites con SUNAT ni crédito fiscal. Si preguntan por comprobante o factura, aclara con amabilidad que siempre emitimos Boleta de Venta oficial.
+
 
 
 
@@ -1145,21 +1172,6 @@ public class ChatbotService {
         });
         if (primaryMatch) {
             return true;
-        }
-
-        // 2. If no primary match, check technical description ONLY if keywords don't conflict with component nouns
-        // (preventing cleaning cloths, rags, or sprays from acting like engine oil or brake systems)
-        boolean isComponentNoun = keywords.stream().anyMatch(kw ->
-                containsAny(kw, "aceite", "aceites", "lubricante", "lubricantes", "filtro", "filtros",
-                        "freno", "frenos", "pastilla", "pastillas", "disco", "discos",
-                        "bujia", "bujias", "amortiguador", "amortiguadores", "bateria", "baterias", "embrague")
-        );
-        if (!isComponentNoun && p.getTechnicalDescription() != null) {
-            String descHaystack = CatalogService.normalizeText(p.getTechnicalDescription());
-            return keywords.stream().anyMatch(kw -> {
-                String stem = stemSpanish(kw);
-                return descHaystack.contains(kw) || (stem.length() >= 3 && descHaystack.contains(stem));
-            });
         }
 
         return false;

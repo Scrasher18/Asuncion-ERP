@@ -463,6 +463,39 @@ class AsuncionErpIntegrationTests {
         assertThat(frontierReply).doesNotContain("filtro, aceite, hace");
         String frontierPart = frontierJson.get("suggestedParts").get(0).get("name").asText();
         assertThat(frontierPart.toLowerCase()).contains("filtro").contains("aceite");
+
+        // Follow-up query asking for alternators: must NOT return Tensor de faja
+        String alternatorMsg = objectMapper.writeValueAsString(Map.of(
+                "message", "Que alternadores tienes ?",
+                "sessionId", "test-session-frontier-filter"
+        ));
+
+        MvcResult alternatorResult = mockMvc.perform(post("/api/v1/chatbot/message")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(alternatorMsg))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        JsonNode altJson = objectMapper.readTree(alternatorResult.getResponse().getContentAsString());
+        String altReply = altJson.get("reply").asText();
+        assertThat(altReply.toLowerCase()).doesNotContain("tensor");
+
+        // FAQ invoicing query (Boleta only, no Facturas)
+        String invoiceFaqMsg = objectMapper.writeValueAsString(Map.of(
+                "message", "¿Emiten factura electrónica con RUC para empresas?",
+                "sessionId", "test-session-invoice"
+        ));
+
+        MvcResult invoiceResult = mockMvc.perform(post("/api/v1/chatbot/message")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(invoiceFaqMsg))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        JsonNode invoiceJson = objectMapper.readTree(invoiceResult.getResponse().getContentAsString());
+        String invoiceReply = invoiceJson.get("reply").asText();
+        assertThat(invoiceReply.toLowerCase()).contains("boleta de venta");
+        assertThat(invoiceReply.toLowerCase()).contains("no emitimos facturas");
     }
 
     @Test
