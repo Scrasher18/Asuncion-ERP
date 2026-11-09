@@ -966,13 +966,15 @@ public class ChatbotService {
 
 
                     DATOS OFICIALES DE ALMACÉN:
-                    %s
+                    {{DB_CONTEXT}}
 
                     CONSULTA DEL CLIENTE:
-                    %s
+                    {{USER_MESSAGE}}
 
                     Responde en texto plano, sin asteriscos y sin emojis.
-                    """.formatted(dbContext, userMessage);
+                    """
+                    .replace("{{DB_CONTEXT}}", dbContext != null ? dbContext : "")
+                    .replace("{{USER_MESSAGE}}", userMessage != null ? userMessage : "");
 
             Map<String, Object> payload = Map.of(
                     "contents", List.of(Map.of(
@@ -1020,7 +1022,7 @@ public class ChatbotService {
                 }
             }
         } catch (Exception e) {
-            log.debug("Fallback a motor HYBRID_DB local (Gemini no disponible: {})", e.getMessage());
+            log.warn("Gemini API call threw exception, falling back to HYBRID_DB: {}", e.getMessage(), e);
         }
         return null;
     }
