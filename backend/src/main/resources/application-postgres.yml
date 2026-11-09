@@ -40,6 +40,9 @@ app:
     enabled: ${APP_SEEDER_ENABLED:true}
   mail:
     frontend-base-url: ${FRONTEND_BASE_URL:https://asucionfrontend.vercel.app}
+  chatbot:
+    gemini-api-key: ${GEMINI_API_KEY:${APP_CHATBOT_GEMINI_API_KEY:}}
+    gemini-model: ${GEMINI_MODEL:gemini-1.5-flash}
   storage:
     type: local
     local:

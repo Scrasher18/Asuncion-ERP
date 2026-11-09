@@ -179,7 +179,7 @@ public class ChatbotService {
             GeospatialCoverageService geospatialCoverageService,
             ObjectMapper objectMapper,
             @Value("${app.chatbot.gemini-api-key:}") String geminiApiKey,
-            @Value("${app.chatbot.gemini-model:gemini-3.5-flash-lite}") String geminiModel
+            @Value("${app.chatbot.gemini-model:gemini-1.5-flash}") String geminiModel
     ) {
         this.orderRepository = orderRepository;
         this.partRepository = partRepository;
@@ -189,8 +189,28 @@ public class ChatbotService {
         this.orderService = orderService;
         this.geospatialCoverageService = geospatialCoverageService;
         this.objectMapper = objectMapper;
-        this.geminiApiKey = geminiApiKey != null ? geminiApiKey.trim() : "";
-        this.geminiModel = geminiModel != null && !geminiModel.isBlank() ? geminiModel.trim() : "gemini-3.5-flash-lite";
+        String resolvedKey = (geminiApiKey != null && !geminiApiKey.isBlank()) ? geminiApiKey.trim() : "";
+        if (resolvedKey.isBlank()) {
+            String envKey = System.getenv("GEMINI_API_KEY");
+            if (envKey == null || envKey.isBlank()) {
+                envKey = System.getenv("GOOGLE_API_KEY");
+            }
+            if (envKey != null && !envKey.isBlank()) {
+                resolvedKey = envKey.trim();
+            }
+        }
+        this.geminiApiKey = resolvedKey;
+        String resolvedModel = (geminiModel != null && !geminiModel.isBlank()) ? geminiModel.trim() : "gemini-1.5-flash";
+        if ("gemini-3.5-flash-lite".equalsIgnoreCase(resolvedModel)) {
+            resolvedModel = "gemini-1.5-flash";
+        }
+        this.geminiModel = resolvedModel;
+
+        if (!this.geminiApiKey.isEmpty()) {
+            log.info("Google Gemini IA conectada exitosamente con modelo {}", this.geminiModel);
+        } else {
+            log.info("Google Gemini API Key no configurada. Operando en modo local HYBRID_DB.");
+        }
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(10))
                 .build();
