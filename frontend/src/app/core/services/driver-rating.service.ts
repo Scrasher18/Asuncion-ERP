@@ -1,5 +1,6 @@
 import { inject, Injectable, signal } from '@angular/core';
 import { ToastService } from './toast.service';
+import { SyncBusService } from './sync-bus.service';
 
 export interface DriverRatingItem {
   id: string;
@@ -22,19 +23,28 @@ export interface DriverRatingStats {
 
 const STORAGE_KEY = 'asuncion_driver_ratings';
 
-// No se incluyen calificaciones ni comentarios ficticios.
-// Todas las opiniones deben provenir exclusivamente de clientes reales al recibir su entrega.
-const INITIAL_RATINGS: DriverRatingItem[] = [];
-
 @Injectable({
   providedIn: 'root',
 })
 export class DriverRatingService {
   private readonly toast = inject(ToastService);
+  private readonly syncBus = inject(SyncBusService);
   readonly ratings = signal<DriverRatingItem[]>([]);
 
   constructor() {
     this.loadRatings();
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('storage', (evt) => {
+        if (evt.key === STORAGE_KEY) {
+          this.loadRatings();
+        }
+      });
+
+      this.syncBus.on('REVIEW_CREATED', () => {
+        this.loadRatings();
+      });
+    }
   }
 
   loadRatings(): void {
@@ -47,7 +57,6 @@ export class DriverRatingService {
       if (stored) {
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed)) {
-          // Filtrar y purgar cualquier calificación ficticia o de prueba inicial
           const realRatings = parsed.filter(
             (r: DriverRatingItem) =>
               r &&
@@ -64,7 +73,6 @@ export class DriverRatingService {
               r.customerName !== 'Pedro Pablo Quispe'
           );
           this.ratings.set(realRatings);
-          this.persist(realRatings);
           return;
         }
       }
@@ -72,7 +80,6 @@ export class DriverRatingService {
       console.warn('Error loading driver ratings from localStorage:', e);
     }
     this.ratings.set([]);
-    this.persist([]);
   }
 
   submitRating(data: Omit<DriverRatingItem, 'id' | 'createdAt'>): DriverRatingItem {
@@ -91,9 +98,10 @@ export class DriverRatingService {
       createdAt: formattedDate,
     };
 
-    const updated = [newRating, ...this.ratings()];
+    const updated = [newRating, ...this.ratings().filter((r) => r.orderNumber !== data.orderNumber)];
     this.ratings.set(updated);
     this.persist(updated);
+    this.syncBus.emit('REVIEW_CREATED', { orderNumber: data.orderNumber });
     this.toast.success('¡Gracias por tu calificación!', `Has calificado la entrega de ${data.driverName} con ${data.stars} estrellas ⭐.`);
     return newRating;
   }
@@ -106,10 +114,21 @@ export class DriverRatingService {
     return this.ratings().find((r) => r.orderNumber === orderNumber);
   }
 
+  private normalizeStr(str: string): string {
+    return (str || '')
+      .trim()
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+  }
+
   getRatingsForDriver(driverName: string = 'Miguel Ángel Flores'): DriverRatingItem[] {
-    return this.ratings().filter(
-      (r) => !driverName || r.driverName.toLowerCase().includes(driverName.toLowerCase())
-    );
+    const normSearch = this.normalizeStr(driverName);
+    return this.ratings().filter((r) => {
+      if (!normSearch) return true;
+      const normDriver = this.normalizeStr(r.driverName);
+      return normDriver.includes(normSearch) || normSearch.includes(normDriver);
+    });
   }
 
   getTopTagsForDriver(driverName: string = 'Miguel Ángel Flores'): string[] {

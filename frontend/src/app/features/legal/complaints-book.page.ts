@@ -209,13 +209,14 @@ import { ComplaintsService, ComplaintRecord } from '../../core/services/complain
                 </div>
 
                 <div class="sm:col-span-6">
-                  <label class="block text-xs font-semibold text-gray-700 mb-1">Teléfono o Celular *</label>
+                  <label class="block text-xs font-semibold text-gray-700 mb-1">Teléfono o Celular (9 dígitos) *</label>
                   <input
                     type="tel"
                     [(ngModel)]="formData.phone"
                     name="phone"
                     required
-                    placeholder="999 888 777"
+                    maxlength="9"
+                    placeholder="999888777"
                     class="w-full min-h-[42px] rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-xs text-gray-900 focus:border-orange-600 focus:outline-none"
                   />
                 </div>

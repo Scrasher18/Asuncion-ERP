@@ -10,6 +10,7 @@ import { OrdersService } from '../../core/services/orders.service';
 import { PdfInvoiceService } from '../../core/services/pdf-invoice.service';
 import { ToastService } from '../../core/services/toast.service';
 import { DriverRatingService } from '../../core/services/driver-rating.service';
+import { SoundService } from '../../core/services/sound.service';
 
 @Component({
   selector: 'app-my-orders-page',
@@ -516,11 +517,11 @@ import { DriverRatingService } from '../../core/services/driver-rating.service';
         }
         <!-- Full-Screen Driver Rating Pop-up Modal for My Orders -->
         @if (showRatingModal() && selectedRatingOrder(); as ord) {
-          <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-950/70 backdrop-blur-sm animate-fadeIn">
+          <div class="fixed inset-0 z-[9999] overflow-y-auto flex items-center justify-center p-4 bg-gray-950/80 backdrop-blur-md animate-fadeIn">
             <!-- Click backdrop to dismiss -->
             <div class="absolute inset-0" (click)="dismissRatingModal()"></div>
 
-            <div class="relative w-full max-w-md rounded-3xl border border-amber-200 bg-white p-6 sm:p-7 shadow-2xl z-10 space-y-5 animate-scaleUp">
+            <div class="relative w-full max-w-md my-auto rounded-3xl border border-amber-200 bg-white p-6 sm:p-7 shadow-2xl z-10 space-y-5 animate-scaleUp">
               <!-- Close (X) button -->
               <button
                 type="button"
@@ -621,6 +622,7 @@ import { DriverRatingService } from '../../core/services/driver-rating.service';
 export class MyOrdersPageComponent implements OnInit, OnDestroy {
   private pollSubscription?: Subscription;
   readonly driverRatingService = inject(DriverRatingService);
+  readonly soundService = inject(SoundService);
   private readonly ordersService = inject(OrdersService);
   readonly auth = inject(AuthService);
   private readonly lookupService = inject(LookupService);
@@ -647,10 +649,16 @@ export class MyOrdersPageComponent implements OnInit, OnDestroy {
       this.selectedRatingTags.set(['Muy puntual', 'Amable']);
       this.ratingComment = '';
     }
+    if (typeof document !== 'undefined') {
+      document.body.style.overflow = 'hidden';
+    }
     this.showRatingModal.set(true);
   }
 
   dismissRatingModal(): void {
+    if (typeof document !== 'undefined') {
+      document.body.style.overflow = '';
+    }
     this.showRatingModal.set(false);
   }
 
@@ -675,6 +683,9 @@ export class MyOrdersPageComponent implements OnInit, OnDestroy {
       tags: this.selectedRatingTags(),
       comment: this.ratingComment.trim() || undefined,
     });
+    if (typeof document !== 'undefined') {
+      document.body.style.overflow = '';
+    }
     this.showRatingModal.set(false);
     this.toast.success('¡Gracias por tu opinión!', 'Tu calificación ha sido registrada para el repartidor.');
   }
@@ -884,6 +895,9 @@ export class MyOrdersPageComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    if (typeof document !== 'undefined') {
+      document.body.style.overflow = '';
+    }
     if (this.pollSubscription) {
       this.pollSubscription.unsubscribe();
     }

@@ -10,6 +10,7 @@ import { OrdersService } from '../../core/services/orders.service';
 import { PaymentService, StoreWalletConfig, DEFAULT_WALLET_CONFIG } from '../../core/services/payment.service';
 import { TelemetryService } from '../../core/services/telemetry.service';
 import { ToastService } from '../../core/services/toast.service';
+import { SoundService } from '../../core/services/sound.service';
 import { LiveDriverMapComponent } from '../../shared/components/live-driver-map/live-driver-map.component';
 
 @Component({
@@ -509,7 +510,7 @@ import { LiveDriverMapComponent } from '../../shared/components/live-driver-map/
                 </button>
                 <button
                   type="submit"
-                  [disabled]="submittingProof() || !receiverName.trim() || !receiverDocument.trim() || !securityCode || securityCode.trim().length !== 4" 
+                  [disabled]="submittingProof() || !receiverName.trim() || !receiverDocument.trim() || (receiverDocument.trim().length !== 8 && receiverDocument.trim().length !== 11) || !securityCode || securityCode.trim().length !== 4" 
                   class="min-h-[44px] rounded-xl bg-orange-600 py-2.5 font-semibold text-white shadow-xs hover:bg-orange-700 disabled:opacity-50 transition"
                 >
                   {{ submittingProof() ? 'Guardando...' : 'Finalizar entrega' }}
@@ -632,6 +633,8 @@ export class DeliveryPageComponent implements OnInit, OnDestroy {
   private readonly lookupService = inject(LookupService);
   private readonly telemetryService = inject(TelemetryService);
   private readonly toast = inject(ToastService);
+  readonly soundService = inject(SoundService);
+  private previousPendingCount = -1;
   private readonly paymentService = inject(PaymentService);
   readonly walletConfig = signal<StoreWalletConfig>(DEFAULT_WALLET_CONFIG);
   readonly qrCobroOrder = signal<Order | null>(null);
@@ -780,6 +783,13 @@ export class DeliveryPageComponent implements OnInit, OnDestroy {
       }))
       .subscribe({
         next: (list) => {
+          const prevCount = this.orders().length;
+          const prevIds = new Set(this.orders().map((o) => o.id));
+          const hasNew = list.some((o) => !prevIds.has(o.id));
+          if (silent && prevCount > 0 && hasNew) {
+            this.soundService.playOrderAlert();
+            this.toast.info('¡Nuevo reparto asignado!', 'Se ha asignado un nuevo pedido para entrega.');
+          }
           this.orders.set(list);
           const hasInRoute = list.some((o) => o.status === 'EN_RUTA');
           if (hasInRoute) {
@@ -829,7 +839,8 @@ export class DeliveryPageComponent implements OnInit, OnDestroy {
       .pipe(finalize(() => this.busyId.set(null)))
       .subscribe({
         next: (updated) => {
-          this.orders.update((list) => list.map((o) => (o.id === updated.id ? updated : o)));
+          this.soundService.playSuccessChime();
+            this.orders.update((list) => list.map((o) => (o.id === updated.id ? updated : o)));
           this.myDriverStatus.set('EN_RUTA');
           this.loadOrderTelemetry(updated);
           this.toggleGpsBroadcast(updated);

@@ -377,7 +377,7 @@ import { RecaptchaV3Service } from '../../core/services/recaptcha-v3.service';
               <div class="grid grid-cols-3 gap-2.5">
                 <div>
                   <label class="block text-xs font-medium text-gray-700 mb-1">
-                    Documento <span class="text-gray-400 font-normal">(opcional)</span>
+                    Documento <span class="text-orange-600 font-bold">*</span>
                   </label>
                   <select
                     name="documentType"
@@ -394,7 +394,7 @@ import { RecaptchaV3Service } from '../../core/services/recaptcha-v3.service';
                 <div class="col-span-2">
                   <label class="block text-xs font-medium text-gray-700 mb-1">
                     {{ registerData.documentType === 'RUC' ? 'Número de RUC' : registerData.documentType === 'DNI' ? 'Número de DNI' : 'Número de documento' }}
-                    <span class="text-gray-400 font-normal">(opcional)</span>
+                    <span class="text-orange-600 font-bold">*</span>
                   </label>
                   <div class="relative flex items-center">
                     <input
@@ -475,7 +475,7 @@ import { RecaptchaV3Service } from '../../core/services/recaptcha-v3.service';
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 <div>
                   <label class="block text-xs font-medium text-gray-700 mb-1">
-                    Celular <span class="text-gray-400 font-normal">(opcional - 9 dígitos)</span>
+                    Celular * <span class="text-xs text-orange-600 font-semibold">(obligatorio - 9 dígitos)</span>
                   </label>
                   <input
                     type="tel"

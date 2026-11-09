@@ -5,6 +5,7 @@ import { AuthService } from './auth.service';
 import { OrdersService } from './orders.service';
 import { ComplaintsService } from './complaints.service';
 import { CatalogService } from './catalog.service';
+import { SoundService } from './sound.service';
 import { Order, Part } from '../models/api.models';
 
 export type NotificationCategory =
@@ -39,6 +40,8 @@ export class NotificationCenterService {
   private readonly complaintsService = inject(ComplaintsService);
   private readonly catalogService = inject(CatalogService);
   private readonly router = inject(Router);
+  private readonly soundService = inject(SoundService);
+  private previousUnreadCount = -1;
 
   readonly notifications = signal<AppNotification[]>([]);
   readonly isLoading = signal<boolean>(false);

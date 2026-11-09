@@ -492,7 +492,7 @@ const POS_HOLD_TTL_MS = 15 * 60 * 1000;
                 <!-- DNI / RUC Lookup -->
                 <div>
                   <label class="block text-xs font-bold text-gray-700 mb-1">
-                    {{ invoiceType === 'FACTURA' ? 'Número de RUC (11 dígitos) *' : 'DNI del Cliente (8 dígitos)' }}
+                    {{ invoiceType === 'FACTURA' ? 'Número de RUC (11 dígitos) *' : 'DNI del Cliente (8 dígitos) *' }}
                   </label>
                   <div class="flex gap-2">
                     <input
@@ -557,7 +557,7 @@ const POS_HOLD_TTL_MS = 15 * 60 * 1000;
                       <input
                         type="text"
                         [(ngModel)]="customerPhone"
-                        placeholder="987654321"
+                        placeholder="987654321" maxlength="9"
                         class="w-full min-h-[40px] rounded-xl border border-gray-200 bg-white px-3 py-2 font-mono text-xs text-gray-900 focus:border-orange-600 focus:outline-none"
                       />
                     </div>

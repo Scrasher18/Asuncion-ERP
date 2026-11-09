@@ -291,6 +291,8 @@ import {
                         [class.border-l-4]="item.category === 'STOCK_ALERT'"
                         [class.border-l-red-600]="item.category === 'STOCK_ALERT'"
                         [class.bg-orange-50/50]="item.category !== 'STOCK_ALERT' && !item.read"
+                        [class.opacity-55]="item.read"
+                        [class.bg-gray-50/50]="item.read"
                         class="group flex items-start gap-3 p-3.5 hover:bg-gray-50/90 transition cursor-pointer relative"
                       >
                         <!-- Category Icon Badge -->
@@ -335,7 +337,7 @@ import {
                         <div class="flex-1 min-w-0 pr-5">
                           <div class="flex items-center justify-between gap-1 mb-0.5">
                             <span
-                              [class]="item.category === 'STOCK_ALERT' ? 'text-xs font-black text-red-950 truncate' : 'text-xs font-bold text-gray-900 truncate'"
+                              [class]="item.read ? 'text-xs font-normal text-gray-500 truncate' : (item.category === 'STOCK_ALERT' ? 'text-xs font-black text-red-950 truncate' : 'text-xs font-bold text-gray-900 truncate')"
                             >
                               {{ item.title }}
                             </span>
@@ -355,7 +357,9 @@ import {
                             @if (item.statusBadge) {
                               <span
                                 [class]="
-                                  item.category === 'STOCK_ALERT'
+                                  item.read
+                                    ? 'rounded bg-gray-100 px-1.5 py-0.5 text-[9px] font-normal text-gray-400 uppercase'
+                                    : item.category === 'STOCK_ALERT'
                                     ? 'rounded bg-red-600 text-white font-black px-1.5 py-0.5 text-[9px] uppercase shadow-2xs'
                                     : 'rounded bg-gray-100 px-1.5 py-0.5 text-[9px] font-semibold text-gray-600 uppercase'
                                 "
@@ -904,6 +908,9 @@ export class NavbarComponent {
   }
 
   getCategoryBadgeClass(item: AppNotification): string {
+    if (item.read) {
+      return 'bg-gray-100 text-gray-400 border border-gray-200';
+    }
     if (item.category === 'STOCK_ALERT') {
       return 'bg-red-100 text-red-700 border border-red-300 ring-2 ring-red-200/50';
     }

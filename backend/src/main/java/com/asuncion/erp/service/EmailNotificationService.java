@@ -431,26 +431,48 @@ public class EmailNotificationService {
                 recipientEmails.add(order.customerEmail().trim().toLowerCase());
             }
 
-            // 1. Customer Purchase Confirmation Email
-            String customerSubject = "Confirmación de Compra #" + order.orderNumber() + " — Repuestos Asunción";
+            // 1. Customer Purchase Confirmation & Electronic Invoice (Boleta/Factura) Email
+            boolean isFactura = "FACTURA".equalsIgnoreCase(order.invoiceType());
+            String voucherTitle = isFactura ? "FACTURA ELECTRÓNICA" : "BOLETA DE VENTA ELECTRÓNICA";
+            String voucherSeries = (isFactura ? "F001-" : "B001-") + String.format("%06d", Math.abs(order.orderNumber().hashCode() % 1000000));
+            String customerSubject = voucherTitle + " #" + order.orderNumber() + " — Autopartes Asunción (R.U.C. 20601849201)";
             String customerContent = """
-                    <p style="margin:0 0 14px;color:#334155;font-size:15px;line-height:1.6;">
-                      Hola <strong>%s</strong>, hemos recibido y confirmado tu pedido <strong>%s</strong>. Nuestro equipo de almacén ya cuenta con tu orden para iniciar la preparación técnica.
-                    </p>
-                    <div style="background:#FFF7ED;border:1px solid #FED7AA;border-radius:10px;padding:15px;margin:14px 0;">
-                      <p style="margin:3px 0;font-size:14px;color:#1E293B;"><strong>Código de Pedido:</strong> <span style="color:#EA580C;font-weight:700;">%s</span></p>
-                      <p style="margin:3px 0;font-size:14px;color:#1E293B;"><strong>Comprobante:</strong> %s %s</p>
-                      <p style="margin:3px 0;font-size:14px;color:#1E293B;"><strong>Modalidad de Entrega:</strong> %s</p>
-                      <p style="margin:3px 0;font-size:14px;color:#1E293B;"><strong>Dirección / Sede:</strong> %s</p>
-                      <p style="margin:3px 0;font-size:14px;color:#1E293B;"><strong>Método de Pago:</strong> %s</p>
+                    <div style="border:2px solid #EA580C;border-radius:10px;padding:16px;margin:0 0 16px;background:#FFFBF8;text-align:center;">
+                      <h2 style="margin:0 0 4px;color:#9A3412;font-size:16px;font-weight:800;letter-spacing:0.5px;">AUTOPARTES ASUNCIÓN S.A.C.</h2>
+                      <p style="margin:2px 0;font-size:12px;color:#475569;">R.U.C. 20601849201 · Lima, Perú</p>
+                      <div style="background:#EA580C;color:#FFFFFF;display:inline-block;padding:6px 16px;border-radius:6px;margin:8px 0;font-weight:800;font-size:14px;letter-spacing:1px;">
+                        %s N° %s
+                      </div>
+                      <p style="margin:2px 0;font-size:12px;color:#64748B;">Pedido Relacionado: <strong>%s</strong></p>
                     </div>
+
+                    <p style="margin:0 0 14px;color:#334155;font-size:14px;line-height:1.6;">
+                      Estimado(a) <strong>%s</strong>, adjuntamos el detalle oficial de tu comprobante electrónico emitido por tu compra. Nuestro equipo técnico de almacén ya cuenta con tu orden para el despacho.
+                    </p>
+
+                    <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:14px;margin:14px 0;">
+                      <table width="100%%" style="border-collapse:collapse;font-size:13px;color:#1E293B;">
+                        <tr><td style="padding:4px 0;color:#64748B;"><strong>Adquiriente / Cliente:</strong></td><td style="padding:4px 0;text-align:right;"><strong>%s</strong></td></tr>
+                        <tr><td style="padding:4px 0;color:#64748B;"><strong>Doc. Identidad (DNI/RUC):</strong></td><td style="padding:4px 0;text-align:right;">%s</td></tr>
+                        <tr><td style="padding:4px 0;color:#64748B;"><strong>Modalidad de Entrega:</strong></td><td style="padding:4px 0;text-align:right;">%s</td></tr>
+                        <tr><td style="padding:4px 0;color:#64748B;"><strong>Dirección / Sede:</strong></td><td style="padding:4px 0;text-align:right;">%s</td></tr>
+                        <tr><td style="padding:4px 0;color:#64748B;"><strong>Forma de Pago:</strong></td><td style="padding:4px 0;text-align:right;">%s</td></tr>
+                      </table>
+                    </div>
+
+                    <h3 style="margin:16px 0 8px;font-size:14px;color:#0F172A;font-weight:700;">Detalle de Ítems Adquiridos:</h3>
                     %s
+
+                    <p style="margin:16px 0 0;font-size:12px;color:#64748B;line-height:1.5;text-align:center;">
+                      Comprobante electrónico de venta emitido legalmente. Puedes descargar tu comprobante y hacer seguimiento de tu entrega en cualquier momento desde el botón inferior.
+                    </p>
                     """.formatted(
+                    voucherTitle,
+                    voucherSeries,
+                    escapeHtml(order.orderNumber()),
                     escapeHtml(order.customerName()),
-                    escapeHtml(order.orderNumber()),
-                    escapeHtml(order.orderNumber()),
-                    escapeHtml(order.invoiceType()),
-                    order.billingDocumentNumber() != null ? "(" + escapeHtml(order.billingDocumentNumber()) + " - " + escapeHtml(nullToEmpty(order.billingBusinessName())) + ")" : "",
+                    escapeHtml(order.customerName()),
+                    order.billingDocumentNumber() != null && !order.billingDocumentNumber().isBlank() ? escapeHtml(order.billingDocumentNumber()) : "DNI Cliente",
                     "DELIVERY".equalsIgnoreCase(order.deliveryType()) ? "Envío a Domicilio / Taller" : "Recojo en Tienda",
                     escapeHtml(order.deliveryAddress() != null ? order.deliveryAddress() : order.branchAddress()),
                     escapeHtml(order.paymentMethod()),
@@ -458,10 +480,10 @@ public class EmailNotificationService {
             );
 
             String customerHtml = wrapCorporateTemplate(
-                    "COMPRA CONFIRMADA",
-                    "¡Gracias por tu compra! Pedido " + order.orderNumber(),
+                    voucherTitle,
+                    "Comprobante Electrónico N° " + voucherSeries,
                     customerContent,
-                    "Rastrear mi Pedido en Vivo",
+                    "Ver Pedido & Rastrear Entrega",
                     trackUrl
             );
 

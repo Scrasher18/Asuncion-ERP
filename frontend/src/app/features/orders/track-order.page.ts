@@ -11,6 +11,7 @@ import { OrdersService } from '../../core/services/orders.service';
 import { TelemetryService } from '../../core/services/telemetry.service';
 import { PdfInvoiceService } from '../../core/services/pdf-invoice.service';
 import { DriverRatingService } from '../../core/services/driver-rating.service';
+import { SoundService } from '../../core/services/sound.service';
 import { ToastService } from '../../core/services/toast.service';
 import { LiveDriverMapComponent } from '../../shared/components/live-driver-map/live-driver-map.component';
 
@@ -423,56 +424,7 @@ const ORDER_STAGES = [
               }
             </div>
 
-            <!-- Customer Courier Rating Compact Status -->
-            <div class="rounded-2xl border border-amber-200/80 bg-gradient-to-r from-amber-50/60 via-white to-amber-50/30 p-4 flex flex-wrap items-center justify-between gap-3 shadow-2xs">
-              <div class="flex items-center gap-3">
-                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700 text-lg font-bold shadow-2xs">
-                  ★
-                </div>
-                <div>
-                  <h4 class="text-xs sm:text-sm font-bold text-gray-900">
-                    Calificación del servicio de entrega: <strong class="text-gray-950">{{ ord.assignedDriverName || ord.deliveryProof?.driverName || 'Miguel Ángel Flores' }}</strong>
-                  </h4>
-                  @if (driverRatingService.getRatingByOrder(ord.orderNumber); as myRating) {
-                    <div class="flex items-center gap-2 mt-0.5">
-                      <span class="text-xs font-bold text-amber-500">
-                        {{ '★'.repeat(myRating.stars) }}{{ '☆'.repeat(5 - myRating.stars) }}
-                      </span>
-                      <span class="text-[11px] font-semibold text-gray-700">({{ myRating.stars }}/5)</span>
-                      @if (myRating.comment) {
-                        <span class="text-[11px] text-gray-500 italic max-w-xs truncate">"{{ myRating.comment }}"</span>
-                      }
-                    </div>
-                  } @else {
-                    <p class="text-[11px] text-gray-500 mt-0.5">
-                      Entrega concluida. Tu opinión ayuda a mantener la máxima calidad de atención.
-                    </p>
-                  }
-                </div>
-              </div>
-
-              <div>
-                @if (driverRatingService.hasRated(ord.orderNumber)) {
-                  <button
-                    type="button"
-                    (click)="openRatingModal()"
-                    class="inline-flex items-center gap-1.5 rounded-xl border border-emerald-300 bg-emerald-50 px-3.5 py-2 text-xs font-bold text-emerald-800 hover:bg-emerald-100 transition cursor-pointer"
-                  >
-                    <span>✓ Calificado</span>
-                    <span class="text-[10px] text-emerald-600 font-semibold underline">Modificar</span>
-                  </button>
-                } @else {
-                  <button
-                    type="button"
-                    (click)="openRatingModal()"
-                    class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 px-4 py-2 text-xs font-bold text-white shadow-xs hover:from-amber-600 hover:to-orange-700 transition cursor-pointer"
-                  >
-                    <span>⭐ Calificar al Repartidor</span>
-                  </button>
-                }
-              </div>
-            </div>
-          }
+            }
 
           <!-- Ordered Spare Parts & Status History Grid -->
           <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -578,13 +530,15 @@ const ORDER_STAGES = [
           </div>
         }
 
-        <!-- Full-Screen Driver Rating Pop-up Modal -->
+              </div>
+
+      <!-- Full-Screen Driver Rating Pop-up Modal -->
         @if (showRatingModal() && order(); as ord) {
-          <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-950/70 backdrop-blur-sm animate-fadeIn">
+          <div class="fixed inset-0 z-[9999] overflow-y-auto flex items-center justify-center p-4 bg-gray-950/80 backdrop-blur-md animate-fadeIn">
             <!-- Click backdrop to dismiss -->
             <div class="absolute inset-0" (click)="dismissRatingModal()"></div>
 
-            <div class="relative w-full max-w-md rounded-3xl border border-amber-200 bg-white p-6 sm:p-7 shadow-2xl z-10 space-y-5 animate-scaleUp">
+            <div class="relative w-full max-w-md my-auto rounded-3xl border border-amber-200 bg-white p-6 sm:p-7 shadow-2xl z-10 space-y-5 animate-scaleUp">
               <!-- Close (X) button -->
               <button
                 type="button"
@@ -678,12 +632,12 @@ const ORDER_STAGES = [
             </div>
           </div>
         }
-      </div>
     </div>
   `,
 })
 export class TrackOrderPageComponent implements OnInit, OnDestroy {
   readonly driverRatingService = inject(DriverRatingService);
+  readonly soundService = inject(SoundService);
 
   readonly selectedStars = signal<number>(5);
   readonly selectedRatingTags = signal<string[]>(['Muy puntual', 'Amable']);
@@ -705,6 +659,8 @@ export class TrackOrderPageComponent implements OnInit, OnDestroy {
       this.selectedRatingTags.set(['Muy puntual', 'Amable']);
       this.ratingComment = '';
     }
+    if (typeof document !== 'undefined') { document.body.style.overflow = 'hidden'; }
+    this.soundService.playNotificationChime();
     this.showRatingModal.set(true);
   }
 
@@ -713,6 +669,7 @@ export class TrackOrderPageComponent implements OnInit, OnDestroy {
     if (ord) {
       this.dismissedModalOrders.add(ord.orderNumber);
     }
+    if (typeof document !== 'undefined') { document.body.style.overflow = ''; }
     this.showRatingModal.set(false);
   }
 
@@ -737,6 +694,7 @@ export class TrackOrderPageComponent implements OnInit, OnDestroy {
     });
     this.ratingComment = '';
     this.showRatingModal.set(false);
+    this.soundService.playSuccessChime();
     this.toast.success('¡Gracias por tu opinión!', 'Tu calificación ha sido registrada para el repartidor.');
   }
 
@@ -774,6 +732,7 @@ export class TrackOrderPageComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    if (typeof document !== 'undefined') { document.body.style.overflow = ''; }
     this.stopPolling();
     this.disconnectSse();
   }

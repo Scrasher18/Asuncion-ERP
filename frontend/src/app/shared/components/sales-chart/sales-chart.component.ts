@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, computed, Input, signal } from '@angular/core';
 import { SalesTimelinePoint } from '../../../core/models/api.models';
 
-export type ChartGranularity = 'day' | 'week' | 'year';
+export type ChartGranularity = 'day' | 'hour' | 'week' | 'year';
 
 @Component({
   selector: 'app-sales-chart',
@@ -28,8 +28,8 @@ export type ChartGranularity = 'day' | 'week' | 'year';
           </p>
         </div>
 
-        <!-- Mode Switcher Tabs (Día / Semana / Año) -->
-        <div class="inline-flex rounded-xl border border-gray-200 bg-gray-50/80 p-1 shadow-2xs self-start sm:self-auto">
+        <!-- Mode Switcher Tabs (Día / Horas / Semana / Año) -->
+        <div class="inline-flex rounded-xl border border-gray-200 bg-gray-50/80 p-1 shadow-2xs self-start sm:self-auto flex-wrap gap-1">
           <button
             type="button"
             (click)="granularity.set('day')"
@@ -38,9 +38,21 @@ export type ChartGranularity = 'day' | 'week' | 'year';
                 ? 'bg-white text-orange-600 font-bold shadow-xs border border-gray-200/60'
                 : 'text-gray-600 hover:text-gray-900 font-medium'
             "
-            class="min-h-[34px] rounded-lg px-3 py-1 text-xs transition"
+            class="min-h-[34px] rounded-lg px-3 py-1 text-xs transition cursor-pointer"
           >
-            Por Día (Horas)
+            Por Día (Diario)
+          </button>
+          <button
+            type="button"
+            (click)="granularity.set('hour')"
+            [class]="
+              granularity() === 'hour'
+                ? 'bg-white text-orange-600 font-bold shadow-xs border border-gray-200/60'
+                : 'text-gray-600 hover:text-gray-900 font-medium'
+            "
+            class="min-h-[34px] rounded-lg px-3 py-1 text-xs transition cursor-pointer"
+          >
+            Por Horas (Hoy)
           </button>
           <button
             type="button"
@@ -50,7 +62,7 @@ export type ChartGranularity = 'day' | 'week' | 'year';
                 ? 'bg-white text-orange-600 font-bold shadow-xs border border-gray-200/60'
                 : 'text-gray-600 hover:text-gray-900 font-medium'
             "
-            class="min-h-[34px] rounded-lg px-3 py-1 text-xs transition"
+            class="min-h-[34px] rounded-lg px-3 py-1 text-xs transition cursor-pointer"
           >
             Por Semana (Días)
           </button>
@@ -62,7 +74,7 @@ export type ChartGranularity = 'day' | 'week' | 'year';
                 ? 'bg-white text-orange-600 font-bold shadow-xs border border-gray-200/60'
                 : 'text-gray-600 hover:text-gray-900 font-medium'
             "
-            class="min-h-[34px] rounded-lg px-3 py-1 text-xs transition"
+            class="min-h-[34px] rounded-lg px-3 py-1 text-xs transition cursor-pointer"
           >
             Por Año (Meses)
           </button>
@@ -296,9 +308,14 @@ export class SalesChartComponent {
   readonly activePoints = computed<SalesTimelinePoint[]>(() => {
     switch (this.granularity()) {
       case 'day':
-        return this.hourlySales && this.hourlySales.length > 0
-          ? this.hourlySales
-          : (this.dailySales || []);
+        // Primary daily sales view from backend
+        if (this.dailySales && this.dailySales.length > 0) {
+          return this.dailySales;
+        }
+        return this.hourlySales && this.hourlySales.length > 0 ? this.hourlySales : [];
+      case 'hour':
+        // Hourly sales distribution (08:00 to 20:00)
+        return this.hourlySales && this.hourlySales.length > 0 ? this.hourlySales : [];
       case 'week':
         return this.weekdaySales && this.weekdaySales.length > 0
           ? this.weekdaySales
@@ -337,9 +354,11 @@ export class SalesChartComponent {
   readonly chartDescription = computed<string>(() => {
     switch (this.granularity()) {
       case 'day':
+        return 'Evolución diaria de ventas y facturación (últimos 30 días de operación).';
+      case 'hour':
         return 'Ventas por horas del día (distribución de 08:00 a 20:00 hrs para identificar horas pico).';
       case 'week':
-        return 'Ventas por días de la semana (Lunes, Martes, Miércoles, Jueves, Viernes, Sábado y Domingo).';
+        return 'Ventas por días de la semana (Lunes a Domingo para planificación operativa).';
       case 'year':
         return 'Facturación y margen bruto mensual a lo largo del año calendario.';
     }
@@ -348,65 +367,77 @@ export class SalesChartComponent {
   // Chart Geometry Math for 1000 x 320 SVG ViewBox
   private readonly leftMargin = 55;
   private readonly rightMargin = 960;
-  private readonly topMargin = 45;
-  private readonly bottomMargin = 265;
-  private readonly chartHeight = this.bottomMargin - this.topMargin;
+  private readonly chartTop = 40;
+  private readonly chartBottom = 270;
+
+  readonly chartUsableWidth = computed(() => this.rightMargin - this.leftMargin);
+  readonly chartUsableHeight = computed(() => this.chartBottom - this.chartTop);
 
   barWidth(): number {
-    const count = this.activePoints().length;
-    if (count <= 7) return 50;
-    if (count <= 14) return 32;
-    if (count <= 31) return 18;
-    return 12;
+    const total = this.activePoints().length;
+    if (total === 0) return 20;
+    const step = this.chartUsableWidth() / total;
+    return Math.max(8, Math.min(45, step * 0.65));
   }
 
   barX(index: number): number {
-    const count = this.activePoints().length;
-    if (count <= 1) return this.leftMargin;
-    const availableWidth = this.rightMargin - this.leftMargin;
-    const step = availableWidth / (count - 1);
-    return this.leftMargin + index * step - this.barWidth() / 2;
+    const total = this.activePoints().length;
+    if (total === 0) return this.leftMargin;
+    const step = this.chartUsableWidth() / total;
+    return this.leftMargin + index * step + (step - this.barWidth()) / 2;
   }
 
   barY(sales: number): number {
-    const ratio = Math.min(1.0, Math.max(0.0, sales / this.maxSales()));
-    return this.bottomMargin - ratio * this.chartHeight;
+    const max = this.maxSales();
+    const ratio = Math.max(0, Math.min(1, sales / max));
+    return this.chartBottom - ratio * this.chartUsableHeight();
   }
 
   barHeight(sales: number): number {
-    const ratio = Math.min(1.0, Math.max(0.0, sales / this.maxSales()));
-    return Math.max(4, ratio * this.chartHeight);
-  }
-
-  averageY(): number {
-    return this.barY(this.averageSales());
+    const max = this.maxSales();
+    const ratio = Math.max(0, Math.min(1, sales / max));
+    const h = ratio * this.chartUsableHeight();
+    return Math.max(2, h); // Minimum 2px bar height so zero or low bars are visually accessible
   }
 
   isPeak(pt: SalesTimelinePoint): boolean {
     const peak = this.peakPoint();
-    return Boolean(peak && peak.periodKey === pt.periodKey && pt.totalSales > 0);
+    return peak !== null && peak.periodKey === pt.periodKey && pt.totalSales > 0;
   }
 
-  shouldShowXLabel(index: number): boolean {
-    const count = this.activePoints().length;
-    if (count <= 14) return true;
-    if (count <= 24) return index % 2 === 0;
-    return index % 3 === 0 || index === count - 1;
+  averageY(): number {
+    const avg = this.averageSales();
+    const max = this.maxSales();
+    if (max <= 0 || avg <= 0) return -100;
+    const ratio = Math.max(0, Math.min(1, avg / max));
+    return this.chartBottom - ratio * this.chartUsableHeight();
   }
 
   trendLinePath(): string {
     const pts = this.activePoints();
     if (pts.length < 2) return '';
-    const coords = pts.map((pt, i) => `${this.barX(i) + this.barWidth() / 2},${this.barY(pt.totalSales)}`);
-    return 'M ' + coords.join(' L ');
+    return pts
+      .map((pt, idx) => {
+        const x = this.barX(idx) + this.barWidth() / 2;
+        const y = this.barY(pt.totalSales);
+        return `${idx === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)}`;
+      })
+      .join(' ');
   }
 
   trendAreaPath(): string {
     const pts = this.activePoints();
     if (pts.length < 2) return '';
-    const firstX = this.barX(0) + this.barWidth() / 2;
-    const lastX = this.barX(pts.length - 1) + this.barWidth() / 2;
     const line = this.trendLinePath();
-    return `${line} L ${lastX},${this.bottomMargin} L ${firstX},${this.bottomMargin} Z`;
+    const lastX = this.barX(pts.length - 1) + this.barWidth() / 2;
+    const firstX = this.barX(0) + this.barWidth() / 2;
+    return `${line} L ${lastX.toFixed(1)} ${this.chartBottom} L ${firstX.toFixed(1)} ${this.chartBottom} Z`;
+  }
+
+  shouldShowXLabel(index: number): boolean {
+    const total = this.activePoints().length;
+    if (total <= 14) return true;
+    if (total <= 31) return index % 2 === 0 || index === total - 1;
+    return index % 4 === 0 || index === total - 1;
   }
 }

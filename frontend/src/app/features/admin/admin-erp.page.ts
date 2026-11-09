@@ -3241,8 +3241,29 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                   <div class="space-y-2 pt-2 border-t border-gray-100">
                     <div class="flex flex-wrap items-center justify-between gap-1">
                       <span class="text-xs font-bold text-gray-900">Repuesto complementario para el combo (-15% adicional):</span>
+                    </div>
+
+                    <!-- Selector de Modo de Complemento: Automático vs Manual -->
+                    <div class="flex items-center gap-1 rounded-xl bg-gray-100 p-1">
+                      <button
+                        type="button"
+                        (click)="promoComboComplementMode.set('RECOMMENDED')"
+                        [class]="promoComboComplementMode() === 'RECOMMENDED' ? 'bg-white text-orange-700 font-bold shadow-xs' : 'text-gray-600 hover:text-gray-900 font-medium'"
+                        class="flex-1 rounded-lg py-1.5 px-3 text-xs transition cursor-pointer flex items-center justify-center gap-1.5"
+                      >
+                        <span>⭐ Sugerencias Automáticas</span>
+                      </button>
+                      <button
+                        type="button"
+                        (click)="promoComboComplementMode.set('MANUAL')"
+                        [class]="promoComboComplementMode() === 'MANUAL' ? 'bg-white text-orange-700 font-bold shadow-xs' : 'text-gray-600 hover:text-gray-900 font-medium'"
+                        class="flex-1 rounded-lg py-1.5 px-3 text-xs transition cursor-pointer flex items-center justify-center gap-1.5"
+                      >
+                        <span>🔍 Búsqueda Manual (Inventario)</span>
+                      </button>
                       <span class="text-[11px] font-semibold text-orange-700">Doble descuento al llevar ambos repuestos</span>
                     </div>
+                    @if (promoComboComplementMode() === 'RECOMMENDED') {
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       @for (comp of suggestedComplements; track comp.sku) {
                         <button
@@ -3262,6 +3283,69 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                         </button>
                       }
                     </div>
+                    } @else {
+                      <div class="space-y-2">
+                        <input
+                          type="text"
+                          [ngModel]="promoManualComboSearch()"
+                          (ngModelChange)="promoManualComboSearch.set($event)"
+                          placeholder="Buscar cualquier repuesto por nombre, SKU, marca u OEM..."
+                          class="w-full rounded-xl border border-gray-200 bg-gray-50/50 px-3.5 py-2 text-xs text-gray-800 placeholder:text-gray-400 focus:border-orange-500 focus:bg-white focus:outline-none transition"
+                        />
+                        <div class="max-h-52 overflow-y-auto space-y-1.5 pr-1 divide-y divide-gray-100 rounded-xl border border-gray-200 bg-white p-2">
+                          @for (p of filteredManualComboParts(); track p.sku) {
+                            <div
+                              (click)="onComboComplementSelect(p.sku)"
+                              [class]="promoComboComplementSku === p.sku ? 'bg-orange-50/90 border border-orange-400' : 'hover:bg-gray-50 border border-transparent'"
+                              class="rounded-lg p-2 transition cursor-pointer flex items-center justify-between gap-3 text-xs"
+                            >
+                              <div class="min-w-0 flex-1">
+                                <div class="flex items-center gap-1.5">
+                                  <span class="font-bold text-gray-900 truncate">{{ p.name }}</span>
+                                  @if (promoComboComplementSku === p.sku) {
+                                    <span class="shrink-0 rounded bg-orange-600 px-1.5 py-0.2 text-[9px] font-bold text-white">ELEGIDO</span>
+                                  }
+                                </div>
+                                <div class="flex items-center gap-2 text-[10px] text-gray-500 font-mono mt-0.5">
+                                  <span>{{ p.sku }}</span>
+                                  @if (p.oemCode) {
+                                    <span>OEM: {{ p.oemCode }}</span>
+                                  }
+                                  @if (p.manufacturerBrand) {
+                                    <span class="text-gray-700 font-sans font-semibold">· {{ p.manufacturerBrand }}</span>
+                                  }
+                                  <span class="text-emerald-700 font-sans font-bold">Stock: {{ p.stockQuantity }}</span>
+                                </div>
+                              </div>
+                              <div class="text-right shrink-0">
+                                <span class="block text-xs font-bold text-orange-600">+S/ {{ ((p.salePrice || 50) * 0.85) | number: '1.2-2' }}</span>
+                                <span class="block text-[10px] text-gray-400 line-through">S/ {{ (p.salePrice || 50) | number: '1.2-2' }}</span>
+                              </div>
+                            </div>
+                          }
+                          @if (filteredManualComboParts().length === 0) {
+                            <div class="p-4 text-center text-xs text-gray-400">
+                              No se encontraron repuestos con ese término en el inventario.
+                            </div>
+                          }
+                        </div>
+                      </div>
+                    }
+
+                    <!-- Selected complement summary preview pill -->
+                    @if (promoComboComplementSku) {
+                      <div class="rounded-xl border border-orange-200 bg-orange-50/70 p-2.5 flex items-center justify-between text-xs">
+                        <div class="flex items-center gap-2">
+                          <span class="text-base">🎁</span>
+                          <div>
+                            <span class="text-[10px] font-bold text-orange-900 uppercase tracking-wide block">Repuesto Complementario Activo:</span>
+                            <span class="font-bold text-gray-900">{{ promoComboComplementName }}</span>
+                            <span class="text-[10px] text-gray-500 ml-1 font-mono">({{ promoComboComplementSku }})</span>
+                          </div>
+                        </div>
+                        <span class="font-black text-orange-700 text-xs tabular-nums">+S/ {{ (promoComboComplementPrice * 0.85) | number: '1.2-2' }}</span>
+                      </div>
+                    }
                   </div>
                 }
 
@@ -4610,6 +4694,18 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
   readonly complaintsService = inject(ComplaintsService);
   readonly driverRatingService = inject(DriverRatingService);
   readonly promotionService = inject(PromotionService);
+  readonly promoComboComplementMode = signal<'RECOMMENDED' | 'MANUAL'>('RECOMMENDED');
+  readonly promoManualComboSearch = signal<string>('');
+  readonly filteredManualComboParts = computed(() => {
+    const q = this.promoManualComboSearch().trim().toLowerCase();
+    const currSku = this.promoPart()?.sku;
+    return this.adminParts().filter((p: Part) => {
+      if (p.sku === currSku) return false;
+      if (!q) return true;
+      const haystack = (p.name + ' ' + p.sku + ' ' + (p.oemCode || '') + ' ' + (p.manufacturerBrand || '')).toLowerCase();
+      return haystack.includes(q);
+    }).slice(0, 40);
+  });
 
   // Libro de Reclamaciones State
   readonly selectedComplaint = signal<ComplaintRecord | null>(null);
@@ -5059,6 +5155,13 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
       this.promoComboComplementSku = comp.sku;
       this.promoComboComplementName = comp.name;
       this.promoComboComplementPrice = comp.price;
+      return;
+    }
+    const adminPart = this.adminParts().find((p: Part) => p.sku === sku);
+    if (adminPart) {
+      this.promoComboComplementSku = adminPart.sku;
+      this.promoComboComplementName = adminPart.name;
+      this.promoComboComplementPrice = adminPart.salePrice || 50;
     }
   }
 
@@ -5357,6 +5460,9 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
     this.loadBranches();
     this.loadStorePaymentMethods();
     this.initOrderMonitor();
+    this.syncBus.on('REVIEW_CREATED', () => {
+      this.driverRatingService.loadRatings();
+    });
     this.loadGlobalOrders();
 
     // Deep-link routing via query parameters (e.g. from Notifications or direct 1-click links)

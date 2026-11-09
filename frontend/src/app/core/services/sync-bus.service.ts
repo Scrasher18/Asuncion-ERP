@@ -1,12 +1,13 @@
 import { Injectable, NgZone, inject } from '@angular/core';
-import { Subject, Observable } from 'rxjs';
+import { Subject, Observable, Subscription } from 'rxjs';
 
 export type SyncEventType =
   | 'POS_SALE_COMPLETED'
   | 'ONLINE_ORDER_COMPLETED'
   | 'RESERVATIONS_UPDATED'
   | 'ADMIN_STOCK_MUTATED'
-  | 'CATALOG_REFRESH_REQUESTED';
+  | 'CATALOG_REFRESH_REQUESTED'
+  | 'REVIEW_CREATED';
 
 export interface SyncEventPayload {
   type: SyncEventType;
@@ -114,5 +115,17 @@ export class SyncBusService {
 
   notifyCatalogRefresh(): void {
     this.emit('CATALOG_REFRESH_REQUESTED');
+  }
+
+  notifyReviewCreated(orderNumber?: string): void {
+    this.emit('REVIEW_CREATED', { orderNumber });
+  }
+
+  on(type: SyncEventType, callback: (payload: SyncEventPayload) => void): Subscription {
+    return this.bus$.asObservable().subscribe((payload) => {
+      if (payload.type === type) {
+        callback(payload);
+      }
+    });
   }
 }
