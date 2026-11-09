@@ -179,7 +179,7 @@ public class ChatbotService {
             GeospatialCoverageService geospatialCoverageService,
             ObjectMapper objectMapper,
             @Value("${app.chatbot.gemini-api-key:}") String geminiApiKey,
-            @Value("${app.chatbot.gemini-model:gemini-1.5-flash}") String geminiModel
+            @Value("${app.chatbot.gemini-model:gemini-3.1-flash-lite}") String geminiModel
     ) {
         this.orderRepository = orderRepository;
         this.partRepository = partRepository;
@@ -200,9 +200,9 @@ public class ChatbotService {
             }
         }
         this.geminiApiKey = resolvedKey;
-        String resolvedModel = (geminiModel != null && !geminiModel.isBlank()) ? geminiModel.trim() : "gemini-1.5-flash";
-        if ("gemini-3.5-flash-lite".equalsIgnoreCase(resolvedModel)) {
-            resolvedModel = "gemini-1.5-flash";
+        String resolvedModel = (geminiModel != null && !geminiModel.isBlank()) ? geminiModel.trim() : "gemini-3.1-flash-lite";
+        if ("gemini-1.5-flash".equalsIgnoreCase(resolvedModel) || "gemini-2.5-flash".equalsIgnoreCase(resolvedModel)) {
+            resolvedModel = "gemini-3.1-flash-lite";
         }
         this.geminiModel = resolvedModel;
 
@@ -986,7 +986,8 @@ public class ChatbotService {
 
             HttpRequest req = HttpRequest.newBuilder(uri)
                     .header("Content-Type", "application/json")
-                    .timeout(Duration.ofSeconds(25))
+                    .header("x-goog-api-key", geminiApiKey)
+                    .timeout(Duration.ofSeconds(20))
                     .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
                     .build();
 
@@ -997,12 +998,14 @@ public class ChatbotService {
                 if (!textNode.isMissingNode() && !textNode.asText().isBlank()) {
                     return cleanAiResponse(textNode.asText());
                 }
-            } else if (!"gemini-1.5-flash".equals(geminiModel)) {
-                log.info("Gemini modelo {} respondió con status {}, intentando fallback a gemini-1.5-flash", geminiModel, resp.statusCode());
-                URI fallbackUri = URI.create("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + geminiApiKey);
+            } else {
+                String fallbackModel = "gemini-3.5-flash-lite".equalsIgnoreCase(geminiModel) ? "gemini-3.1-flash-lite" : "gemini-3.5-flash-lite";
+                log.info("Gemini modelo {} respondió con status {}, intentando fallback a {}", geminiModel, resp.statusCode(), fallbackModel);
+                URI fallbackUri = URI.create("https://generativelanguage.googleapis.com/v1beta/models/" + fallbackModel + ":generateContent?key=" + geminiApiKey);
                 HttpRequest fallbackReq = HttpRequest.newBuilder(fallbackUri)
                         .header("Content-Type", "application/json")
-                        .timeout(Duration.ofSeconds(25))
+                        .header("x-goog-api-key", geminiApiKey)
+                        .timeout(Duration.ofSeconds(20))
                         .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
                         .build();
                 HttpResponse<String> fbResp = httpClient.send(fallbackReq, HttpResponse.BodyHandlers.ofString());
@@ -1013,10 +1016,8 @@ public class ChatbotService {
                         return cleanAiResponse(textNode.asText());
                     }
                 } else {
-                    log.warn("Gemini fallback gemini-1.5-flash respondió status {}: {}", fbResp.statusCode(), fbResp.body());
+                    log.warn("Gemini fallback {} respondió status {}: {}", fallbackModel, fbResp.statusCode(), fbResp.body());
                 }
-            } else {
-                log.warn("Gemini API call falló con status {}: {}", resp.statusCode(), resp.body());
             }
         } catch (Exception e) {
             log.debug("Fallback a motor HYBRID_DB local (Gemini no disponible: {})", e.getMessage());
