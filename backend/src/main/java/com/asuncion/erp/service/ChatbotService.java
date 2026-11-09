@@ -56,7 +56,7 @@ public class ChatbotService {
 
     private static final List<String> DEFAULT_QUICK_REPLIES = List.of(
             "¿Tienen pastillas de freno para Toyota Hilux 2020?",
-            "Rastrear pedido ASN-2026-0012",
+            "¿Tienen filtros de aire para Nissan Frontier?",
             "¿Cuál es su radio de cobertura y costo de delivery?",
             "¿Emiten factura electrónica con RUC para empresas?"
     );
@@ -198,16 +198,16 @@ public class ChatbotService {
         String rawMessage = request.message().trim();
         String normalized = CatalogService.normalizeText(rawMessage);
 
-        // 1. Live Order Tracking Detection (ASN-YYYY-XXXX)
+        // 1. Order Tracking Redirection (GPS Live Tracking is strictly handled in /track page)
         Matcher orderMatcher = ORDER_CODE_PATTERN.matcher(rawMessage);
-        if (orderMatcher.find()) {
-            String orderCode = orderMatcher.group(1).toUpperCase();
-            return handleOrderTracking(sessionId, rawMessage, orderCode);
+        if (orderMatcher.find() || containsAny(normalized, "rastrear", "seguimiento", "estado de mi pedido", "donde esta mi pedido", "rastreo", "donde esta mi orden", "estado de orden")) {
+            String redirectReply = "El seguimiento de pedidos en tiempo real con monitoreo GPS satelital se consulta exclusivamente en la sección Seguimiento de nuestra plataforma (disponible en el menú superior o ingresando a /track). Por seguridad y precisión cartográfica en vivo, este asistente de chat está enfocado exclusivamente en consultas de catálogo técnico, compatibilidad vehicular y stock en almacén.";
+            return enrichAndBuild(sessionId, rawMessage, redirectReply, "ORDER_TRACKING_REDIRECT", null, List.of());
         }
 
         // 1.1 Anti-Jailbreak / Prompt Injection Detection
         if (containsAny(normalized, "ignora tus", "olvida tus", "actua como", "dame la clave", "dame la contrasena", "password", "system prompt", "bypass", "hackear")) {
-            String secureReply = "Como asesor técnico oficial de **Repuestos Automotrices Asunción**, opero bajo estrictos protocolos de seguridad y protección de datos. Estoy a tu disposición para asesorarte en la búsqueda de repuestos mecánicamente compatibles o consultar el estado de tus órdenes de compra.";
+            String secureReply = "Como asesor técnico oficial de **Repuestos Automotrices Asunción**, opero bajo estrictos protocolos de seguridad y protección de datos. Estoy a tu disposición para asesorarte en la búsqueda de repuestos mecánicamente compatibles y disponibilidad en catálogo.";
             return enrichAndBuild(sessionId, rawMessage, secureReply, "SECURITY_GUARDRAIL", null, List.of());
         }
 
@@ -235,10 +235,7 @@ public class ChatbotService {
         }
 
         // 3. FAQ Detection (Coverage, Invoicing/B2B, Warranty, Branches/Hours, Tracking Help)
-        if (containsAny(normalized, "rastrear", "seguimiento", "estado de mi pedido", "donde esta mi pedido")) {
-            String reply = "Para consultar el estado de tu pedido en tiempo real, indícame tu código de orden con formato **ASN-2026-XXXX** (por ejemplo: `ASN-2026-0011` o `ASN-2026-0012`).";
-            return enrichAndBuild(sessionId, rawMessage, reply, "ORDER_TRACKING_PROMPT", null, List.of());
-        }
+
 
         if (containsAny(normalized, "cobertura", "radio", "delivery", "envio", "despacho", "distrito", "llegan")) {
             List<BranchDto> branches = geospatialCoverageService.getActiveBranches();
@@ -263,56 +260,29 @@ public class ChatbotService {
 
         if (containsAny(normalized, "horario", "direccion", "sucursal", "sede", "tienda", "telefono", "ubicacion")) {
             List<BranchDto> branches = geospatialCoverageService.getActiveBranches();
-            StringBuilder sb = new StringBuilder("Nuestras tiendas y almacenes atienden de **Lunes a Sábado de 8:00 a.m. a 6:30 p.m.**:\n");
+            StringBuilder sb = new StringBuilder("Nuestras tiendas y almacenes atienden de **Lunes a Domingo de 8:00 a.m. a 8:00 p.m.** (pedidos para delivery el mismo día hasta las 6:30 p.m., recojo en tienda vigente por 48 horas):\n");
             for (BranchDto b : branches) {
                 sb.append(String.format("• **%s**: %s (Tel: %s)\n", b.name(), b.address(), b.phone()));
             }
             return enrichAndBuild(sessionId, rawMessage, sb.toString(), "FAQ_BRANCHES", null, List.of());
         }
 
-        // 4. Default Welcome / General Automotive Assistant
-        String welcome = "¡Hola! Soy el Asistente Técnico de Repuestos Automotrices Asunción. Puedo ayudarte en tiempo real con:\n"
-                + "• Compatibilidad vehicular y stock: ej. ¿Tienen pastillas de freno para Toyota Hilux 2020? o busca por código OEM/SKU.\n"
-                + "• Rastreo de pedidos en vivo: ej. Estado del pedido ASN-2026-0012.\n"
-                + "• Cobertura de envíos a domicilio, facturación RUC y garantías oficiales.";
-        return enrichAndBuild(sessionId, rawMessage, welcome, "GENERAL_ASSISTANCE", null, List.of());
+        // 4. Greeting or Unconfigured/Unknown Query
+        if (isGreetingOnly(normalized)) {
+            String greeting = "¡Hola! Bienvenido a Repuestos Automotrices Asunción. ¿En qué repuesto te puedo orientar hoy? Puedes indicarme la marca, modelo y año de tu vehículo (por ejemplo: 'pastillas de freno para Toyota Hilux 2020') o el código OEM/SKU que buscas.";
+            return enrichAndBuild(sessionId, rawMessage, greeting, "GREETING", null, List.of());
+        }
+
+        String unconfigured = "Actualmente no tengo configurada esa información en mi base de datos técnica. Como Asistente de Autopartes Asunción, estoy especializado únicamente en consultas de nuestro catálogo de repuestos automotrices, compatibilidad vehicular (marca, modelo y año), stock en almacén, precios y horarios de atención. Por favor, indícame la marca, modelo y repuesto que necesitas (por ejemplo: 'pastillas de freno para Toyota Hilux 2020' o 'filtro de aceite para Nissan Frontier').";
+        return enrichAndBuild(sessionId, rawMessage, unconfigured, "UNCONFIGURED_OR_UNKNOWN", null, List.of());
     }
 
-    private ChatbotResponse handleOrderTracking(String sessionId, String userMsg, String orderCode) {
-        return orderRepository.findByOrderNumberIgnoreCase(orderCode)
-                .map(order -> {
-                    OrderResponse dto = orderService.toOrderResponse(order);
-                    String statusLabel = switch (order.getStatus()) {
-                        case PENDIENTE -> "Pendiente de validación";
-                        case RESERVADO -> "Stock reservado en espera de confirmación de pago";
-                        case CONFIRMADO -> "Confirmado (en cola de almacén)";
-                        case EN_PREPARACION -> "En preparación y picking en almacén";
-                        case LISTO_PARA_DESPACHO -> "Embalado y listo para despacho";
-                        case EN_RUTA -> "En ruta GPS con nuestro motorizado";
-                        case ENTREGADO -> "Entregado satisfactoriamente";
-                        case CANCELADO -> "Cancelado";
-                    };
-                    StringBuilder sb = new StringBuilder();
-                    sb.append(String.format("📦 **Pedido %s** — Estado actual: **%s**.\n", dto.orderNumber(), statusLabel));
-                    sb.append(String.format("• **Sucursal de origen**: %s\n", dto.branchName()));
-                    sb.append(String.format("• **Importe total**: S/ %.2f (%d ítem(s))\n", dto.totalAmount(), dto.items().size()));
-                    if (dto.assignedDriverName() != null) {
-                        sb.append(String.format("• **Motorizado asignado**: %s (%s)\n",
-                                dto.assignedDriverName(),
-                                dto.assignedDriverPhone() != null ? dto.assignedDriverPhone() : "GPS activo"));
-                    }
-                    if (dto.deliveryProof() != null) {
-                        sb.append(String.format("• **Recibido por**: %s", dto.deliveryProof().receiverName()));
-                    }
-                    return enrichAndBuild(sessionId, userMsg, sb.toString(), "ORDER_TRACKING", dto, List.of());
-                })
-                .orElseGet(() -> {
-                    String notFoundReply = String.format(
-                            "No encontré ningún pedido registrado con el código **%s**. Verifica que el número sea correcto (por ejemplo: `ASN-2026-0011` o `ASN-2026-0012`).",
-                            orderCode
-                    );
-                    return enrichAndBuild(sessionId, userMsg, notFoundReply, "ORDER_TRACKING", null, List.of());
-                });
+    private boolean isGreetingOnly(String normalized) {
+        String trimmed = normalized != null ? normalized.trim() : "";
+        return trimmed.equals("hola") || trimmed.equals("buen dia") || trimmed.equals("buenos dias")
+                || trimmed.equals("buenas tardes") || trimmed.equals("buenas noches")
+                || trimmed.equals("saludos") || trimmed.equals("buenas") || trimmed.equals("que tal")
+                || trimmed.equals("hola que tal") || trimmed.equals("hola buenas") || trimmed.equals("hola buenos dias");
     }
 
     private ChatbotResponse tryVehicleAndPartSearch(String sessionId, String rawMessage, String normalized) {
@@ -936,6 +906,10 @@ public class ChatbotService {
                        - Si preguntan por bujías en camiones pesados diésel (Scania, Volvo, Hino): Aclara técnicamente que los motores diésel encienden por compresión y no usan bujías de chispa.
                        - Si preguntan por repuestos de combustión para autos 100% eléctricos: Aclara que no llevan motor a combustión ni aceite de motor.
                     7. AMPLITUD TEMÁTICA AUTOMOTRIZ: Si el cliente consulta sobre diagnóstico de fallas (ruidos, vibraciones, frenado esponjoso, sobrecalentamiento, chirridos), intervalos de cambio de fajas o fluidos, o diferencias de materiales (cerámico vs semimetálico), responde con fundamento técnico automotriz claro y sugiere la solución con las piezas OEM y Aftermarket de Repuestos Asunción.
+                    8. HONESTIDAD ESTRICTA Y CERO ALUCINACIONES (REGLA MANDATORIA): Si el cliente pregunta por información que NO está en los DATOS OFICIALES DE ALMACÉN, o por temas que no tenemos configurados, repuestos de marcas que no vendemos, o preguntas no automotrices o fuera de catálogo: DI LA VERDAD con total transparencia. NUNCA inventes repuestos, compatibilidades ni afirmes cosas que no están configuradas. Responde con claridad: "Actualmente no tengo configurada esa información en mi base de datos técnica. Como Asistente de Autopartes Asunción, estoy especializado únicamente en consultas de repuestos de nuestro catálogo, compatibilidad vehicular por marca y modelo, stock en almacén y horarios de atención."
+                    9. SEGUIMIENTO DE PEDIDOS: El seguimiento de pedidos ya NO se realiza en este chat. Si el usuario pregunta por rastreo de pedidos o escribe un código ASN-2026-XXXX, indícale claramente que debe consultar en la sección "Seguimiento" (/track) del menú superior para ver el monitoreo GPS satelital en vivo.
+
+
 
                     DATOS OFICIALES DE ALMACÉN:
                     %s

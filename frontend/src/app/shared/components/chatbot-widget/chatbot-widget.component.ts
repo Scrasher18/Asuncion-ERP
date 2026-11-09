@@ -46,7 +46,7 @@ interface ChatMessageItem {
                   Asistente Asunción
                 </h3>
                 <p class="text-[11px] text-gray-500">
-                  Consultas de stock y pedidos
+                  Catálogo y compatibilidad de repuestos
                 </p>
               </div>
             </div>
@@ -123,35 +123,7 @@ interface ChatMessageItem {
                     </div>
                   }
 
-                  <!-- Inline Tracked Order Status Card -->
-                  @if (msg.trackedOrder; as order) {
-                    <div class="rounded-xl border border-orange-200 bg-orange-50/60 p-2.5 space-y-1.5">
-                      <div class="flex items-center justify-between gap-2">
-                        <span class="font-mono text-[11px] font-semibold text-gray-900">
-                          {{ order.orderNumber }}
-                        </span>
-                        <span class="rounded-full border border-orange-200 bg-white px-2 py-0.5 text-[10px] font-semibold text-orange-700">
-                          {{ formatOrderStatus(order.status) }}
-                        </span>
-                      </div>
-                      <p class="text-[11px] text-gray-700">
-                        Entrega: <strong>{{ order.deliveryType === 'PICKUP' ? 'Recojo en tienda' : 'Envío a domicilio' }}</strong> · Total:
-                        <strong>
-                          S/ {{ (order.totalAmount ?? order.total ?? order.subtotal) | number: '1.2-2' }}
-                        </strong>
-                      </p>
-                      <button
-                        type="button"
-                        (click)="openTracker(order.orderNumber)"
-                        class="inline-flex items-center gap-1 text-[11px] font-semibold text-orange-700 hover:text-orange-800"
-                      >
-                        <span>Ver seguimiento completo</span>
-                        <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-                        </svg>
-                      </button>
-                    </div>
-                  }
+
                 </div>
               </div>
             }
@@ -187,7 +159,7 @@ interface ChatMessageItem {
               type="text"
               [(ngModel)]="draftMessage"
               name="chatInput"
-              placeholder="Ej: Pastillas Hilux 2021 o pedido ASU-..."
+              placeholder="Ej: Pastillas Hilux 2021, filtros Denso, bujías NGK..."
               class="flex-1 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-base sm:text-xs text-gray-900 placeholder-gray-400 focus:border-orange-600 focus:bg-white focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
             />
             <button
@@ -282,7 +254,7 @@ export class ChatbotWidgetComponent {
   readonly quickReplies = signal<string[]>([
     '🔍 Pastillas para Hilux 2021',
     '📦 Filtros de aceite en stock',
-    '🚚 Rastrear mi pedido',
+    '🔧 Bujías para Toyota Probox',
     '📍 Zonas de delivery y pago',
   ]);
 
@@ -296,10 +268,10 @@ Estoy aquí para ayudarte exclusivamente con tus consultas y compras de repuesto
 
 1. 🔍 **Búsqueda por vehículo:** Indícame la marca, modelo y año (ej: "pastillas para Hilux 2021" o "filtro de aceite para Nissan Frontier").
 2. 📦 **Stock y Precios:** Consulta disponibilidad en almacén y precios con IGV.
-3. 🚚 **Seguimiento de Pedido:** Escribe tu código de pedido (ej: "ASN-2026-0008") para ver el estado de despacho y motorizado en vivo.
+3. 🛠️ **Compatibilidad y Asesoría:** Consulta especificaciones OEM, fallas comunes y repuestos certificados.
 4. 💳 **Métodos de Pago y Entrega:** Consulta información sobre envíos express en Lima y formas de pago.
 
-💡 *Nota: Por favor realiza preguntas específicas sobre repuestos automotrices, compatibilidad o pedidos para brindarte la mejor respuesta.*
+💡 *Nota: El seguimiento en tiempo real de tus pedidos se realiza con GPS satelital en la sección "Seguimiento" (/track) del menú superior.*
 
 ¿Qué repuesto necesitas consultar hoy?`,
       timestamp: new Date(),

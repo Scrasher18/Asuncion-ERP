@@ -400,9 +400,11 @@ class AsuncionErpIntegrationTests {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(trackingMsg))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.intent").value("ORDER_TRACKING"))
-                .andExpect(jsonPath("$.trackedOrder.orderNumber").value("ASN-2026-0012"))
-                .andExpect(jsonPath("$.trackedOrder.status").value("EN_RUTA"));
+                .andExpect(jsonPath("$.intent").value("ORDER_TRACKING_REDIRECT"))
+                .andExpect(jsonPath("$.reply").isNotEmpty())
+                .andExpect(jsonPath("$.trackedOrder").doesNotExist());
+
+
 
         // Conversational accessory query for vehicle
         String accessoryMsg = objectMapper.writeValueAsString(Map.of(
