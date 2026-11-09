@@ -84,6 +84,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/orders/track/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/lookup/**").permitAll()
                         .requestMatchers("/api/v1/chatbot/**").permitAll()
+                        .requestMatchers("/api/v1/driver-reviews/**").permitAll()
                         // Public Payment Gateway Endpoints (Config, Webhook, CIP Status, Card Analyzer)
                         .requestMatchers(HttpMethod.GET, "/api/v1/payments/config").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/payments/analyze-card").permitAll()

@@ -1,3 +1,4 @@
+import { HttpClient } from '@angular/common/http';
 import { inject, Injectable, signal } from '@angular/core';
 import { ToastService } from './toast.service';
 import { SyncBusService } from './sync-bus.service';
@@ -21,23 +22,26 @@ export interface DriverRatingStats {
   starDistribution: { [key: number]: number };
 }
 
-const STORAGE_KEY = 'asuncion_driver_ratings';
+const STORAGE_KEY = 'asuncion_driver_ratings_v2';
+const API_URL = '/api/v1/driver-reviews';
 
 @Injectable({
   providedIn: 'root',
 })
 export class DriverRatingService {
+  private readonly http = inject(HttpClient);
   private readonly toast = inject(ToastService);
   private readonly syncBus = inject(SyncBusService);
   readonly ratings = signal<DriverRatingItem[]>([]);
 
   constructor() {
+    this.loadFromCache();
     this.loadRatings();
 
     if (typeof window !== 'undefined') {
       window.addEventListener('storage', (evt) => {
         if (evt.key === STORAGE_KEY) {
-          this.loadRatings();
+          this.loadFromCache();
         }
       });
 
@@ -47,39 +51,39 @@ export class DriverRatingService {
     }
   }
 
-  loadRatings(): void {
-    if (typeof window === 'undefined') {
-      this.ratings.set([]);
-      return;
-    }
+  private loadFromCache(): void {
+    if (typeof window === 'undefined') return;
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed)) {
-          const realRatings = parsed.filter(
-            (r: DriverRatingItem) =>
-              r &&
-              r.id &&
-              !r.id.startsWith('rate-1') &&
-              !r.id.startsWith('rate-2') &&
-              !r.id.startsWith('rate-3') &&
-              !r.id.startsWith('rate-4') &&
-              r.orderNumber &&
-              !r.orderNumber.startsWith('ASN-HIST-') &&
-              r.customerName !== 'Ing. Marco Antonio Vera' &&
-              r.customerName !== 'Roberto Vargas Sánchez' &&
-              r.customerName !== 'Luis Alberto Huerta' &&
-              r.customerName !== 'Pedro Pablo Quispe'
-          );
-          this.ratings.set(realRatings);
-          return;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          this.ratings.set(this.cleanReviews(parsed));
         }
       }
-    } catch (e) {
-      console.warn('Error loading driver ratings from localStorage:', e);
+    } catch {
+      // ignore
     }
-    this.ratings.set([]);
+  }
+
+  loadRatings(): void {
+    // 1. Fetch persistent reviews from PostgreSQL backend
+    this.http.get<DriverRatingItem[]>(API_URL).subscribe({
+      next: (serverReviews) => {
+        if (Array.isArray(serverReviews) && serverReviews.length > 0) {
+          const cleaned = this.cleanReviews(serverReviews);
+          this.ratings.set(cleaned);
+          this.persist(cleaned);
+        } else {
+          // If server returned empty, fallback to local cache
+          this.loadFromCache();
+        }
+      },
+      error: () => {
+        // Fallback to local cache if offline or error
+        this.loadFromCache();
+      },
+    });
   }
 
   submitRating(data: Omit<DriverRatingItem, 'id' | 'createdAt'>): DriverRatingItem {
@@ -98,11 +102,27 @@ export class DriverRatingService {
       createdAt: formattedDate,
     };
 
+    // Optimistic update
     const updated = [newRating, ...this.ratings().filter((r) => r.orderNumber !== data.orderNumber)];
     this.ratings.set(updated);
     this.persist(updated);
     this.syncBus.emit('REVIEW_CREATED', { orderNumber: data.orderNumber });
     this.toast.success('¡Gracias por tu calificación!', `Has calificado la entrega de ${data.driverName} con ${data.stars} estrellas ⭐.`);
+
+    // Persist to backend database via REST API
+    this.http.post<DriverRatingItem>(API_URL, newRating).subscribe({
+      next: (saved) => {
+        if (saved && saved.id) {
+          const synced = this.ratings().map((r) => (r.orderNumber === data.orderNumber ? saved : r));
+          this.ratings.set(synced);
+          this.persist(synced);
+        }
+      },
+      error: (err) => {
+        console.warn('Review persisted locally, backend sync warning:', err);
+      },
+    });
+
     return newRating;
   }
 
@@ -112,6 +132,17 @@ export class DriverRatingService {
 
   getRatingByOrder(orderNumber: string): DriverRatingItem | undefined {
     return this.ratings().find((r) => r.orderNumber === orderNumber);
+  }
+
+  private cleanReviews(list: DriverRatingItem[]): DriverRatingItem[] {
+    return list.filter(
+      (r) =>
+        r &&
+        r.orderNumber &&
+        !r.orderNumber.startsWith('ASN-HIST-') &&
+        r.customerName !== 'Ing. Marco Antonio Vera' &&
+        r.customerName !== 'Roberto Vargas Sánchez'
+    );
   }
 
   private normalizeStr(str: string): string {

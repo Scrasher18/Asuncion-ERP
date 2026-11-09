@@ -281,7 +281,7 @@ import { SoundService } from '../../core/services/sound.service';
                       </div>
 
                       <div class="flex flex-wrap items-center gap-2">
-                        @if (ord.status === 'ENTREGADO') {
+                        @if (ord.status === 'ENTREGADO' && !auth.hasAnyRole(['ADMIN', 'VENDEDOR', 'MOTORIZADO'])) {
                           @if (driverRatingService.getRatingByOrder(ord.orderNumber); as myRating) {
                             <button
                               type="button"
@@ -326,7 +326,7 @@ import { SoundService } from '../../core/services/sound.service';
                           "
                           class="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl border px-4 py-2 text-xs font-bold transition"
                         >
-                          @if (ord.status === 'ENTREGADO') {
+                          @if (ord.status === 'ENTREGADO' && !auth.hasAnyRole(['ADMIN', 'VENDEDOR', 'MOTORIZADO'])) {
                             <svg class="h-4 w-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
                               <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
@@ -516,7 +516,7 @@ import { SoundService } from '../../core/services/sound.service';
           </div>
         }
         <!-- Full-Screen Driver Rating Pop-up Modal for My Orders -->
-        @if (showRatingModal() && selectedRatingOrder(); as ord) {
+        @if (showRatingModal() && !auth.hasAnyRole(['ADMIN', 'VENDEDOR', 'MOTORIZADO']) && selectedRatingOrder(); as ord) {
           <div class="fixed inset-0 z-[9999] overflow-y-auto flex items-center justify-center p-4 bg-gray-950/80 backdrop-blur-md animate-fadeIn">
             <!-- Click backdrop to dismiss -->
             <div class="absolute inset-0" (click)="dismissRatingModal()"></div>
@@ -638,6 +638,7 @@ export class MyOrdersPageComponent implements OnInit, OnDestroy {
   readonly availableRatingTags = ['Muy puntual', 'Amable', 'Repuesto sellado', 'Llegó rápido', 'Excelente servicio'];
 
   openRatingModalForOrder(ord: Order): void {
+    if (this.auth.hasAnyRole(['ADMIN', 'VENDEDOR', 'MOTORIZADO'])) return;
     this.selectedRatingOrder.set(ord);
     const existing = this.driverRatingService.getRatingByOrder(ord.orderNumber);
     if (existing) {

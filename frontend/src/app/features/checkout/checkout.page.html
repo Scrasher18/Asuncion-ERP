@@ -830,11 +830,11 @@
                       <div class="relative min-w-[140px] flex-1">
                         <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 font-bold text-gray-400">S/</span>
                         <input
-                          type="number"
-                          [(ngModel)]="cashAmountToPay"
+                          type="text"
+                          inputmode="decimal"
+                          [value]="formattedCashAmountToPay"
+                          (input)="onCashAmountInput($event)"
                           [placeholder]="grandTotal().toFixed(2)"
-                          min="1"
-                          step="0.10"
                           class="w-full min-h-[42px] rounded-xl border border-gray-200 pl-8 pr-3 py-2 text-sm font-mono font-bold text-gray-900 placeholder:text-gray-300 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
                         />
                       </div>
@@ -842,28 +842,28 @@
                       <!-- Quick chips -->
                       <button
                         type="button"
-                        (click)="cashAmountToPay = grandTotal()"
+                        (click)="setExactCashAmount(grandTotal())"
                         class="px-2.5 py-2 rounded-lg border border-gray-200 bg-gray-50 text-[11px] font-bold text-gray-700 hover:border-orange-300 hover:text-orange-700 cursor-pointer"
                       >
                         Exacto
                       </button>
                       <button
                         type="button"
-                        (click)="cashAmountToPay = 50"
+                        (click)="setExactCashAmount(50)"
                         class="px-2.5 py-2 rounded-lg border border-gray-200 bg-gray-50 text-[11px] font-bold text-gray-700 hover:border-orange-300 hover:text-orange-700 cursor-pointer"
                       >
                         S/ 50
                       </button>
                       <button
                         type="button"
-                        (click)="cashAmountToPay = 100"
+                        (click)="setExactCashAmount(100)"
                         class="px-2.5 py-2 rounded-lg border border-gray-200 bg-gray-50 text-[11px] font-bold text-gray-700 hover:border-orange-300 hover:text-orange-700 cursor-pointer"
                       >
                         S/ 100
                       </button>
                       <button
                         type="button"
-                        (click)="cashAmountToPay = 200"
+                        (click)="setExactCashAmount(200)"
                         class="px-2.5 py-2 rounded-lg border border-gray-200 bg-gray-50 text-[11px] font-bold text-gray-700 hover:border-orange-300 hover:text-orange-700 cursor-pointer"
                       >
                         S/ 200

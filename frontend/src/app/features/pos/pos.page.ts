@@ -165,32 +165,10 @@ const POS_HOLD_TTL_MS = 15 * 60 * 1000;
       <!-- Main POS Workspace Grid -->
       <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-6 space-y-6">
         <!-- Quick Summary KPIs -->
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div class="rounded-2xl border border-gray-200 bg-white p-4 flex items-center justify-between shadow-2xs">
             <div>
-              <span class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Comprobantes Emitidos</span>
-              <div class="flex items-center gap-2 mt-0.5">
-                <span class="font-mono text-xl font-extrabold text-gray-900">{{ counterOrders().length }}</span>
-                @if (counterOrders().length > 0) {
-                  <button
-                    type="button"
-                    (click)="exportPosSalesToExcelForSunat()"
-                    class="rounded-lg border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-800 hover:bg-emerald-100 transition cursor-pointer"
-                    title="Exportar comprobantes de caja a Excel para declaración tributaria"
-                  >
-                    📥 Exportar Ventas a Excel
-                  </button>
-                }
-              </div>
-            </div>
-            <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-50 border border-orange-200 text-orange-600 font-bold">
-              🧾
-            </span>
-          </div>
-
-          <div class="rounded-2xl border border-gray-200 bg-white p-4 flex items-center justify-between shadow-2xs">
-            <div>
-              <span class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Total Recaudado</span>
+              <span class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Total Recaudado en Turno</span>
               <span class="font-mono text-xl font-extrabold text-emerald-700 mt-0.5 block">
                 S/ {{ totalCounterRevenue() | number: '1.2-2' }}
               </span>
@@ -202,7 +180,7 @@ const POS_HOLD_TTL_MS = 15 * 60 * 1000;
 
           <div class="rounded-2xl border border-gray-200 bg-white p-4 flex items-center justify-between shadow-2xs">
             <div>
-              <span class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Repuestos Disponibles</span>
+              <span class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Repuestos Disponibles en Catálogo</span>
               <span class="font-mono text-xl font-extrabold text-gray-900 mt-0.5 block">{{ parts().length }}</span>
             </div>
             <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-gray-100 border border-gray-200 text-gray-700 font-bold">
@@ -544,9 +522,10 @@ const POS_HOLD_TTL_MS = 15 * 60 * 1000;
                     <div>
                       <label class="block text-xs font-bold text-gray-700 mb-1">Efectivo Recibido (S/)</label>
                       <input
-                        type="number"
-                        step="0.10"
-                        [(ngModel)]="cashReceived"
+                        type="text"
+                        inputmode="decimal"
+                        [value]="formattedCashReceived"
+                        (input)="onCashReceivedInput($event)"
                         placeholder="0.00"
                         class="w-full min-h-[40px] rounded-xl border border-gray-200 bg-white px-3 py-2 font-mono text-xs font-bold text-gray-900 focus:border-orange-600 focus:outline-none"
                       />
@@ -601,78 +580,7 @@ const POS_HOLD_TTL_MS = 15 * 60 * 1000;
           </div>
         </div>
 
-        <!-- BOTTOM SECTION: HISTORIAL DE VENTAS -->
-        <div class="rounded-2xl border border-gray-200 bg-white overflow-hidden shadow-2xs">
-          <div class="border-b border-gray-200 px-5 py-4 flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h2 class="text-base font-bold text-gray-900">
-                Historial de Ventas Registradas ({{ counterOrders().length }})
-              </h2>
-              <p class="text-xs text-gray-500">
-                Registro exclusivo de ventas directas (no genera alertas en la campana de pedidos online).
-              </p>
-            </div>
-          </div>
 
-          <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200 text-xs">
-              <thead class="bg-gray-50 text-left font-semibold text-gray-600">
-                <tr>
-                  <th class="px-4 py-3">N.° Ticket / Fecha</th>
-                  <th class="px-4 py-3">Cliente / Documento</th>
-                  <th class="px-4 py-3">Comprobante</th>
-                  <th class="px-4 py-3">Medio de Pago</th>
-                  <th class="px-4 py-3 text-right">Total Cobrado</th>
-                  <th class="px-4 py-3 text-right">Comprobante PDF</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-gray-100">
-                @for (ord of counterOrders(); track ord.id) {
-                  <tr class="hover:bg-gray-50/70 transition">
-                    <td class="px-4 py-3.5 font-mono font-bold text-gray-900">
-                      {{ ord.orderNumber }}
-                      <span class="block font-sans font-normal text-[11px] text-gray-500">
-                        {{ ord.createdAt | date: 'dd/MM/yyyy HH:mm' }}
-                      </span>
-                    </td>
-                    <td class="px-4 py-3.5">
-                      <p class="font-semibold text-gray-900">{{ ord.recipientName || ord.customerName }}</p>
-                      <span class="font-mono text-[11px] text-gray-500">
-                        {{ ord.customerTaxId || 'Sin documento' }}
-                      </span>
-                    </td>
-                    <td class="px-4 py-3.5">
-                      <span class="inline-flex items-center rounded-full border border-gray-200 bg-gray-100 px-2.5 py-0.5 text-[11px] font-bold text-gray-700">
-                        {{ ord.invoiceType }}
-                      </span>
-                    </td>
-                    <td class="px-4 py-3.5 font-medium text-gray-700">
-                      {{ formatPosPaymentMethod(ord.paymentMethod) }}
-                    </td>
-                    <td class="px-4 py-3.5 text-right font-mono font-extrabold text-gray-900">
-                      S/ {{ (ord.totalAmount ?? ord.total ?? ord.subtotal) | number: '1.2-2' }}
-                    </td>
-                    <td class="px-4 py-3.5 text-right">
-                      <button
-                        type="button"
-                        (click)="downloadReceipt(ord)"
-                        class="inline-flex items-center gap-1.5 rounded-lg border border-orange-200 bg-orange-50 px-3 py-1.5 text-xs font-bold text-orange-700 hover:bg-orange-100 transition cursor-pointer"
-                      >
-                        <span>Descargar PDF</span>
-                      </button>
-                    </td>
-                  </tr>
-                } @empty {
-                  <tr>
-                    <td colspan="6" class="px-4 py-10 text-center text-gray-500">
-                      Aún no se han registrado ventas en caja en esta sesión.
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-        </div>
       </div>
     </div>
   `,
@@ -712,7 +620,44 @@ export class PosPageComponent implements OnInit, OnDestroy {
   customerName = 'Cliente en Caja';
   customerPhone = '';
   paymentMethod = 'MOSTRADOR_EFECTIVO';
+  formattedCashReceived: string = '';
   cashReceived: number | null = null;
+
+  onCashReceivedInput(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    let val = input.value || '';
+
+    // Allow only digits and dot
+    val = val.replace(/[^0-9.]/g, '');
+    const parts = val.split('.');
+    let intPart = parts[0] || '';
+    let decPart = parts.length > 1 ? parts.slice(1).join('').slice(0, 2) : null;
+
+    if (intPart.length > 1 && intPart.startsWith('0')) {
+      intPart = intPart.replace(/^0+/, '') || '0';
+    }
+
+    const formattedInt = intPart ? intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',') : '';
+
+    if (decPart !== null) {
+      this.formattedCashReceived = `${formattedInt || '0'}.${decPart}`;
+    } else if (val.includes('.')) {
+      this.formattedCashReceived = `${formattedInt || '0'}.`;
+    } else {
+      this.formattedCashReceived = formattedInt;
+    }
+
+    input.value = this.formattedCashReceived;
+
+    if (!intPart && decPart === null) {
+      this.cashReceived = null;
+    this.formattedCashReceived = '';
+    } else {
+      const cleanNumber = `${intPart || '0'}.${decPart !== null ? decPart : '0'}`;
+      const parsed = parseFloat(cleanNumber);
+      this.cashReceived = isNaN(parsed) ? null : parsed;
+    }
+  }
 
   readonly lookingUpDoc = signal<boolean>(false);
   readonly submitting = signal<boolean>(false);

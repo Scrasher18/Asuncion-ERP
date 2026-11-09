@@ -112,6 +112,49 @@ export class CheckoutPageComponent implements OnInit, OnDestroy {
   paymentMethod = 'TARJETA_CREDITO';
   cashPaymentSubtype: 'EFECTIVO' | 'POS' = 'EFECTIVO';
   cashAmountToPay: number | null = null;
+  formattedCashAmountToPay = '';
+
+  setExactCashAmount(val: number): void {
+    this.cashAmountToPay = val;
+    this.formattedCashAmountToPay = new Intl.NumberFormat('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(val);
+  }
+
+  onCashAmountInput(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    let val = input.value || '';
+
+    val = val.replace(/[^0-9.]/g, '');
+    const parts = val.split('.');
+    let intPart = parts[0] || '';
+    let decPart = parts.length > 1 ? parts.slice(1).join('').slice(0, 2) : null;
+
+    if (intPart.length > 1 && intPart.startsWith('0')) {
+      intPart = intPart.replace(/^0+/, '') || '0';
+    }
+
+    const formattedInt = intPart ? intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',') : '';
+
+    if (decPart !== null) {
+      this.formattedCashAmountToPay = `${formattedInt || '0'}.${decPart}`;
+    } else if (val.includes('.')) {
+      this.formattedCashAmountToPay = `${formattedInt || '0'}.`;
+    } else {
+      this.formattedCashAmountToPay = formattedInt;
+    }
+
+    input.value = this.formattedCashAmountToPay;
+
+    if (!intPart && decPart === null) {
+      this.cashAmountToPay = null;
+    } else {
+      const cleanNumber = `${intPart || '0'}.${decPart !== null ? decPart : '0'}`;
+      const parsed = parseFloat(cleanNumber);
+      this.cashAmountToPay = isNaN(parsed) ? null : parsed;
+    }
+  }
   notes = '';
 
   readonly cashChangeAmount = computed<number>(() => {

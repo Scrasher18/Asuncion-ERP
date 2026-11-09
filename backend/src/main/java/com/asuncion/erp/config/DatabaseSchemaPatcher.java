@@ -256,5 +256,25 @@ public class DatabaseSchemaPatcher implements CommandLineRunner {
         } catch (Exception e) {
             log.debug("Verificación tabla part_promotions completada: {}", e.getMessage());
         }
+
+        // Ensure driver_reviews table exists for persistent cross-device ratings
+        try {
+            jdbcTemplate.execute("""
+                CREATE TABLE IF NOT EXISTS driver_reviews (
+                    id BIGSERIAL PRIMARY KEY,
+                    order_number VARCHAR(50) NOT NULL UNIQUE,
+                    driver_name VARCHAR(150) NOT NULL,
+                    driver_email VARCHAR(150),
+                    customer_name VARCHAR(150) NOT NULL,
+                    stars INTEGER NOT NULL,
+                    tags TEXT,
+                    customer_comment TEXT,
+                    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+                )
+            """);
+            jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_driver_reviews_driver ON driver_reviews(driver_name)");
+        } catch (Exception e) {
+            log.debug("Verificación tabla driver_reviews completada: {}", e.getMessage());
+        }
     }
 }

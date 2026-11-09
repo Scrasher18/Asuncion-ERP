@@ -280,17 +280,28 @@ export class ChatbotWidgetComponent {
   draftMessage = '';
 
   readonly quickReplies = signal<string[]>([
-    'Repuestos para Toyota Hilux 2021',
-    '¿Tienen pastillas de freno en stock?',
-    '¿Cuál es la cobertura de envío?',
-    '¿Cómo rastreo mi pedido?',
+    '🔍 Pastillas para Hilux 2021',
+    '📦 Filtros de aceite en stock',
+    '🚚 Rastrear mi pedido',
+    '📍 Zonas de delivery y pago',
   ]);
 
   readonly messages = signal<ChatMessageItem[]>([
     {
       id: 'welcome-1',
       sender: 'bot',
-      text: 'Hola, bienvenido a Repuestos Asunción. Puedo ayudarte a encontrar piezas compatibles con tu vehículo, consultar stock disponible o revisar el estado de tu pedido.',
+      text: `¡Hola! Bienvenido al Asistente Técnico de Autopartes Asunción 🚗🔧
+
+Estoy aquí para ayudarte exclusivamente con tus consultas y compras de repuestos:
+
+1. 🔍 **Búsqueda por vehículo:** Indícame la marca, modelo y año (ej: "pastillas para Hilux 2021" o "filtro de aceite para Nissan Frontier").
+2. 📦 **Stock y Precios:** Consulta disponibilidad en almacén y precios con IGV.
+3. 🚚 **Seguimiento de Pedido:** Escribe tu código de pedido (ej: "ASN-2026-0008") para ver el estado de despacho y motorizado en vivo.
+4. 💳 **Métodos de Pago y Entrega:** Consulta información sobre envíos express en Lima y formas de pago.
+
+💡 *Nota: Por favor realiza preguntas específicas sobre repuestos automotrices, compatibilidad o pedidos para brindarte la mejor respuesta.*
+
+¿Qué repuesto necesitas consultar hoy?`,
       timestamp: new Date(),
     },
   ]);

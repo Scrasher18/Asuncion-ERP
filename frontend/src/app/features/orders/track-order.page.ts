@@ -533,7 +533,7 @@ const ORDER_STAGES = [
               </div>
 
       <!-- Full-Screen Driver Rating Pop-up Modal -->
-        @if (showRatingModal() && order(); as ord) {
+        @if (showRatingModal() && !auth.hasAnyRole(['ADMIN', 'VENDEDOR', 'MOTORIZADO']) && order(); as ord) {
           <div class="fixed inset-0 z-[9999] overflow-y-auto flex items-center justify-center p-4 bg-gray-950/80 backdrop-blur-md animate-fadeIn">
             <!-- Click backdrop to dismiss -->
             <div class="absolute inset-0" (click)="dismissRatingModal()"></div>
@@ -647,6 +647,7 @@ export class TrackOrderPageComponent implements OnInit, OnDestroy {
   private dismissedModalOrders = new Set<string>();
 
   openRatingModal(): void {
+    if (this.auth.hasAnyRole(['ADMIN', 'VENDEDOR', 'MOTORIZADO'])) return;
     const ord = this.order();
     if (!ord) return;
     const existing = this.driverRatingService.getRatingByOrder(ord.orderNumber);
@@ -665,6 +666,7 @@ export class TrackOrderPageComponent implements OnInit, OnDestroy {
   }
 
   dismissRatingModal(): void {
+    if (this.auth.hasAnyRole(['ADMIN', 'VENDEDOR', 'MOTORIZADO'])) return;
     const ord = this.order();
     if (ord) {
       this.dismissedModalOrders.add(ord.orderNumber);
@@ -834,7 +836,8 @@ export class TrackOrderPageComponent implements OnInit, OnDestroy {
       this.stopPolling();
       this.disconnectSse();
 
-      if (current === 'ENTREGADO' && !this.driverRatingService.hasRated(ord.orderNumber) && !this.dismissedModalOrders.has(ord.orderNumber)) {
+      const isStaff = this.auth.hasAnyRole(['ADMIN', 'VENDEDOR', 'MOTORIZADO']);
+      if (!isStaff && current === 'ENTREGADO' && !this.driverRatingService.hasRated(ord.orderNumber) && !this.dismissedModalOrders.has(ord.orderNumber)) {
         setTimeout(() => {
           this.openRatingModal();
         }, 500);
