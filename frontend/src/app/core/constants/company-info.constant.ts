@@ -12,8 +12,8 @@ export const BOLETA_DNI_REQUIRED_THRESHOLD = 700;
 export interface ResolvedOrderBillingMeta {
   isFactura: boolean;
   docTypeLabel: 'FACTURA' | 'BOLETA';
-  docTitle: 'FACTURA ELECTRÓNICA' | 'BOLETA DE VENTA ELECTRÓNICA';
-  serie: 'F001' | 'B001';
+  docTitle: 'PROFORMA PARA FACTURA' | 'BOLETA DE VENTA';
+  serie: 'P001' | 'B001';
   correlativo: string;
   fullSeriesNumber: string;
   customerDocType: 'RUC' | 'DNI' | 'C.E.' | '-';
@@ -60,8 +60,8 @@ export function resolveOrderBillingMeta(order: Order): ResolvedOrderBillingMeta 
   const isFactura =
     digits.length === 11 || (order.invoiceType === 'FACTURA' && digits.length !== 8);
   const docTypeLabel: 'FACTURA' | 'BOLETA' = isFactura ? 'FACTURA' : 'BOLETA';
-  const docTitle = isFactura ? 'FACTURA ELECTRÓNICA' : 'BOLETA DE VENTA ELECTRÓNICA';
-  const serie: 'F001' | 'B001' = isFactura ? 'F001' : 'B001';
+  const docTitle = isFactura ? 'PROFORMA PARA FACTURA' : 'BOLETA DE VENTA';
+  const serie: 'P001' | 'B001' = isFactura ? 'P001' : 'B001';
   const correlativo = extractVoucherCorrelative(order.orderNumber, order.id);
   const fullSeriesNumber = `${serie}-${correlativo}`;
 
@@ -117,4 +117,40 @@ export function resolveOrderBillingMeta(order: Order): ResolvedOrderBillingMeta 
     baseImponible,
     igvAmount,
   };
+}
+
+/**
+ * Builds a pre-filled WhatsApp Web / App link so staff can send the SUNAT Factura Electrónica
+ * after issuing the Proforma for a RUC order.
+ */
+export function buildWhatsAppFacturaUrl(order: Order): string {
+  const meta = resolveOrderBillingMeta(order);
+  const rawPhone = (order.recipientPhone || '').replace(/\D/g, '');
+  let waPhone = '';
+  if (rawPhone && rawPhone !== '999999999') {
+    if (rawPhone.length === 9 && rawPhone.startsWith('9')) {
+      waPhone = `51${rawPhone}`;
+    } else if (rawPhone.startsWith('51') && rawPhone.length >= 11) {
+      waPhone = rawPhone;
+    } else if (rawPhone.length >= 8) {
+      waPhone = rawPhone;
+    }
+  }
+
+  const lines = [
+    `Hola *${meta.customerDisplayName}*, te saludamos de *${COMPANY_NAME}* (R.U.C. ${COMPANY_RUC}).`,
+    ``,
+    `Adjuntamos tu *Factura Electrónica oficial emitida en SUNAT* correspondiente a tu compra:`,
+    `• Pedido: *${order.orderNumber}*`,
+    `• Ref. Proforma: *${meta.fullSeriesNumber}*`,
+    `• R.U.C. Cliente: *${meta.customerDocNumber || '-'}*`,
+    `• Op. Gravada (sin I.G.V.): *S/ ${meta.baseImponible.toFixed(2)}*`,
+    `• I.G.V. (18%): *S/ ${meta.igvAmount.toFixed(2)}*`,
+    `• Importe Total: *S/ ${meta.totalAmount.toFixed(2)}*`,
+    ``,
+    `¡Gracias por tu preferencia!`,
+  ].join('\n');
+
+  const baseUrl = waPhone ? `https://wa.me/${waPhone}` : 'https://wa.me/';
+  return `${baseUrl}?text=${encodeURIComponent(lines)}`;
 }

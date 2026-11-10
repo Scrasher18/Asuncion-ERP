@@ -164,7 +164,7 @@
                 "
                 class="min-h-[44px] rounded-xl border py-2.5 px-3 text-xs transition"
               >
-                Factura electrónica (RUC)
+                Factura con RUC (Proforma + WhatsApp)
               </button>
             </div>
 
@@ -249,6 +249,9 @@
             } @else {
               <!-- Factura: RUC 11 dígitos -->
               <div class="space-y-3">
+                <div class="rounded-xl border border-blue-200 bg-blue-50/80 px-3 py-2 text-[11px] text-blue-950">
+                  <strong>Proforma con RUC + Factura SUNAT por WhatsApp:</strong> Como no enviamos correos automáticos, al confirmar generamos tu <strong>Proforma PDF</strong> (con Op. Gravada e I.G.V. 18%) y te enviaremos tu <strong>Factura Electrónica oficial</strong> por WhatsApp al número registrado.
+                </div>
                 <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
                   <div class="sm:col-span-5">
                     <label class="block text-xs font-medium text-gray-700 mb-1">
@@ -1033,16 +1036,18 @@
             </div>
           }
 
-          @if (auth.currentUser()?.email; as userEmail) {
-            <div class="rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-2.5 flex items-start gap-2 text-[11px] text-gray-600">
-              <svg class="mt-0.5 h-3.5 w-3.5 shrink-0 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.85">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
-              </svg>
-              <span>
-                Enviaremos el comprobante y el seguimiento del pedido a <strong class="text-gray-800">{{ userEmail }}</strong>.
-              </span>
-            </div>
-          }
+          <div class="rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-2.5 flex items-start gap-2 text-[11px] text-gray-600">
+            <svg class="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.85">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
+            </svg>
+            <span>
+              @if (invoiceType() === 'FACTURA') {
+                No enviamos correos automáticos. Al confirmar obtendrás tu <strong class="text-gray-800">Proforma PDF</strong> inmediata y te enviaremos la <strong class="text-emerald-700">Factura Electrónica de SUNAT por WhatsApp</strong> al teléfono registrado.
+              } @else {
+                Podrás descargar tu <strong class="text-gray-800">Boleta PDF</strong> al instante y seguir tu entrega en vivo desde <strong class="text-gray-800">Seguimiento</strong>.
+              }
+            </span>
+          </div>
 
           <!-- Submit Order & Pay Button -->
           <button
@@ -1150,7 +1155,11 @@
       </div>
 
       <p class="text-[11px] text-gray-500 leading-snug">
-        Enviamos tu comprobante de pago oficial y el resumen de tu compra a tu correo electrónico.
+        {{
+          invoiceType() === 'FACTURA'
+            ? 'Tu Proforma PDF está disponible en Seguimiento. Emitiremos tu Factura Electrónica de SUNAT y te la enviaremos por WhatsApp.'
+            : 'Tu Boleta PDF y seguimiento en vivo están disponibles al instante sin depender de correo electrónico.'
+        }}
       </p>
 
       <!-- Action Button -->

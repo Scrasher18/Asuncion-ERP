@@ -275,7 +275,7 @@ public class ChatbotService {
         }
 
         if (containsAny(normalized, "factura", "ruc", "boleta", "comprobante", "sunat", "tributario", "igv", "mayorista", "empresa")) {
-            String reply = "Con nuestro R.U.C. 10414686867 emitimos **Boleta de Venta** (con DNI/CE o Clientes Varios en compras menores a S/ 700, y DNI/CE obligatorio desde S/ 700) y **Factura** (con RUC de 11 dígitos, razón social y dirección fiscal). Todos los precios publicados ya incluyen IGV (18%).";
+            String reply = "Con nuestro R.U.C. 10414686867 emitimos **Boleta de Venta** (con DNI/CE o Clientes Varios en compras menores a S/ 700, y DNI/CE obligatorio desde S/ 700) y para empresas con **RUC (11 dígitos)** generamos una **Proforma inmediata** y enviamos tu **Factura Electrónica oficial de SUNAT por WhatsApp** (no usamos correo automático). Todos los precios publicados ya incluyen IGV (18%).";
             return enrichAndBuild(sessionId, rawMessage, reply, "FAQ_INVOICING", null, List.of());
         }
 
@@ -960,7 +960,7 @@ public class ChatbotService {
                     7. AMPLITUD TEMÁTICA AUTOMOTRIZ: Si el cliente consulta sobre diagnóstico de fallas (ruidos, vibraciones, frenado esponjoso, sobrecalentamiento, chirridos), intervalos de cambio de fajas o fluidos, o diferencias de materiales (cerámico vs semimetálico), responde con fundamento técnico automotriz claro y sugiere la solución con las piezas OEM y Aftermarket de Repuestos Asunción.
                     8. HONESTIDAD ESTRICTA Y CERO ALUCINACIONES (REGLA MANDATORIA): Si el cliente pregunta por información que NO está en los DATOS OFICIALES DE ALMACÉN, o por temas que no tenemos configurados, repuestos de marcas que no vendemos, o preguntas no automotrices o fuera de catálogo: DI LA VERDAD con total transparencia. NUNCA inventes repuestos, compatibilidades ni afirmes cosas que no están configuradas. Responde con claridad: "Actualmente no tengo configurada esa información en mi base de datos técnica. Como Asistente de Autopartes Asunción, estoy especializado únicamente en consultas de repuestos de nuestro catálogo, compatibilidad vehicular por marca y modelo, stock en almacén y horarios de atención."
                     9. SEGUIMIENTO DE PEDIDOS: El seguimiento de pedidos ya NO se realiza en este chat. Si el usuario pregunta por rastreo de pedidos o escribe un código ASN-2026-XXXX, indícale claramente que debe consultar en la sección "Seguimiento" (/track) del menú superior para ver el monitoreo GPS satelital en vivo.
-                    10. COMPROBANTES DE PAGO: En Repuestos Asunción (R.U.C. 10414686867) emitimos Boleta de Venta (con DNI/CE o Clientes Varios si el total es menor a S/ 700, y DNI/CE obligatorio desde S/ 700) y Factura (con RUC de 11 dígitos, razón social y dirección fiscal). Los precios publicados ya incluyen IGV (18%).
+                    10. COMPROBANTES DE PAGO: En Repuestos Asunción (R.U.C. 10414686867) no usamos envío automático por correo. Para personas entregamos Boleta de Venta (con DNI/CE o Clientes Varios si es menor a S/ 700, y DNI/CE obligatorio desde S/ 700). Para empresas con RUC de 11 dígitos emitimos una Proforma inmediata con el desglose de Op. Gravada e IGV y enviamos la Factura Electrónica oficial de SUNAT por WhatsApp. Los precios publicados ya incluyen IGV (18%).
 
 
 

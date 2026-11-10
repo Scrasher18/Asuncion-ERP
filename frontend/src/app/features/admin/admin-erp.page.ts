@@ -41,6 +41,10 @@ import { OrdersService } from '../../core/services/orders.service';
 import { PaymentService } from '../../core/services/payment.service';
 import { PdfInvoiceService } from '../../core/services/pdf-invoice.service';
 import { ExcelExportService } from '../../core/services/excel-export.service';
+import {
+  buildWhatsAppFacturaUrl,
+  resolveOrderBillingMeta,
+} from '../../core/constants/company-info.constant';
 import { PromotionService } from '../../core/services/promotion.service';
 import {
   PaymentConfigUpdateRequest,
@@ -1799,14 +1803,24 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                         <button
                           type="button"
                           (click)="downloadOrderPdf(ord)"
-                          title="Descargar Comprobante PDF"
+                          [title]="isFacturaOrder(ord) ? 'Descargar Proforma PDF (para Factura)' : 'Descargar Boleta PDF'"
                           class="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-2 py-1 text-[11px] font-semibold text-gray-700 hover:border-orange-300 hover:text-orange-700 transition cursor-pointer"
                         >
                           <svg class="h-3.5 w-3.5 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                           </svg>
-                          <span>PDF</span>
+                          <span>{{ isFacturaOrder(ord) ? 'Proforma' : 'PDF' }}</span>
                         </button>
+                        @if (isFacturaOrder(ord)) {
+                          <button
+                            type="button"
+                            (click)="openWhatsAppFactura(ord)"
+                            title="Enviar Factura emitida en SUNAT por WhatsApp al cliente"
+                            class="inline-flex items-center gap-1 rounded-lg border border-emerald-300 bg-emerald-50 px-2 py-1 text-[11px] font-bold text-emerald-800 hover:bg-emerald-600 hover:text-white transition cursor-pointer"
+                          >
+                            <span>📲 Factura WA</span>
+                          </button>
+                        }
                         <a
                           routerLink="/track"
                           [queryParams]="{ order: ord.orderNumber }"
@@ -2015,10 +2029,21 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                           <button
                             type="button"
                             (click)="downloadOrderPdf(ord)"
+                            [title]="isFacturaOrder(ord) ? 'Descargar Proforma PDF (para Factura)' : 'Descargar Boleta PDF'"
                             class="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-2 py-1 text-[11px] font-semibold text-gray-700 hover:border-orange-300 hover:text-orange-700 transition cursor-pointer"
                           >
-                            <span>PDF</span>
+                            <span>{{ isFacturaOrder(ord) ? 'Proforma PDF' : 'PDF' }}</span>
                           </button>
+                          @if (isFacturaOrder(ord)) {
+                            <button
+                              type="button"
+                              (click)="openWhatsAppFactura(ord)"
+                              title="Enviar Factura emitida en SUNAT por WhatsApp al cliente"
+                              class="inline-flex items-center gap-1 rounded-lg border border-emerald-300 bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-800 hover:bg-emerald-600 hover:text-white transition cursor-pointer"
+                            >
+                              <span>📲 Factura WA</span>
+                            </button>
+                          }
                           @if (!isCounterSaleOrder(ord)) {
                             <a
                               routerLink="/track"
@@ -5525,9 +5550,26 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
     }
   }
 
+  isFacturaOrder(order: Order): boolean {
+    return resolveOrderBillingMeta(order).isFactura;
+  }
+
+  openWhatsAppFactura(order: Order): void {
+    const url = buildWhatsAppFacturaUrl(order);
+    if (typeof window !== 'undefined') {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
+  }
+
   downloadOrderPdf(order: Order): void {
+    const isFactura = this.isFacturaOrder(order);
     this.pdfInvoiceService.generateInvoicePdf(order, true);
-    this.toast.success('Descargando comprobante', `Generando PDF oficial para el pedido #${order.orderNumber}`);
+    this.toast.success(
+      isFactura ? 'Descargando Proforma' : 'Descargando Boleta',
+      isFactura
+        ? `Generando Proforma PDF para Factura del pedido #${order.orderNumber}`
+        : `Generando Boleta de Venta PDF para el pedido #${order.orderNumber}`
+    );
   }
 
   saveStorePaymentMethods(): void {

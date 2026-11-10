@@ -33,7 +33,14 @@ export class ExcelExportService {
       'I.G.V. (18%)',
       'Importe Total',
       ...(includeOps
-        ? ['Canal de Venta', 'N° Pedido Interno', 'Método de Pago', 'Estado Operativo', 'Estado Pago']
+        ? [
+            'Canal de Venta',
+            'N° Pedido Interno',
+            'Gestión Comprobante SUNAT',
+            'Método de Pago',
+            'Estado Operativo',
+            'Estado Pago',
+          ]
         : []),
     ];
 
@@ -108,9 +115,13 @@ export class ExcelExportService {
 
         ws[XLSX.utils.encode_cell({ r: idx + 1, c: 9 })] = { t: 's', v: canal };
         ws[XLSX.utils.encode_cell({ r: idx + 1, c: 10 })] = { t: 's', v: ord.orderNumber || '' };
-        ws[XLSX.utils.encode_cell({ r: idx + 1, c: 11 })] = { t: 's', v: pmLabel };
-        ws[XLSX.utils.encode_cell({ r: idx + 1, c: 12 })] = { t: 's', v: ord.status || 'CONFIRMADO' };
-        ws[XLSX.utils.encode_cell({ r: idx + 1, c: 13 })] = {
+        ws[XLSX.utils.encode_cell({ r: idx + 1, c: 11 })] = {
+          t: 's',
+          v: meta.isFactura ? 'Proforma → Factura SUNAT vía WhatsApp' : 'Boleta interna',
+        };
+        ws[XLSX.utils.encode_cell({ r: idx + 1, c: 12 })] = { t: 's', v: pmLabel };
+        ws[XLSX.utils.encode_cell({ r: idx + 1, c: 13 })] = { t: 's', v: ord.status || 'CONFIRMADO' };
+        ws[XLSX.utils.encode_cell({ r: idx + 1, c: 14 })] = {
           t: 's',
           v: isPaid ? 'PAGADO' : 'FALTA COBRAR',
         };
@@ -157,7 +168,7 @@ export class ExcelExportService {
       { wch: 16 }, // I.G.V. (18%)
       { wch: 16 }, // Importe Total
       ...(includeOps
-        ? [{ wch: 18 }, { wch: 18 }, { wch: 18 }, { wch: 20 }, { wch: 15 }]
+        ? [{ wch: 18 }, { wch: 18 }, { wch: 34 }, { wch: 18 }, { wch: 20 }, { wch: 15 }]
         : []),
     ];
 

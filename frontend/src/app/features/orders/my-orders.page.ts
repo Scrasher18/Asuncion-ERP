@@ -211,7 +211,7 @@ import { SoundService } from '../../core/services/sound.service';
                           {{ formatStatus(ord.status) }}
                         </span>
                         <span class="rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-0.5 text-[11px] font-semibold text-gray-600">
-                          {{ ord.invoiceType === 'FACTURA' ? 'Factura Electrónica' : 'Boleta de Venta' }}
+                          {{ ord.invoiceType === 'FACTURA' ? 'Proforma p/ Factura (WhatsApp)' : 'Boleta de Venta' }}
                         </span>
                         <span class="rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-0.5 text-[11px] font-medium text-gray-600">
                           {{ ord.deliveryType === 'PICKUP' ? '🏬 Recojo en sede' : '🛵 Despacho a domicilio' }}
@@ -365,7 +365,7 @@ import { SoundService } from '../../core/services/sound.service';
                           <svg class="h-4 w-4 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m.75 12l3 3m0 0l3-3m-3 3v-6m-1.5-9H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
                           </svg>
-                          <span>Comprobante PDF</span>
+                          <span>{{ ord.invoiceType === 'FACTURA' ? 'Proforma PDF' : 'Boleta PDF' }}</span>
                         </button>
 
                         <a
@@ -419,11 +419,11 @@ import { SoundService } from '../../core/services/sound.service';
             <!-- Email (Read only) -->
             <div class="rounded-xl border border-gray-200/70 bg-gray-50/80 p-4 flex flex-wrap items-center justify-between gap-2">
               <div class="space-y-0.5">
-                <span class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">Correo electrónico de acceso y envío de comprobantes</span>
+                <span class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">Correo electrónico de acceso a tu cuenta</span>
                 <span class="font-semibold text-sm text-gray-900">{{ auth.currentUser()?.email }}</span>
               </div>
               <span class="rounded-lg bg-white border border-gray-200 px-2.5 py-1 text-[11px] font-semibold text-gray-600">
-                Correo verificado
+                Cuenta activa
               </span>
             </div>
 
@@ -534,9 +534,9 @@ import { SoundService } from '../../core/services/sound.service';
                   <span>Emisión de Comprobantes de Pago:</span>
                 </div>
                 <ul class="list-disc list-inside space-y-1 text-gray-600 text-[11px] pt-0.5">
-                  <li><strong class="text-gray-800">Boleta de venta menor a S/ 700:</strong> Emisión rápida sin DNI obligatorio.</li>
+                  <li><strong class="text-gray-800">Boleta de venta menor a S/ 700:</strong> Emisión rápida sin DNI obligatorio (Clientes Varios).</li>
                   <li><strong class="text-gray-800">Boleta de venta desde S/ 700:</strong> Es obligatorio consignar DNI o Carnet de Extranjería vigente.</li>
-                  <li><strong class="text-gray-800">Factura comercial:</strong> Requiere RUC de 11 dígitos con razón social y dirección fiscal válidas.</li>
+                  <li><strong class="text-gray-800">Factura con RUC (Proforma + WhatsApp):</strong> Requiere RUC de 11 dígitos, razón social y dirección fiscal. Generamos tu Proforma al instante y enviamos tu Factura SUNAT por WhatsApp.</li>
                 </ul>
               </div>
 
@@ -788,7 +788,12 @@ export class MyOrdersPageComponent implements OnInit, OnDestroy {
 
   downloadBoletaPdf(ord: Order): void {
     this.pdfInvoiceService.generateInvoicePdf(ord, true);
-    this.toast.success('Descargando comprobante', `Generando PDF oficial para el pedido #${ord.orderNumber}`);
+    this.toast.success(
+      ord.invoiceType === 'FACTURA' ? 'Descargando Proforma' : 'Descargando Boleta',
+      ord.invoiceType === 'FACTURA'
+        ? `Generando Proforma PDF para Factura del pedido #${ord.orderNumber}`
+        : `Generando Boleta de Venta PDF para el pedido #${ord.orderNumber}`
+    );
   }
 
   ngOnInit(): void {

@@ -18,6 +18,7 @@ import { PdfInvoiceService } from '../../core/services/pdf-invoice.service';
 import { ExcelExportService } from '../../core/services/excel-export.service';
 import {
   BOLETA_DNI_REQUIRED_THRESHOLD,
+  buildWhatsAppFacturaUrl,
   isAnonymousBillingName,
 } from '../../core/constants/company-info.constant';
 import { ToastService } from '../../core/services/toast.service';
@@ -468,7 +469,7 @@ const POS_HOLD_TTL_MS = 15 * 60 * 1000;
                     "
                     class="rounded-xl border py-2.5 text-xs transition cursor-pointer"
                   >
-                    Factura Electrónica (RUC)
+                    Factura RUC (Proforma + WA)
                   </button>
                 </div>
 
@@ -598,13 +599,17 @@ const POS_HOLD_TTL_MS = 15 * 60 * 1000;
                         </div>
                       }
                     </div>
-                  } @else {
+                  }
+                  @if (invoiceType === 'FACTURA' || paymentMethod !== 'MOSTRADOR_EFECTIVO') {
                     <div>
-                      <label class="block text-xs font-bold text-gray-700 mb-1">Celular (Opcional)</label>
+                      <label class="block text-xs font-bold text-gray-700 mb-1">
+                        {{ invoiceType === 'FACTURA' ? 'WhatsApp del Cliente (para Factura SUNAT)' : 'Celular (Opcional)' }}
+                      </label>
                       <input
                         type="text"
                         [(ngModel)]="customerPhone"
-                        placeholder="987654321" maxlength="9"
+                        placeholder="Ej: 987654321"
+                        maxlength="9"
                         class="w-full min-h-[40px] rounded-xl border border-gray-200 bg-white px-3 py-2 font-mono text-xs text-gray-900 focus:border-orange-600 focus:outline-none"
                       />
                     </div>
@@ -665,8 +670,30 @@ const POS_HOLD_TTL_MS = 15 * 60 * 1000;
                 (click)="submitCounterSale()"
                 class="w-full min-h-[48px] rounded-xl bg-orange-600 py-3 px-5 text-sm font-extrabold text-white shadow-sm hover:bg-orange-700 active:scale-[0.99] disabled:bg-gray-200 disabled:text-gray-400 transition cursor-pointer"
               >
-                {{ submitting() ? 'Procesando cobro y descontando stock...' : '✓ Registrar Venta y Emitir Comprobante PDF' }}
+                {{
+                  submitting()
+                    ? 'Procesando cobro y descontando stock...'
+                    : invoiceType === 'FACTURA'
+                      ? '✓ Registrar Venta y Emitir Proforma PDF'
+                      : '✓ Registrar Venta y Emitir Boleta PDF'
+                }}
               </button>
+
+              @if (lastCounterFacturaOrder(); as lastFac) {
+                <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-3 flex flex-wrap items-center justify-between gap-2 text-xs">
+                  <div>
+                    <p class="font-bold text-emerald-950">Proforma #{{ lastFac.orderNumber }} lista</p>
+                    <p class="text-[11px] text-emerald-800">Cuando generes la Factura en SUNAT, envíala por WhatsApp:</p>
+                  </div>
+                  <button
+                    type="button"
+                    (click)="openWhatsAppFactura(lastFac)"
+                    class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 px-3 py-1.5 text-[11px] font-bold text-white shadow-2xs cursor-pointer"
+                  >
+                    <span>📲 Enviar Factura WA</span>
+                  </button>
+                </div>
+              }
             </div>
           </div>
         </div>
@@ -687,6 +714,7 @@ export class PosPageComponent implements OnInit, OnDestroy {
   private readonly apiConfig = inject(ApiConfigService);
   private readonly toast = inject(ToastService);
   private readonly syncBus = inject(SyncBusService);
+  readonly lastCounterFacturaOrder = signal<Order | null>(null);
 
   readonly parts = signal<Part[]>([]);
   readonly categories = signal<Category[]>([]);
@@ -1378,9 +1406,13 @@ export class PosPageComponent implements OnInit, OnDestroy {
       .pipe(finalize(() => this.submitting.set(false)))
       .subscribe({
         next: (createdOrder) => {
+          const isFacturaDoc = createdOrder.invoiceType === 'FACTURA';
+          this.lastCounterFacturaOrder.set(isFacturaDoc ? createdOrder : null);
           this.toast.success(
-            'Venta en Caja Registrada',
-            `Comprobante #${createdOrder.orderNumber} emitido y stock actualizado.`
+            isFacturaDoc ? 'Venta y Proforma Registradas' : 'Venta en Caja Registrada',
+            isFacturaDoc
+              ? `Proforma #${createdOrder.orderNumber} generada. Emite la Factura en SUNAT y envíala por WhatsApp.`
+              : `Comprobante #${createdOrder.orderNumber} emitido y stock actualizado.`
           );
           this.syncBus.notifyPosSale(createdOrder.orderNumber, items.map((i) => i.part.id));
           this.clearTicket();
@@ -1399,6 +1431,13 @@ export class PosPageComponent implements OnInit, OnDestroy {
           this.refreshPosData();
         },
       });
+  }
+
+  openWhatsAppFactura(ord: Order): void {
+    const url = buildWhatsAppFacturaUrl(ord);
+    if (typeof window !== 'undefined') {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
   }
 
   downloadReceipt(ord: Order): void {

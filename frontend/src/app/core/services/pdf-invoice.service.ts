@@ -65,14 +65,14 @@ export class PdfInvoiceService {
     doc.setTextColor(15, 23, 42);
     doc.text(`R.U.C. ${COMPANY_RUC}`, 163, 17.5, { align: 'center' });
 
-    doc.setFillColor(234, 88, 12);
+    doc.setFillColor(isFactura ? 30 : 234, isFactura ? 64 : 88, isFactura ? 175 : 12);
     doc.rect(130, 21, 66, 7.5, 'F');
     doc.setFontSize(8.2);
     doc.setTextColor(255, 255, 255);
     doc.text(meta.docTitle, 163, 26, { align: 'center' });
 
     doc.setFontSize(11);
-    doc.setTextColor(234, 88, 12);
+    doc.setTextColor(isFactura ? 30 : 234, isFactura ? 64 : 88, isFactura ? 175 : 12);
     doc.text(`N° ${meta.fullSeriesNumber}`, 163, 35.5, { align: 'center' });
 
     // Horizontal separator
@@ -312,22 +312,23 @@ export class PdfInvoiceService {
 
     // Additional Notes next to QR
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(7.5);
-    doc.setTextColor(100, 116, 139);
-    doc.text(
-      isFactura
-        ? 'Desglose obligatorio de I.G.V. (18%) sobre operación gravada.'
-        : 'El precio publicado y cobrado ya incluye el I.G.V. (18%).',
-      43,
-      yPos + 5
-    );
-    doc.text('Moneda: SOLES · Garantía de fábrica 6 a 12 meses según marca.', 43, yPos + 10);
-    doc.text(`Estado operativo: ${order.status || 'CONFIRMADO'}`, 43, yPos + 15);
-    doc.text(
-      isPickupOrCounter ? 'Entrega en tienda / mostrador.' : 'Envío a domicilio.',
-      43,
-      yPos + 20
-    );
+    doc.setFontSize(7.4);
+    doc.setTextColor(71, 85, 105);
+    if (isFactura) {
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(30, 64, 175);
+      doc.text('PROFORMA PARA FACTURA — ENVÍO SUNAT POR WHATSAPP', 43, yPos + 5);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(71, 85, 105);
+      doc.text('No usamos envío automático por correo. Con estos datos emitiremos su', 43, yPos + 10);
+      doc.text(`Factura Electrónica en SUNAT y se enviará al WhatsApp ${order.recipientPhone || 'del cliente'}.`, 43, yPos + 15);
+      doc.text(`Pedido: ${order.orderNumber || '-'} · Estado: ${order.status || 'CONFIRMADO'} · Moneda: SOLES.`, 43, yPos + 20);
+    } else {
+      doc.text('El precio publicado y cobrado ya incluye el I.G.V. (18%).', 43, yPos + 5);
+      doc.text('Moneda: SOLES · Garantía de fábrica 6 a 12 meses según marca.', 43, yPos + 10);
+      doc.text(`Estado operativo: ${order.status || 'CONFIRMADO'}`, 43, yPos + 15);
+      doc.text(isPickupOrCounter ? 'Entrega en tienda / mostrador.' : 'Envío a domicilio.', 43, yPos + 20);
+    }
     if (!isPickupOrCounter && order.assignedDriverName) {
       doc.text(`Repartidor asignado: ${order.assignedDriverName}`, 43, yPos + 25);
     }
@@ -340,13 +341,15 @@ export class PdfInvoiceService {
     doc.setFontSize(7.2);
     doc.setTextColor(100, 116, 139);
     doc.text(
-      `Representación impresa de la ${isFactura ? 'Factura Electrónica' : 'Boleta de Venta Electrónica'} — ${COMPANY_NAME}.`,
+      isFactura
+        ? `Proforma comercial previa a emisión en SUNAT (Factura Electrónica vía WhatsApp) — ${COMPANY_NAME}.`
+        : `Representación impresa de Boleta de Venta — ${COMPANY_NAME}.`,
       105,
       footerY + 5,
       { align: 'center' }
     );
     doc.text(
-      `Consulte su comprobante en: ${COMPANY_PORTAL}/track`,
+      `Consulte su pedido en línea: ${COMPANY_PORTAL}/track`,
       105,
       footerY + 9.5,
       { align: 'center' }
@@ -359,7 +362,9 @@ export class PdfInvoiceService {
     );
 
     if (download) {
-      const fileName = `${isFactura ? 'Factura' : 'Boleta'}_${meta.fullSeriesNumber}_${order.orderNumber}.pdf`;
+      const fileName = isFactura
+        ? `Proforma_Factura_${meta.fullSeriesNumber}_${order.orderNumber}.pdf`
+        : `Boleta_${meta.fullSeriesNumber}_${order.orderNumber}.pdf`;
       doc.save(fileName);
     }
 

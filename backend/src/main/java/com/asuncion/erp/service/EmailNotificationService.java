@@ -431,9 +431,9 @@ public class EmailNotificationService {
                 recipientEmails.add(order.customerEmail().trim().toLowerCase());
             }
 
-            // 1. Customer Purchase Confirmation & Electronic Invoice (Boleta/Factura) Email
+            // 1. Customer Purchase Confirmation & Proforma/Boleta Summary
             boolean isFactura = "FACTURA".equalsIgnoreCase(order.invoiceType());
-            String voucherTitle = isFactura ? "FACTURA ELECTRÓNICA" : "BOLETA DE VENTA ELECTRÓNICA";
+            String voucherTitle = isFactura ? "PROFORMA PARA FACTURA" : "BOLETA DE VENTA";
             String voucherSeries = resolveVoucherSeries(isFactura, order.orderNumber(), order.id());
             String docNumLabel = order.billingDocumentNumber() != null && !order.billingDocumentNumber().isBlank()
                     ? escapeHtml(order.billingDocumentNumber())
@@ -1344,7 +1344,7 @@ public class EmailNotificationService {
     }
 
     private static String resolveVoucherSeries(boolean isFactura, String orderNumber, Long orderId) {
-        String prefix = isFactura ? "F001-" : "B001-";
+        String prefix = isFactura ? "P001-" : "B001-";
         long seq = orderId != null ? orderId : 1L;
         if (orderNumber != null) {
             java.util.regex.Matcher m = java.util.regex.Pattern.compile("(\\d+)$").matcher(orderNumber.trim());

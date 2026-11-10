@@ -117,10 +117,10 @@ const ORDER_STAGES = [
             </div>
             <div class="flex-1 text-xs">
               <p class="font-bold text-emerald-950">
-                Confirmación enviada a tu correo electrónico
+                Pedido confirmado en Repuestos Asunción
               </p>
               <p class="mt-0.5 text-emerald-800 leading-relaxed">
-                Hemos enviado el resumen detallado de tu compra y te notificaremos automáticamente cada cambio de estado hasta su recepción.
+                Puedes descargar tu comprobante o Proforma en PDF aquí abajo y consultar cada actualización del despacho en tiempo real. Si elegiste Factura con RUC, te enviaremos tu Factura Electrónica oficial de SUNAT por WhatsApp.
               </p>
             </div>
             <button
@@ -177,7 +177,7 @@ const ORDER_STAGES = [
 
               <div class="flex flex-wrap items-center gap-2">
                 <span class="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-semibold text-gray-700">
-                  <span>{{ ord.invoiceType === 'FACTURA' ? '📄 Factura Electrónica' : '🧾 Boleta de Venta' }}</span>
+                  <span>{{ ord.invoiceType === 'FACTURA' ? '📄 Proforma p/ Factura (WhatsApp)' : '🧾 Boleta de Venta' }}</span>
                   <span class="text-gray-300">|</span>
                   <span>{{ ord.deliveryType === 'PICKUP' ? '🏬 Recojo en tienda' : '🛵 Envío a domicilio' }}</span>
                 </span>
@@ -190,7 +190,7 @@ const ORDER_STAGES = [
                   <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
                   </svg>
-                  <span>Descargar {{ ord.invoiceType === 'FACTURA' ? 'Factura' : 'Boleta' }} PDF</span>
+                  <span>Descargar {{ ord.invoiceType === 'FACTURA' ? 'Proforma' : 'Boleta' }} PDF</span>
                 </button>
               </div>
             </div>
@@ -825,7 +825,7 @@ export class TrackOrderPageComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.route.queryParamMap.subscribe((params) => {
       const q = params.get('order');
-      if (params.get('notified') === '1') {
+      if (params.get('created') === '1' || params.get('notified') === '1') {
         this.emailSentNotice.set(true);
       }
       if (q) {
@@ -884,7 +884,12 @@ export class TrackOrderPageComponent implements OnInit, OnDestroy {
 
   downloadBoletaPdf(ord: Order): void {
     this.pdfInvoiceService.generateInvoicePdf(ord, true);
-    this.toast.success('Descargando comprobante', `Generando PDF oficial para el pedido #${ord.orderNumber}`);
+    this.toast.success(
+      ord.invoiceType === 'FACTURA' ? 'Descargando Proforma' : 'Descargando Boleta',
+      ord.invoiceType === 'FACTURA'
+        ? `Generando Proforma PDF para Factura del pedido #${ord.orderNumber}`
+        : `Generando Boleta de Venta PDF para el pedido #${ord.orderNumber}`
+    );
   }
 
   searchOrder(isSilent = false): void {

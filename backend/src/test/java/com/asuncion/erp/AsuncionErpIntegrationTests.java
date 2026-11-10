@@ -495,7 +495,8 @@ class AsuncionErpIntegrationTests {
         JsonNode invoiceJson = objectMapper.readTree(invoiceResult.getResponse().getContentAsString());
         String invoiceReply = invoiceJson.get("reply").asText();
         assertThat(invoiceReply.toLowerCase()).contains("boleta de venta");
-        assertThat(invoiceReply.toLowerCase()).contains("factura");
+        assertThat(invoiceReply.toLowerCase()).contains("proforma");
+        assertThat(invoiceReply.toLowerCase()).contains("whatsapp");
         assertThat(invoiceReply).contains("10414686867");
     }
 

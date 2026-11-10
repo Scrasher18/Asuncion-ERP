@@ -352,7 +352,12 @@ export class CheckoutPageComponent implements OnInit, OnDestroy {
   downloadOrderPdf(order: any): void {
     if (!order) return;
     this.pdfInvoiceService.generateInvoicePdf(order, true);
-    this.toast.success('Descargando comprobante', 'Generando Boleta / Factura en PDF...');
+    this.toast.success(
+      'Descargando documento',
+      order?.invoiceType === 'FACTURA'
+        ? 'Generando Proforma PDF para Factura (SUNAT vía WhatsApp)...'
+        : 'Generando Boleta de Venta en PDF...'
+    );
   }
 
   closeReceiptModal(): void {
@@ -906,13 +911,15 @@ export class CheckoutPageComponent implements OnInit, OnDestroy {
               // Flow 2: Standard orders (YAPE, TRANSFERENCIA, CONTRA_ENTREGA)
               this.cart.clear();
               this.syncBus.notifyOnlineOrder(createdOrder.orderNumber, payload.items.map((i) => i.partId));
-              const emailTarget = this.auth.currentUser()?.email || 'tu correo electrónico';
+              const isFacturaReq = createdOrder.invoiceType === 'FACTURA';
               this.toast.success(
                 `Pedido ${createdOrder.orderNumber} registrado`,
-                `Enviamos los detalles de tu compra a ${emailTarget}.`
+                isFacturaReq
+                  ? 'Descarga tu Proforma PDF aquí; emitiremos tu Factura SUNAT y te la enviaremos por WhatsApp.'
+                  : 'Ya puedes descargar tu Boleta PDF y seguir tu pedido en vivo.'
               );
               void this.router.navigate(['/track'], {
-                queryParams: { order: createdOrder.orderNumber, notified: '1' },
+                queryParams: { order: createdOrder.orderNumber, created: '1' },
               });
             },
             error: (err: HttpErrorResponse) => {
