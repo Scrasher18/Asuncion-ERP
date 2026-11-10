@@ -17,8 +17,8 @@ public class DeliveryProof {
     @JoinColumn(name = "order_id", nullable = false, unique = true)
     private CustomerOrder order;
 
-    @ManyToOne(fetch = FetchType.EAGER, optional = false)
-    @JoinColumn(name = "driver_id", nullable = false)
+    @ManyToOne(fetch = FetchType.EAGER, optional = true)
+    @JoinColumn(name = "driver_id", nullable = true)
     private AppUser driver;
 
     @Column(name = "evidence_object_key", length = 500)

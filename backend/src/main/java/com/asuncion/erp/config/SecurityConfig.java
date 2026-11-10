@@ -131,6 +131,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/delivery/**").hasAnyRole("MOTORIZADO", "ADMIN")
                         // Orders management list -> ADMIN, VENDEDOR
                         .requestMatchers(HttpMethod.GET, "/api/v1/orders").hasAnyRole("ADMIN", "VENDEDOR")
+                        .requestMatchers(HttpMethod.PATCH, "/api/v1/orders/*/status").hasAnyRole("ADMIN", "VENDEDOR")
                         // Authenticated Customer/User endpoints
                         .anyRequest().authenticated()
                 )

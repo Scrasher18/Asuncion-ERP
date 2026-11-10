@@ -10,6 +10,15 @@ import {
 } from '../models/api.models';
 import { ApiConfigService } from './api-config.service';
 
+export interface UpdateOrderStatusPayload {
+  status: string;
+  assignedDriverId?: number;
+  paymentMethod?: string;
+  receiverName?: string;
+  receiverDocument?: string;
+  notes?: string;
+}
+
 export interface CompleteDeliveryPayload {
   evidenceImage?: File | null;
   receiverName: string;
@@ -41,6 +50,10 @@ export class OrdersService {
 
   getAllOrders(): Observable<Order[]> {
     return this.http.get<Order[]>(`${this.apiConfig.apiUrl}/orders`);
+  }
+
+  updateOrderStatus(orderId: number, payload: UpdateOrderStatusPayload): Observable<Order> {
+    return this.http.patch<Order>(`${this.apiConfig.apiUrl}/orders/${orderId}/status`, payload);
   }
 
   // ===================== WAREHOUSE MODULE =====================

@@ -4,6 +4,7 @@ import com.asuncion.erp.domain.entity.AppUser;
 import com.asuncion.erp.domain.enums.OrderStatus;
 import com.asuncion.erp.dto.order.OrderCreateRequest;
 import com.asuncion.erp.dto.order.OrderResponse;
+import com.asuncion.erp.dto.order.UpdateOrderStatusRequest;
 import com.asuncion.erp.service.AuthService;
 import com.asuncion.erp.service.OrderService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -56,6 +57,16 @@ public class OrderController {
             @RequestParam(required = false) OrderStatus status
     ) {
         return ResponseEntity.ok(orderService.getAllOrders(status));
+    }
+
+    @PatchMapping("/{id}/status")
+    @Operation(summary = "Actualizar estado operativo de un pedido (Soporta Recojo en tienda, Delivery, cobro en caja y asignación de repartidor)")
+    public ResponseEntity<OrderResponse> updateOrderStatus(
+            @PathVariable Long id,
+            @RequestBody UpdateOrderStatusRequest request
+    ) {
+        AppUser currentUser = authService.getCurrentUser();
+        return ResponseEntity.ok(orderService.updateOrderStatus(id, request, currentUser));
     }
 
     @PatchMapping("/{id}/cancel")

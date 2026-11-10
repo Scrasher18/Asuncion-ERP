@@ -56,7 +56,7 @@ import {
 } from '../../shared/components/part-image-uploader/part-image-uploader.component';
 import { SalesChartComponent } from '../../shared/components/sales-chart/sales-chart.component';
 
-type AdminTab = 'analytics' | 'parts' | 'branches' | 'orders' | 'notifications' | 'payments' | 'users' | 'claims';
+type AdminTab = 'analytics' | 'parts' | 'branches' | 'orders' | 'completed' | 'notifications' | 'payments' | 'users' | 'claims';
 
 interface CompatibilityDraftRow extends PartCompatibilityInput {
   makeNameLabel?: string;
@@ -235,6 +235,27 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
               @if (globalOrders().length > 0) {
                 <span class="rounded-full bg-orange-100 px-2 py-0.5 font-mono text-[10px] font-bold text-orange-700">
                   {{ globalOrders().length }}
+                </span>
+              }
+            </button>
+
+            <button
+              type="button"
+              (click)="switchTab('completed')"
+              [class]="
+                activeTab() === 'completed'
+                  ? 'border-emerald-600 text-emerald-700 font-bold bg-emerald-50/80 shadow-2xs'
+                  : 'border-transparent text-gray-600 hover:border-gray-200 hover:bg-gray-50/80 hover:text-gray-900 font-medium'
+              "
+              class="inline-flex min-h-[40px] shrink-0 items-center gap-1.5 rounded-xl border px-3 py-2 text-xs sm:text-[13px] whitespace-nowrap transition cursor-pointer"
+            >
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>Completados (Online + POS)</span>
+              @if (completedUnifiedOrders().length > 0) {
+                <span class="rounded-full bg-emerald-100 px-2 py-0.5 font-mono text-[10px] font-bold text-emerald-700">
+                  {{ completedUnifiedOrders().length }}
                 </span>
               }
             </button>
@@ -1548,21 +1569,45 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
         }
 
         <!-- ========================================================================= -->
-        <!-- TAB 4: ORDERS OVERVIEW                                                    -->
+        <!-- TAB 4: ORDERS OVERVIEW & STATUS DISPATCH MANAGEMENT                       -->
         <!-- ========================================================================= -->
         @if (activeTab() === 'orders') {
           <div class="rounded-2xl border border-gray-200 bg-white overflow-hidden shadow-2xs">
-            <div class="border-b border-gray-200 px-5 py-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-              <div>
-                <h2 class="text-base font-bold text-gray-900">
-                  Centro de Despacho y Pedidos ({{ filteredGlobalOrders().length }} de {{ globalOrders().length }})
-                </h2>
-                <p class="text-xs text-gray-500">Seguimiento operativo desde la confirmación del pago hasta la entrega verificada.</p>
+            <div class="border-b border-gray-200 px-5 py-4 space-y-3">
+              <div class="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h2 class="text-base font-bold text-gray-900">
+                    Centro de Despacho y Pedidos ({{ filteredGlobalOrders().length }} de {{ globalOrders().length }})
+                  </h2>
+                  <p class="text-xs text-gray-500">Gestiona estados, cobros de recojo en tienda y asignación de motorizados desde un solo lugar.</p>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2">
+                  <div class="inline-flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800 shadow-2xs">
+                    <span class="relative flex h-2 w-2">
+                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                    </span>
+                    <span>Sincronizado en tiempo real</span>
+                  </div>
+
+                  <button
+                    type="button"
+                    (click)="exportOrdersToExcelForSunat()"
+                    class="inline-flex min-h-[36px] items-center gap-1.5 rounded-xl border border-emerald-300 bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-1.5 text-xs font-bold shadow-xs transition cursor-pointer"
+                    title="Exportar Registro de Ventas en formato Excel para contabilidad y declaración tributaria"
+                  >
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                    </svg>
+                    <span>Exportar Ventas a Excel</span>
+                  </button>
+                </div>
               </div>
 
-              <div class="flex flex-wrap items-center gap-2">
+              <div class="flex flex-wrap items-center justify-between gap-2.5 pt-1">
                 <!-- Status filter pills -->
-                <div class="inline-flex items-center rounded-xl border border-gray-200 bg-gray-50 p-1 text-xs">
+                <div class="inline-flex flex-wrap items-center rounded-xl border border-gray-200 bg-gray-50 p-1 text-xs gap-0.5">
                   <button
                     type="button"
                     (click)="orderStatusFilter.set('ALL')"
@@ -1577,7 +1622,7 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                     [class]="orderStatusFilter() === 'PENDING' ? 'bg-orange-600 text-white font-bold shadow-2xs' : 'text-gray-600 hover:text-gray-900 font-medium'"
                     class="rounded-lg px-2.5 py-1.5 transition cursor-pointer"
                   >
-                    Por despachar ({{ pendingDispatchOrdersCount() }})
+                    Por atender ({{ pendingDispatchOrdersCount() }})
                   </button>
                   <button
                     type="button"
@@ -1602,32 +1647,12 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                   <input
                     type="search"
                     [(ngModel)]="orderSearchQuery"
-                    placeholder="Buscar N.° pedido, cliente o RUC..."
-                    class="min-h-[38px] w-56 rounded-xl border border-gray-200 bg-gray-50/70 pl-8 pr-3 py-1.5 text-xs text-gray-900 placeholder:text-gray-400 focus:border-orange-500 focus:bg-white focus:outline-none"
+                    placeholder="Buscar N.° pedido, cliente o DNI/RUC..."
+                    class="min-h-[36px] w-64 rounded-xl border border-gray-200 bg-gray-50/70 pl-8 pr-3 py-1.5 text-xs text-gray-900 placeholder:text-gray-400 focus:border-orange-500 focus:bg-white focus:outline-none"
                   />
                   <svg class="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
                   </svg>
-                </div>
-
-                <button
-                  type="button"
-                  (click)="exportOrdersToExcelForSunat()"
-                  class="inline-flex min-h-[38px] items-center gap-1.5 rounded-xl border border-emerald-300 bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-1.5 text-xs font-bold shadow-xs transition cursor-pointer"
-                  title="Exportar Registro de Ventas en formato Excel para contabilidad y declaración tributaria"
-                >
-                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
-                  </svg>
-                  <span>Exportar Ventas a Excel</span>
-                </button>
-
-                <div class="inline-flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800 shadow-2xs">
-                  <span class="relative flex h-2 w-2">
-                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                    <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                  </span>
-                  <span>Sincronizado en tiempo real</span>
                 </div>
               </div>
             </div>
@@ -1640,15 +1665,16 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                     <th class="px-4 py-3">Cliente / Comprobante</th>
                     <th class="px-4 py-3">Modalidad</th>
                     <th class="px-4 py-3">Estado</th>
-                    <th class="px-4 py-3">Repartidor</th>
+                    <th class="px-4 py-3">Cobro / Pago</th>
+                    <th class="px-4 py-3">Gestión de Entrega</th>
                     <th class="px-4 py-3 text-right">Total</th>
                     <th class="px-4 py-3 text-right">Acciones</th>
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100">
                   @for (ord of filteredGlobalOrders(); track ord.id) {
-                    <tr class="hover:bg-gray-50/70 transition">
-                      <td class="px-4 py-3.5 font-mono font-semibold text-gray-900">
+                    <tr class="hover:bg-gray-50/70 transition align-middle">
+                      <td class="px-4 py-3.5 font-mono font-semibold text-gray-900 whitespace-nowrap">
                         {{ ord.orderNumber }}
                         <span class="block font-sans font-normal text-[11px] text-gray-500">
                           {{ ord.createdAt | date: 'dd/MM/yy HH:mm' }}
@@ -1657,52 +1683,78 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                       <td class="px-4 py-3.5">
                         <p class="font-semibold text-gray-900">{{ ord.recipientName || ord.customerName }}</p>
                         <span class="text-[11px] text-gray-500">
-                          {{ ord.invoiceType }} {{ ord.customerTaxId ? '· RUC ' + ord.customerTaxId : '' }}
+                          {{ ord.invoiceType }} {{ ord.customerTaxId ? '· Doc. ' + ord.customerTaxId : '' }}
                         </span>
                       </td>
-                      <td class="px-4 py-3.5">
-                        <span class="font-medium text-gray-800">{{ formatDeliveryType(ord.deliveryType) }}</span>
-                        @if (ord.distanceMeters) {
-                          <span class="block text-[11px] tabular-nums text-emerald-700">
+                      <td class="px-4 py-3.5 whitespace-nowrap">
+                        <span
+                          [class]="ord.deliveryType === 'PICKUP' ? 'bg-blue-50 text-blue-800 border-blue-200' : 'bg-orange-50 text-orange-800 border-orange-200'"
+                          class="inline-flex items-center gap-1 rounded-lg border px-2 py-0.5 text-[11px] font-semibold"
+                        >
+                          {{ ord.deliveryType === 'PICKUP' ? '🏬 Recojo en tienda' : '🛵 Envío a domicilio' }}
+                        </span>
+                        @if (ord.deliveryType === 'DELIVERY' && ord.distanceMeters) {
+                          <span class="block mt-0.5 text-[11px] tabular-nums text-emerald-700">
                             {{ (ord.distanceMeters / 1000) | number: '1.2-2' }} km
                           </span>
                         }
                       </td>
-                      <td class="px-4 py-3.5">
-                        <span
-                          [class]="statusBadgeClass(ord.status)"
-                          class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-semibold"
-                        >
-                          {{ formatOrderStatus(ord.status) }}
-                        </span>
-                        @if (ord.deliveryType === 'PICKUP') {
-                          @if (isPaidOnline(ord)) {
-                            <span class="block mt-1 text-[10px] font-black text-emerald-800 bg-emerald-50 border border-emerald-300 px-2 py-0.5 rounded-md w-fit">
-                              ✓ PAGADO
-                            </span>
-                          } @else {
-                            <span class="block mt-1 text-[10px] font-black text-amber-800 bg-amber-50 border border-amber-300 px-2 py-0.5 rounded-md w-fit">
-                              ⏳ FALTA COBRAR
-                            </span>
+                      <td class="px-4 py-3.5 whitespace-nowrap">
+                        <div class="inline-flex items-center gap-1.5">
+                          <span
+                            [class]="statusBadgeClass(ord.status)"
+                            class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-semibold"
+                          >
+                            {{ formatOrderStatus(ord.status, ord.deliveryType) }}
+                          </span>
+                          @if (ord.status !== 'ENTREGADO' && ord.status !== 'CANCELADO') {
+                            <button
+                              type="button"
+                              (click)="openStatusModal(ord)"
+                              title="Cambiar estado del pedido"
+                              class="inline-flex items-center rounded-md border border-gray-200 bg-white px-1.5 py-0.5 text-[10px] font-bold text-gray-600 hover:border-orange-300 hover:bg-orange-50 hover:text-orange-700 transition cursor-pointer"
+                            >
+                              Cambiar
+                            </button>
                           }
-                        }
+                        </div>
                       </td>
-                      <td class="px-4 py-3.5">
+                      <td class="px-4 py-3.5 whitespace-nowrap">
+                        @if (isPaidOnline(ord)) {
+                          <span class="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-emerald-800">
+                            ✓ PAGADO
+                          </span>
+                        } @else if (ord.deliveryType === 'PICKUP') {
+                          <span class="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-2.5 py-0.5 text-[11px] font-bold text-amber-800">
+                            ⏳ FALTA COBRAR
+                          </span>
+                        } @else {
+                          <span class="inline-flex items-center gap-1 rounded-full border border-orange-200 bg-orange-50 px-2.5 py-0.5 text-[11px] font-semibold text-orange-800">
+                            ⏳ Contra entrega
+                          </span>
+                        }
+                        <span class="block mt-0.5 text-[10px] text-gray-500">
+                          {{ formatPaymentMethodLabel(ord.paymentMethod) }}
+                        </span>
+                      </td>
+                      <td class="px-4 py-3.5 whitespace-nowrap">
                         @if (ord.deliveryType === 'DELIVERY') {
                           @if (ord.assignedDriverName) {
-                            <div class="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-800">
-                              <img src="/images/icons/repartidor.png" alt="" class="h-3.5 w-3.5 object-contain" />
-                              <span>{{ ord.assignedDriverName }}</span>
+                            <div class="inline-flex items-center gap-1.5">
+                              <div class="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-800">
+                                <img src="/images/icons/repartidor.png" alt="" class="h-3.5 w-3.5 object-contain" />
+                                <span>{{ ord.assignedDriverName }}</span>
+                              </div>
+                              @if (ord.status !== 'ENTREGADO' && ord.status !== 'CANCELADO') {
+                                <button
+                                  type="button"
+                                  (click)="openDriverAssignmentModal(ord)"
+                                  class="text-[10px] font-semibold text-orange-600 hover:text-orange-700 underline cursor-pointer"
+                                >
+                                  Cambiar
+                                </button>
+                              }
                             </div>
-                            @if (ord.status !== 'ENTREGADO' && ord.status !== 'CANCELADO') {
-                              <button
-                                type="button"
-                                (click)="openDriverAssignmentModal(ord)"
-                                class="ml-1.5 text-[10px] font-semibold text-orange-600 hover:text-orange-700 underline cursor-pointer"
-                              >
-                                Cambiar
-                              </button>
-                            }
                           } @else if (ord.status !== 'ENTREGADO' && ord.status !== 'CANCELADO') {
                             <button
                               type="button"
@@ -1716,15 +1768,33 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                             <span class="text-[11px] text-gray-400">Sin asignar</span>
                           }
                         } @else {
-                          <span class="inline-flex items-center gap-1 text-[11px] font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-md">
-                            Recojo en tienda
-                          </span>
+                          @if (ord.status !== 'ENTREGADO' && ord.status !== 'CANCELADO') {
+                            <button
+                              type="button"
+                              (click)="openPickupDeliveryModal(ord)"
+                              [class]="!isPaidOnline(ord)
+                                ? 'border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 hover:border-amber-400'
+                                : 'border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 hover:border-emerald-400'"
+                              class="inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-bold shadow-2xs transition cursor-pointer"
+                            >
+                              <span>🏬</span>
+                              <span>{{ !isPaidOnline(ord) ? 'Cobrar y Entregar' : 'Entregar en Tienda' }}</span>
+                            </button>
+                          } @else if (ord.status === 'ENTREGADO') {
+                            <span class="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700">
+                              ✓ Retirado en tienda
+                            </span>
+                          } @else {
+                            <span class="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-500">
+                              Stock devuelto
+                            </span>
+                          }
                         }
                       </td>
-                      <td class="px-4 py-3.5 text-right font-bold tabular-nums text-gray-900">
+                      <td class="px-4 py-3.5 text-right font-bold tabular-nums text-gray-900 whitespace-nowrap">
                         S/ {{ (ord.totalAmount ?? ord.total ?? ord.subtotal) | number: '1.2-2' }}
                       </td>
-                      <td class="px-4 py-3.5 text-right whitespace-nowrap space-x-2">
+                      <td class="px-4 py-3.5 text-right whitespace-nowrap space-x-1.5">
                         <button
                           type="button"
                           (click)="downloadOrderPdf(ord)"
@@ -1741,13 +1811,234 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                           [queryParams]="{ order: ord.orderNumber }"
                           class="inline-flex items-center gap-1 rounded-lg border border-orange-200 bg-orange-50 px-2.5 py-1 text-[11px] font-bold text-orange-700 hover:bg-orange-100 transition"
                         >
-                          <span>{{ ord.status === 'ENTREGADO' ? 'Constancia' : 'Seguimiento' }}</span>
+                          <span>{{ ord.status === 'ENTREGADO' ? 'Constancia' : (ord.deliveryType === 'PICKUP' ? 'Detalle' : 'Seguimiento') }}</span>
                         </a>
                       </td>
                     </tr>
                   }
                 </tbody>
               </table>
+            </div>
+          </div>
+        }
+
+        <!-- ========================================================================= -->
+        <!-- TAB 4B: UNIFIED COMPLETED ORDERS (ONLINE DELIVERY + PICKUP + CAJA POS)    -->
+        <!-- ========================================================================= -->
+        @if (activeTab() === 'completed') {
+          <div class="space-y-5">
+            <!-- Summary KPI Strip -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div class="rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50/70 to-white p-4 shadow-2xs">
+                <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-700">Total Completados (Online + POS)</span>
+                <div class="mt-1.5 flex items-baseline justify-between">
+                  <span class="text-2xl font-black text-gray-900 tabular-nums">{{ completedUnifiedStats().totalCount }}</span>
+                  <span class="font-mono text-sm font-extrabold text-emerald-700">S/ {{ completedUnifiedStats().totalAmount | number: '1.2-2' }}</span>
+                </div>
+                <p class="mt-1 text-[11px] text-gray-500">Todos los pedidos cerrados y cobrados</p>
+              </div>
+
+              <div class="rounded-2xl border border-orange-200 bg-white p-4 shadow-2xs">
+                <span class="text-[10px] font-bold uppercase tracking-wider text-orange-700">🌐 Online · Delivery</span>
+                <div class="mt-1.5 flex items-baseline justify-between">
+                  <span class="text-2xl font-black text-gray-900 tabular-nums">{{ completedUnifiedStats().deliveryCount }}</span>
+                  <span class="font-mono text-sm font-extrabold text-orange-700">S/ {{ completedUnifiedStats().deliveryAmount | number: '1.2-2' }}</span>
+                </div>
+                <p class="mt-1 text-[11px] text-gray-500">Entregados con motorizado</p>
+              </div>
+
+              <div class="rounded-2xl border border-blue-200 bg-white p-4 shadow-2xs">
+                <span class="text-[10px] font-bold uppercase tracking-wider text-blue-700">🏬 Online · Recojo en Tienda</span>
+                <div class="mt-1.5 flex items-baseline justify-between">
+                  <span class="text-2xl font-black text-gray-900 tabular-nums">{{ completedUnifiedStats().pickupCount }}</span>
+                  <span class="font-mono text-sm font-extrabold text-blue-700">S/ {{ completedUnifiedStats().pickupAmount | number: '1.2-2' }}</span>
+                </div>
+                <p class="mt-1 text-[11px] text-gray-500">Compras web retiradas en mostrador</p>
+              </div>
+
+              <div class="rounded-2xl border border-purple-200 bg-white p-4 shadow-2xs">
+                <span class="text-[10px] font-bold uppercase tracking-wider text-purple-700">🧾 Caja POS · Presencial</span>
+                <div class="mt-1.5 flex items-baseline justify-between">
+                  <span class="text-2xl font-black text-gray-900 tabular-nums">{{ completedUnifiedStats().posCount }}</span>
+                  <span class="font-mono text-sm font-extrabold text-purple-700">S/ {{ completedUnifiedStats().posAmount | number: '1.2-2' }}</span>
+                </div>
+                <p class="mt-1 text-[11px] text-gray-500">Ventas emitidas en Punto de Venta</p>
+              </div>
+            </div>
+
+            <!-- Unified Table Container -->
+            <div class="rounded-2xl border border-gray-200 bg-white overflow-hidden shadow-2xs">
+              <div class="border-b border-gray-200 px-5 py-4 space-y-3">
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <h2 class="text-base font-bold text-gray-900">
+                      Historial Unificado de Ventas y Pedidos Completados ({{ filteredCompletedOrders().length }})
+                    </h2>
+                    <p class="text-xs text-gray-500">
+                      Convergencia en tiempo real de entregas web (Delivery y Recojo en Tienda) junto a ventas presenciales de Caja POS.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    (click)="exportCompletedConsolidatedToExcel()"
+                    class="inline-flex min-h-[36px] items-center gap-1.5 rounded-xl border border-emerald-300 bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-1.5 text-xs font-bold shadow-xs transition cursor-pointer"
+                  >
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                    </svg>
+                    <span>Exportar Consolidado Excel (Online + POS)</span>
+                  </button>
+                </div>
+
+                <div class="flex flex-wrap items-center justify-between gap-2.5">
+                  <div class="inline-flex flex-wrap items-center rounded-xl border border-gray-200 bg-gray-50 p-1 text-xs gap-0.5">
+                    <button
+                      type="button"
+                      (click)="completedChannelFilter.set('ALL')"
+                      [class]="completedChannelFilter() === 'ALL' ? 'bg-white text-gray-900 font-bold shadow-2xs' : 'text-gray-600 hover:text-gray-900 font-medium'"
+                      class="rounded-lg px-2.5 py-1.5 transition cursor-pointer"
+                    >
+                      Todos ({{ completedUnifiedStats().totalCount }})
+                    </button>
+                    <button
+                      type="button"
+                      (click)="completedChannelFilter.set('ONLINE_DELIVERY')"
+                      [class]="completedChannelFilter() === 'ONLINE_DELIVERY' ? 'bg-orange-600 text-white font-bold shadow-2xs' : 'text-gray-600 hover:text-gray-900 font-medium'"
+                      class="rounded-lg px-2.5 py-1.5 transition cursor-pointer"
+                    >
+                      🛵 Online Delivery ({{ completedUnifiedStats().deliveryCount }})
+                    </button>
+                    <button
+                      type="button"
+                      (click)="completedChannelFilter.set('ONLINE_PICKUP')"
+                      [class]="completedChannelFilter() === 'ONLINE_PICKUP' ? 'bg-blue-600 text-white font-bold shadow-2xs' : 'text-gray-600 hover:text-gray-900 font-medium'"
+                      class="rounded-lg px-2.5 py-1.5 transition cursor-pointer"
+                    >
+                      🏬 Online Recojo ({{ completedUnifiedStats().pickupCount }})
+                    </button>
+                    <button
+                      type="button"
+                      (click)="completedChannelFilter.set('POS')"
+                      [class]="completedChannelFilter() === 'POS' ? 'bg-purple-600 text-white font-bold shadow-2xs' : 'text-gray-600 hover:text-gray-900 font-medium'"
+                      class="rounded-lg px-2.5 py-1.5 transition cursor-pointer"
+                    >
+                      🧾 Caja POS ({{ completedUnifiedStats().posCount }})
+                    </button>
+                  </div>
+
+                  <div class="relative">
+                    <input
+                      type="search"
+                      [(ngModel)]="completedSearchQuery"
+                      placeholder="Buscar N.° pedido, cliente o DNI/RUC..."
+                      class="min-h-[36px] w-64 rounded-xl border border-gray-200 bg-gray-50/70 pl-8 pr-3 py-1.5 text-xs text-gray-900 placeholder:text-gray-400 focus:border-emerald-500 focus:bg-white focus:outline-none"
+                    />
+                    <svg class="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200 text-xs">
+                  <thead class="bg-gray-50 text-left font-semibold text-gray-600">
+                    <tr>
+                      <th class="px-4 py-3">N.° de Orden / Fecha</th>
+                      <th class="px-4 py-3">Canal de Venta</th>
+                      <th class="px-4 py-3">Cliente / Comprobante</th>
+                      <th class="px-4 py-3">Cobro y Medio</th>
+                      <th class="px-4 py-3">Atención / Entrega</th>
+                      <th class="px-4 py-3 text-right">Total</th>
+                      <th class="px-4 py-3 text-right">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-gray-100">
+                    @for (ord of filteredCompletedOrders(); track ord.id) {
+                      <tr class="hover:bg-gray-50/70 transition align-middle">
+                        <td class="px-4 py-3.5 font-mono font-semibold text-gray-900 whitespace-nowrap">
+                          {{ ord.orderNumber }}
+                          <span class="block font-sans font-normal text-[11px] text-gray-500">
+                            {{ (ord.updatedAt || ord.createdAt) | date: 'dd/MM/yy HH:mm' }}
+                          </span>
+                        </td>
+                        <td class="px-4 py-3.5 whitespace-nowrap">
+                          @if (isCounterSaleOrder(ord)) {
+                            <span class="inline-flex items-center gap-1 rounded-lg border border-purple-200 bg-purple-50 px-2.5 py-0.5 text-[11px] font-bold text-purple-800">
+                              🧾 Caja POS
+                            </span>
+                          } @else if (ord.deliveryType === 'PICKUP') {
+                            <span class="inline-flex items-center gap-1 rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-[11px] font-bold text-blue-800">
+                              🏬 Online · Recojo
+                            </span>
+                          } @else {
+                            <span class="inline-flex items-center gap-1 rounded-lg border border-orange-200 bg-orange-50 px-2.5 py-0.5 text-[11px] font-bold text-orange-800">
+                              🛵 Online · Delivery
+                            </span>
+                          }
+                        </td>
+                        <td class="px-4 py-3.5">
+                          <p class="font-semibold text-gray-900">{{ ord.recipientName || ord.customerName }}</p>
+                          <span class="text-[11px] text-gray-500">
+                            {{ ord.invoiceType }} {{ ord.customerTaxId ? '· Doc. ' + ord.customerTaxId : '' }}
+                          </span>
+                        </td>
+                        <td class="px-4 py-3.5 whitespace-nowrap">
+                          <span class="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-emerald-800">
+                            ✓ Cobrado
+                          </span>
+                          <span class="block mt-0.5 text-[10px] text-gray-500">
+                            {{ formatPaymentMethodLabel(ord.paymentMethod) }}
+                          </span>
+                        </td>
+                        <td class="px-4 py-3.5 whitespace-nowrap">
+                          @if (!isCounterSaleOrder(ord) && ord.deliveryType === 'DELIVERY') {
+                            <span class="inline-flex items-center gap-1.5 text-[11px] font-semibold text-gray-800">
+                              <img src="/images/icons/repartidor.png" alt="" class="h-3.5 w-3.5 object-contain" />
+                              <span>{{ ord.assignedDriverName || 'Flota Asunción' }}</span>
+                            </span>
+                          } @else {
+                            <span class="text-[11px] font-medium text-gray-700">
+                              {{ ord.salespersonName || (isCounterSaleOrder(ord) ? 'Caja POS / Mostrador' : 'Entrega en Tienda') }}
+                            </span>
+                            <span class="block text-[10px] text-gray-400">
+                              {{ ord.branchName || 'Sede Santa Anita' }}
+                            </span>
+                          }
+                        </td>
+                        <td class="px-4 py-3.5 text-right font-bold tabular-nums text-gray-900 whitespace-nowrap">
+                          S/ {{ (ord.totalAmount ?? ord.total ?? ord.subtotal) | number: '1.2-2' }}
+                        </td>
+                        <td class="px-4 py-3.5 text-right whitespace-nowrap space-x-1.5">
+                          <button
+                            type="button"
+                            (click)="downloadOrderPdf(ord)"
+                            class="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-2 py-1 text-[11px] font-semibold text-gray-700 hover:border-orange-300 hover:text-orange-700 transition cursor-pointer"
+                          >
+                            <span>PDF</span>
+                          </button>
+                          @if (!isCounterSaleOrder(ord)) {
+                            <a
+                              routerLink="/track"
+                              [queryParams]="{ order: ord.orderNumber }"
+                              class="inline-flex items-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-800 hover:bg-emerald-100 transition"
+                            >
+                              <span>Constancia</span>
+                            </a>
+                          }
+                        </td>
+                      </tr>
+                    } @empty {
+                      <tr>
+                        <td colspan="7" class="px-6 py-10 text-center text-gray-500">
+                          No hay pedidos completados que coincidan con este filtro.
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         }
@@ -4698,6 +4989,321 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
         </div>
       }
 
+      <!-- Status Management Modal (Works seamlessly for both Delivery & Store Pickup) -->
+      @if (selectedOrderForStatus(); as orderForStatus) {
+        <div class="fixed inset-0 z-50 overflow-y-auto bg-gray-900/50 backdrop-blur-xs p-4 flex items-center justify-center">
+          <div class="w-full max-w-md rounded-2xl border border-gray-200 bg-white shadow-2xl overflow-hidden">
+            <div class="border-b border-gray-200 bg-gray-50/80 px-6 py-4 flex items-center justify-between">
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="font-mono text-xs font-bold text-orange-600">{{ orderForStatus.orderNumber }}</span>
+                  <span class="rounded-full px-2 py-0.5 text-[10px] font-bold border"
+                    [class]="orderForStatus.deliveryType === 'PICKUP' ? 'bg-blue-50 text-blue-800 border-blue-200' : 'bg-orange-50 text-orange-800 border-orange-200'">
+                    {{ orderForStatus.deliveryType === 'PICKUP' ? '🏬 Recojo en tienda' : '🛵 Envío a domicilio' }}
+                  </span>
+                </div>
+                <h3 class="text-base font-bold text-gray-900 mt-0.5">Cambiar Estado del Pedido</h3>
+              </div>
+              <button
+                type="button"
+                (click)="closeStatusModal()"
+                class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition cursor-pointer"
+                aria-label="Cerrar"
+              >
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div class="p-6 space-y-4 text-xs">
+              <div class="rounded-xl border border-gray-200 bg-gray-50/70 p-3 flex items-center justify-between">
+                <div>
+                  <span class="text-gray-500 block">Cliente</span>
+                  <strong class="text-gray-900">{{ orderForStatus.recipientName || orderForStatus.customerName }}</strong>
+                </div>
+                <div class="text-right">
+                  <span class="text-gray-500 block">Estado actual</span>
+                  <span [class]="statusBadgeClass(orderForStatus.status)" class="inline-flex rounded-full border px-2.5 py-0.5 text-[11px] font-bold">
+                    {{ formatOrderStatus(orderForStatus.status, orderForStatus.deliveryType) }}
+                  </span>
+                </div>
+              </div>
+
+              <div class="space-y-2">
+                <label class="block font-bold text-gray-900">Selecciona el nuevo estado:</label>
+
+                <button
+                  type="button"
+                  (click)="statusDraftTarget.set('EN_PREPARACION')"
+                  [class]="statusDraftTarget() === 'EN_PREPARACION' ? 'border-orange-500 bg-orange-50/80 ring-2 ring-orange-500/20' : 'border-gray-200 bg-white hover:bg-gray-50'"
+                  class="w-full text-left rounded-xl border p-3 transition cursor-pointer flex items-center justify-between"
+                >
+                  <div>
+                    <p class="font-bold text-gray-900">📦 En preparación</p>
+                    <p class="text-[11px] text-gray-500">Almacén está separando y verificando los repuestos</p>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  (click)="statusDraftTarget.set('LISTO_PARA_DESPACHO')"
+                  [class]="statusDraftTarget() === 'LISTO_PARA_DESPACHO' ? 'border-orange-500 bg-orange-50/80 ring-2 ring-orange-500/20' : 'border-gray-200 bg-white hover:bg-gray-50'"
+                  class="w-full text-left rounded-xl border p-3 transition cursor-pointer flex items-center justify-between"
+                >
+                  <div>
+                    <p class="font-bold text-gray-900">
+                      {{ orderForStatus.deliveryType === 'PICKUP' ? '🏬 Listo para recojo en mostrador' : '✅ Listo para despacho' }}
+                    </p>
+                    <p class="text-[11px] text-gray-500">
+                      {{ orderForStatus.deliveryType === 'PICKUP' ? 'Notifica al cliente por correo que ya puede acercarse a recoger' : 'Embalado al 100% para salida con motorizado' }}
+                    </p>
+                  </div>
+                </button>
+
+                @if (orderForStatus.deliveryType === 'DELIVERY') {
+                  <button
+                    type="button"
+                    (click)="statusDraftTarget.set('EN_RUTA')"
+                    [class]="statusDraftTarget() === 'EN_RUTA' ? 'border-orange-500 bg-orange-50/80 ring-2 ring-orange-500/20' : 'border-gray-200 bg-white hover:bg-gray-50'"
+                    class="w-full text-left rounded-xl border p-3 transition cursor-pointer flex items-center justify-between"
+                  >
+                    <div>
+                      <p class="font-bold text-gray-900">🛵 En ruta con repartidor</p>
+                      <p class="text-[11px] text-gray-500">El motorizado ya salió hacia la dirección del cliente</p>
+                    </div>
+                  </button>
+                }
+
+                <button
+                  type="button"
+                  (click)="statusDraftTarget.set('ENTREGADO')"
+                  [class]="statusDraftTarget() === 'ENTREGADO' ? 'border-emerald-500 bg-emerald-50/80 ring-2 ring-emerald-500/20' : 'border-gray-200 bg-white hover:bg-gray-50'"
+                  class="w-full text-left rounded-xl border p-3 transition cursor-pointer flex items-center justify-between"
+                >
+                  <div>
+                    <p class="font-bold text-emerald-800">
+                      {{ orderForStatus.deliveryType === 'PICKUP' ? '✓ Entregado en tienda (y cobrar si falta)' : '✓ Marcar como Entregado' }}
+                    </p>
+                    <p class="text-[11px] text-gray-500">
+                      {{ orderForStatus.deliveryType === 'PICKUP' ? 'Cierra el pedido en mostrador y confirma el cobro' : 'Finaliza el pedido como completado' }}
+                    </p>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  (click)="statusDraftTarget.set('CANCELADO')"
+                  [class]="statusDraftTarget() === 'CANCELADO' ? 'border-red-500 bg-red-50/80 ring-2 ring-red-500/20' : 'border-gray-200 bg-white hover:bg-red-50/30'"
+                  class="w-full text-left rounded-xl border p-3 transition cursor-pointer flex items-center justify-between"
+                >
+                  <div>
+                    <p class="font-bold text-red-700">✕ Cancelar pedido (Devolver stock)</p>
+                    <p class="text-[11px] text-gray-500">Anula el pedido y reincorpora todas las unidades al inventario</p>
+                  </div>
+                </button>
+              </div>
+
+              @if (orderForStatus.deliveryType === 'DELIVERY' && (statusDraftTarget() === 'LISTO_PARA_DESPACHO' || statusDraftTarget() === 'EN_RUTA')) {
+                <div class="rounded-xl border border-orange-200 bg-orange-50/50 p-3 space-y-2">
+                  <label class="block font-bold text-gray-900">
+                    Repartidor motorizado {{ statusDraftTarget() === 'EN_RUTA' && !orderForStatus.assignedDriverId ? '(obligatorio)' : '(opcional)' }}:
+                  </label>
+                  <select
+                    [(ngModel)]="statusDraftDriverId"
+                    class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs text-gray-900 focus:border-orange-500 focus:outline-none"
+                  >
+                    <option [ngValue]="null">
+                      {{ orderForStatus.assignedDriverName ? 'Mantener: ' + orderForStatus.assignedDriverName : '-- Seleccionar motorizado disponible --' }}
+                    </option>
+                    @for (d of drivers(); track d.id) {
+                      <option [ngValue]="d.id">
+                        {{ d.fullName }} — {{ driverStatusLabel(d.status) }}
+                      </option>
+                    }
+                  </select>
+                </div>
+              }
+
+              @if (statusDraftTarget() === 'CANCELADO') {
+                <div>
+                  <label class="block font-bold text-gray-800 mb-1">Motivo de cancelación / devolución de stock:</label>
+                  <input
+                    type="text"
+                    [(ngModel)]="statusDraftNotes"
+                    placeholder="Ej. Cliente no acudió a recoger en 48h / solicitó anulación"
+                    class="w-full rounded-xl border border-gray-300 px-3 py-2 text-xs text-gray-900 focus:border-red-500 focus:outline-none"
+                  />
+                </div>
+              }
+
+              @if (statusModalError()) {
+                <div class="rounded-xl border border-red-200 bg-red-50 p-3 text-red-700 text-xs">
+                  {{ statusModalError() }}
+                </div>
+              }
+            </div>
+
+            <div class="border-t border-gray-100 bg-gray-50/80 px-6 py-4 flex items-center justify-end gap-2.5">
+              <button
+                type="button"
+                (click)="closeStatusModal()"
+                class="h-9.5 rounded-xl border border-gray-200 bg-white px-4 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition cursor-pointer"
+              >
+                Cerrar
+              </button>
+              <button
+                type="button"
+                [disabled]="!statusDraftTarget() || isUpdatingOrderStatus()"
+                (click)="applyOrderStatusChange()"
+                [class]="statusDraftTarget() === 'CANCELADO' ? 'bg-red-600 hover:bg-red-700' : 'bg-orange-600 hover:bg-orange-700'"
+                class="h-9.5 rounded-xl px-5 text-xs font-bold text-white shadow-xs disabled:opacity-50 transition cursor-pointer"
+              >
+                {{ isUpdatingOrderStatus() ? 'Actualizando...' : (statusDraftTarget() === 'ENTREGADO' && orderForStatus.deliveryType === 'PICKUP' ? 'Continuar a Entrega en Tienda →' : 'Guardar Nuevo Estado') }}
+              </button>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- Store Pickup Completion & Payment Collection Modal (Symmetrical to Delivery Dispatch) -->
+      @if (selectedOrderForPickupDelivery(); as pickupOrd) {
+        <div class="fixed inset-0 z-50 overflow-y-auto bg-gray-900/50 backdrop-blur-xs p-4 flex items-center justify-center">
+          <div class="w-full max-w-md rounded-2xl border border-gray-200 bg-white shadow-2xl overflow-hidden">
+            <div class="border-b border-gray-200 bg-gray-50/80 px-6 py-4 flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-blue-200 bg-blue-100/70 text-blue-700">
+                  <img src="/images/icons/local.png" alt="Tienda" class="h-6 w-6 object-contain" />
+                </div>
+                <div>
+                  <div class="flex items-center gap-2">
+                    <span class="font-mono text-xs font-bold text-blue-700">{{ pickupOrd.orderNumber }}</span>
+                    <span class="rounded-full bg-blue-100 text-blue-800 text-[10px] font-bold px-2 py-0.5 border border-blue-200">
+                      Recojo en Tienda
+                    </span>
+                  </div>
+                  <h3 class="text-base font-bold text-gray-900">
+                    {{ !isPaidOnline(pickupOrd) ? 'Cobrar y Entregar en Mostrador' : 'Confirmar Entrega en Mostrador' }}
+                  </h3>
+                </div>
+              </div>
+              <button
+                type="button"
+                (click)="closePickupDeliveryModal()"
+                class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition cursor-pointer"
+                aria-label="Cerrar"
+              >
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div class="p-6 space-y-4 text-xs">
+              <!-- Payment Status Banner -->
+              <div
+                class="rounded-xl border p-3.5 flex items-center justify-between gap-3"
+                [class]="isPaidOnline(pickupOrd) ? 'border-emerald-300 bg-emerald-50 text-emerald-950' : 'border-amber-300 bg-amber-50 text-amber-950'"
+              >
+                <div>
+                  <span class="block text-[10px] font-black uppercase tracking-wider"
+                    [class]="isPaidOnline(pickupOrd) ? 'text-emerald-700' : 'text-amber-800'">
+                    {{ isPaidOnline(pickupOrd) ? '✓ YA PAGADO CON TARJETA EN LÍNEA' : '⏳ FALTA COBRAR EN TIENDA' }}
+                  </span>
+                  <p class="text-[11px] mt-0.5">
+                    {{ isPaidOnline(pickupOrd)
+                      ? 'El pago ya fue acreditado online. Verifica el DNI y entrega los repuestos.'
+                      : 'Cobra al cliente en mostrador antes de entregar sus repuestos.' }}
+                  </p>
+                </div>
+                <span class="font-mono text-base font-black shrink-0 bg-white px-2.5 py-1 rounded-lg border"
+                  [class]="isPaidOnline(pickupOrd) ? 'border-emerald-300 text-emerald-800' : 'border-amber-300 text-amber-900'">
+                  S/ {{ (pickupOrd.totalAmount ?? pickupOrd.total ?? pickupOrd.subtotal) | number: '1.2-2' }}
+                </span>
+              </div>
+
+              @if (!isPaidOnline(pickupOrd)) {
+                <div class="space-y-2">
+                  <label class="block font-bold text-gray-900">¿Con qué medio pagó el cliente en mostrador?</label>
+                  <div class="grid grid-cols-2 gap-2">
+                    @for (pm of [
+                      { key: 'EFECTIVO', label: '💵 Efectivo' },
+                      { key: 'YAPE', label: '📱 Yape' },
+                      { key: 'PLIN', label: '📲 Plin' },
+                      { key: 'TARJETA_POS', label: '💳 Tarjeta POS' }
+                    ]; track pm.key) {
+                      <button
+                        type="button"
+                        (click)="pickupPaymentMethod.set(pm.key)"
+                        [class]="pickupPaymentMethod() === pm.key ? 'border-amber-500 bg-amber-50 text-amber-950 font-extrabold ring-2 ring-amber-400/30' : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50 font-semibold'"
+                        class="rounded-xl border px-3 py-2.5 text-left transition cursor-pointer"
+                      >
+                        {{ pm.label }}
+                      </button>
+                    }
+                  </div>
+                </div>
+              }
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label class="block font-bold text-gray-700 mb-1">Persona que retira</label>
+                  <input
+                    type="text"
+                    [(ngModel)]="pickupReceiverName"
+                    placeholder="Nombre completo"
+                    class="w-full rounded-xl border border-gray-300 px-3 py-2 text-xs text-gray-900 focus:border-blue-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label class="block font-bold text-gray-700 mb-1">DNI / Documento</label>
+                  <input
+                    type="text"
+                    [(ngModel)]="pickupReceiverDoc"
+                    placeholder="N.° DNI / CE"
+                    class="w-full rounded-xl border border-gray-300 px-3 py-2 text-xs text-gray-900 font-mono focus:border-blue-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label class="block font-bold text-gray-700 mb-1">Observaciones en mostrador (opcional)</label>
+                <input
+                  type="text"
+                  [(ngModel)]="pickupNotes"
+                  placeholder="Ej. Entregado conforme con su boleta física"
+                  class="w-full rounded-xl border border-gray-300 px-3 py-2 text-xs text-gray-900 focus:border-blue-500 focus:outline-none"
+                />
+              </div>
+
+              @if (pickupModalError()) {
+                <div class="rounded-xl border border-red-200 bg-red-50 p-3 text-red-700 text-xs">
+                  {{ pickupModalError() }}
+                </div>
+              }
+            </div>
+
+            <div class="border-t border-gray-100 bg-gray-50/80 px-6 py-4 flex items-center justify-end gap-2.5">
+              <button
+                type="button"
+                (click)="closePickupDeliveryModal()"
+                class="h-9.5 rounded-xl border border-gray-200 bg-white px-4 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                [disabled]="isCompletingPickup()"
+                (click)="confirmPickupDelivery()"
+                class="h-9.5 rounded-xl bg-emerald-600 px-5 text-xs font-bold text-white shadow-xs hover:bg-emerald-700 disabled:opacity-50 transition cursor-pointer"
+              >
+                {{ isCompletingPickup() ? 'Procesando...' : (!isPaidOnline(pickupOrd) ? '✓ Registrar Cobro y Entregar' : '✓ Confirmar Entrega en Tienda') }}
+              </button>
+            </div>
+          </div>
+        </div>
+      }
+
     </div>
   `,
 })
@@ -5259,10 +5865,87 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
   branchDraft: Branch | null = null;
   readonly savingBranch = signal<boolean>(false);
 
-  // Global Orders State
+  // Global Orders & Unified Completed Orders State
+  readonly allSystemOrders = signal<Order[]>([]);
   readonly globalOrders = signal<Order[]>([]);
   readonly orderStatusFilter = signal<'ALL' | 'PENDING' | 'EN_RUTA' | 'ENTREGADO'>('ALL');
   orderSearchQuery = '';
+
+  // Unified Completed Orders (Online Delivery + Online Pickup + Caja POS)
+  readonly completedChannelFilter = signal<'ALL' | 'ONLINE_DELIVERY' | 'ONLINE_PICKUP' | 'POS'>('ALL');
+  completedSearchQuery = '';
+
+  readonly completedUnifiedOrders = computed(() =>
+    this.allSystemOrders().filter((o) => o.status === 'ENTREGADO')
+  );
+
+  readonly completedUnifiedStats = computed(() => {
+    const all = this.completedUnifiedOrders();
+    let deliveryCount = 0;
+    let deliveryAmount = 0;
+    let pickupCount = 0;
+    let pickupAmount = 0;
+    let posCount = 0;
+    let posAmount = 0;
+
+    for (const o of all) {
+      const amount = Number(o.totalAmount ?? o.total ?? o.subtotal ?? 0);
+      if (this.isCounterSaleOrder(o)) {
+        posCount += 1;
+        posAmount += amount;
+      } else if (o.deliveryType === 'PICKUP') {
+        pickupCount += 1;
+        pickupAmount += amount;
+      } else {
+        deliveryCount += 1;
+        deliveryAmount += amount;
+      }
+    }
+
+    return {
+      totalCount: all.length,
+      totalAmount: Number((deliveryAmount + pickupAmount + posAmount).toFixed(2)),
+      deliveryCount,
+      deliveryAmount: Number(deliveryAmount.toFixed(2)),
+      pickupCount,
+      pickupAmount: Number(pickupAmount.toFixed(2)),
+      posCount,
+      posAmount: Number(posAmount.toFixed(2)),
+    };
+  });
+
+  filteredCompletedOrders(): Order[] {
+    const channel = this.completedChannelFilter();
+    const q = this.completedSearchQuery.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    return this.completedUnifiedOrders().filter((o) => {
+      const isPos = this.isCounterSaleOrder(o);
+      if (channel === 'POS' && !isPos) return false;
+      if (channel === 'ONLINE_PICKUP' && (isPos || o.deliveryType !== 'PICKUP')) return false;
+      if (channel === 'ONLINE_DELIVERY' && (isPos || o.deliveryType !== 'DELIVERY')) return false;
+      if (!q) return true;
+      const haystack = `${o.orderNumber} ${o.recipientName || ''} ${o.customerName || ''} ${o.customerTaxId || ''} ${o.assignedDriverName || ''}`
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
+      return haystack.includes(q);
+    });
+  }
+
+  // Order Status & Store Pickup Modals State
+  readonly selectedOrderForStatus = signal<Order | null>(null);
+  readonly statusDraftTarget = signal<string>('');
+  statusDraftDriverId: number | null = null;
+  statusDraftNotes = '';
+  readonly isUpdatingOrderStatus = signal<boolean>(false);
+  readonly statusModalError = signal<string>('');
+
+  readonly selectedOrderForPickupDelivery = signal<Order | null>(null);
+  readonly pickupPaymentMethod = signal<string>('EFECTIVO');
+  pickupReceiverName = '';
+  pickupReceiverDoc = '';
+  pickupNotes = '';
+  readonly isCompletingPickup = signal<boolean>(false);
+  readonly pickupModalError = signal<string>('');
 
   readonly pendingDispatchOrdersCount = computed(() =>
     this.globalOrders().filter(
@@ -5496,9 +6179,11 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
       return;
     }
     this.activeTab.set(tab);
-    if (tab === 'orders') {
+    if (tab === 'orders' || tab === 'completed') {
       this.loadGlobalOrders();
-      this.loadDrivers();
+      if (tab === 'orders') {
+        this.loadDrivers();
+      }
     }
     if (tab === 'parts' && this.adminParts().length === 0) {
       this.loadAdminParts();
@@ -5558,7 +6243,23 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
     return pm.includes('TARJETA') || pm.includes('CULQI') || pm.includes('CARD') || pm === 'PAGO_ONLINE';
   }
 
-  formatOrderStatus(status?: string): string {
+  formatPaymentMethodLabel(method?: string): string {
+    const raw = (method || '').toUpperCase().trim();
+    if (!raw) return 'Por confirmar';
+    if (raw === 'MOSTRADOR_EFECTIVO' || raw === 'EFECTIVO' || raw === 'CONTRA_ENTREGA') return 'Efectivo';
+    if (raw === 'MOSTRADOR_YAPE' || raw === 'YAPE') return 'Yape';
+    if (raw === 'MOSTRADOR_PLIN' || raw === 'PLIN') return 'Plin';
+    if (raw === 'MOSTRADOR_TARJETA' || raw === 'TARJETA_POS') return 'Tarjeta POS';
+    if (raw.includes('TARJETA') || raw.includes('CULQI') || raw.includes('CARD') || raw === 'PAGO_ONLINE') return 'Tarjeta online';
+    if (raw === 'BILLETERA_DIGITAL') return 'Yape / Plin';
+    if (raw === 'TRANSFERENCIA') return 'Transferencia';
+    return method!;
+  }
+
+  formatOrderStatus(status?: string, deliveryType?: string): string {
+    if ((status === 'READY_FOR_DISPATCH' || status === 'LISTO_PARA_DESPACHO') && deliveryType === 'PICKUP') {
+      return 'Listo en tienda';
+    }
     const labels: Record<string, string> = {
       RESERVADO: 'Stock reservado',
       PENDING: 'Pendiente',
@@ -6847,7 +7548,7 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
 
   // ===================== GLOBAL ORDERS & MOTORIZADOS =====================
 
-  private isCounterSaleOrder(ord: Order): boolean {
+  isCounterSaleOrder(ord: Order): boolean {
     const pm = (ord.paymentMethod || '').toUpperCase();
     const notes = (ord.notes || '').toUpperCase();
     const addr = (ord.deliveryAddress || '').toUpperCase();
@@ -6867,23 +7568,32 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
 
   loadGlobalOrders(): void {
     this.ordersService.getAllOrders().subscribe({
-      next: (list) => this.globalOrders.set(list.filter((o) => !this.isCounterSaleOrder(o))),
-      error: () => this.globalOrders.set([]),
+      next: (list) => {
+        this.allSystemOrders.set(list);
+        this.globalOrders.set(list.filter((o) => !this.isCounterSaleOrder(o)));
+      },
+      error: () => {
+        this.allSystemOrders.set([]);
+        this.globalOrders.set([]);
+      },
     });
   }
 
-  
-  exportOrdersToExcelForSunat(): void {
-    const orders = this.globalOrders();
-    if (!orders || orders.length === 0) {
-      this.toast.info('Sin registros', 'No hay pedidos disponibles para exportar.');
-      return;
-    }
+  private getOrderChannelCode(ord: Order): string {
+    if (this.isCounterSaleOrder(ord)) return 'CAJA_POS';
+    return ord.deliveryType === 'PICKUP' ? 'ONLINE_RECOJO' : 'ONLINE_DELIVERY';
+  }
 
+  private downloadOrdersAsSunatCsv(
+    orders: Order[],
+    filenamePrefix: string,
+    includeChannelColumn = false
+  ): number {
     // Cabecera estándar según formato 14.1 de Registro de Ventas para Contabilidad / SUNAT
     const headers = [
       'NRO_PEDIDO',
       'FECHA_EMISION',
+      ...(includeChannelColumn ? ['CANAL_VENTA'] : []),
       'TIPO_COMPROBANTE',
       'SERIE_COMPROBANTE',
       'NUMERO_COMPROBANTE',
@@ -6920,6 +7630,7 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
       return [
         sanitize(ord.orderNumber || `ASN-2026-${String(idx + 1).padStart(4, '0')}`),
         sanitize(fecha),
+        ...(includeChannelColumn ? [sanitize(this.getOrderChannelCode(ord))] : []),
         sanitize(tipoComprobante),
         sanitize(serie),
         sanitize(ord.orderNumber || String(idx + 1)),
@@ -6933,7 +7644,7 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
         sanitize('PEN (Soles)'),
         sanitize(ord.paymentMethod || 'CONTRA_ENTREGA'),
         sanitize(ord.status || 'PENDIENTE'),
-        sanitize(ord.status === 'ENTREGADO' || ord.status === 'CONFIRMADO' ? 'PAGADO' : 'PENDIENTE'),
+        sanitize(this.isPaidOnline(ord) ? 'PAGADO' : 'PENDIENTE'),
         sanitize(ord.deliveryType || 'DELIVERY'),
         sanitize(ord.deliveryAddress || 'Recojo en tienda')
       ].join(';');
@@ -6944,15 +7655,47 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `Registro_Ventas_SUNAT_Asuncion_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `${filenamePrefix}_${new Date().toISOString().slice(0, 10)}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+    return orders.length;
+  }
 
+  exportOrdersToExcelForSunat(): void {
+    const orders = this.globalOrders();
+    if (!orders || orders.length === 0) {
+      this.toast.info('Sin registros', 'No hay pedidos disponibles para exportar.');
+      return;
+    }
+
+    const exportedCount = this.downloadOrdersAsSunatCsv(
+      orders,
+      'Registro_Ventas_SUNAT_Asuncion',
+      false
+    );
     this.toast.success(
       'Excel generado con éxito',
-      `Se exportaron ${orders.length} registros contables en formato listo para SUNAT / Microsoft Excel.`
+      `Se exportaron ${exportedCount} registros contables en formato listo para SUNAT / Microsoft Excel.`
+    );
+  }
+
+  exportCompletedConsolidatedToExcel(): void {
+    const orders = this.filteredCompletedOrders();
+    if (!orders || orders.length === 0) {
+      this.toast.info('Sin registros', 'No hay pedidos completados en el filtro actual para exportar.');
+      return;
+    }
+
+    const exportedCount = this.downloadOrdersAsSunatCsv(
+      orders,
+      'Consolidado_Completados_Online_POS_Asuncion',
+      true
+    );
+    this.toast.success(
+      'Consolidado exportado',
+      `Se exportaron ${exportedCount} pedidos completados (Online + POS) listos para Excel.`
     );
   }
 
@@ -7016,6 +7759,154 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
       },
       error: (err: any) => {
         this.toast.error('Error al cambiar estado', err?.error?.message || 'No se pudo actualizar el estado del motorizado.');
+      },
+    });
+  }
+
+  private resolveDefaultNextStatus(order: Order): string {
+    const s = (order.status || '').toUpperCase();
+    if (s === 'PENDIENTE' || s === 'PENDING' || s === 'CONFIRMADO' || s === 'CONFIRMED' || s === 'RESERVADO') {
+      return 'EN_PREPARACION';
+    }
+    if (s === 'EN_PREPARACION' || s === 'PICKING') {
+      return 'LISTO_PARA_DESPACHO';
+    }
+    if (s === 'LISTO_PARA_DESPACHO' || s === 'READY_FOR_DISPATCH') {
+      return order.deliveryType === 'PICKUP' ? 'ENTREGADO' : 'EN_RUTA';
+    }
+    if (s === 'EN_RUTA' || s === 'OUT_FOR_DELIVERY') {
+      return 'ENTREGADO';
+    }
+    return 'EN_PREPARACION';
+  }
+
+  openStatusModal(order: Order): void {
+    this.selectedOrderForStatus.set(order);
+    this.statusDraftTarget.set(this.resolveDefaultNextStatus(order));
+    this.statusDraftDriverId = order.assignedDriverId ?? null;
+    this.statusDraftNotes = order.notes || '';
+    this.statusModalError.set('');
+    this.isUpdatingOrderStatus.set(false);
+    if (order.deliveryType === 'DELIVERY') {
+      this.loadDrivers();
+    }
+  }
+
+  closeStatusModal(): void {
+    this.selectedOrderForStatus.set(null);
+    this.statusDraftTarget.set('');
+    this.statusDraftDriverId = null;
+    this.statusDraftNotes = '';
+    this.statusModalError.set('');
+    this.isUpdatingOrderStatus.set(false);
+  }
+
+  applyOrderStatusChange(): void {
+    const ord = this.selectedOrderForStatus();
+    const target = this.statusDraftTarget();
+    if (!ord || !target) return;
+
+    if (target === 'ENTREGADO' && ord.deliveryType === 'PICKUP') {
+      this.closeStatusModal();
+      this.openPickupDeliveryModal(ord);
+      return;
+    }
+
+    if (ord.deliveryType === 'DELIVERY' && target === 'EN_RUTA' && !this.statusDraftDriverId && !ord.assignedDriverId) {
+      this.statusModalError.set('Para pasar un envío a En Ruta debes asignar o mantener un repartidor.');
+      return;
+    }
+
+    this.isUpdatingOrderStatus.set(true);
+    this.statusModalError.set('');
+
+    this.ordersService.updateOrderStatus(ord.id, {
+      status: target,
+      assignedDriverId:
+        ord.deliveryType === 'DELIVERY' && this.statusDraftDriverId
+          ? this.statusDraftDriverId
+          : undefined,
+      notes: this.statusDraftNotes.trim() || undefined,
+    }).subscribe({
+      next: (updated: Order) => {
+        this.isUpdatingOrderStatus.set(false);
+        this.toast.success(
+          'Estado actualizado',
+          `Pedido #${updated.orderNumber}: ${this.formatOrderStatus(updated.status, updated.deliveryType)}.`
+        );
+        if (updated.status === 'CANCELADO') {
+          this.syncBus.notifyCatalogRefresh();
+        }
+        this.closeStatusModal();
+        this.loadGlobalOrders();
+        this.loadDrivers();
+      },
+      error: (err: any) => {
+        this.isUpdatingOrderStatus.set(false);
+        this.statusModalError.set(err?.error?.message || 'No se pudo actualizar el estado del pedido.');
+      },
+    });
+  }
+
+  openPickupDeliveryModal(order: Order): void {
+    this.selectedOrderForPickupDelivery.set(order);
+    this.pickupModalError.set('');
+    this.isCompletingPickup.set(false);
+    this.pickupReceiverName = order.recipientName || order.customerName || '';
+    this.pickupReceiverDoc = order.customerTaxId || order.billingDocumentNumber || '';
+    this.pickupNotes = '';
+
+    const pm = (order.paymentMethod || '').toUpperCase();
+    if (pm.includes('YAPE')) {
+      this.pickupPaymentMethod.set('YAPE');
+    } else if (pm.includes('PLIN')) {
+      this.pickupPaymentMethod.set('PLIN');
+    } else if (pm.includes('TARJETA') || pm.includes('POS')) {
+      this.pickupPaymentMethod.set('TARJETA_POS');
+    } else {
+      this.pickupPaymentMethod.set('EFECTIVO');
+    }
+  }
+
+  closePickupDeliveryModal(): void {
+    this.selectedOrderForPickupDelivery.set(null);
+    this.pickupModalError.set('');
+    this.pickupReceiverName = '';
+    this.pickupReceiverDoc = '';
+    this.pickupNotes = '';
+    this.isCompletingPickup.set(false);
+  }
+
+  confirmPickupDelivery(): void {
+    const ord = this.selectedOrderForPickupDelivery();
+    if (!ord) return;
+
+    const wasPendingPayment = !this.isPaidOnline(ord);
+    this.isCompletingPickup.set(true);
+    this.pickupModalError.set('');
+
+    this.ordersService.updateOrderStatus(ord.id, {
+      status: 'ENTREGADO',
+      paymentMethod: wasPendingPayment ? this.pickupPaymentMethod() : undefined,
+      receiverName: this.pickupReceiverName.trim() || undefined,
+      receiverDocument: this.pickupReceiverDoc.trim() || undefined,
+      notes: this.pickupNotes.trim() || undefined,
+    }).subscribe({
+      next: (updated: Order) => {
+        this.isCompletingPickup.set(false);
+        const paidSuffix = wasPendingPayment
+          ? ` y cobrado (${this.formatPaymentMethodLabel(updated.paymentMethod)})`
+          : '';
+        this.toast.success(
+          'Recojo en tienda completado',
+          `Pedido #${updated.orderNumber} entregado en mostrador${paidSuffix}.`
+        );
+        this.closePickupDeliveryModal();
+        this.loadGlobalOrders();
+      },
+      error: (err: any) => {
+        this.isCompletingPickup.set(false);
+        this.pickupModalError.set(err?.error?.message || 'No se pudo completar el cobro y entrega en mostrador.');
       },
     });
   }
@@ -7706,7 +8597,8 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
         // Only monitor online orders (counter sales in Caja do not trigger notifications/chimes)
         const onlineOrders = orders.filter((o) => !this.isCounterSaleOrder(o));
 
-        if (this.activeTab() === 'orders') {
+        this.allSystemOrders.set(orders);
+        if (this.activeTab() === 'orders' || this.activeTab() === 'completed') {
           this.globalOrders.set(onlineOrders);
         }
 

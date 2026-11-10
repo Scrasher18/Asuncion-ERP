@@ -465,29 +465,7 @@ public class OrderService {
                 order.setWarehouseNotes(req.warehouseNotes().trim());
             }
             if (req.assignedDriverId() != null) {
-                AppUser driver = userRepository.findById(req.assignedDriverId())
-                        .orElseThrow(() -> new ResourceNotFoundException("Motorizado no encontrado con ID: " + req.assignedDriverId()));
-
-                // Strict validation: Ensure driver is DISPONIBLE and not already on an active route
-                List<OrderStatus> activeDeliveryStatuses = List.of(OrderStatus.EN_RUTA, OrderStatus.LISTO_PARA_DESPACHO);
-                Optional<CustomerOrder> activeOrderOpt = orderRepository.findByStatusInOrderByCreatedAtDesc(activeDeliveryStatuses).stream()
-                        .filter(o -> o.getAssignedDriver() != null && o.getAssignedDriver().getId().equals(driver.getId()) && !o.getId().equals(order.getId()))
-                        .findFirst();
-
-                if (driver.getDriverStatus() != DriverStatus.DISPONIBLE || activeOrderOpt.isPresent()) {
-                    String reason = activeOrderOpt.isPresent()
-                            ? "está en pleno pedido (#" + activeOrderOpt.get().getOrderNumber() + ") y aún no ha finalizado la entrega."
-                            : driver.getDriverStatus() == DriverStatus.EN_RUTA
-                            ? "se encuentra en ruta de entrega."
-                            : driver.getDriverStatus() == DriverStatus.RETORNANDO
-                            ? "aún no regresa a la tienda (Estado: Retornando)."
-                            : "se encuentra fuera de turno.";
-                    throw new BadRequestException("No se puede asignar al repartidor " + driver.getFullName() + ": " + reason + " Solo se pueden asignar pedidos a repartidores en estado DISPONIBLE.");
-                }
-
-                driver.setDriverStatus(DriverStatus.EN_RUTA);
-                userRepository.save(driver);
-                order.setAssignedDriver(driver);
+                assignAvailableDriver(order, req.assignedDriverId());
             }
         }
 
@@ -512,6 +490,172 @@ public class OrderService {
         OrderResponse response = toOrderResponse(saved);
         emailNotificationService.notifyOrderReadyForDispatch(response);
         return response;
+    }
+
+    /**
+     * Valida disponibilidad y asigna un repartidor motorizado a un pedido de entrega a domicilio.
+     * Si el pedido tenía otro motorizado asignado sin otras entregas activas, lo libera.
+     */
+    private AppUser assignAvailableDriver(CustomerOrder order, Long driverId) {
+        if ("PICKUP".equalsIgnoreCase(order.getDeliveryType())) {
+            throw new BadRequestException("Un pedido de recojo en tienda no requiere asignación de repartidor.");
+        }
+        AppUser driver = userRepository.findById(driverId)
+                .orElseThrow(() -> new ResourceNotFoundException("Motorizado no encontrado con ID: " + driverId));
+
+        boolean alreadyAssignedToSame = order.getAssignedDriver() != null
+                && order.getAssignedDriver().getId().equals(driver.getId());
+
+        List<OrderStatus> activeDeliveryStatuses = List.of(OrderStatus.EN_RUTA, OrderStatus.LISTO_PARA_DESPACHO);
+        Optional<CustomerOrder> activeOrderOpt = orderRepository.findByStatusInOrderByCreatedAtDesc(activeDeliveryStatuses).stream()
+                .filter(o -> o.getAssignedDriver() != null && o.getAssignedDriver().getId().equals(driver.getId()) && !o.getId().equals(order.getId()))
+                .findFirst();
+
+        if ((!alreadyAssignedToSame && driver.getDriverStatus() != DriverStatus.DISPONIBLE) || activeOrderOpt.isPresent()) {
+            String reason = activeOrderOpt.isPresent()
+                    ? "está en pleno pedido (#" + activeOrderOpt.get().getOrderNumber() + ") y aún no ha finalizado la entrega."
+                    : driver.getDriverStatus() == DriverStatus.EN_RUTA
+                    ? "se encuentra en ruta de entrega."
+                    : driver.getDriverStatus() == DriverStatus.RETORNANDO
+                    ? "aún no regresa a la tienda (Estado: Retornando)."
+                    : "se encuentra fuera de turno.";
+            throw new BadRequestException("No se puede asignar al repartidor " + driver.getFullName() + ": " + reason + " Solo se pueden asignar pedidos a repartidores en estado DISPONIBLE.");
+        }
+
+        if (order.getAssignedDriver() != null && !alreadyAssignedToSame) {
+            AppUser prevDriver = order.getAssignedDriver();
+            boolean hasOtherActive = orderRepository.findByStatusInOrderByCreatedAtDesc(activeDeliveryStatuses).stream()
+                    .anyMatch(o -> !o.getId().equals(order.getId())
+                            && o.getAssignedDriver() != null
+                            && o.getAssignedDriver().getId().equals(prevDriver.getId()));
+            if (!hasOtherActive) {
+                prevDriver.setDriverStatus(DriverStatus.DISPONIBLE);
+                userRepository.save(prevDriver);
+            }
+        }
+
+        driver.setDriverStatus(DriverStatus.EN_RUTA);
+        userRepository.save(driver);
+        order.setAssignedDriver(driver);
+        return driver;
+    }
+
+    /**
+     * Permite a ADMIN o VENDEDOR gestionar integralmente el cambio de estado operativo
+     * tanto para Delivery (incluyendo asignación de repartidor) como para Recojo en tienda (cobro y entrega en mostrador).
+     */
+    @Transactional
+    public OrderResponse updateOrderStatus(Long orderId, UpdateOrderStatusRequest req, AppUser currentUser) {
+        if (currentUser == null || (!hasRole(currentUser, RoleName.ADMIN) && !hasRole(currentUser, RoleName.VENDEDOR))) {
+            throw new BadRequestException("Solo administradores o vendedores pueden cambiar el estado operativo de los pedidos.");
+        }
+        if (req == null || req.status() == null || req.status().isBlank()) {
+            throw new BadRequestException("Debe especificar el nuevo estado destino del pedido.");
+        }
+
+        CustomerOrder order = findOrderOrThrow(orderId);
+        if (order.getStatus() == OrderStatus.ENTREGADO || order.getStatus() == OrderStatus.CANCELADO) {
+            throw new BadRequestException("El pedido ya se encuentra en estado final (" + order.getStatus() + ") y no puede modificarse.");
+        }
+
+        OrderStatus targetStatus;
+        try {
+            targetStatus = OrderStatus.valueOf(req.status().trim().toUpperCase());
+        } catch (IllegalArgumentException ex) {
+            throw new BadRequestException("Estado operativo inválido: " + req.status());
+        }
+
+        boolean isPickup = "PICKUP".equalsIgnoreCase(order.getDeliveryType());
+
+        return switch (targetStatus) {
+            case EN_PREPARACION -> startPicking(orderId, currentUser);
+            case LISTO_PARA_DESPACHO -> markReadyForDispatch(
+                    orderId,
+                    new ReadyForDispatchRequest(isPickup ? null : req.assignedDriverId(), req.notes()),
+                    currentUser
+            );
+            case EN_RUTA -> {
+                if (isPickup) {
+                    throw new BadRequestException("Un pedido de recojo en tienda se entrega en mostrador y no pasa a reparto motorizado.");
+                }
+                if (req.assignedDriverId() != null) {
+                    assignAvailableDriver(order, req.assignedDriverId());
+                } else if (order.getAssignedDriver() == null) {
+                    throw new BadRequestException("Debes asignar un repartidor motorizado disponible antes de pasar el pedido a EN_RUTA.");
+                } else {
+                    order.getAssignedDriver().setDriverStatus(DriverStatus.EN_RUTA);
+                    userRepository.save(order.getAssignedDriver());
+                }
+                order.getItems().forEach(item -> item.setPicked(true));
+                OrderStatus prev = order.getStatus();
+                order.setStatus(OrderStatus.EN_RUTA);
+                String driverName = order.getAssignedDriver() != null ? order.getAssignedDriver().getFullName() : "Motorizado";
+                order.getStatusHistory().add(new OrderStatusHistory(
+                        order, prev, OrderStatus.EN_RUTA, currentUser,
+                        "Despacho iniciado por " + currentUser.getFullName() + " con repartidor " + driverName + ".",
+                        Instant.now()
+                ));
+                CustomerOrder saved = orderRepository.save(order);
+                catalogService.evictCatalogCache();
+                OrderResponse res = toOrderResponse(saved);
+                emailNotificationService.notifyOrderInRoute(res);
+                yield res;
+            }
+            case ENTREGADO -> {
+                order.getItems().forEach(item -> item.setPicked(true));
+                if (req.paymentMethod() != null && !req.paymentMethod().isBlank()) {
+                    order.setPaymentMethod(req.paymentMethod().trim().toUpperCase());
+                }
+                DeliveryProof proof = order.getDeliveryProof() != null ? order.getDeliveryProof() : new DeliveryProof();
+                proof.setOrder(order);
+                proof.setReceiverName(firstNonBlank(req.receiverName(), order.getRecipientName(), order.getCustomer().getFullName(), "Cliente Titular"));
+                proof.setReceiverDocument(firstNonBlank(req.receiverDocument(), order.getCustomerTaxId(), "Registrado"));
+
+                if (isPickup) {
+                    order.setAssignedDriver(null);
+                    proof.setDriver(null);
+                    String branchLabel = order.getBranch() != null ? order.getBranch().getName() : "tienda";
+                    String extra = req.notes() != null && !req.notes().isBlank() ? " — " + req.notes().trim() : "";
+                    proof.setDeliveryNotes("Entregado y verificado en mostrador (" + branchLabel + ")" + extra);
+                } else {
+                    if (order.getAssignedDriver() != null) {
+                        proof.setDriver(order.getAssignedDriver());
+                        order.getAssignedDriver().setDriverStatus(DriverStatus.DISPONIBLE);
+                        userRepository.save(order.getAssignedDriver());
+                    }
+                    proof.setDeliveryNotes(firstNonBlank(req.notes(), "Entrega domiciliaria confirmada por administración."));
+                }
+                proof.setDeliveredAt(Instant.now());
+                order.setDeliveryProof(proof);
+
+                OrderStatus prev = order.getStatus();
+                order.setStatus(OrderStatus.ENTREGADO);
+                String comment = isPickup
+                        ? "Pedido retirado y entregado en mostrador a " + proof.getReceiverName() + "."
+                        : "Pedido entregado satisfactoriamente a " + proof.getReceiverName() + ".";
+                order.getStatusHistory().add(new OrderStatusHistory(
+                        order, prev, OrderStatus.ENTREGADO, currentUser, comment, proof.getDeliveredAt()
+                ));
+                CustomerOrder saved = orderRepository.save(order);
+                catalogService.evictCatalogCache();
+                OrderResponse res = toOrderResponse(saved);
+                emailNotificationService.notifyOrderDelivered(res);
+                yield res;
+            }
+            case CANCELADO -> cancelOrder(orderId, req.notes(), currentUser);
+            default -> {
+                OrderStatus prev = order.getStatus();
+                order.setStatus(targetStatus);
+                order.getStatusHistory().add(new OrderStatusHistory(
+                        order, prev, targetStatus, currentUser,
+                        firstNonBlank(req.notes(), "Estado actualizado manualmente a " + targetStatus + " por " + currentUser.getFullName() + "."),
+                        Instant.now()
+                ));
+                CustomerOrder saved = orderRepository.save(order);
+                catalogService.evictCatalogCache();
+                yield toOrderResponse(saved);
+            }
+        };
     }
 
     @Transactional

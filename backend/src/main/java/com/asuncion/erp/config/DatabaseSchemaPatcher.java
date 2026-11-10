@@ -68,6 +68,13 @@ public class DatabaseSchemaPatcher implements CommandLineRunner {
             log.debug("Verificación nullable en parts.oem_code completada ({})", e.getMessage());
         }
 
+        // Allow store pickup confirmations in delivery_proofs without requiring a delivery driver
+        try {
+            jdbcTemplate.execute("ALTER TABLE delivery_proofs ALTER COLUMN driver_id DROP NOT NULL");
+        } catch (Exception e) {
+            log.debug("Verificación nullable en delivery_proofs.driver_id completada ({})", e.getMessage());
+        }
+
         // Ensure orders table has payment status, reference columns, and delivery security code if not present
         try {
             jdbcTemplate.execute("ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_status VARCHAR(30) DEFAULT 'PENDIENTE'");
