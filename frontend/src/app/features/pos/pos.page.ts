@@ -15,6 +15,11 @@ import { LogisticsService } from '../../core/services/logistics.service';
 import { LookupService } from '../../core/services/lookup.service';
 import { OrdersService } from '../../core/services/orders.service';
 import { PdfInvoiceService } from '../../core/services/pdf-invoice.service';
+import { ExcelExportService } from '../../core/services/excel-export.service';
+import {
+  BOLETA_DNI_REQUIRED_THRESHOLD,
+  isAnonymousBillingName,
+} from '../../core/constants/company-info.constant';
 import { ToastService } from '../../core/services/toast.service';
 import { SyncBusService } from '../../core/services/sync-bus.service';
 
@@ -468,16 +473,45 @@ const POS_HOLD_TTL_MS = 15 * 60 * 1000;
                 </div>
 
                 <!-- DNI / RUC Lookup -->
+                <div class="flex flex-wrap items-center justify-between gap-2 rounded-xl border px-3 py-2 text-[11px]"
+                  [class]="requiresBoletaDni()
+                    ? 'border-amber-300 bg-amber-50 text-amber-900'
+                    : invoiceType === 'BOLETA'
+                      ? 'border-blue-200 bg-blue-50/70 text-blue-900'
+                      : 'border-gray-200 bg-gray-50 text-gray-700'">
+                  @if (invoiceType === 'FACTURA') {
+                    <span><strong>Factura (RUC):</strong> Desglosa Op. Gravada + 18% I.G.V. Requiere RUC 11 dígitos, Razón Social y Dirección Fiscal.</span>
+                  } @else if (requiresBoletaDni()) {
+                    <span><strong>Venta desde S/ {{ boletaDniThreshold }}:</strong> Por norma SUNAT es obligatorio ingresar DNI / C.E. y nombre completo.</span>
+                  } @else {
+                    <span><strong>Boleta menor a S/ {{ boletaDniThreshold }}:</strong> DNI opcional. Puedes emitir como <strong>Clientes Varios</strong>.</span>
+                    <button
+                      type="button"
+                      (click)="setClientesVarios()"
+                      class="rounded-lg border border-blue-300 bg-white px-2 py-0.5 text-[10px] font-bold text-blue-700 hover:bg-blue-50 cursor-pointer shrink-0"
+                    >
+                      Clientes Varios
+                    </button>
+                  }
+                </div>
+
                 <div>
                   <label class="block text-xs font-bold text-gray-700 mb-1">
-                    {{ invoiceType === 'FACTURA' ? 'Número de RUC (11 dígitos) *' : 'DNI del Cliente (8 dígitos) *' }}
+                    {{
+                      invoiceType === 'FACTURA'
+                        ? 'Número de RUC (11 dígitos) *'
+                        : requiresBoletaDni()
+                          ? 'DNI / C.E. del Cliente (obligatorio >= S/ 700) *'
+                          : 'DNI / C.E. (8 díg.) o RUC (11 díg.) — Opcional < S/ 700'
+                    }}
                   </label>
                   <div class="flex gap-2">
                     <input
                       type="text"
                       [(ngModel)]="customerDoc"
-                      [attr.maxlength]="invoiceType === 'FACTURA' ? 11 : 8"
-                      [placeholder]="invoiceType === 'FACTURA' ? 'Ej: 20608899114' : 'Ej: 71156519'"
+                      (ngModelChange)="onCustomerDocChange($event)"
+                      maxlength="12"
+                      [placeholder]="invoiceType === 'FACTURA' ? 'Ej: 20608899114' : 'DNI 8 díg. o RUC 11 díg.'"
                       class="flex-1 min-h-[40px] rounded-xl border border-gray-200 bg-white px-3.5 py-2 font-mono text-xs font-semibold text-gray-900 focus:border-orange-600 focus:outline-none"
                     />
                     <button
@@ -494,15 +528,33 @@ const POS_HOLD_TTL_MS = 15 * 60 * 1000;
                 <!-- Customer Name / Business Name -->
                 <div>
                   <label class="block text-xs font-bold text-gray-700 mb-1">
-                    {{ invoiceType === 'FACTURA' ? 'Razón Social *' : 'Nombre del Cliente *' }}
+                    {{
+                      invoiceType === 'FACTURA'
+                        ? 'Razón Social *'
+                        : requiresBoletaDni()
+                          ? 'Nombres y Apellidos Completos *'
+                          : 'Nombre del Cliente (o Clientes Varios)'
+                    }}
                   </label>
                   <input
                     type="text"
                     [(ngModel)]="customerName"
-                    placeholder="Nombre completo o razón social"
+                    placeholder="Nombre completo, razón social o CLIENTES VARIOS"
                     class="w-full min-h-[40px] rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-xs text-gray-900 focus:border-orange-600 focus:outline-none"
                   />
                 </div>
+
+                @if (invoiceType === 'FACTURA') {
+                  <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">Dirección Fiscal *</label>
+                    <input
+                      type="text"
+                      [(ngModel)]="customerFiscalAddress"
+                      placeholder="Dirección fiscal completa de la empresa"
+                      class="w-full min-h-[40px] rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-xs text-gray-900 focus:border-orange-600 focus:outline-none"
+                    />
+                  </div>
+                }
 
                 <!-- Payment Method & Cash Received -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -562,16 +614,27 @@ const POS_HOLD_TTL_MS = 15 * 60 * 1000;
 
               <!-- Totals & Cash Change Summary -->
               <div class="rounded-xl border border-gray-200 bg-gray-50 p-4 space-y-2 text-xs">
-                <div class="flex justify-between text-gray-600">
-                  <span>Subtotal repuestos:</span>
-                  <span class="font-mono font-semibold">S/ {{ ticketSubtotal() | number: '1.2-2' }}</span>
-                </div>
-                <div class="flex justify-between text-gray-600">
-                  <span>IGV (18%):</span>
-                  <span class="font-mono font-semibold">S/ {{ ticketIgv() | number: '1.2-2' }}</span>
-                </div>
+                @if (invoiceType === 'FACTURA') {
+                  <div class="flex justify-between text-gray-600">
+                    <span>Op. Gravada (Subtotal sin IGV):</span>
+                    <span class="font-mono font-semibold">S/ {{ ticketSubtotal() | number: '1.2-2' }}</span>
+                  </div>
+                  <div class="flex justify-between text-gray-600">
+                    <span>I.G.V. (18%):</span>
+                    <span class="font-mono font-semibold">S/ {{ ticketIgv() | number: '1.2-2' }}</span>
+                  </div>
+                } @else {
+                  <div class="flex justify-between text-gray-600">
+                    <span>Subtotal (I.G.V. incluido):</span>
+                    <span class="font-mono font-semibold">S/ {{ ticketTotal() | number: '1.2-2' }}</span>
+                  </div>
+                  <div class="flex justify-between text-gray-500">
+                    <span>I.G.V. (18% en Boleta):</span>
+                    <span class="font-mono">Incluido (S/ 0.00 adicional)</span>
+                  </div>
+                }
                 <div class="flex justify-between text-base font-extrabold text-gray-900 pt-2 border-t border-gray-200">
-                  <span>Total a Cobrar:</span>
+                  <span>Importe Total a Cobrar:</span>
                   <span class="font-mono text-orange-600">S/ {{ ticketTotal() | number: '1.2-2' }}</span>
                 </div>
 
@@ -620,6 +683,7 @@ export class PosPageComponent implements OnInit, OnDestroy {
   private readonly logisticsService = inject(LogisticsService);
   private readonly lookupService = inject(LookupService);
   private readonly pdfInvoiceService = inject(PdfInvoiceService);
+  private readonly excelExport = inject(ExcelExportService);
   private readonly apiConfig = inject(ApiConfigService);
   private readonly toast = inject(ToastService);
   private readonly syncBus = inject(SyncBusService);
@@ -643,13 +707,38 @@ export class PosPageComponent implements OnInit, OnDestroy {
   private focusListener: (() => void) | null = null;
   private visibilityListener: (() => void) | null = null;
 
+  readonly boletaDniThreshold = BOLETA_DNI_REQUIRED_THRESHOLD;
   invoiceType: 'BOLETA' | 'FACTURA' = 'BOLETA';
   customerDoc = '';
-  customerName = 'Cliente en Caja';
+  customerName = 'CLIENTES VARIOS';
+  customerFiscalAddress = '';
   customerPhone = '';
   paymentMethod = 'MOSTRADOR_EFECTIVO';
   formattedCashReceived: string = '';
   cashReceived: number | null = null;
+
+  requiresBoletaDni(): boolean {
+    return this.invoiceType === 'BOLETA' && this.ticketTotal() >= BOLETA_DNI_REQUIRED_THRESHOLD;
+  }
+
+  setClientesVarios(): void {
+    if (this.requiresBoletaDni()) return;
+    this.customerDoc = '';
+    this.customerName = 'CLIENTES VARIOS';
+  }
+
+  onCustomerDocChange(raw: string): void {
+    const clean = (raw || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+    if (clean !== raw) {
+      this.customerDoc = clean;
+    }
+    const digitsOnly = clean.replace(/\D/g, '');
+    if (digitsOnly.length === 11 && clean === digitsOnly) {
+      this.setInvoiceType('FACTURA');
+    } else if (digitsOnly.length === 8 && clean === digitsOnly && this.invoiceType === 'FACTURA') {
+      this.setInvoiceType('BOLETA');
+    }
+  }
 
   onCashReceivedInput(event: Event): void {
     const input = event.target as HTMLInputElement;
@@ -728,12 +817,21 @@ export class PosPageComponent implements OnInit, OnDestroy {
     this.ticketItems().reduce((acc, i) => acc + i.quantity, 0)
   );
 
-  readonly ticketSubtotal = computed<number>(() =>
-    this.ticketItems().reduce((acc, i) => acc + this.getEffectiveUnitPrice(i) * i.quantity, 0)
+  readonly ticketTotal = computed<number>(() =>
+    Number(
+      this.ticketItems()
+        .reduce((acc, i) => acc + this.getEffectiveUnitPrice(i) * i.quantity, 0)
+        .toFixed(2)
+    )
   );
 
-  readonly ticketIgv = computed<number>(() => this.ticketSubtotal() * 0.18);
-  readonly ticketTotal = computed<number>(() => this.ticketSubtotal() + this.ticketIgv());
+  // Prices include 18% IGV: Op. Gravada = Total / 1.18, IGV = Total - Op. Gravada
+  readonly ticketSubtotal = computed<number>(() =>
+    Number((this.ticketTotal() / 1.18).toFixed(2))
+  );
+  readonly ticketIgv = computed<number>(() =>
+    Number((this.ticketTotal() - this.ticketSubtotal()).toFixed(2))
+  );
 
   readonly counterOrders = computed<Order[]>(() =>
     this.allOrders().filter((o) => this.isCounterOrder(o))
@@ -1139,75 +1237,26 @@ export class PosPageComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const headers = [
-      'NRO_COMPROBANTE',
-      'FECHA_EMISION',
-      'TIPO_COMPROBANTE',
-      'SERIE',
-      'CORRELATIVO',
-      'TIPO_DOC',
-      'NUMERO_DOC',
-      'CLIENTE_RAZON_SOCIAL',
-      'BASE_IMPONIBLE_PEN',
-      'IGV_18_PEN',
-      'TOTAL_PEN',
-      'MONEDA',
-      'METODO_PAGO',
-      'ESTADO'
-    ];
-
-    const rows = orders.map((ord, idx) => {
-      const docNum = (ord.customerTaxId || ord.billingDocumentNumber || '').trim();
-      const invType = ord.invoiceType || (docNum.length === 11 ? 'FACTURA' : 'BOLETA');
-      const tipo = invType === 'FACTURA' ? '01 (Factura)' : '03 (Boleta)';
-      const serie = invType === 'FACTURA' ? 'F001' : 'B001';
-      const docType = docNum.length === 11 ? '6 (RUC)' : (docNum.length === 8 ? '1 (DNI)' : '0 (Otros)');
-      const fecha = ord.createdAt ? new Date(ord.createdAt).toISOString().slice(0, 10) : '';
-
-      const subtotal = Number(ord.subtotal || 0).toFixed(2);
-      const igv = Number(ord.igvAmount ?? ord.taxAmount ?? 0).toFixed(2);
-      const total = Number(ord.totalAmount ?? ord.total ?? 0).toFixed(2);
-
-      const sanitize = (val: any) => `"${String(val ?? '').replace(/"/g, '""')}"`;
-
-      return [
-        sanitize(ord.orderNumber || `POS-2026-${String(idx + 1).padStart(4, '0')}`),
-        sanitize(fecha),
-        sanitize(tipo),
-        sanitize(serie),
-        sanitize(ord.orderNumber || String(idx + 1)),
-        sanitize(docType),
-        sanitize(docNum),
-        sanitize(ord.billingBusinessName || ord.customerBusinessName || ord.recipientName || ord.customerName || 'Cliente en Caja'),
-        subtotal,
-        igv,
-        total,
-        sanitize('PEN (Soles)'),
-        sanitize(ord.paymentMethod || 'EFECTIVO'),
-        sanitize('EMITIDO')
-      ].join(';');
+    const count = this.excelExport.exportSunatSalesWorkbook(orders, {
+      filenamePrefix: 'Ventas_Caja_POS_SUNAT',
+      sheetName: 'Ventas Caja POS',
+      includeOperationalColumns: true,
+      isCounterSaleFn: (o) => this.isCounterOrder(o),
+      formatPaymentMethodFn: (m) => this.formatPosPaymentMethod(m),
     });
 
-    const csvContent = [headers.join(';'), ...rows].join('\r\n');
-    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `Ventas_Caja_POS_SUNAT_${new Date().toISOString().slice(0, 10)}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-
-    this.toast.success('Excel de Caja Generado', `Se descargaron ${orders.length} ventas de mostrador para declaración.`);
+    this.toast.success(
+      'Excel (.xlsx) de Caja generado',
+      `Se exportaron ${count} comprobantes con fórmulas automáticas de Base Imponible e I.G.V. (18%).`
+    );
   }
 
   setInvoiceType(type: 'BOLETA' | 'FACTURA'): void {
     this.invoiceType = type;
-    if (type === 'FACTURA' && this.customerName === 'Cliente en Caja') {
+    if (type === 'FACTURA' && isAnonymousBillingName(this.customerName)) {
       this.customerName = '';
-    } else if (type === 'BOLETA' && !this.customerName) {
-      this.customerName = 'Cliente en Caja';
+    } else if (type === 'BOLETA' && !this.customerName.trim() && !this.requiresBoletaDni()) {
+      this.customerName = 'CLIENTES VARIOS';
     }
   }
 
@@ -1224,9 +1273,13 @@ export class PosPageComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (res) => {
           const name = (res.businessName || res.fullName || '').trim();
+          const digits = doc.replace(/\D/g, '');
+          this.invoiceType = res.documentType === 'RUC' || digits.length === 11 ? 'FACTURA' : 'BOLETA';
+          if (res.fiscalAddress?.trim()) {
+            this.customerFiscalAddress = res.fiscalAddress.trim();
+          }
           if (res.found && name) {
             this.customerName = name;
-            this.invoiceType = res.documentType === 'RUC' || doc.length === 11 ? 'FACTURA' : 'BOLETA';
             this.toast.success('Datos verificados', name);
           } else {
             this.toast.info('Ingreso manual', 'Escribe el nombre o razón social manualmente.');
@@ -1243,12 +1296,55 @@ export class PosPageComponent implements OnInit, OnDestroy {
     if (items.length === 0) return;
 
     const cleanDoc = (this.customerDoc || '').trim();
-    const cleanName = (this.customerName || '').trim() || 'Cliente en Caja';
+    const digitsOnly = cleanDoc.replace(/\D/g, '');
+    const alphaNumDoc = cleanDoc.replace(/[^A-Za-z0-9]/g, '');
 
-    if (this.invoiceType === 'FACTURA' && cleanDoc.length !== 11) {
-      this.toast.warning('RUC requerido', 'Para emitir Factura Electrónica ingresa un RUC válido de 11 dígitos.');
+    if (digitsOnly.length === 11 && cleanDoc === digitsOnly) {
+      this.invoiceType = 'FACTURA';
+    } else if (digitsOnly.length === 8 && cleanDoc === digitsOnly && this.invoiceType === 'FACTURA') {
+      this.toast.warning(
+        'DNI detectado',
+        'El número ingresado tiene 8 dígitos (DNI). Cambia a Boleta o ingresa un RUC de 11 dígitos.'
+      );
       return;
     }
+
+    const rawName = (this.customerName || '').trim();
+    if (this.invoiceType === 'FACTURA') {
+      if (digitsOnly.length !== 11) {
+        this.toast.warning('RUC requerido', 'Para emitir Factura Electrónica ingresa un RUC válido de 11 dígitos.');
+        return;
+      }
+      if (!rawName || isAnonymousBillingName(rawName)) {
+        this.toast.warning('Razón Social requerida', 'Ingresa la razón social exacta de la empresa.');
+        return;
+      }
+      if (!this.customerFiscalAddress.trim()) {
+        this.toast.warning('Dirección fiscal requerida', 'Ingresa la dirección fiscal de la empresa.');
+        return;
+      }
+    } else if (this.ticketTotal() >= BOLETA_DNI_REQUIRED_THRESHOLD) {
+      if (alphaNumDoc.length < 8 || /^0+$/.test(alphaNumDoc)) {
+        this.toast.warning(
+          'DNI / C.E. obligatorio >= S/ 700',
+          'Por norma SUNAT, toda boleta desde S/ 700.00 requiere ingresar DNI (8 dígitos) o C.E./Pasaporte.'
+        );
+        return;
+      }
+      if (!rawName || isAnonymousBillingName(rawName)) {
+        this.toast.warning(
+          'Nombre completo obligatorio >= S/ 700',
+          'Por norma SUNAT, no se puede emitir a Clientes Varios en boletas desde S/ 700.00.'
+        );
+        return;
+      }
+    }
+
+    const finalDoc = /^0+$/.test(cleanDoc) ? '' : cleanDoc;
+    const finalName =
+      this.invoiceType === 'BOLETA' && isAnonymousBillingName(rawName)
+        ? 'CLIENTES VARIOS'
+        : rawName;
 
     if (this.paymentMethod === 'MOSTRADOR_EFECTIVO') {
       if (this.cashReceived === null || this.cashReceived < this.ticketTotal()) {
@@ -1265,11 +1361,15 @@ export class PosPageComponent implements OnInit, OnDestroy {
       .createOrder({
         deliveryType: 'MOSTRADOR',
         branchId: this.branches()[0]?.id ?? 1,
-        recipientName: cleanName,
+        recipientName: finalName,
         recipientPhone: (this.customerPhone || '').trim() || '999999999',
         invoiceType: this.invoiceType,
-        customerTaxId: cleanDoc || '00000000',
-        customerBusinessName: cleanName,
+        customerTaxId: finalDoc,
+        billingDocumentNumber: finalDoc,
+        customerBusinessName: finalName,
+        billingBusinessName: finalName,
+        billingAddress:
+          this.invoiceType === 'FACTURA' ? this.customerFiscalAddress.trim() : undefined,
         paymentMethod: this.paymentMethod,
         notes: 'Venta directa en Caja',
         reservationSessionId: this.posReservationSessionId,
@@ -1285,7 +1385,8 @@ export class PosPageComponent implements OnInit, OnDestroy {
           this.syncBus.notifyPosSale(createdOrder.orderNumber, items.map((i) => i.part.id));
           this.clearTicket();
           this.customerDoc = '';
-          this.customerName = 'Cliente en Caja';
+          this.customerName = 'CLIENTES VARIOS';
+          this.customerFiscalAddress = '';
           this.customerPhone = '';
           this.refreshPosData();
           this.pdfInvoiceService.generateInvoicePdf(createdOrder, true);

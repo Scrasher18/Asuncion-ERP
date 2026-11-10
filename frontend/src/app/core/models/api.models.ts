@@ -291,6 +291,7 @@ export interface CreateOrderRequest {
   billingDocumentNumber?: string;
   customerBusinessName?: string;
   billingBusinessName?: string;
+  billingAddress?: string;
   recipientName: string;
   recipientPhone: string;
   paymentMethod: string;
@@ -399,6 +400,7 @@ export interface Order {
   billingDocumentNumber?: string;
   customerBusinessName?: string;
   billingBusinessName?: string;
+  billingAddress?: string;
   recipientName?: string;
   recipientPhone?: string;
   paymentMethod?: string;

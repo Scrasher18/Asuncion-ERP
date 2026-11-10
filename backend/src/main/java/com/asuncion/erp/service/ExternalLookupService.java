@@ -62,6 +62,14 @@ public class ExternalLookupService {
                     null, null, null, null, null,
                     "ACTIVO", "HABIDO", "RENIEC"
             ),
+            "10414686867", new DocumentLookupResponse(
+                    true, "RUC", "10414686867",
+                    "REPUESTOS AUTOMOTRICES ASUNCIÓN", null, null,
+                    "REPUESTOS AUTOMOTRICES ASUNCIÓN",
+                    "AV. STA. ANA 441, SANTA ANITA, LIMA",
+                    "SANTA ANITA", "LIMA", "LIMA",
+                    "ACTIVO", "HABIDO", "SUNAT"
+            ),
             "20608899114", new DocumentLookupResponse(
                     true, "RUC", "20608899114",
                     "REPUESTOS AUTOMOTRICES ASUNCIÓN S.A.C.", null, null,

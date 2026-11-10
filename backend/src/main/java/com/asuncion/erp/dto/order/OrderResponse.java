@@ -18,6 +18,7 @@ public record OrderResponse(
         String invoiceType,
         String billingDocumentNumber,
         String billingBusinessName,
+        String billingAddress,
         String paymentMethod,
         Long branchId,
         String branchName,

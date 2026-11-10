@@ -81,6 +81,7 @@ public class DatabaseSchemaPatcher implements CommandLineRunner {
             jdbcTemplate.execute("ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_reference VARCHAR(150)");
             jdbcTemplate.execute("ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_security_code VARCHAR(10)");
             jdbcTemplate.execute("ALTER TABLE orders ADD COLUMN IF NOT EXISTS proximity_alert_sent BOOLEAN DEFAULT FALSE");
+            jdbcTemplate.execute("ALTER TABLE orders ADD COLUMN IF NOT EXISTS billing_address VARCHAR(300)");
 
             // Update chk_orders_status to permit 'RESERVADO' status used by online checkout and stock reservations
             jdbcTemplate.execute("ALTER TABLE orders DROP CONSTRAINT IF EXISTS chk_orders_status");

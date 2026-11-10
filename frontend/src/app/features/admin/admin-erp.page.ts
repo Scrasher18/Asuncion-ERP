@@ -40,6 +40,7 @@ import { NotificationAdminService } from '../../core/services/notification-admin
 import { OrdersService } from '../../core/services/orders.service';
 import { PaymentService } from '../../core/services/payment.service';
 import { PdfInvoiceService } from '../../core/services/pdf-invoice.service';
+import { ExcelExportService } from '../../core/services/excel-export.service';
 import { PromotionService } from '../../core/services/promotion.service';
 import {
   PaymentConfigUpdateRequest,
@@ -252,7 +253,7 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
               <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <span>Completados (Online + POS)</span>
+              <span>Ventas Finalizadas</span>
               @if (completedUnifiedOrders().length > 0) {
                 <span class="rounded-full bg-emerald-100 px-2 py-0.5 font-mono text-[10px] font-bold text-emerald-700">
                   {{ completedUnifiedOrders().length }}
@@ -1830,12 +1831,12 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
             <!-- Summary KPI Strip -->
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div class="rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50/70 to-white p-4 shadow-2xs">
-                <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-700">Total Completados (Online + POS)</span>
+                <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-700">Total Ventas Finalizadas</span>
                 <div class="mt-1.5 flex items-baseline justify-between">
                   <span class="text-2xl font-black text-gray-900 tabular-nums">{{ completedUnifiedStats().totalCount }}</span>
                   <span class="font-mono text-sm font-extrabold text-emerald-700">S/ {{ completedUnifiedStats().totalAmount | number: '1.2-2' }}</span>
                 </div>
-                <p class="mt-1 text-[11px] text-gray-500">Todos los pedidos cerrados y cobrados</p>
+                <p class="mt-1 text-[11px] text-gray-500">Todas las ventas finalizadas (Online + POS)</p>
               </div>
 
               <div class="rounded-2xl border border-orange-200 bg-white p-4 shadow-2xs">
@@ -1872,10 +1873,10 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                 <div class="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <h2 class="text-base font-bold text-gray-900">
-                      Historial Unificado de Ventas y Pedidos Completados ({{ filteredCompletedOrders().length }})
+                      Ventas Finalizadas — Online y Caja POS ({{ filteredCompletedOrders().length }})
                     </h2>
                     <p class="text-xs text-gray-500">
-                      Convergencia en tiempo real de entregas web (Delivery y Recojo en Tienda) junto a ventas presenciales de Caja POS.
+                      Todas las ventas finalizadas y cobradas del negocio: Online Delivery, Recojo en tienda y Caja POS.
                     </p>
                   </div>
 
@@ -1887,7 +1888,7 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
                     </svg>
-                    <span>Exportar Consolidado Excel (Online + POS)</span>
+                    <span>Exportar Ventas a Excel (.xlsx)</span>
                   </button>
                 </div>
 
@@ -5351,6 +5352,7 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
   private readonly apiConfig = inject(ApiConfigService);
   private readonly paymentService = inject(PaymentService);
   readonly pdfInvoiceService = inject(PdfInvoiceService);
+  private readonly excelExport = inject(ExcelExportService);
   private readonly sanitizer = inject(DomSanitizer);
   private readonly toast = inject(ToastService);
   private readonly adminUsersService = inject(AdminUsersService);
@@ -7579,90 +7581,6 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
     });
   }
 
-  private getOrderChannelCode(ord: Order): string {
-    if (this.isCounterSaleOrder(ord)) return 'CAJA_POS';
-    return ord.deliveryType === 'PICKUP' ? 'ONLINE_RECOJO' : 'ONLINE_DELIVERY';
-  }
-
-  private downloadOrdersAsSunatCsv(
-    orders: Order[],
-    filenamePrefix: string,
-    includeChannelColumn = false
-  ): number {
-    // Cabecera estándar según formato 14.1 de Registro de Ventas para Contabilidad / SUNAT
-    const headers = [
-      'NRO_PEDIDO',
-      'FECHA_EMISION',
-      ...(includeChannelColumn ? ['CANAL_VENTA'] : []),
-      'TIPO_COMPROBANTE',
-      'SERIE_COMPROBANTE',
-      'NUMERO_COMPROBANTE',
-      'TIPO_DOC_IDENTIDAD',
-      'NUMERO_DOC_IDENTIDAD',
-      'RAZON_SOCIAL_O_CLIENTE',
-      'BASE_IMPONIBLE_SUBTOTAL_PEN',
-      'IGV_18_PEN',
-      'FLETE_DELIVERY_PEN',
-      'TOTAL_VENTA_PEN',
-      'MONEDA',
-      'METODO_PAGO',
-      'ESTADO_OPERATIVO',
-      'ESTADO_PAGO',
-      'MODALIDAD_ENTREGA',
-      'DIRECCION_ENTREGA'
-    ];
-
-    const rows = orders.map((ord, idx) => {
-      const docNum = (ord.customerTaxId || ord.billingDocumentNumber || '').trim();
-      const invType = ord.invoiceType || (docNum.length === 11 ? 'FACTURA' : 'BOLETA');
-      const tipoComprobante = invType === 'FACTURA' ? '01 (Factura)' : '03 (Boleta)';
-      const serie = invType === 'FACTURA' ? 'F001' : 'B001';
-      const docType = docNum.length === 11 ? '6 (RUC)' : (docNum.length === 8 ? '1 (DNI)' : '0 (Otros)');
-      const fecha = ord.createdAt ? new Date(ord.createdAt).toISOString().slice(0, 10) : '';
-
-      const subtotal = Number(ord.subtotal || 0).toFixed(2);
-      const igv = Number(ord.igvAmount ?? ord.taxAmount ?? 0).toFixed(2);
-      const deliveryFee = Number(ord.deliveryFee || 0).toFixed(2);
-      const total = Number(ord.totalAmount ?? ord.total ?? 0).toFixed(2);
-
-      const sanitize = (val: any) => `"${String(val ?? '').replace(/"/g, '""')}"`;
-
-      return [
-        sanitize(ord.orderNumber || `ASN-2026-${String(idx + 1).padStart(4, '0')}`),
-        sanitize(fecha),
-        ...(includeChannelColumn ? [sanitize(this.getOrderChannelCode(ord))] : []),
-        sanitize(tipoComprobante),
-        sanitize(serie),
-        sanitize(ord.orderNumber || String(idx + 1)),
-        sanitize(docType),
-        sanitize(docNum),
-        sanitize(ord.billingBusinessName || ord.customerBusinessName || ord.recipientName || ord.customerName || 'Cliente Asunción'),
-        subtotal,
-        igv,
-        deliveryFee,
-        total,
-        sanitize('PEN (Soles)'),
-        sanitize(ord.paymentMethod || 'CONTRA_ENTREGA'),
-        sanitize(ord.status || 'PENDIENTE'),
-        sanitize(this.isPaidOnline(ord) ? 'PAGADO' : 'PENDIENTE'),
-        sanitize(ord.deliveryType || 'DELIVERY'),
-        sanitize(ord.deliveryAddress || 'Recojo en tienda')
-      ].join(';');
-    });
-
-    const csvContent = [headers.join(';'), ...rows].join('\r\n');
-    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${filenamePrefix}_${new Date().toISOString().slice(0, 10)}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    return orders.length;
-  }
-
   exportOrdersToExcelForSunat(): void {
     const orders = this.globalOrders();
     if (!orders || orders.length === 0) {
@@ -7670,32 +7588,36 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const exportedCount = this.downloadOrdersAsSunatCsv(
-      orders,
-      'Registro_Ventas_SUNAT_Asuncion',
-      false
-    );
+    const exportedCount = this.excelExport.exportSunatSalesWorkbook(orders, {
+      filenamePrefix: 'Registro_Ventas_SUNAT_Asuncion',
+      sheetName: 'Pedidos Online',
+      includeOperationalColumns: true,
+      isCounterSaleFn: (o) => this.isCounterSaleOrder(o),
+      formatPaymentMethodFn: (m) => this.formatPaymentMethodLabel(m),
+    });
     this.toast.success(
-      'Excel generado con éxito',
-      `Se exportaron ${exportedCount} registros contables en formato listo para SUNAT / Microsoft Excel.`
+      'Excel (.xlsx) generado con éxito',
+      `Se exportaron ${exportedCount} registros con fórmulas automáticas de Base Imponible e I.G.V. (18%).`
     );
   }
 
   exportCompletedConsolidatedToExcel(): void {
     const orders = this.filteredCompletedOrders();
     if (!orders || orders.length === 0) {
-      this.toast.info('Sin registros', 'No hay pedidos completados en el filtro actual para exportar.');
+      this.toast.info('Sin registros', 'No hay ventas finalizadas en el filtro actual para exportar.');
       return;
     }
 
-    const exportedCount = this.downloadOrdersAsSunatCsv(
-      orders,
-      'Consolidado_Completados_Online_POS_Asuncion',
-      true
-    );
+    const exportedCount = this.excelExport.exportSunatSalesWorkbook(orders, {
+      filenamePrefix: 'Ventas_Finalizadas_Online_POS_Asuncion',
+      sheetName: 'Ventas Finalizadas',
+      includeOperationalColumns: true,
+      isCounterSaleFn: (o) => this.isCounterSaleOrder(o),
+      formatPaymentMethodFn: (m) => this.formatPaymentMethodLabel(m),
+    });
     this.toast.success(
-      'Consolidado exportado',
-      `Se exportaron ${exportedCount} pedidos completados (Online + POS) listos para Excel.`
+      'Excel (.xlsx) consolidado exportado',
+      `Se exportaron ${exportedCount} ventas finalizadas (Online + POS) con fórmulas Base e I.G.V.`
     );
   }
 

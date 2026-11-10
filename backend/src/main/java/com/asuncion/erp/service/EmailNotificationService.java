@@ -434,12 +434,21 @@ public class EmailNotificationService {
             // 1. Customer Purchase Confirmation & Electronic Invoice (Boleta/Factura) Email
             boolean isFactura = "FACTURA".equalsIgnoreCase(order.invoiceType());
             String voucherTitle = isFactura ? "FACTURA ELECTRÓNICA" : "BOLETA DE VENTA ELECTRÓNICA";
-            String voucherSeries = (isFactura ? "F001-" : "B001-") + String.format("%06d", Math.abs(order.orderNumber().hashCode() % 1000000));
-            String customerSubject = voucherTitle + " #" + order.orderNumber() + " — Autopartes Asunción (R.U.C. 20601849201)";
+            String voucherSeries = resolveVoucherSeries(isFactura, order.orderNumber(), order.id());
+            String docNumLabel = order.billingDocumentNumber() != null && !order.billingDocumentNumber().isBlank()
+                    ? escapeHtml(order.billingDocumentNumber())
+                    : "Consumidor Final (Compra menor a S/ 700)";
+            String billingPartyName = isFactura
+                    ? firstNonBlank(order.billingBusinessName(), order.customerName())
+                    : firstNonBlank(order.billingBusinessName(), order.recipientName(), order.customerName());
+            String fiscalAddressLine = isFactura
+                    ? firstNonBlank(order.billingAddress(), order.deliveryAddress(), order.branchAddress())
+                    : ("DELIVERY".equalsIgnoreCase(order.deliveryType()) ? firstNonBlank(order.deliveryAddress(), order.branchAddress()) : "Opcional en Boleta — Recojo en Tienda");
+            String customerSubject = voucherTitle + " " + voucherSeries + " (#" + order.orderNumber() + ") — Repuestos Asunción (R.U.C. 10414686867)";
             String customerContent = """
                     <div style="border:2px solid #EA580C;border-radius:10px;padding:16px;margin:0 0 16px;background:#FFFBF8;text-align:center;">
-                      <h2 style="margin:0 0 4px;color:#9A3412;font-size:16px;font-weight:800;letter-spacing:0.5px;">AUTOPARTES ASUNCIÓN S.A.C.</h2>
-                      <p style="margin:2px 0;font-size:12px;color:#475569;">R.U.C. 20601849201 · Lima, Perú</p>
+                      <h2 style="margin:0 0 4px;color:#9A3412;font-size:16px;font-weight:800;letter-spacing:0.5px;">REPUESTOS AUTOMOTRICES ASUNCIÓN</h2>
+                      <p style="margin:2px 0;font-size:12px;color:#475569;">R.U.C. 10414686867 · Av. Sta. Ana 441, Santa Anita, Lima - Perú</p>
                       <div style="background:#EA580C;color:#FFFFFF;display:inline-block;padding:6px 16px;border-radius:6px;margin:8px 0;font-weight:800;font-size:14px;letter-spacing:1px;">
                         %s N° %s
                       </div>
@@ -447,16 +456,16 @@ public class EmailNotificationService {
                     </div>
 
                     <p style="margin:0 0 14px;color:#334155;font-size:14px;line-height:1.6;">
-                      Estimado(a) <strong>%s</strong>, adjuntamos el detalle oficial de tu comprobante electrónico emitido por tu compra. Nuestro equipo técnico de almacén ya cuenta con tu orden para el despacho.
+                      Estimado(a) <strong>%s</strong>, adjuntamos el detalle de tu comprobante emitido por tu compra. Nuestro equipo ya cuenta con tu orden para su atención.
                     </p>
 
                     <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:14px;margin:14px 0;">
                       <table width="100%%" style="border-collapse:collapse;font-size:13px;color:#1E293B;">
-                        <tr><td style="padding:4px 0;color:#64748B;"><strong>Adquiriente / Cliente:</strong></td><td style="padding:4px 0;text-align:right;"><strong>%s</strong></td></tr>
-                        <tr><td style="padding:4px 0;color:#64748B;"><strong>Doc. Identidad (DNI/RUC):</strong></td><td style="padding:4px 0;text-align:right;">%s</td></tr>
+                        <tr><td style="padding:4px 0;color:#64748B;"><strong>%s</strong></td><td style="padding:4px 0;text-align:right;"><strong>%s</strong></td></tr>
+                        <tr><td style="padding:4px 0;color:#64748B;"><strong>%s</strong></td><td style="padding:4px 0;text-align:right;">%s</td></tr>
                         <tr><td style="padding:4px 0;color:#64748B;"><strong>Modalidad de Entrega:</strong></td><td style="padding:4px 0;text-align:right;">%s</td></tr>
-                        <tr><td style="padding:4px 0;color:#64748B;"><strong>Dirección / Sede:</strong></td><td style="padding:4px 0;text-align:right;">%s</td></tr>
-                        <tr><td style="padding:4px 0;color:#64748B;"><strong>Forma de Pago:</strong></td><td style="padding:4px 0;text-align:right;">%s</td></tr>
+                        <tr><td style="padding:4px 0;color:#64748B;"><strong>%s</strong></td><td style="padding:4px 0;text-align:right;">%s</td></tr>
+                        <tr><td style="padding:4px 0;color:#64748B;"><strong>Forma de Pago:</strong></td><td style="padding:4px 0;text-align:right;">%s (Moneda: Soles)</td></tr>
                       </table>
                     </div>
 
@@ -464,19 +473,23 @@ public class EmailNotificationService {
                     %s
 
                     <p style="margin:16px 0 0;font-size:12px;color:#64748B;line-height:1.5;text-align:center;">
-                      Comprobante electrónico de venta emitido legalmente. Puedes descargar tu comprobante y hacer seguimiento de tu entrega en cualquier momento desde el botón inferior.
+                      Representación digital de la %s. Puedes descargar tu comprobante en PDF y hacer seguimiento desde el botón inferior.
                     </p>
                     """.formatted(
                     voucherTitle,
                     voucherSeries,
                     escapeHtml(order.orderNumber()),
-                    escapeHtml(order.customerName()),
-                    escapeHtml(order.customerName()),
-                    order.billingDocumentNumber() != null && !order.billingDocumentNumber().isBlank() ? escapeHtml(order.billingDocumentNumber()) : "DNI Cliente",
+                    escapeHtml(billingPartyName),
+                    isFactura ? "Señor(es):" : "Cliente:",
+                    escapeHtml(billingPartyName),
+                    isFactura ? "R.U.C.:" : "D.N.I. / C.E.:",
+                    docNumLabel,
                     "DELIVERY".equalsIgnoreCase(order.deliveryType()) ? "Envío a Domicilio / Taller" : "Recojo en Tienda",
-                    escapeHtml(order.deliveryAddress() != null ? order.deliveryAddress() : order.branchAddress()),
+                    isFactura ? "Dirección Fiscal:" : "Dirección:",
+                    escapeHtml(fiscalAddressLine),
                     escapeHtml(order.paymentMethod()),
-                    itemsTable
+                    itemsTable,
+                    voucherTitle.toLowerCase(java.util.Locale.ROOT)
             );
 
             String customerHtml = wrapCorporateTemplate(
@@ -1221,11 +1234,11 @@ public class EmailNotificationService {
                   </tbody>
                   <tfoot>
                     <tr>
-                      <td colspan="3" style="padding:8px 10px 4px;text-align:right;font-size:13px;color:#64748B;">Subtotal Neto:</td>
+                      <td colspan="3" style="padding:8px 10px 4px;text-align:right;font-size:13px;color:#64748B;">%s</td>
                       <td style="padding:8px 10px 4px;text-align:right;font-size:13px;color:#1E293B;">S/ %s</td>
                     </tr>
                     <tr>
-                      <td colspan="3" style="padding:4px 10px;text-align:right;font-size:13px;color:#64748B;">IGV (18%%):</td>
+                      <td colspan="3" style="padding:4px 10px;text-align:right;font-size:13px;color:#64748B;">%s</td>
                       <td style="padding:4px 10px;text-align:right;font-size:13px;color:#1E293B;">S/ %s</td>
                     </tr>
                     <tr>
@@ -1233,15 +1246,17 @@ public class EmailNotificationService {
                       <td style="padding:4px 10px 8px;text-align:right;font-size:13px;color:#1E293B;">S/ %s</td>
                     </tr>
                     <tr style="background:#FFF7ED;">
-                      <td colspan="3" style="padding:10px;text-align:right;font-size:15px;font-weight:700;color:#9A3412;border-top:1px solid #FED7AA;">TOTAL PAGADO:</td>
+                      <td colspan="3" style="padding:10px;text-align:right;font-size:15px;font-weight:700;color:#9A3412;border-top:1px solid #FED7AA;">IMPORTE TOTAL:</td>
                       <td style="padding:10px;text-align:right;font-size:16px;font-weight:800;color:#EA580C;border-top:1px solid #FED7AA;">S/ %s</td>
                     </tr>
                   </tfoot>
                 </table>
                 """.formatted(
                 rows.toString(),
-                formatMoney(order.subtotal()),
-                formatMoney(order.taxAmount()),
+                "FACTURA".equalsIgnoreCase(order.invoiceType()) ? "Op. Gravada (sin IGV):" : "Op. Gravada (IGV incluido):",
+                "FACTURA".equalsIgnoreCase(order.invoiceType()) ? formatMoney(order.subtotal()) : "0.00",
+                "FACTURA".equalsIgnoreCase(order.invoiceType()) ? "I.G.V. (18%):" : "I.G.V. (18% - Incluido):",
+                "FACTURA".equalsIgnoreCase(order.invoiceType()) ? formatMoney(order.taxAmount()) : "0.00",
                 formatMoney(order.deliveryFee()),
                 formatMoney(order.totalAmount())
         );
@@ -1326,6 +1341,22 @@ public class EmailNotificationService {
             return null;
         }
         return s.length() <= maxLen ? s : s.substring(0, maxLen);
+    }
+
+    private static String resolveVoucherSeries(boolean isFactura, String orderNumber, Long orderId) {
+        String prefix = isFactura ? "F001-" : "B001-";
+        long seq = orderId != null ? orderId : 1L;
+        if (orderNumber != null) {
+            java.util.regex.Matcher m = java.util.regex.Pattern.compile("(\\d+)$").matcher(orderNumber.trim());
+            if (m.find()) {
+                try {
+                    seq = Long.parseLong(m.group(1));
+                } catch (NumberFormatException ignored) {
+                    // keep fallback orderId
+                }
+            }
+        }
+        return prefix + String.format(Locale.US, "%08d", Math.max(1L, seq));
     }
 
     private static String firstNonBlank(String... values) {

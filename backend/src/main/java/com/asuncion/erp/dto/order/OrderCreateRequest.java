@@ -19,6 +19,7 @@ public record OrderCreateRequest(
         String customerTaxId,
         String billingBusinessName,
         String customerBusinessName,
+        String billingAddress,
         String paymentMethod,
         String notes,
         Long salespersonId,
@@ -48,13 +49,43 @@ public record OrderCreateRequest(
             String notes,
             Long salespersonId,
             String reservationSessionId,
+            List<OrderItemRequest> items,
+            List<CustomComboPairRequest> customCombos
+    ) {
+        this(
+                branchId, deliveryType, deliveryAddress, deliveryReference,
+                deliveryLatitude, deliveryLongitude, recipientName, recipientPhone,
+                invoiceType, billingDocumentNumber, customerTaxId, billingBusinessName,
+                customerBusinessName, null, paymentMethod, notes, salespersonId,
+                reservationSessionId, items, customCombos
+        );
+    }
+
+    public OrderCreateRequest(
+            Long branchId,
+            String deliveryType,
+            String deliveryAddress,
+            String deliveryReference,
+            Double deliveryLatitude,
+            Double deliveryLongitude,
+            String recipientName,
+            String recipientPhone,
+            String invoiceType,
+            String billingDocumentNumber,
+            String customerTaxId,
+            String billingBusinessName,
+            String customerBusinessName,
+            String paymentMethod,
+            String notes,
+            Long salespersonId,
+            String reservationSessionId,
             List<OrderItemRequest> items
     ) {
         this(
                 branchId, deliveryType, deliveryAddress, deliveryReference,
                 deliveryLatitude, deliveryLongitude, recipientName, recipientPhone,
                 invoiceType, billingDocumentNumber, customerTaxId, billingBusinessName,
-                customerBusinessName, paymentMethod, notes, salespersonId, reservationSessionId, items, List.of()
+                customerBusinessName, null, paymentMethod, notes, salespersonId, reservationSessionId, items, List.of()
         );
     }
 
@@ -81,7 +112,7 @@ public record OrderCreateRequest(
                 branchId, deliveryType, deliveryAddress, deliveryReference,
                 deliveryLatitude, deliveryLongitude, recipientName, recipientPhone,
                 invoiceType, billingDocumentNumber, customerTaxId, billingBusinessName,
-                customerBusinessName, paymentMethod, notes, salespersonId, null, items, List.of()
+                customerBusinessName, null, paymentMethod, notes, salespersonId, null, items, List.of()
         );
     }
 }

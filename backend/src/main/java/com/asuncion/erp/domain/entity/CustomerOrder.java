@@ -74,6 +74,9 @@ public class CustomerOrder {
     @Column(name = "customer_business_name", length = 200)
     private String customerBusinessName;
 
+    @Column(name = "billing_address", length = 300)
+    private String billingAddress;
+
     @Column(name = "recipient_name", length = 150)
     private String recipientName;
 
@@ -268,6 +271,14 @@ public class CustomerOrder {
 
     public void setCustomerBusinessName(String customerBusinessName) {
         this.customerBusinessName = customerBusinessName;
+    }
+
+    public String getBillingAddress() {
+        return billingAddress;
+    }
+
+    public void setBillingAddress(String billingAddress) {
+        this.billingAddress = billingAddress;
     }
 
     public String getRecipientName() {

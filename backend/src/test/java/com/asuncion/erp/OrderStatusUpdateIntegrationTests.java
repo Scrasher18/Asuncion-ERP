@@ -165,4 +165,110 @@ class OrderStatusUpdateIntegrationTests {
         int restoredStock = objectMapper.readTree(stockAfterRes.getResponse().getContentAsString()).get("stockQuantity").asInt();
         assertThat(restoredStock).isEqualTo(initialStock);
     }
+
+    @Test
+    @DisplayName("SUNAT billing rules: IGV-inclusive pricing, Boleta >= 700 DNI enforcement, Clientes Varios < 700, RUC -> Factura")
+    void shouldEnforceSunatBillingRulesAndIgvInclusivePricing() throws Exception {
+        String adminJwt = loginAndExtractJwt("admin@asuncion.pe", "Asuncion2026!");
+
+        // Inspect catalog to pick a part with stock so we can test both < 700 and >= 700 deterministically
+        MvcResult partRes = mockMvc.perform(get("/api/v1/catalog/parts/{id}", 1L))
+                .andExpect(status().isOk())
+                .andReturn();
+        JsonNode partJson = objectMapper.readTree(partRes.getResponse().getContentAsString());
+        java.math.BigDecimal retailPrice = new java.math.BigDecimal(partJson.get("salePrice").asText());
+        java.math.BigDecimal wholesalePrice = partJson.hasNonNull("wholesalePrice")
+                && partJson.get("wholesalePrice").decimalValue().compareTo(java.math.BigDecimal.ZERO) > 0
+                ? partJson.get("wholesalePrice").decimalValue()
+                : retailPrice;
+        java.math.BigDecimal posMultiUnitPrice = wholesalePrice.compareTo(retailPrice) < 0 ? wholesalePrice : retailPrice;
+        int qtyForOver700 = Math.max(4, (int) Math.ceil(720.0 / posMultiUnitPrice.doubleValue()));
+
+        // A. Boleta >= S/ 700 without DNI must be rejected (400 Bad Request)
+        String over700NoDni = objectMapper.writeValueAsString(Map.ofEntries(
+                Map.entry("branchId", 1),
+                Map.entry("deliveryType", "MOSTRADOR"),
+                Map.entry("invoiceType", "BOLETA"),
+                Map.entry("billingDocumentNumber", ""),
+                Map.entry("billingBusinessName", "CLIENTES VARIOS"),
+                Map.entry("recipientName", "CLIENTES VARIOS"),
+                Map.entry("paymentMethod", "MOSTRADOR_EFECTIVO"),
+                Map.entry("items", List.of(Map.of("partId", 1, "quantity", qtyForOver700)))
+        ));
+        mockMvc.perform(post("/api/v1/orders")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminJwt)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(over700NoDni))
+                .andExpect(status().isBadRequest());
+
+        // B. Boleta >= S/ 700 with valid DNI + full name succeeds & preserves IGV-inclusive pricing
+        java.math.BigDecimal expectedGross = posMultiUnitPrice.multiply(java.math.BigDecimal.valueOf(qtyForOver700))
+                .setScale(2, java.math.RoundingMode.HALF_UP);
+        java.math.BigDecimal expectedBase = expectedGross.divide(new java.math.BigDecimal("1.18"), 2, java.math.RoundingMode.HALF_UP);
+        java.math.BigDecimal expectedIgv = expectedGross.subtract(expectedBase).setScale(2, java.math.RoundingMode.HALF_UP);
+
+        String over700WithDni = objectMapper.writeValueAsString(Map.ofEntries(
+                Map.entry("branchId", 1),
+                Map.entry("deliveryType", "MOSTRADOR"),
+                Map.entry("invoiceType", "BOLETA"),
+                Map.entry("billingDocumentNumber", "71156519"),
+                Map.entry("billingBusinessName", "Luis Oscar Pérez"),
+                Map.entry("recipientName", "Luis Oscar Pérez"),
+                Map.entry("paymentMethod", "MOSTRADOR_EFECTIVO"),
+                Map.entry("items", List.of(Map.of("partId", 1, "quantity", qtyForOver700)))
+        ));
+        MvcResult boleta700Res = mockMvc.perform(post("/api/v1/orders")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminJwt)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(over700WithDni))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.invoiceType").value("BOLETA"))
+                .andExpect(jsonPath("$.billingDocumentNumber").value("71156519"))
+                .andReturn();
+
+        JsonNode boletaNode = objectMapper.readTree(boleta700Res.getResponse().getContentAsString());
+        assertThat(new java.math.BigDecimal(boletaNode.get("totalAmount").asText())).isEqualByComparingTo(expectedGross);
+        assertThat(new java.math.BigDecimal(boletaNode.get("subtotal").asText())).isEqualByComparingTo(expectedBase);
+        assertThat(new java.math.BigDecimal(boletaNode.get("taxAmount").asText())).isEqualByComparingTo(expectedIgv);
+
+        // C. Boleta < S/ 700 without DNI normalizes cleanly to CLIENTES VARIOS
+        String under700Anon = objectMapper.writeValueAsString(Map.ofEntries(
+                Map.entry("branchId", 1),
+                Map.entry("deliveryType", "MOSTRADOR"),
+                Map.entry("invoiceType", "BOLETA"),
+                Map.entry("billingDocumentNumber", ""),
+                Map.entry("billingBusinessName", "Cliente en Caja"),
+                Map.entry("recipientName", "Cliente en Caja"),
+                Map.entry("paymentMethod", "MOSTRADOR_EFECTIVO"),
+                Map.entry("items", List.of(Map.of("partId", 1, "quantity", 1)))
+        ));
+        mockMvc.perform(post("/api/v1/orders")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminJwt)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(under700Anon))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.invoiceType").value("BOLETA"))
+                .andExpect(jsonPath("$.billingBusinessName").value("CLIENTES VARIOS"));
+
+        // D. Entering 11-digit RUC selects FACTURA and stores billingAddress even on PICKUP/MOSTRADOR
+        String facturaOrder = objectMapper.writeValueAsString(Map.ofEntries(
+                Map.entry("branchId", 1),
+                Map.entry("deliveryType", "MOSTRADOR"),
+                Map.entry("invoiceType", "BOLETA"),
+                Map.entry("billingDocumentNumber", "20608899114"),
+                Map.entry("billingBusinessName", "REPUESTOS DEMO SAC"),
+                Map.entry("billingAddress", "Av. Las Flores 456, San Isidro, Lima"),
+                Map.entry("recipientName", "Compras Demo"),
+                Map.entry("paymentMethod", "MOSTRADOR_YAPE_PLIN"),
+                Map.entry("items", List.of(Map.of("partId", 1, "quantity", 1)))
+        ));
+        mockMvc.perform(post("/api/v1/orders")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminJwt)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(facturaOrder))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.invoiceType").value("FACTURA"))
+                .andExpect(jsonPath("$.billingDocumentNumber").value("20608899114"))
+                .andExpect(jsonPath("$.billingAddress").value("Av. Las Flores 456, San Isidro, Lima"));
+    }
 }

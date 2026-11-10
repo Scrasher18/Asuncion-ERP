@@ -267,8 +267,8 @@ export class ComplaintsService {
       doc.setTextColor(30, 41, 59);
       doc.setFontSize(8.5);
       doc.setFont('helvetica', 'normal');
-      doc.text('RUC: 20608899114', 14, 32);
-      doc.text('Razón Social: REPUESTOS AUTOMOTRICES ASUNCIÓN S.A.C.', 14, 37);
+      doc.text('RUC: 10414686867', 14, 32);
+      doc.text('Razón Social: REPUESTOS AUTOMOTRICES ASUNCIÓN', 14, 37);
       doc.text('Dirección: Av. Sta. Ana 441, Lima 15011 (Santa Anita) - Perú', 14, 42);
       doc.text(`Fecha y hora de registro: ${record.createdAt}`, 14, 47);
 

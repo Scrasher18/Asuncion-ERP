@@ -29,7 +29,8 @@ import java.util.*;
 @Service
 public class OrderService {
 
-    private static final BigDecimal IGV_RATE = new BigDecimal("0.18");
+    private static final BigDecimal ONE_PLUS_IGV = new BigDecimal("1.18");
+    private static final BigDecimal BOLETA_DNI_THRESHOLD = new BigDecimal("700.00");
 
     private final CustomerOrderRepository orderRepository;
     private final PartRepository partRepository;
@@ -252,17 +253,21 @@ public class OrderService {
             subtotal = subtotal.add(lineSubtotal);
         }
 
-        // Release temporary cart reservation now that order stock is locked and committed
-        stockReservationService.releaseSession(req.reservationSessionId());
+        // Catalog and POS retail prices already include 18% IGV per SUNAT Peru rules.
+        BigDecimal grossItemsTotal = subtotal.setScale(2, RoundingMode.HALF_UP);
+        BigDecimal baseSubtotal = grossItemsTotal.divide(ONE_PLUS_IGV, 2, RoundingMode.HALF_UP);
+        BigDecimal taxAmount = grossItemsTotal.subtract(baseSubtotal).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal totalAmount = grossItemsTotal.add(deliveryFee).setScale(2, RoundingMode.HALF_UP);
 
-        subtotal = subtotal.setScale(2, RoundingMode.HALF_UP);
-        BigDecimal taxAmount = subtotal.multiply(IGV_RATE).setScale(2, RoundingMode.HALF_UP);
-        BigDecimal totalAmount = subtotal.add(taxAmount).add(deliveryFee).setScale(2, RoundingMode.HALF_UP);
-
-        order.setSubtotal(subtotal);
+        order.setSubtotal(baseSubtotal);
         order.setTaxAmount(taxAmount);
         order.setDeliveryFee(deliveryFee);
         order.setTotalAmount(totalAmount);
+
+        applySunatBillingRules(order, req, currentUser, isCounterSale, totalAmount);
+
+        // Release temporary cart reservation only after stock & billing validations pass
+        stockReservationService.releaseSession(req.reservationSessionId());
 
         String historyComment = isCounterSale
                 ? "Venta presencial en mostrador (" + branch.getName() + "). Stock descontado en tiempo real y repuestos entregados al cliente."
@@ -346,6 +351,7 @@ public class OrderService {
                 "+51 922 779 157",
                 "BOLETA",
                 "71156519",
+                null,
                 null,
                 "Pago directo al contado (Pasarela en línea)",
                 1L,
@@ -1085,6 +1091,7 @@ public class OrderService {
                 o.getInvoiceType(),
                 o.getCustomerTaxId(),
                 o.getCustomerBusinessName(),
+                o.getBillingAddress(),
                 o.getPaymentMethod(),
                 o.getBranch().getId(),
                 o.getBranch().getName(),
@@ -1149,15 +1156,100 @@ public class OrderService {
         return "DELIVERY";
     }
 
-    private String normalizeInvoiceType(String raw, String taxId) {
+    private void applySunatBillingRules(
+            CustomerOrder order,
+            OrderCreateRequest req,
+            AppUser currentUser,
+            boolean isCounterSale,
+            BigDecimal totalAmount
+    ) {
+        boolean explicitDocSent = req.billingDocumentNumber() != null || req.customerTaxId() != null;
+        String rawDoc = explicitDocSent
+                ? firstNonBlank(req.billingDocumentNumber(), req.customerTaxId())
+                : (!isCounterSale ? firstNonBlank(currentUser.getDocumentNumber()) : null);
+        String trimmedDoc = rawDoc != null ? rawDoc.trim() : "";
+        if (trimmedDoc.matches("^0+$")) {
+            trimmedDoc = "";
+        }
+
+        String digitsOnly = trimmedDoc.replaceAll("\\D", "");
+        String invoiceType = normalizeInvoiceType(req.invoiceType(), digitsOnly);
+        order.setInvoiceType(invoiceType);
+
+        if ("FACTURA".equals(invoiceType)) {
+            if (digitsOnly.length() != 11) {
+                throw new BadRequestException("Para emitir Factura Electrónica es obligatorio ingresar un R.U.C. válido de 11 dígitos.");
+            }
+            String businessName = firstNonBlank(
+                    req.billingBusinessName(),
+                    req.customerBusinessName(),
+                    !isCounterSale ? currentUser.getFullName() : null
+            );
+            if (businessName == null || isAnonymousPlaceholder(businessName)) {
+                throw new BadRequestException("Para emitir Factura Electrónica es obligatorio ingresar la Razón Social de la empresa.");
+            }
+            order.setCustomerTaxId(digitsOnly);
+            order.setCustomerBusinessName(businessName);
+            order.setBillingAddress(firstNonBlank(req.billingAddress(), order.getDeliveryAddress()));
+            return;
+        }
+
+        // BOLETA: Venta >= S/ 700 exige DNI/CE y nombres completos; < S/ 700 permite Clientes Varios
+        String alphaNumDoc = trimmedDoc.replaceAll("[^A-Za-z0-9]", "");
+        String customerName = firstNonBlank(
+                req.billingBusinessName(),
+                req.customerBusinessName(),
+                req.recipientName(),
+                !isCounterSale ? currentUser.getFullName() : null
+        );
+
+        if (totalAmount != null && totalAmount.compareTo(BOLETA_DNI_THRESHOLD) >= 0) {
+            if (alphaNumDoc.length() < 8) {
+                throw new BadRequestException("Por norma SUNAT, toda Boleta de Venta por S/ 700.00 o más exige DNI (8 dígitos) o Carnet de Extranjería/Pasaporte.");
+            }
+            if (customerName == null || isAnonymousPlaceholder(customerName)) {
+                throw new BadRequestException("Por norma SUNAT, toda Boleta de Venta por S/ 700.00 o más exige nombres y apellidos completos del cliente.");
+            }
+        }
+
+        order.setCustomerTaxId(alphaNumDoc.isEmpty() ? null : trimmedDoc);
+        if (customerName == null || isAnonymousPlaceholder(customerName)) {
+            order.setCustomerBusinessName("CLIENTES VARIOS");
+            if (isCounterSale) {
+                order.setRecipientName("CLIENTES VARIOS");
+            }
+        } else {
+            order.setCustomerBusinessName(customerName);
+        }
+        order.setBillingAddress(firstNonBlank(req.billingAddress()));
+    }
+
+    private boolean isAnonymousPlaceholder(String rawName) {
+        if (rawName == null || rawName.isBlank()) {
+            return true;
+        }
+        String norm = rawName.trim().toUpperCase(Locale.ROOT);
+        return norm.equals("CLIENTES VARIOS")
+                || norm.equals("CLIENTE EN CAJA")
+                || norm.equals("CLIENTE GENERAL")
+                || norm.equals("CLIENTE DE MOSTRADOR")
+                || norm.equals("CONSUMIDOR FINAL");
+    }
+
+    private String normalizeInvoiceType(String raw, String digitsOnly) {
+        if (digitsOnly != null && !digitsOnly.isBlank()) {
+            if (digitsOnly.length() == 11) {
+                return "FACTURA";
+            }
+            if (digitsOnly.length() == 8 && (raw == null || !raw.trim().equalsIgnoreCase("FACTURA"))) {
+                return "BOLETA";
+            }
+        }
         if (raw != null && !raw.isBlank()) {
-            String u = raw.trim().toUpperCase();
+            String u = raw.trim().toUpperCase(Locale.ROOT);
             if ("FACTURA".equals(u) || "BOLETA".equals(u)) {
                 return u;
             }
-        }
-        if (taxId != null && taxId.trim().length() == 11) {
-            return "FACTURA";
         }
         return "BOLETA";
     }

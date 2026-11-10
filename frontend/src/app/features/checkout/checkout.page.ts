@@ -24,6 +24,10 @@ import { LookupService } from '../../core/services/lookup.service';
 import { OrdersService } from '../../core/services/orders.service';
 import { PaymentService, StoreWalletConfig, DEFAULT_WALLET_CONFIG } from '../../core/services/payment.service';
 import { PdfInvoiceService } from '../../core/services/pdf-invoice.service';
+import {
+  BOLETA_DNI_REQUIRED_THRESHOLD,
+  isAnonymousBillingName,
+} from '../../core/constants/company-info.constant';
 import { ToastService } from '../../core/services/toast.service';
 import { SyncBusService } from '../../core/services/sync-bus.service';
 import {
@@ -102,9 +106,11 @@ export class CheckoutPageComponent implements OnInit, OnDestroy {
   isSearchingAddress = signal(false);
   private addressDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
+  readonly boletaDniThreshold = BOLETA_DNI_REQUIRED_THRESHOLD;
   customerDni = '';
   customerTaxId = '';
   customerBusinessName = '';
+  customerFiscalAddress = '';
   deliveryAddress = '';
   deliveryReference = '';
   recipientName = '';
@@ -257,6 +263,18 @@ export class CheckoutPageComponent implements OnInit, OnDestroy {
     Number((this.cart.subtotal() + this.shippingFee()).toFixed(2))
   );
 
+  readonly requiresBoletaDni = computed<boolean>(
+    () => this.invoiceType() === 'BOLETA' && this.grandTotal() >= BOLETA_DNI_REQUIRED_THRESHOLD
+  );
+
+  useClientesVariosForBoleta(): void {
+    if (this.requiresBoletaDni()) return;
+    this.customerDni = '';
+    this.dniLookup.set(null);
+    this.lastLookedUpDni = '';
+    this.recipientName = 'CLIENTES VARIOS';
+  }
+
   ngOnInit(): void {
     const user = this.auth.currentUser();
     if (user) {
@@ -357,27 +375,37 @@ export class CheckoutPageComponent implements OnInit, OnDestroy {
   }
 
   onDniChange(rawValue: string): void {
-    const digits = (rawValue || '').replace(/\D/g, '');
-    if (digits !== rawValue) {
-      this.customerDni = digits;
+    const clean = (rawValue || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+    if (clean !== rawValue) {
+      this.customerDni = clean;
     }
 
-    if (digits.length !== 8) {
+    const digitsOnly = clean.replace(/\D/g, '');
+    if (digitsOnly.length === 11 && clean === digitsOnly) {
+      this.invoiceType.set('FACTURA');
+      this.customerTaxId = digitsOnly;
+      this.customerDni = '';
       this.dniLookup.set(null);
-      if (digits.length < 8) {
+      this.onRucChange(digitsOnly);
+      return;
+    }
+
+    if (digitsOnly.length !== 8 || clean !== digitsOnly) {
+      this.dniLookup.set(null);
+      if (digitsOnly.length < 8) {
         this.lastLookedUpDni = '';
       }
       return;
     }
 
-    if (digits === this.lastLookedUpDni) {
+    if (digitsOnly === this.lastLookedUpDni) {
       return;
     }
-    this.lastLookedUpDni = digits;
+    this.lastLookedUpDni = digitsOnly;
     this.isLookingUpDni.set(true);
 
     this.lookupService
-      .lookupDocument(digits)
+      .lookupDocument(digitsOnly)
       .pipe(finalize(() => this.isLookingUpDni.set(false)))
       .subscribe({
         next: (res) => {
@@ -401,6 +429,10 @@ export class CheckoutPageComponent implements OnInit, OnDestroy {
     const digits = (rawValue || '').replace(/\D/g, '');
     if (digits !== rawValue) {
       this.customerTaxId = digits;
+    }
+
+    if (digits.length === 8 && rawValue.length === 8) {
+      // Allow graceful handling when 8 digits entered in RUC box: keep user aware or only auto-switch after lookup
     }
 
     if (digits.length !== 11) {
@@ -428,8 +460,11 @@ export class CheckoutPageComponent implements OnInit, OnDestroy {
             if (company) {
               this.customerBusinessName = company;
             }
-            if (!this.deliveryAddress.trim() && res.fiscalAddress?.trim()) {
-              this.applyFiscalAddress(res);
+            if (res.fiscalAddress?.trim()) {
+              this.customerFiscalAddress = res.fiscalAddress.trim();
+              if (!this.deliveryAddress.trim()) {
+                this.applyFiscalAddress(res);
+              }
             }
           } else {
             this.rucLookup.set(null);
@@ -531,12 +566,68 @@ export class CheckoutPageComponent implements OnInit, OnDestroy {
     this.coverageState.set(res);
   }
 
+  private getBillingAndContactValidationError(): { title: string; message: string } | null {
+    if (!this.recipientPhone.trim()) {
+      return {
+        title: 'Teléfono requerido',
+        message: 'Por favor ingresa un número celular de contacto para coordinar el pedido.',
+      };
+    }
+
+    if (this.invoiceType() === 'FACTURA') {
+      const rucDigits = this.customerTaxId.replace(/\D/g, '');
+      if (rucDigits.length !== 11) {
+        return {
+          title: 'RUC inválido',
+          message: 'Para emitir Factura Electrónica ingresa un R.U.C. válido de 11 dígitos.',
+        };
+      }
+      if (!this.customerBusinessName.trim() || isAnonymousBillingName(this.customerBusinessName)) {
+        return {
+          title: 'Razón social requerida',
+          message: 'Por favor ingresa la Razón Social exacta de la empresa.',
+        };
+      }
+      if (!this.customerFiscalAddress.trim()) {
+        return {
+          title: 'Dirección fiscal requerida',
+          message: 'Para emitir Factura Electrónica ingresa la dirección fiscal de la empresa.',
+        };
+      }
+      if (!this.recipientName.trim()) {
+        return {
+          title: 'Nombre de quien recibe requerido',
+          message: 'Por favor indica quién recibirá el pedido.',
+        };
+      }
+      return null;
+    }
+
+    // BOLETA DE VENTA: S/ 700+ exige DNI / CE y nombres completos; < S/ 700 permite Clientes Varios
+    if (this.grandTotal() >= BOLETA_DNI_REQUIRED_THRESHOLD) {
+      const cleanDoc = this.customerDni.replace(/[^A-Za-z0-9]/g, '');
+      if (cleanDoc.length < 8 || /^0+$/.test(cleanDoc)) {
+        return {
+          title: 'DNI / C.E. obligatorio desde S/ 700',
+          message:
+            'Por disposición SUNAT, las boletas de S/ 700.00 a más exigen DNI (8 dígitos) o C.E./Pasaporte.',
+        };
+      }
+      if (!this.recipientName.trim() || isAnonymousBillingName(this.recipientName)) {
+        return {
+          title: 'Nombre completo obligatorio desde S/ 700',
+          message:
+            'Por disposición SUNAT, las boletas de S/ 700.00 a más no pueden emitirse como Clientes Varios.',
+        };
+      }
+    }
+
+    return null;
+  }
+
   canSubmitOrder(): boolean {
     if (!this.auth.isAuthenticated()) return false;
-    if (!this.recipientName.trim() || !this.recipientPhone.trim()) return false;
-    if (this.invoiceType() === 'FACTURA') {
-      if (!this.customerTaxId.trim() || !this.customerBusinessName.trim()) return false;
-    }
+    if (this.getBillingAndContactValidationError() !== null) return false;
     if (this.deliveryType() === 'DELIVERY') {
       if (!this.deliveryAddress.trim()) return false;
       const cov = this.coverageState();
@@ -564,8 +655,9 @@ export class CheckoutPageComponent implements OnInit, OnDestroy {
       this.toast.warning('Inicia sesión primero', 'Ingresa a tu cuenta para confirmar el pedido.');
       return;
     }
-    if (!this.recipientName.trim() || !this.recipientPhone.trim()) {
-      this.toast.warning('Datos de contacto requeridos', 'Por favor ingresa el nombre y teléfono de quien recibe.');
+    const billingErr = this.getBillingAndContactValidationError();
+    if (billingErr) {
+      this.toast.warning(billingErr.title, billingErr.message);
       return;
     }
     if (this.deliveryType() === 'DELIVERY') {
@@ -578,10 +670,6 @@ export class CheckoutPageComponent implements OnInit, OnDestroy {
         this.toast.error('Dirección fuera de cobertura', 'Tu ubicación se encuentra fuera del área de reparto autorizada.');
         return;
       }
-    }
-    if (this.invoiceType() === 'FACTURA' && (!this.customerTaxId.trim() || !this.customerBusinessName.trim())) {
-      this.toast.warning('Datos de facturación requeridos', 'Por favor ingresa tu RUC y Razón Social.');
-      return;
     }
 
     this.isProcessingPayment.set(true);
@@ -711,7 +799,12 @@ export class CheckoutPageComponent implements OnInit, OnDestroy {
   private buildCreateOrderPayload(): CreateOrderRequest {
     const branchId = this.selectedBranch()?.id ?? this.selectedBranchId ?? 1;
     const isFactura = this.invoiceType() === 'FACTURA';
-    const docNum = isFactura ? this.customerTaxId.trim() : this.customerDni.trim();
+    const docNum = isFactura ? this.customerTaxId.replace(/\D/g, '') : this.customerDni.trim();
+    const isUnder700Anon =
+      !isFactura &&
+      this.grandTotal() < BOLETA_DNI_REQUIRED_THRESHOLD &&
+      isAnonymousBillingName(this.recipientName);
+    const resolvedRecipient = isUnder700Anon ? 'CLIENTES VARIOS' : this.recipientName.trim();
 
     return {
       branchId,
@@ -725,10 +818,13 @@ export class CheckoutPageComponent implements OnInit, OnDestroy {
       deliveryLongitude: this.deliveryType() === 'DELIVERY' ? this.deliveryLongitude() : null,
       invoiceType: this.invoiceType(),
       customerTaxId: isFactura ? docNum : undefined,
-      billingDocumentNumber: docNum || undefined,
-      customerBusinessName: isFactura ? this.customerBusinessName.trim() : undefined,
-      billingBusinessName: isFactura ? this.customerBusinessName.trim() : undefined,
-      recipientName: this.recipientName.trim(),
+      billingDocumentNumber: docNum,
+      customerBusinessName: isFactura ? this.customerBusinessName.trim() : resolvedRecipient,
+      billingBusinessName: isFactura ? this.customerBusinessName.trim() : resolvedRecipient,
+      billingAddress: isFactura
+        ? this.customerFiscalAddress.trim() || this.deliveryAddress.trim()
+        : undefined,
+      recipientName: resolvedRecipient,
       recipientPhone: this.recipientPhone.trim(),
       paymentMethod: this.paymentMethod,
       notes: this.buildFormattedNotes(),
@@ -749,6 +845,11 @@ export class CheckoutPageComponent implements OnInit, OnDestroy {
     }
     if (!this.auth.isAuthenticated()) {
       this.toast.warning('Inicia sesión primero', 'Ingresa a tu cuenta para confirmar el pedido.');
+      return;
+    }
+    const billingErr = this.getBillingAndContactValidationError();
+    if (billingErr) {
+      this.toast.warning(billingErr.title, billingErr.message);
       return;
     }
 

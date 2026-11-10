@@ -480,7 +480,7 @@ class AsuncionErpIntegrationTests {
         String altReply = altJson.get("reply").asText();
         assertThat(altReply.toLowerCase()).doesNotContain("tensor");
 
-        // FAQ invoicing query (Boleta only, no Facturas)
+        // FAQ invoicing query (Boleta DNI / Factura RUC with RUC 10414686867)
         String invoiceFaqMsg = objectMapper.writeValueAsString(Map.of(
                 "message", "¿Emiten factura electrónica con RUC para empresas?",
                 "sessionId", "test-session-invoice"
@@ -495,7 +495,8 @@ class AsuncionErpIntegrationTests {
         JsonNode invoiceJson = objectMapper.readTree(invoiceResult.getResponse().getContentAsString());
         String invoiceReply = invoiceJson.get("reply").asText();
         assertThat(invoiceReply.toLowerCase()).contains("boleta de venta");
-        assertThat(invoiceReply.toLowerCase()).contains("no emitimos facturas");
+        assertThat(invoiceReply.toLowerCase()).contains("factura");
+        assertThat(invoiceReply).contains("10414686867");
     }
 
     @Test
