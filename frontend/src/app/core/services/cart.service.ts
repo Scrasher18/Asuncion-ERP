@@ -1,4 +1,4 @@
-import { computed, effect, inject, Injectable, signal } from '@angular/core';
+import { computed, effect, inject, Injectable, signal, untracked } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { catchError, tap } from 'rxjs/operators';
@@ -53,6 +53,7 @@ export class CartService {
   readonly posActiveHolds = signal<Record<number, number>>(this.loadPosActiveHolds());
   readonly isSyncingReservation = signal<boolean>(false);
   readonly customCombos = signal<CustomComboPair[]>(this.loadCustomCombos());
+  private lastProcessedUserId: number | null | undefined = undefined;
 
   readonly hasActiveReservation = computed(() =>
     this.items().length > 0 && this.reservationRemainingSeconds() > 0
@@ -66,67 +67,66 @@ export class CartService {
   });
 
   constructor() {
-    // Automatically switch and seamlessly migrate cart storage when user logs in, logs out, or registers
+    // Automatically switch and seamlessly migrate cart storage when user logs in, logs out, or registers.
+    // All internal signal reads/writes run inside untracked() so this effect only reacts to currentUser changes.
     effect(() => {
       const user = this.authService.currentUser();
-      let loaded: CartItem[] = [];
+      const currentUserId = user?.id ?? null;
 
-      if (user && user.id) {
-        const userKey = `asuncion_cart_user_${user.id}_v2`;
-        const userSaved = this.loadCartFromKey(userKey);
-        const guestSaved = this.loadCartFromKey(GUEST_CART_KEY);
-        const memoryCurrent = this.items();
+      untracked(() => {
+        if (this.lastProcessedUserId === currentUserId) {
+          return;
+        }
+        const prevUserId = this.lastProcessedUserId;
+        this.lastProcessedUserId = currentUserId;
 
-        // Items from unauthenticated / guest session to preserve
-        const unauthedItems = guestSaved.length > 0 ? guestSaved : memoryCurrent;
+        let loaded: CartItem[] = [];
 
-        if (unauthedItems.length > 0) {
-          const map = new Map<number, CartItem>();
-          for (const it of userSaved) {
-            map.set(it.part.id, { ...it });
-          }
-          for (const it of unauthedItems) {
-            if (map.has(it.part.id)) {
-              const existing = map.get(it.part.id)!;
-              existing.quantity = Math.min(
-                existing.part.stockQuantity,
-                existing.quantity + it.quantity
-              );
-            } else {
+        if (currentUserId !== null) {
+          const userKey = `asuncion_cart_user_${currentUserId}_v2`;
+          const userSaved = this.loadCartFromKey(userKey);
+          const guestSaved = this.loadCartFromKey(GUEST_CART_KEY);
+          const memoryUnauthed = prevUserId === null ? this.items() : [];
+          const unauthedItems = guestSaved.length > 0 ? guestSaved : memoryUnauthed;
+
+          if (unauthedItems.length > 0) {
+            const map = new Map<number, CartItem>();
+            for (const it of userSaved) {
               map.set(it.part.id, { ...it });
             }
-          }
-          loaded = Array.from(map.values());
-          if (typeof window !== 'undefined') {
-            localStorage.setItem(userKey, JSON.stringify(loaded));
-            localStorage.removeItem(GUEST_CART_KEY);
+            for (const it of unauthedItems) {
+              if (map.has(it.part.id)) {
+                const existing = map.get(it.part.id)!;
+                const maxStock = existing.part.stockQuantity || it.part.stockQuantity || 999;
+                existing.quantity = Math.min(maxStock, existing.quantity + it.quantity);
+              } else {
+                map.set(it.part.id, { ...it });
+              }
+            }
+            loaded = Array.from(map.values());
+            if (typeof window !== 'undefined') {
+              localStorage.setItem(userKey, JSON.stringify(loaded));
+              localStorage.removeItem(GUEST_CART_KEY);
+            }
+          } else {
+            loaded = userSaved;
           }
         } else {
-          loaded = userSaved;
+          // Guest user without active session
+          loaded = this.loadCartFromKey(GUEST_CART_KEY);
         }
-      } else {
-        // Guest user without active session
-        const guestSaved = this.loadCartFromKey(GUEST_CART_KEY);
-        if (guestSaved.length === 0 && this.items().length > 0) {
-          loaded = this.items();
-          if (typeof window !== 'undefined') {
-            localStorage.setItem(GUEST_CART_KEY, JSON.stringify(loaded));
-          }
-        } else {
-          loaded = guestSaved;
-        }
-      }
 
-      this.items.set(loaded);
-      if (loaded.length > 0) {
-        this.publishOnlineHolds(loaded);
-        this.syncReservationWithServer(false);
-      } else {
-        this.setReservationExpiresAt(null);
-        this.reservationRemainingSeconds.set(0);
-        this.reservedByOthersMap.set({});
-      }
-    }, { allowSignalWrites: true });
+        this.items.set(loaded);
+        if (loaded.length > 0) {
+          this.publishOnlineHolds(loaded);
+          this.syncReservationWithServer(false);
+        } else {
+          this.setReservationExpiresAt(null);
+          this.reservationRemainingSeconds.set(0);
+          this.reservedByOthersMap.set({});
+        }
+      });
+    });
 
     if (typeof window !== 'undefined') {
       // Real-time synchronization across POS, Catalog, and Multi-Tabs
@@ -816,10 +816,6 @@ export class CartService {
       const key = this.getStorageKey();
       const serialized = JSON.stringify(this.items());
       localStorage.setItem(key, serialized);
-      // Keep GUEST_CART_KEY synchronized as fallback safeguard so guest items are never lost
-      if (key !== GUEST_CART_KEY && this.items().length > 0) {
-        localStorage.setItem(GUEST_CART_KEY, serialized);
-      }
       this.publishOnlineHolds(this.items());
     }
   }
