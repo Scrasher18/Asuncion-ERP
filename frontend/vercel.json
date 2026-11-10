@@ -6,7 +6,7 @@
     },
     {
       "source": "/api/:path*",
-      "destination": "https://asuncion-erp.onrender.com/api/:path*"
+      "destination": "https://asuncion-erp-oa5s.onrender.com/api/:path*"
     },
     {
       "source": "/(.*)",
