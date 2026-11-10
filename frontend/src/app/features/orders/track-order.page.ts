@@ -978,6 +978,9 @@ export class TrackOrderPageComponent implements OnInit, OnDestroy {
   private startPolling(orderNumber: string): void {
     this.stopPolling();
     this.pollTimer = setInterval(() => {
+      if (typeof document !== 'undefined' && document.hidden) {
+        return;
+      }
       const cur = this.order();
       if (!cur || cur.status === 'ENTREGADO' || cur.status === 'CANCELADO') {
         this.liveTelemetry.set(null);
@@ -985,18 +988,19 @@ export class TrackOrderPageComponent implements OnInit, OnDestroy {
         this.disconnectSse();
         return;
       }
-      this.searchOrder(true);
       // Silently refresh order details to catch status changes in real time
       this.searchOrder(true);
-      this.telemetryService.getOrderLiveTelemetry(orderNumber).subscribe({
-        next: (telemetry: LiveTrackingResponse) => {
-          if (telemetry && this.order()?.status !== 'ENTREGADO' && this.order()?.status !== 'CANCELADO') {
-            this.liveTelemetry.set(telemetry);
-          }
-        },
-        error: () => {},
-      });
-    }, 4000);
+      if (cur.deliveryType === 'DELIVERY') {
+        this.telemetryService.getOrderLiveTelemetry(orderNumber).subscribe({
+          next: (telemetry: LiveTrackingResponse) => {
+            if (telemetry && this.order()?.status !== 'ENTREGADO' && this.order()?.status !== 'CANCELADO') {
+              this.liveTelemetry.set(telemetry);
+            }
+          },
+          error: () => {},
+        });
+      }
+    }, 10000);
   }
 
   private stopPolling(): void {
@@ -1007,7 +1011,8 @@ export class TrackOrderPageComponent implements OnInit, OnDestroy {
   }
 
   connectLiveTelemetry(orderNumber: string): void {
-    if (this.order()?.status === 'ENTREGADO' || this.order()?.status === 'CANCELADO') {
+    const cur = this.order();
+    if (cur?.status === 'ENTREGADO' || cur?.status === 'CANCELADO' || cur?.deliveryType === 'PICKUP') {
       return;
     }
 

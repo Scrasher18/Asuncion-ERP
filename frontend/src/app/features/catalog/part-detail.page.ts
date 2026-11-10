@@ -501,8 +501,9 @@ export class PartDetailPageComponent implements OnInit, OnDestroy {
         this.pollPartStatus();
       });
       this.pollInterval = setInterval(() => {
+        if (typeof document !== 'undefined' && document.hidden) return;
         this.pollPartStatus();
-      }, 3000);
+      }, 15000);
     }
   }
 

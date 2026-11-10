@@ -7693,11 +7693,9 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
     if (typeof window === 'undefined') return;
     this.checkNewOrders();
     this.orderMonitorInterval = setInterval(() => {
+      if (typeof document !== 'undefined' && document.hidden) return;
       this.checkNewOrders();
-      if (this.activeTab() === 'orders') {
-        this.loadDrivers();
-      }
-    }, 4000); // Poll every 4 seconds in real-time
+    }, 20000); // Poll every 20 seconds when tab is visible to conserve bandwidth
   }
 
   private checkNewOrders(): void {

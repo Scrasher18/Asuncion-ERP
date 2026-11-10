@@ -808,8 +808,9 @@ export class MyOrdersPageComponent implements OnInit, OnDestroy {
         error: () => this.orders.set([]),
       });
 
-    // Auto-refresh orders every 5 seconds if active deliveries exist
-    this.pollSubscription = interval(5000).subscribe(() => {
+    // Auto-refresh orders every 15 seconds if active orders exist and tab is visible
+    this.pollSubscription = interval(15000).subscribe(() => {
+      if (typeof document !== 'undefined' && document.hidden) return;
       if (this.activeOrdersCount() > 0) {
         this.ordersService.getMyOrders().subscribe({
           next: (list) => this.orders.set(list),

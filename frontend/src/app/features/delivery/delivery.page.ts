@@ -779,8 +779,9 @@ export class DeliveryPageComponent implements OnInit, OnDestroy {
       next: (cfg) => this.walletConfig.set(cfg),
     });
     this.loadDeliveryOrders();
-    // Auto-sync polling every 4 seconds
-    this.pollSubscription = interval(4000).subscribe(() => {
+    // Auto-sync polling every 12 seconds when tab is visible
+    this.pollSubscription = interval(12000).subscribe(() => {
+      if (typeof document !== 'undefined' && document.hidden) return;
       if (!this.completingOrder() && !this.qrCobroOrder() && !this.isUpdatingStatus()) {
         this.loadDeliveryOrders(true);
       }

@@ -255,10 +255,13 @@ export class App {
     if (typeof window !== 'undefined') {
       // Proactive cloud backend keep-alive ping to prevent cold-start spin-down while browsing
       const pingBackend = () => {
+        if (typeof document !== 'undefined' && document.hidden) {
+          return;
+        }
         this.http.get(`${this.apiConfig.apiUrl}/catalog/categories`).subscribe({ error: () => {} });
       };
       setTimeout(pingBackend, 500);
-      setInterval(pingBackend, 4 * 60 * 1000);
+      setInterval(pingBackend, 9 * 60 * 1000);
       // Toggle expansion when clicking/pulsando on the reCAPTCHA badge iframe
       window.addEventListener('blur', () => {
         const badge = document.querySelector('.grecaptcha-badge');

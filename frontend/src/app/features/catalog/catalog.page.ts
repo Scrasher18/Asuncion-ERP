@@ -1298,16 +1298,18 @@ export class CatalogPageComponent implements OnInit, OnDestroy {
       };
       window.addEventListener('storage', this.storageListener);
 
-      // 4. Ultra-lightweight real-time reservation sync (<100 bytes, updates tag in 3s without F5)
+      // 4. Lightweight reservation sync every 15s (only when tab is visible; focus/syncBus update immediately)
       this.reservationsPollInterval = setInterval(() => {
+        if (typeof document !== 'undefined' && document.hidden) return;
         this.pollReservationStatus();
-      }, 3000);
+      }, 15000);
 
-      // 5. Background physical stock sync (every 25s)
+      // 5. Background physical stock sync (every 120s when tab is visible)
       this.stockRefreshInterval = setInterval(() => {
+        if (typeof document !== 'undefined' && document.hidden) return;
         this.cart.refreshPosHoldsAndReconcile(false);
         this.silentRefreshParts();
-      }, 25000);
+      }, 120000);
     }
   }
 

@@ -78,13 +78,13 @@ export class NotificationCenterService {
     // Initial fetch
     this.refresh();
 
-    // Auto-refresh every 25 seconds if in browser
+    // Auto-refresh every 60 seconds when tab is visible
     if (typeof window !== 'undefined') {
       this.pollTimer = setInterval(() => {
-        if (this.auth.isAuthenticated()) {
+        if (this.auth.isAuthenticated() && (typeof document === 'undefined' || !document.hidden)) {
           this.refresh(true);
         }
-      }, 25000);
+      }, 60000);
     }
   }
 
