@@ -503,7 +503,7 @@ const POS_HOLD_TTL_MS = 15 * 60 * 1000;
                         ? 'Número de RUC (11 dígitos) *'
                         : requiresBoletaDni()
                           ? 'DNI / C.E. del Cliente (obligatorio >= S/ 700) *'
-                          : 'DNI / C.E. (8 díg.) o RUC (11 díg.) — Opcional < S/ 700'
+                          : 'DNI / C.E. (Opcional < S/ 700)'
                     }}
                   </label>
                   <div class="flex gap-2">
@@ -511,8 +511,9 @@ const POS_HOLD_TTL_MS = 15 * 60 * 1000;
                       type="text"
                       [(ngModel)]="customerDoc"
                       (ngModelChange)="onCustomerDocChange($event)"
-                      maxlength="12"
-                      [placeholder]="invoiceType === 'FACTURA' ? 'Ej: 20608899114' : 'DNI 8 díg. o RUC 11 díg.'"
+                      [attr.maxlength]="invoiceType === 'FACTURA' ? 11 : 12"
+                      [attr.inputmode]="invoiceType === 'FACTURA' ? 'numeric' : 'text'"
+                      [placeholder]="invoiceType === 'FACTURA' ? 'Ej: 10414686867' : 'Ej: 71156519 (o C.E.)'"
                       class="flex-1 min-h-[40px] rounded-xl border border-gray-200 bg-white px-3.5 py-2 font-mono text-xs font-semibold text-gray-900 focus:border-orange-600 focus:outline-none"
                     />
                     <button
@@ -756,15 +757,12 @@ export class PosPageComponent implements OnInit, OnDestroy {
   }
 
   onCustomerDocChange(raw: string): void {
-    const clean = (raw || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+    const clean =
+      this.invoiceType === 'FACTURA'
+        ? (raw || '').replace(/\D/g, '').slice(0, 11)
+        : (raw || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 12);
     if (clean !== raw) {
       this.customerDoc = clean;
-    }
-    const digitsOnly = clean.replace(/\D/g, '');
-    if (digitsOnly.length === 11 && clean === digitsOnly) {
-      this.setInvoiceType('FACTURA');
-    } else if (digitsOnly.length === 8 && clean === digitsOnly && this.invoiceType === 'FACTURA') {
-      this.setInvoiceType('BOLETA');
     }
   }
 
@@ -1290,20 +1288,23 @@ export class PosPageComponent implements OnInit, OnDestroy {
 
   lookupCustomerDoc(): void {
     const doc = (this.customerDoc || '').trim();
-    if (!doc) {
-      this.toast.info('Documento', 'Ingresa un número de DNI (8 dígitos) o RUC (11 dígitos).');
+    const digits = doc.replace(/\D/g, '');
+    if (this.invoiceType === 'FACTURA' && digits.length !== 11) {
+      this.toast.info('RUC de 11 dígitos', 'Ingresa los 11 dígitos del RUC antes de consultar.');
+      return;
+    }
+    if (this.invoiceType === 'BOLETA' && digits.length !== 8) {
+      this.toast.info('DNI de 8 dígitos', 'Ingresa un DNI de 8 dígitos para consultar en RENIEC (o escribe el nombre manualmente).');
       return;
     }
     this.lookingUpDoc.set(true);
     this.lookupService
-      .lookupDocument(doc)
+      .lookupDocument(digits)
       .pipe(finalize(() => this.lookingUpDoc.set(false)))
       .subscribe({
         next: (res) => {
           const name = (res.businessName || res.fullName || '').trim();
-          const digits = doc.replace(/\D/g, '');
-          this.invoiceType = res.documentType === 'RUC' || digits.length === 11 ? 'FACTURA' : 'BOLETA';
-          if (res.fiscalAddress?.trim()) {
+          if (this.invoiceType === 'FACTURA' && res.fiscalAddress?.trim()) {
             this.customerFiscalAddress = res.fiscalAddress.trim();
           }
           if (res.found && name) {
@@ -1327,12 +1328,10 @@ export class PosPageComponent implements OnInit, OnDestroy {
     const digitsOnly = cleanDoc.replace(/\D/g, '');
     const alphaNumDoc = cleanDoc.replace(/[^A-Za-z0-9]/g, '');
 
-    if (digitsOnly.length === 11 && cleanDoc === digitsOnly) {
-      this.invoiceType = 'FACTURA';
-    } else if (digitsOnly.length === 8 && cleanDoc === digitsOnly && this.invoiceType === 'FACTURA') {
+    if (this.invoiceType === 'BOLETA' && digitsOnly.length === 11 && cleanDoc === digitsOnly) {
       this.toast.warning(
-        'DNI detectado',
-        'El número ingresado tiene 8 dígitos (DNI). Cambia a Boleta o ingresa un RUC de 11 dígitos.'
+        'Documento de 11 dígitos (RUC)',
+        'Elegiste Boleta de Venta. Si deseas Proforma con Factura selecciona "Factura RUC" arriba, o ingresa un DNI/CE.'
       );
       return;
     }

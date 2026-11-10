@@ -380,21 +380,12 @@ export class CheckoutPageComponent implements OnInit, OnDestroy {
   }
 
   onDniChange(rawValue: string): void {
-    const clean = (rawValue || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+    const clean = (rawValue || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 12);
     if (clean !== rawValue) {
       this.customerDni = clean;
     }
 
     const digitsOnly = clean.replace(/\D/g, '');
-    if (digitsOnly.length === 11 && clean === digitsOnly) {
-      this.invoiceType.set('FACTURA');
-      this.customerTaxId = digitsOnly;
-      this.customerDni = '';
-      this.dniLookup.set(null);
-      this.onRucChange(digitsOnly);
-      return;
-    }
-
     if (digitsOnly.length !== 8 || clean !== digitsOnly) {
       this.dniLookup.set(null);
       if (digitsOnly.length < 8) {
