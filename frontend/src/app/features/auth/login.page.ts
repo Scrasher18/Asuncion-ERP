@@ -14,38 +14,75 @@ import { RecaptchaV3Service } from '../../core/services/recaptcha-v3.service';
   standalone: true,
   imports: [CommonModule, FormsModule, RouterLink],
   template: `
-    <div class="min-h-[calc(100vh-4rem)] bg-[#F8F9FA] pt-6 sm:pt-8 pb-24 lg:pb-14 px-4 sm:px-6 lg:px-8">
-      <div class="mx-auto max-w-md space-y-4">
-        <!-- Automotive Real Photography Banner -->
-        <div class="relative rounded-2xl overflow-hidden h-32 sm:h-36 shadow-sm border border-gray-200">
+    <div class="min-h-[calc(100vh-4rem)] bg-gradient-to-br from-slate-50 via-white to-orange-50/40 py-6 sm:py-10 pb-24 lg:pb-12 px-4 sm:px-6 lg:px-8 flex items-center justify-center">
+      <div class="mx-auto w-full max-w-5xl rounded-3xl overflow-hidden border border-gray-200/90 bg-white shadow-xl grid grid-cols-1 lg:grid-cols-12">
+        <!-- Left Visual Showcase Panel (Automotive Photography & Clear Customer Value) -->
+        <div class="relative lg:col-span-5 min-h-[210px] sm:min-h-[240px] lg:min-h-[600px] overflow-hidden flex flex-col justify-between bg-slate-950 text-white">
           <img
-            src="/images/banners/hero-workshop.jpg"
-            alt="Asunción Repuestos Automotrices"
-            class="w-full h-full object-cover filter brightness-50 contrast-125"
+            src="/images/banners/login-hero.jpg"
+            alt="Repuestos Automotrices Asunción"
+            class="absolute inset-0 w-full h-full object-cover object-center opacity-85"
           />
-          <div class="absolute inset-0 bg-gradient-to-t from-gray-950/95 via-gray-950/50 to-transparent flex flex-col justify-end p-4 text-white">
-            <div class="flex items-center gap-2 mb-1">
-              <svg class="h-4 w-4 text-orange-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2" />
-                <circle cx="7" cy="17" r="2" />
-                <circle cx="17" cy="17" r="2" />
-              </svg>
-              <span class="text-xs font-semibold text-orange-300 uppercase tracking-wider">Repuestos Automotrices Asunción</span>
+          <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/65 to-slate-950/35"></div>
+
+          <div class="relative z-10 p-5 sm:p-7 flex items-center gap-3">
+            <img
+              src="/images/logos/logo.jpg"
+              alt="Logo Autopartes Asunción"
+              class="h-11 w-11 rounded-xl object-cover border border-white/25 shadow-md bg-white"
+            />
+            <div>
+              <span class="block text-xs font-extrabold tracking-wide text-orange-300 uppercase">Autopartes Asunción</span>
+              <span class="block text-[11px] text-gray-200">Santa Anita · Lima</span>
             </div>
-            <h1 class="text-lg sm:text-xl font-bold text-white tracking-tight">
-              {{ mode() === 'login' ? 'Inicia sesión en tu cuenta' : mode() === 'register' ? 'Crea tu cuenta de cliente' : 'Recuperar acceso' }}
-            </h1>
-            <p class="text-[11px] text-gray-300">
-              Compra repuestos, consulta comprobantes y haz seguimiento en vivo.
-            </p>
+          </div>
+
+          <div class="relative z-10 p-5 sm:p-7 space-y-4">
+            <div class="space-y-1.5">
+              <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight text-white leading-tight">
+                {{ mode() === 'login' ? 'Todo para tu vehículo o taller en un solo lugar' : mode() === 'register' ? 'Regístrate y compra más rápido' : 'Recupera el acceso a tu cuenta' }}
+              </h1>
+              <p class="text-xs sm:text-sm text-gray-200 leading-relaxed">
+                Repuestos para camiones, buses y vehículos livianos con atención directa en tienda y envíos a domicilio.
+              </p>
+            </div>
+
+            <div class="hidden sm:grid grid-cols-1 gap-2.5 pt-2">
+              <div class="flex items-center gap-3 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 p-2.5">
+                <img src="/images/banners/banner-expert.jpg" alt="Repuestos garantizados" class="h-11 w-14 rounded-xl object-cover shrink-0 border border-white/20" />
+                <div>
+                  <span class="block text-xs font-bold text-white">Calidad garantizada</span>
+                  <span class="block text-[11px] text-gray-200">Repuestos originales y alternativos con precios por mayor desde 4 unid.</span>
+                </div>
+              </div>
+              <div class="flex items-center gap-3 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 p-2.5">
+                <img src="/images/banners/banner-delivery.jpg" alt="Delivery o recojo" class="h-11 w-14 rounded-xl object-cover shrink-0 border border-white/20" />
+                <div>
+                  <span class="block text-xs font-bold text-white">Delivery o recojo en tienda</span>
+                  <span class="block text-[11px] text-gray-200">Elige cómo recibir tus repuestos y sigue tu pedido en cada paso.</span>
+                </div>
+              </div>
+              <div class="flex items-center gap-3 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 p-2.5">
+                <img src="/images/banners/banner-warehouse.jpg" alt="Stock real en almacén" class="h-11 w-14 rounded-xl object-cover shrink-0 border border-white/20" />
+                <div>
+                  <span class="block text-xs font-bold text-white">Stock real en almacén</span>
+                  <span class="block text-[11px] text-gray-200">Disponibilidad inmediata y boleta o factura electrónica al instante.</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
-        
-
-        <!-- Primary Login / Register Card -->
-        <div class="rounded-2xl border border-gray-200/90 bg-white p-6 sm:p-7 shadow-xs relative overflow-hidden">
-          <div class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-orange-600 via-orange-500 to-amber-500"></div>
+        <!-- Right Form Panel -->
+        <div class="lg:col-span-7 p-6 sm:p-8 lg:p-10 relative flex flex-col justify-center">
+          <div class="mb-5">
+            <h2 class="text-xl font-extrabold text-gray-900 tracking-tight">
+              {{ mode() === 'login' ? 'Inicia sesión' : mode() === 'register' ? 'Crea tu cuenta' : 'Recuperar contraseña' }}
+            </h2>
+            <p class="text-xs text-gray-500 mt-0.5">
+              {{ mode() === 'login' ? 'Ingresa con tu correo y contraseña.' : mode() === 'register' ? 'Completa tus datos para agilizar tus compras.' : 'Asigna una nueva contraseña para volver a entrar.' }}
+            </p>
+          </div>
 
           <!-- Mode Tabs (visible on login & register) -->
           @if (mode() !== 'forgot') {
@@ -254,8 +291,8 @@ import { RecaptchaV3Service } from '../../core/services/recaptcha-v3.service';
                     <p class="text-xs text-gray-500">
                       Cuenta: <strong class="text-gray-800">{{ forgotEmail }}</strong>
                     </p>
-                    @if (recoveryNotice()) {
-                      <div class="rounded-xl border border-blue-200 bg-blue-50/80 p-2.5 text-[11px] text-blue-900 leading-relaxed">
+                    @if (recoveryChannel() !== 'EMAIL' && recoveryNotice()) {
+                      <div class="rounded-xl border border-amber-200 bg-amber-50/70 p-2.5 text-[11px] text-amber-900 leading-relaxed">
                         {{ recoveryNotice() }}
                       </div>
                     }
@@ -647,17 +684,6 @@ import { RecaptchaV3Service } from '../../core/services/recaptcha-v3.service';
                 </div>
               </div>
 
-              <!-- Official Google reCAPTCHA v3 Legal Notice -->
-              <p class="text-[11px] text-gray-500 text-center leading-relaxed">
-                Protegido por Google reCAPTCHA v3. Aplican la
-                <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" class="text-orange-600 underline font-medium">Privacidad</a> y los
-                <a href="https://policies.google.com/terms" target="_blank" rel="noopener noreferrer" class="text-orange-600 underline font-medium">Términos de Servicio</a> de Google.
-              </p>
-
-              <p class="text-[11px] text-gray-500 leading-snug">
-                Enviaremos un correo de confirmación de bienvenida a tu dirección registrada.
-              </p>
-
               @if (errorMessage()) {
                 <div class="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700">
                   {{ errorMessage() }}
@@ -671,6 +697,12 @@ import { RecaptchaV3Service } from '../../core/services/recaptcha-v3.service';
               >
                 {{ isLoading() ? 'Creando cuenta...' : 'Crear cuenta' }}
               </button>
+
+              <p class="text-[10px] text-gray-400 text-center leading-relaxed">
+                Aplican las políticas de
+                <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" class="underline hover:text-gray-600">Privacidad</a> y
+                <a href="https://policies.google.com/terms" target="_blank" rel="noopener noreferrer" class="underline hover:text-gray-600">Términos</a> de Google.
+              </p>
             </form>
           }
 
@@ -681,22 +713,6 @@ import { RecaptchaV3Service } from '../../core/services/recaptcha-v3.service';
               </svg>
               <span>Volver al catálogo de repuestos</span>
             </a>
-          </div>
-        </div>
-
-        <!-- Security & Commercial Trust Strip -->
-        <div class="grid grid-cols-3 gap-2 text-center">
-          <div class="rounded-xl border border-gray-200/80 bg-white p-2.5 shadow-2xs">
-            <span class="block text-[10px] font-extrabold text-gray-900">Validación DNI / RUC</span>
-            <span class="block text-[10px] text-gray-500">Datos Oficiales</span>
-          </div>
-          <div class="rounded-xl border border-gray-200/80 bg-white p-2.5 shadow-2xs">
-            <span class="block text-[10px] font-extrabold text-emerald-700">Precios Mayoristas</span>
-            <span class="block text-[10px] text-gray-500">Desde 4 unidades</span>
-          </div>
-          <div class="rounded-xl border border-gray-200/80 bg-white p-2.5 shadow-2xs">
-            <span class="block text-[10px] font-extrabold text-orange-600">Sesión Cifrada</span>
-            <span class="block text-[10px] text-gray-500">Seguridad JWT</span>
           </div>
         </div>
       </div>

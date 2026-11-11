@@ -95,7 +95,7 @@ import { RouterLink } from '@angular/router';
               </p>
               <p class="flex items-center gap-2">
                 <img src="/images/icons/whatsapp.png" alt="WhatsApp" class="h-4 w-4 object-contain shrink-0" />
-                <span><strong>WhatsApp Oficial de Atención al Cliente:</strong> +51 987 654 321</span>
+                <span><strong>WhatsApp Oficial de Atención al Cliente:</strong> +51 922 779 157</span>
               </p>
               <p class="flex items-center gap-2">
                 <svg class="h-4 w-4 text-orange-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">

@@ -39,8 +39,8 @@ import { RouterLink } from '@angular/router';
             <h2 class="text-base font-bold text-gray-900">1. Identificación del Comercio</h2>
             <p>
               El presente sitio web es de propiedad y operación exclusiva de <strong>REPUESTOS AUTOMOTRICES ASUNCIÓN S.A.C.</strong>, 
-              con RUC N° <strong>20608899114</strong>, con domicilio legal en <strong>Av. Sta. Ana 441, Lima 15011, Santa Anita, Lima, Perú</strong>.
-              Correo electrónico de atención comercial: <strong>ventas&#64;asuncion.pe</strong> / Central telefónica: <strong>(01) 424-8900</strong> / WhatsApp: <strong>+51 987 654 321</strong>.
+              con RUC N° <strong>10414686867</strong>, con domicilio legal en <strong>Av. Sta. Ana 441, Lima 15011, Santa Anita, Lima, Perú</strong>.
+              Correo electrónico de atención comercial: <strong>ventas&#64;asuncion.pe</strong> / Central telefónica: <strong>(01) 362-8900</strong> / WhatsApp: <strong>+51 922 779 157</strong>.
             </p>
           </section>
 

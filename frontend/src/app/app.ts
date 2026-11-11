@@ -1,5 +1,5 @@
 import { HttpClient } from '@angular/common/http';
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { NavigationEnd, Router, RouterLink, RouterOutlet } from '@angular/router';
 import { ApiConfigService } from './core/services/api-config.service';
 import { CartDrawerComponent } from './shared/components/cart-drawer/cart-drawer.component';
@@ -28,7 +28,8 @@ import { ToastContainerComponent } from './shared/components/toast-container/toa
         <router-outlet />
       </main>
 
-      <!-- Professional E-Commerce Footer with Trust Strip & Full INDECOPI Compliance -->
+      <!-- Full E-Commerce Footer only on Catalog & Legal informational pages -->
+      @if (showFullFooter()) {
       <footer class="border-t border-gray-200 bg-white text-gray-600 pb-24 lg:pb-12 mt-auto">
         <!-- 4-Pillar Trust & Value Proposition Strip -->
         <div class="border-b border-gray-100 bg-gray-50/70 py-6 px-4 sm:px-6 lg:px-8">
@@ -105,7 +106,7 @@ import { ToastContainerComponent } from './shared/components/toast-container/toa
               </p>
 
               <div class="space-y-1 text-gray-700 font-medium">
-                <p><strong>RUC:</strong> <span class="font-mono">20608899114</span></p>
+                <p><strong>RUC:</strong> <span class="font-mono">10414686867</span></p>
                 <p><strong>Razón Social:</strong> REPUESTOS AUTOMOTRICES ASUNCIÓN S.A.C.</p>
                 <p><strong>Dirección:</strong> Av. Sta. Ana 441, Lima 15011 (Santa Anita) - Perú</p>
               </div>
@@ -119,13 +120,13 @@ import { ToastContainerComponent } from './shared/components/toast-container/toa
                   <svg class="h-4 w-4 text-orange-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" />
                   </svg>
-                  <span>Central: <strong>(01) 424-8900</strong></span>
+                  <span>Central: <strong>(01) 362-8900</strong></span>
                 </li>
                 <li class="flex items-center gap-2">
                   <svg class="h-4 w-4 text-emerald-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
                   </svg>
-                  <span>WhatsApp: <strong class="text-emerald-700">+51 987 654 321</strong></span>
+                  <span>WhatsApp: <strong class="text-emerald-700">+51 922 779 157</strong></span>
                 </li>
                 <li class="flex items-center gap-2">
                   <svg class="h-4 w-4 text-orange-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -148,7 +149,7 @@ import { ToastContainerComponent } from './shared/components/toast-container/toa
                   <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" class="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white p-1 hover:border-pink-400 hover:shadow-xs transition" aria-label="Instagram">
                     <img src="/images/icons/instagram.jpg" alt="Instagram" width="22" height="22" loading="lazy" class="h-5.5 w-5.5 object-contain rounded-md" />
                   </a>
-                  <a href="https://wa.me/51987654321" target="_blank" rel="noopener noreferrer" class="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white p-1 hover:border-emerald-400 hover:shadow-xs transition" aria-label="WhatsApp">
+                  <a href="https://wa.me/51922779157" target="_blank" rel="noopener noreferrer" class="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white p-1 hover:border-emerald-400 hover:shadow-xs transition" aria-label="WhatsApp">
                     <img src="/images/icons/whatsapp.png" alt="WhatsApp" width="22" height="22" loading="lazy" class="h-5.5 w-5.5 object-contain" />
                   </a>
                 </div>
@@ -225,6 +226,7 @@ import { ToastContainerComponent } from './shared/components/toast-container/toa
           </div>
         </div>
       </footer>
+      }
 
       <app-cart-drawer />
       <app-stock-alert-modal />
@@ -237,11 +239,28 @@ export class App {
   private readonly router = inject(Router);
   private readonly http = inject(HttpClient);
   private readonly apiConfig = inject(ApiConfigService);
+  readonly showFullFooter = signal<boolean>(true);
+
+  private isFooterVisibleUrl(rawUrl: string): boolean {
+    const clean = (rawUrl || '/').split('?')[0].split('#')[0];
+    if (clean === '' || clean === '/' || clean === '/catalog' || clean === '/ofertas') {
+      return true;
+    }
+    return (
+      clean.startsWith('/part/') ||
+      clean.startsWith('/terminos-y-condiciones') ||
+      clean.startsWith('/politica-devoluciones') ||
+      clean.startsWith('/libro-de-reclamaciones') ||
+      clean.startsWith('/libro-reclamaciones')
+    );
+  }
 
   constructor() {
+    this.showFullFooter.set(this.isFooterVisibleUrl(this.router.url));
     this.router.events.subscribe((evt) => {
       if (evt instanceof NavigationEnd) {
         const url = evt.urlAfterRedirects || evt.url;
+        this.showFullFooter.set(this.isFooterVisibleUrl(url));
         if (typeof document !== 'undefined') {
           if (url.startsWith('/admin') || url.startsWith('/delivery') || url.startsWith('/pos')) {
             document.body.classList.add('hide-recaptcha');

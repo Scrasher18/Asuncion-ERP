@@ -24,6 +24,7 @@ export interface SelectedGeoPoint {
   latitude: number;
   longitude: number;
   suggestedAddress?: string;
+  userInteracted?: boolean;
 }
 
 @Component({
@@ -139,7 +140,7 @@ export class CoverageMapComponent implements AfterViewInit, OnChanges, OnDestroy
     code: 'SEDE-CENTRAL',
     name: 'Repuestos Asunción - Sede Santa Anita',
     address: 'Av. Sta. Ana 441, Lima 15011',
-    phone: '+51 987 654 321',
+    phone: '+51 922 779 157',
     latitude: -12.043004,
     longitude: -76.956621,
     coverageRadiusMeters: 4500,
@@ -265,7 +266,7 @@ export class CoverageMapComponent implements AfterViewInit, OnChanges, OnDestroy
     this.map.on('click', (e: L.LeafletMouseEvent) => {
       const { lat, lng } = e.latlng;
       if (!this.adminMode) {
-        this.handleCustomerSelection(lat, lng);
+        this.handleCustomerSelection(lat, lng, undefined, true);
       }
       // En modo admin el local permanece 100% fijo e inamovible
     });
@@ -371,7 +372,7 @@ export class CoverageMapComponent implements AfterViewInit, OnChanges, OnDestroy
 
       this.customerMarker.on('dragend', (e: any) => {
         const pos = e.target.getLatLng();
-        this.handleCustomerSelection(pos.lat, pos.lng);
+        this.handleCustomerSelection(pos.lat, pos.lng, undefined, true);
       });
     } else {
       this.customerMarker.setLatLng([custLat, custLng]);
@@ -412,18 +413,23 @@ export class CoverageMapComponent implements AfterViewInit, OnChanges, OnDestroy
   }
 
   public setGpsLocation(lat: number, lng: number, address = 'Mi ubicación GPS actual'): void {
-    this.handleCustomerSelection(lat, lng, address);
+    this.handleCustomerSelection(lat, lng, address, true);
     this.map?.flyTo([lat, lng], 15, { duration: 1.0 });
   }
 
-  public handleCustomerSelection(lat: number, lng: number, address?: string): void {
+  public handleCustomerSelection(
+    lat: number,
+    lng: number,
+    address?: string,
+    userInteracted = false
+  ): void {
     this.customerLat.set(lat);
     this.customerLng.set(lng);
     this.updateCustomerMarkerAndRoute();
-    this.recalculateDeliveryCoverage(address);
+    this.recalculateDeliveryCoverage(address, userInteracted);
   }
 
-  private recalculateDeliveryCoverage(suggestedAddress?: string): void {
+  private recalculateDeliveryCoverage(suggestedAddress?: string, userInteracted = false): void {
     const storeLat = this.currentStoreLat;
     const storeLng = this.currentStoreLng;
     const custLat = this.customerLat();
@@ -446,6 +452,7 @@ export class CoverageMapComponent implements AfterViewInit, OnChanges, OnDestroy
       latitude: Number(custLat.toFixed(6)),
       longitude: Number(custLng.toFixed(6)),
       suggestedAddress: suggestedAddress || undefined,
+      userInteracted,
     };
     this.locationSelected.emit(point);
 
@@ -477,7 +484,7 @@ export class CoverageMapComponent implements AfterViewInit, OnChanges, OnDestroy
       (pos) => {
         this.isLocatingGps.set(false);
         const { latitude, longitude } = pos.coords;
-        this.handleCustomerSelection(latitude, longitude, 'Mi ubicación GPS actual');
+        this.handleCustomerSelection(latitude, longitude, 'Mi ubicación GPS actual', true);
         this.map?.flyTo([latitude, longitude], 15, { duration: 1.0 });
       },
       () => {

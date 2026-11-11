@@ -45,7 +45,7 @@ import { ComplaintsService, ComplaintRecord } from '../../core/services/complain
 
             <div class="text-left sm:text-right text-xs text-gray-600 space-y-0.5 border-t sm:border-t-0 pt-2 sm:pt-0">
               <p><strong class="text-gray-900">REPUESTOS AUTOMOTRICES ASUNCIÓN S.A.C.</strong></p>
-              <p>RUC: <strong class="text-gray-900 font-mono">20608899114</strong></p>
+              <p>RUC: <strong class="text-gray-900 font-mono">10414686867</strong></p>
               <p>Av. Sta. Ana 441, Lima 15011 (Santa Anita)</p>
             </div>
           </div>

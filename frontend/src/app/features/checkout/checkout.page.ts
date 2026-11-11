@@ -74,10 +74,10 @@ export class CheckoutPageComponent implements OnInit, OnDestroy {
         const { latitude, longitude } = pos.coords;
         this.deliveryLatitude.set(latitude);
         this.deliveryLongitude.set(longitude);
-        this.deliveryAddress = 'Mi ubicación GPS actual';
         if (this.coverageMap) {
           this.coverageMap.setGpsLocation(latitude, longitude, 'Mi ubicación GPS actual');
         }
+        this.reverseGeocodePinToAddress(latitude, longitude, 'Mi ubicación GPS actual');
         this.toast.success('Ubicación GPS fijada', 'Se fijó tu punto de entrega en tiempo real.');
       },
       (err) => {
@@ -105,6 +105,8 @@ export class CheckoutPageComponent implements OnInit, OnDestroy {
   showAddressDropdown = signal(false);
   isSearchingAddress = signal(false);
   private addressDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+  private reverseGeocodeTimer: ReturnType<typeof setTimeout> | null = null;
+  private reverseGeocodeSeq = 0;
 
   readonly boletaDniThreshold = BOLETA_DNI_REQUIRED_THRESHOLD;
   customerDni = '';
@@ -114,7 +116,7 @@ export class CheckoutPageComponent implements OnInit, OnDestroy {
   deliveryAddress = '';
   deliveryReference = '';
   recipientName = '';
-  recipientPhone = '+51 987 654 321';
+  recipientPhone = '';
   paymentMethod = 'TARJETA_CREDITO';
   cashPaymentSubtype: 'EFECTIVO' | 'POS' = 'EFECTIVO';
   cashAmountToPay: number | null = null;
@@ -139,35 +141,48 @@ export class CheckoutPageComponent implements OnInit, OnDestroy {
     const hours = limaDate.getHours();
     const minutes = limaDate.getMinutes();
     const totalMinutes = hours * 60 + minutes;
+    const isSunday = limaDate.getDay() === 0;
 
-    const isOpen = totalMinutes >= 480 && totalMinutes < 1200;
-    const isSameDayDelivery = totalMinutes >= 480 && totalMinutes <= 1110;
+    const isOpen = !isSunday && totalMinutes >= 480 && totalMinutes < 1200;
+    const isSameDayDelivery = !isSunday && totalMinutes >= 480 && totalMinutes < 1110;
+    const showScheduleWarning = !isSameDayDelivery;
 
     let deliveryTimeLabel = '';
     let deliveryEstimatedWindow = '';
 
     if (isSameDayDelivery) {
-      deliveryTimeLabel = 'Despacho HOY mismo';
+      deliveryTimeLabel = 'Despacho hoy mismo';
       const estMinHours = Math.floor((totalMinutes + 45) / 60);
       const estMinMins = (totalMinutes + 45) % 60;
       const formattedMin = `${String(estMinHours).padStart(2, '0')}:${String(estMinMins).padStart(2, '0')}`;
-      deliveryEstimatedWindow = `Llegada estimada hoy entre las ${formattedMin} y las 20:00 hrs. Horario de despacho: 08:00 a 20:00 hrs.`;
-    } else if (totalMinutes > 1110) {
-      deliveryTimeLabel = 'Despacho programado para MAÑANA a primera hora';
-      deliveryEstimatedWindow = `Por la hora actual (corte diario de despacho 06:30 p.m., cierre de almacén 08:00 p.m.), tu pedido se despachará mañana entre las 08:30 a.m. y 10:00 a.m.`;
+      deliveryEstimatedWindow = `Llegada estimada hoy a partir de las ${formattedMin} hrs.`;
+    } else if (isSunday) {
+      deliveryTimeLabel = 'Despacho próximo día hábil';
+      deliveryEstimatedWindow =
+        'Los domingos no realizamos repartos. Tu pedido saldrá el próximo día hábil desde las 8:30 a.m.';
+    } else if (totalMinutes >= 1110) {
+      deliveryTimeLabel = 'Despacho programado para mañana';
+      deliveryEstimatedWindow =
+        'Después de las 6:30 p.m., los pedidos se despachan mañana a primera hora desde las 8:30 a.m.';
     } else {
-      deliveryTimeLabel = 'Despacho HOY en el primer turno';
-      deliveryEstimatedWindow = `Nuestra tienda y almacén abren a las 08:00 a.m. Tu pedido saldrá en el primer turno de hoy entre las 08:30 a.m. y 10:00 a.m.`;
+      deliveryTimeLabel = 'Primer turno de hoy (8:30 a.m.)';
+      deliveryEstimatedWindow =
+        'Nuestro almacén abre a las 8:00 a.m. Tu pedido saldrá en el primer turno de hoy desde las 8:30 a.m.';
     }
 
-    let pickupTimeLabel = isOpen
-      ? 'Listo para recojo en tienda en 30 min'
-      : 'Listo para recojo mañana desde las 08:30 a.m.';
-    let pickupEstimatedWindow = 'Horario de atención en tienda: Lunes a Sábado de 08:00 a.m. a 08:00 p.m. (Sede Central Santa Anita).';
-    let pickupExpirationLimit = 'Plazo límite de retiro: Tienes hasta 48 horas (2 días calendario) para recoger tu pedido. Vencido este plazo, la reserva se cancela automáticamente y el stock regresa a almacén.';
+    const pickupTimeLabel = isOpen
+      ? 'Listo para recojo en 30 min'
+      : isSunday
+        ? 'Disponible para recojo el lunes desde las 8:30 a.m.'
+        : 'Listo para recojo mañana desde las 8:30 a.m.';
+    const pickupEstimatedWindow =
+      'Horario de atención: Lunes a Sábado de 8:00 a.m. a 8:00 p.m. (Santa Anita).';
+    const pickupExpirationLimit =
+      'Plazo límite de retiro: hasta 48 horas (2 días) para recoger tu pedido.';
 
     return {
       isDeliveryTimeAllowedSameDay: isSameDayDelivery,
+      showScheduleWarning,
       deliveryTimeLabel,
       deliveryEstimatedWindow,
       pickupTimeLabel,
@@ -544,10 +559,49 @@ export class CheckoutPageComponent implements OnInit, OnDestroy {
   onMapLocationSelected(point: SelectedGeoPoint): void {
     this.deliveryLatitude.set(point.latitude);
     this.deliveryLongitude.set(point.longitude);
-    if (point.suggestedAddress) {
-      this.deliveryAddress = point.suggestedAddress;
-    }
     this.geospatialRejectionAlert.set('');
+    if (!point.userInteracted) {
+      return;
+    }
+    if (point.suggestedAddress && point.suggestedAddress !== 'Mi ubicación GPS actual') {
+      this.deliveryAddress = point.suggestedAddress;
+      return;
+    }
+    this.reverseGeocodePinToAddress(point.latitude, point.longitude, point.suggestedAddress);
+  }
+
+  private reverseGeocodePinToAddress(lat: number, lng: number, fallbackLabel?: string): void {
+    if (this.reverseGeocodeTimer) {
+      clearTimeout(this.reverseGeocodeTimer);
+    }
+    const seq = ++this.reverseGeocodeSeq;
+    this.reverseGeocodeTimer = setTimeout(() => {
+      this.isSearchingAddress.set(true);
+      this.lookupService
+        .reverseAddress(lat, lng)
+        .pipe(
+          finalize(() => {
+            if (seq === this.reverseGeocodeSeq) {
+              this.isSearchingAddress.set(false);
+            }
+          })
+        )
+        .subscribe({
+          next: (res) => {
+            if (seq !== this.reverseGeocodeSeq) return;
+            if (res?.displayName) {
+              this.deliveryAddress = res.displayName;
+            } else if (fallbackLabel) {
+              this.deliveryAddress = fallbackLabel;
+            }
+          },
+          error: () => {
+            if (seq === this.reverseGeocodeSeq && fallbackLabel) {
+              this.deliveryAddress = fallbackLabel;
+            }
+          },
+        });
+    }, 280);
   }
 
   onCoverageValidated(res: CoverageValidationResponse): void {
@@ -966,6 +1020,9 @@ export class CheckoutPageComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     if (this.addressDebounceTimer) {
       clearTimeout(this.addressDebounceTimer);
+    }
+    if (this.reverseGeocodeTimer) {
+      clearTimeout(this.reverseGeocodeTimer);
     }
   }
 }

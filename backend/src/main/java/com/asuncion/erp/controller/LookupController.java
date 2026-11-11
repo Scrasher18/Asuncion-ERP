@@ -34,4 +34,17 @@ public class LookupController {
     ) {
         return ResponseEntity.ok(externalLookupService.autocompleteAddress(q));
     }
+
+    @GetMapping("/reverse-address")
+    @Operation(summary = "Obtener dirección aproximada en Perú a partir de coordenadas latitud/longitud")
+    public ResponseEntity<AddressSuggestionDto> reverseAddress(
+            @RequestParam("lat") double lat,
+            @RequestParam("lng") double lng
+    ) {
+        AddressSuggestionDto resolved = externalLookupService.reverseAddress(lat, lng);
+        if (resolved == null) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.ok(resolved);
+    }
 }

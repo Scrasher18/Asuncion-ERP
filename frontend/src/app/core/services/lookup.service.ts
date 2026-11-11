@@ -23,6 +23,15 @@ export class LookupService {
     });
   }
 
+  reverseAddress(lat: number, lng: number): Observable<AddressLookupSuggestion | null> {
+    const params = new HttpParams()
+      .set('lat', String(lat))
+      .set('lng', String(lng));
+    return this.http.get<AddressLookupSuggestion | null>(`${this.apiConfig.apiUrl}/lookup/reverse-address`, {
+      params,
+    });
+  }
+
   autocompleteAddress(query: string): Observable<AddressLookupSuggestion[]> {
     return this.lookupAddress(query);
   }

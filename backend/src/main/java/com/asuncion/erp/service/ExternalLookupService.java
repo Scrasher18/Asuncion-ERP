@@ -240,6 +240,81 @@ public class ExternalLookupService {
         }
     }
 
+    public AddressSuggestionDto reverseAddress(double lat, double lng) {
+        if (Double.isNaN(lat) || Double.isNaN(lng) || (lat == 0.0 && lng == 0.0)) {
+            return null;
+        }
+        try {
+            String url = String.format(
+                    Locale.US,
+                    "https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=%.6f&lon=%.6f&zoom=18&addressdetails=1",
+                    lat,
+                    lng
+            );
+            HttpRequest req = HttpRequest.newBuilder(URI.create(url))
+                    .timeout(Duration.ofSeconds(4))
+                    .header("User-Agent", USER_AGENT)
+                    .header("Accept", "application/json")
+                    .header("Accept-Language", "es-PE,es;q=0.9")
+                    .GET()
+                    .build();
+
+            HttpResponse<String> resp = httpClient.send(req, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+            if (resp.statusCode() != 200 || resp.body() == null || resp.body().isBlank()) {
+                return null;
+            }
+
+            JsonNode item = objectMapper.readTree(resp.body());
+            JsonNode addr = item.path("address");
+
+            String road = firstNonBlank(
+                    cleanPlaceholder(addr.path("road").asText(null)),
+                    cleanPlaceholder(addr.path("pedestrian").asText(null)),
+                    cleanPlaceholder(addr.path("footway").asText(null)),
+                    cleanPlaceholder(addr.path("neighbourhood").asText(null)),
+                    cleanPlaceholder(addr.path("suburb").asText(null))
+            );
+            String houseNumber = cleanPlaceholder(addr.path("house_number").asText(null));
+            String district = firstNonBlank(
+                    cleanPlaceholder(addr.path("city_district").asText(null)),
+                    cleanPlaceholder(addr.path("suburb").asText(null)),
+                    cleanPlaceholder(addr.path("municipality").asText(null)),
+                    cleanPlaceholder(addr.path("town").asText(null)),
+                    cleanPlaceholder(addr.path("district").asText(null)),
+                    cleanPlaceholder(addr.path("city").asText(null)),
+                    cleanPlaceholder(addr.path("village").asText(null)),
+                    cleanPlaceholder(addr.path("county").asText(null))
+            );
+            String city = firstNonBlank(
+                    cleanPlaceholder(addr.path("city").asText(null)),
+                    cleanPlaceholder(addr.path("state_district").asText(null)),
+                    cleanPlaceholder(addr.path("region").asText(null))
+            );
+
+            List<String> parts = new ArrayList<>();
+            if (road != null) {
+                parts.add(houseNumber != null ? road + " " + houseNumber : road);
+            }
+            if (district != null && (road == null || !road.equalsIgnoreCase(district))) {
+                parts.add(district);
+            }
+            if (city != null && (district == null || !district.equalsIgnoreCase(city))) {
+                parts.add(city);
+            }
+
+            String concise = parts.isEmpty()
+                    ? item.path("display_name").asText("").trim()
+                    : String.join(", ", parts);
+            if (concise.isBlank()) {
+                return null;
+            }
+            return new AddressSuggestionDto(concise, district, lat, lng);
+        } catch (Exception e) {
+            log.debug("Nominatim reverse geocoding no disponible ({}, {}): {}", lat, lng, e.getMessage());
+            return null;
+        }
+    }
+
     private DocumentLookupResponse queryLiveDni(String dni) {
         if (!peruApiToken.isBlank()) {
             DocumentLookupResponse v2 = fetchDniFromUrl(
