@@ -90,6 +90,16 @@ export const routes: Routes = [
       import('./features/legal/complaints-book.page').then((m) => m.ComplaintsBookPageComponent),
   },
   {
+    path: 'catalog',
+    redirectTo: '',
+    pathMatch: 'full',
+  },
+  {
+    path: 'libro-reclamaciones',
+    redirectTo: 'libro-de-reclamaciones',
+    pathMatch: 'full',
+  },
+  {
     path: '**',
     redirectTo: '',
   },

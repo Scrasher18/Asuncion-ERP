@@ -730,17 +730,57 @@ export class LoginPageComponent implements OnInit {
   confirmResetPassword = '';
 
   ngOnInit(): void {
-    if (this.auth.isAuthenticated()) {
-      const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
-      const destination = returnUrl || this.auth.defaultHomeForUser();
-      void this.router.navigateByUrl(destination);
-      return;
-    }
+    this.route.queryParamMap.subscribe((params) => {
+      const tab = params.get('tab');
+      const step = params.get('step');
+      const qEmail = params.get('email');
+      const qCode = params.get('code');
+      const isRecoveryLink =
+        tab === 'forgot' || tab === 'reset' || step === 'reset' || Boolean(qCode);
 
-    const tab = this.route.snapshot.queryParamMap.get('tab');
-    if (tab === 'register') {
-      this.mode.set('register');
-    }
+      if (this.auth.isAuthenticated() && !isRecoveryLink) {
+        const returnUrl = params.get('returnUrl');
+        const destination = returnUrl || this.auth.defaultHomeForUser();
+        void this.router.navigateByUrl(destination);
+        return;
+      }
+
+      if (isRecoveryLink) {
+        this.mode.set('forgot');
+        this.errorMessage.set('');
+        this.resetSuccessMessage.set('');
+        if (qEmail) {
+          this.forgotEmail = qEmail.trim().toLowerCase();
+        }
+        if (step === 'reset' || qCode) {
+          this.recoveryChannel.set('EMAIL');
+          this.recoveryNotice.set(
+            qCode
+              ? 'Tu correo y código de seguridad se cargaron desde el correo. Ahora asigna tu nueva contraseña.'
+              : 'Ingresa el código recibido en tu correo y tu nueva contraseña.'
+          );
+          this.forgotCode = (qCode || '').trim();
+          this.forgotStep.set('reset');
+        } else {
+          this.forgotStep.set('request');
+        }
+        this.onFormChange();
+        return;
+      }
+
+      if (tab === 'register') {
+        this.mode.set('register');
+        if (qEmail) {
+          this.registerData.email = qEmail.trim().toLowerCase();
+        }
+        this.onFormChange();
+        return;
+      }
+
+      if (qEmail) {
+        this.loginEmail = qEmail.trim().toLowerCase();
+      }
+    });
   }
   readonly isLoading = signal(false);
   readonly errorMessage = signal('');

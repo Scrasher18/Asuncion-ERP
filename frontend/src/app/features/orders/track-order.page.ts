@@ -824,7 +824,7 @@ export class TrackOrderPageComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.route.queryParamMap.subscribe((params) => {
-      const q = params.get('order');
+      const q = params.get('order') || params.get('code');
       if (params.get('created') === '1' || params.get('notified') === '1') {
         this.emailSentNotice.set(true);
       }

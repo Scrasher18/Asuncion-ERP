@@ -81,9 +81,13 @@ public class EmailNotificationService {
         this.envMailPort = envMailPort > 0 ? envMailPort : 587;
         this.envMailUsername = envMailUsername != null && !envMailUsername.isBlank() ? envMailUsername.trim() : "luisoscarperez322@gmail.com";
         this.envMailPassword = envMailPassword != null ? envMailPassword.trim() : "";
-        this.frontendBaseUrl = frontendBaseUrl != null && !frontendBaseUrl.isBlank()
+        String cleanedBase = (frontendBaseUrl != null && !frontendBaseUrl.isBlank())
                 ? frontendBaseUrl.replaceAll("/+$", "")
                 : "http://localhost:4200";
+        if (cleanedBase.contains("localhost") && System.getenv("RENDER") != null) {
+            cleanedBase = "https://asucionfrontend.vercel.app";
+        }
+        this.frontendBaseUrl = cleanedBase;
     }
 
     @Transactional(readOnly = true)
@@ -191,8 +195,8 @@ public class EmailNotificationService {
                 "VERIFICACIÓN DE NOTIFICACIONES",
                 "Servicio de Correo Conectado",
                 bodyContent,
-                "Ir al Panel Administrativo",
-                frontendBaseUrl + "/admin"
+                "Abrir Correo y Notificaciones",
+                frontendBaseUrl + "/admin?tab=notifications"
         );
 
         try {
@@ -264,7 +268,7 @@ public class EmailNotificationService {
                     <div style="background:#FFF7ED;border-left:4px solid #EA580C;padding:12px 16px;margin:20px 0;border-radius:0 8px 8px 0;">
                       <p style="margin:0;font-size:12px;color:#9A3412;line-height:1.6;">
                         <strong>Sede Central:</strong> Av. Sta. Ana 441, Santa Anita, Lima &bull; <strong>Horario:</strong> Lun - Sáb 8:00 AM - 6:00 PM<br/>
-                        <strong>Central Telefónica:</strong> (01) 424-8900 &bull; <strong>WhatsApp Comercial:</strong> +51 987 654 321
+                        <strong>Central Telefónica:</strong> (01) 362-8900 &bull; <strong>WhatsApp Comercial:</strong> +51 922 779 157
                       </p>
                     </div>
                     """.formatted(
@@ -279,7 +283,7 @@ public class EmailNotificationService {
                     "Bienvenido a Autopartes Asunción",
                     content,
                     "Explorar Catálogo de Repuestos",
-                    frontendBaseUrl + "/catalog"
+                    frontendBaseUrl + "/"
             );
 
             dispatchOrSimulate("BIENVENIDA_REGISTRO", user.email(), subject, html, null);
@@ -354,7 +358,7 @@ public class EmailNotificationService {
                     "Bienvenido(a) a Repuestos Asunción",
                     content,
                     "Iniciar Sesión en la Plataforma",
-                    frontendBaseUrl + "/login"
+                    frontendBaseUrl + "/login?email=" + urlEncodeParam(user.getEmail())
             );
 
             dispatchOrSimulate("ALTA_TRABAJADOR", user.getEmail(), subject, html, user.getEmployeeCode() != null ? user.getEmployeeCode() : "STAFF");
@@ -381,12 +385,17 @@ public class EmailNotificationService {
                 return false;
             }
             String subject = "Código de Recuperación de Contraseña: " + code + " — Repuestos Asunción";
+            String resumeResetUrl = frontendBaseUrl
+                    + "/login?tab=forgot&step=reset&email="
+                    + urlEncodeParam(email)
+                    + "&code="
+                    + urlEncodeParam(code);
             String content = """
                     <p style="margin:0 0 14px;color:#334155;font-size:15px;line-height:1.6;">
                       Hola <strong>%s</strong>, hemos recibido una solicitud para restablecer la contraseña de tu cuenta en <strong>Repuestos Asunción</strong>.
                     </p>
                     <p style="margin:0 0 16px;color:#475569;font-size:14px;line-height:1.6;">
-                      Usa el siguiente código de seguridad de 6 dígitos para verificar tu identidad y asignar tu nueva contraseña:
+                      Usa el siguiente código de seguridad de 6 dígitos donde solicitaste el cambio, o haz clic en el botón inferior para retomar ese paso directamente con tu código cargado:
                     </p>
                     <div style="text-align:center;margin:24px 0;">
                       <div style="display:inline-block;letter-spacing:8px;font-size:32px;font-weight:900;color:#EA580C;background:#FFF7ED;border:2px dashed #EA580C;padding:14px 28px;border-radius:12px;font-family:monospace;">
@@ -405,8 +414,8 @@ public class EmailNotificationService {
                     "SEGURIDAD & ACCESO",
                     "Restablecimiento de Contraseña",
                     content,
-                    "Ir a Iniciar Sesión",
-                    frontendBaseUrl + "/login"
+                    "Continuar y Cambiar Contraseña",
+                    resumeResetUrl
             );
 
             return dispatchOrSimulateWithSettings(settings, "RECUPERACION_PASSWORD", email, subject, html, null);
@@ -546,8 +555,8 @@ public class EmailNotificationService {
                     "ALERTA COMERCIAL TIENDA",
                     "Nuevo Pedido Recibido: " + order.orderNumber(),
                     adminContent,
-                    "Abrir Panel ERP Administrativo",
-                    frontendBaseUrl + "/admin"
+                    "Gestionar Pedido en Despacho",
+                    frontendBaseUrl + "/admin?tab=orders"
             );
             dispatchOrSimulateWithSettings(settings, "NUEVO_PEDIDO_TIENDA", adminRecipient, adminSubject, adminHtml, order.orderNumber());
         } catch (Exception e) {
@@ -699,7 +708,7 @@ public class EmailNotificationService {
                     : (order.getCustomer().getFullName() != null ? order.getCustomer().getFullName() : "Cliente");
             String driverName = order.getAssignedDriver() != null ? order.getAssignedDriver().getFullName() : "Motorizado Asunción";
             String driverPhone = order.getAssignedDriver() != null && order.getAssignedDriver().getPhone() != null
-                    ? order.getAssignedDriver().getPhone() : "+51 987 654 321";
+                    ? order.getAssignedDriver().getPhone() : "+51 922 779 157";
             String secCode = order.getDeliverySecurityCode() != null && !order.getDeliverySecurityCode().isBlank()
                     ? order.getDeliverySecurityCode() : "1234";
 
@@ -828,8 +837,8 @@ public class EmailNotificationService {
                     "LIBRO DE RECLAMACIONES",
                     "Constancia " + claim.getSheetNumber(),
                     content,
-                    "Ir a Autopartes Asunción",
-                    frontendBaseUrl + "/libro-reclamaciones"
+                    "Ver Libro de Reclamaciones",
+                    frontendBaseUrl + "/libro-de-reclamaciones"
             );
 
             if (claim.getEmail() != null && !claim.getEmail().isBlank()) {
@@ -837,7 +846,14 @@ public class EmailNotificationService {
             }
             String adminRecipient = firstNonBlank(settings.adminNotificationEmail(), settings.username());
             if (adminRecipient != null && !adminRecipient.equalsIgnoreCase(nullToEmpty(claim.getEmail()).trim())) {
-                dispatchOrSimulateWithSettings(settings, "ALERTA_RECLAMO", adminRecipient, "[NUEVO RECLAMO " + claim.getSheetNumber() + "] " + claim.getFullName(), html, claim.getSheetNumber());
+                String adminClaimHtml = wrapCorporateTemplate(
+                        "LIBRO DE RECLAMACIONES",
+                        "Nuevo Reclamo: " + claim.getSheetNumber(),
+                        content,
+                        "Atender Reclamo en Panel ERP",
+                        frontendBaseUrl + "/admin?tab=claims"
+                );
+                dispatchOrSimulateWithSettings(settings, "ALERTA_RECLAMO", adminRecipient, "[NUEVO RECLAMO " + claim.getSheetNumber() + "] " + claim.getFullName(), adminClaimHtml, claim.getSheetNumber());
             }
         } catch (Exception e) {
             log.warn("Error procesando notificación de reclamo: {}", e.getMessage());
@@ -869,8 +885,8 @@ public class EmailNotificationService {
                     "ATENCIÓN AL CONSUMIDOR",
                     "Hoja " + claim.getSheetNumber() + " Atendida",
                     content,
-                    "Visitar Tienda Online",
-                    frontendBaseUrl
+                    "Ver Libro de Reclamaciones",
+                    frontendBaseUrl + "/libro-de-reclamaciones"
             );
             dispatchOrSimulate("RECLAMO_ATENDIDO", claim.getEmail().trim(), subject, html, claim.getSheetNumber());
         } catch (Exception e) {
@@ -1292,10 +1308,10 @@ public class EmailNotificationService {
                 </head>
                 <body style="margin:0;padding:24px 12px;background-color:#F8FAFC;font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
                   <div style="max-width:620px;margin:0 auto;background:#FFFFFF;border-radius:14px;overflow:hidden;border:1px solid #E2E8F0;box-shadow:0 4px 16px rgba(15,23,42,0.06);">
-                    <div style="background:linear-gradient(135deg,#EA580C 0%%,#C2410C 100%%);padding:22px 28px;color:#FFFFFF;">
-                      <div style="font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;opacity:0.92;">%s</div>
-                      <div style="font-size:21px;font-weight:800;margin-top:4px;letter-spacing:-0.3px;">REPUESTOS ASUNCIÓN</div>
-                      <div style="font-size:12px;opacity:0.9;margin-top:2px;">Autopartes OEM &amp; Aftermarket Certificado — Lima, Perú</div>
+                    <div style="background-color:#EA580C;background-image:linear-gradient(135deg,#EA580C 0%%,#C2410C 100%%);padding:22px 28px;color:#FFFFFF;">
+                      <div style="font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:#FFEDD5;">%s</div>
+                      <div style="font-size:21px;font-weight:800;margin-top:4px;letter-spacing:-0.3px;color:#FFFFFF;">REPUESTOS ASUNCIÓN</div>
+                      <div style="font-size:12px;color:#FED7AA;margin-top:2px;">Autopartes OEM &amp; Aftermarket Certificado — Lima, Perú</div>
                     </div>
                     <div style="padding:28px;">
                       <h2 style="margin:0 0 16px;font-size:19px;color:#0F172A;font-weight:700;">%s</h2>
@@ -1305,8 +1321,8 @@ public class EmailNotificationService {
                       </div>
                     </div>
                     <div style="background:#F8FAFC;border-top:1px solid #E2E8F0;padding:16px 28px;text-align:center;font-size:12px;color:#64748B;">
-                      <strong>Autopartes Asunción</strong> • Av. Sta. Ana 441, Lima 15011 (Santa Anita) - Perú<br/>
-                      Atención Comercial y Despacho Geoespacial • Notificación Automática ERP
+                      <strong>Autopartes Asunción</strong> &bull; R.U.C. 10414686867 &bull; Av. Sta. Ana 441, Santa Anita, Lima - Perú<br/>
+                      Central: (01) 362-8900 &bull; WhatsApp: +51 922 779 157 &bull; Notificación Automática ERP
                     </div>
                   </div>
                 </body>
@@ -1371,6 +1387,13 @@ public class EmailNotificationService {
             }
         }
         return prefix + String.format(Locale.US, "%08d", Math.max(1L, seq));
+    }
+
+    private static String urlEncodeParam(String raw) {
+        if (raw == null) {
+            return "";
+        }
+        return java.net.URLEncoder.encode(raw, StandardCharsets.UTF_8);
     }
 
     private static String firstNonBlank(String... values) {
