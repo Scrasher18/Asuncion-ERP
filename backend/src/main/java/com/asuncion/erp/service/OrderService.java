@@ -1213,11 +1213,14 @@ public class OrderService {
         }
 
         order.setCustomerTaxId(alphaNumDoc.isEmpty() ? null : trimmedDoc);
-        if (customerName == null || isAnonymousPlaceholder(customerName)) {
-            order.setCustomerBusinessName("CLIENTES VARIOS");
-            if (isCounterSale) {
-                order.setRecipientName("CLIENTES VARIOS");
+        if (!isCounterSale) {
+            if (customerName == null || isAnonymousPlaceholder(customerName)) {
+                throw new BadRequestException("En compras online es obligatorio ingresar tus nombres y apellidos completos (no se permite 'Clientes Varios').");
             }
+            order.setCustomerBusinessName(customerName);
+        } else if (customerName == null || isAnonymousPlaceholder(customerName)) {
+            order.setCustomerBusinessName("CLIENTES VARIOS");
+            order.setRecipientName("CLIENTES VARIOS");
         } else {
             order.setCustomerBusinessName(customerName);
         }

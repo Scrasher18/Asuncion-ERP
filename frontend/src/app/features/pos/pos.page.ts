@@ -208,6 +208,25 @@ const POS_HOLD_TTL_MS = 15 * 60 * 1000;
                     Haz clic en cualquier repuesto para agregarlo al ticket. Llevando 4+ unidades se aplica tarifa mayorista.
                   </p>
                 </div>
+                <div class="flex items-center gap-2 shrink-0">
+                  <span
+                    class="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700"
+                    title="El catálogo y el stock se actualizan automáticamente cada 15 segundos sin recargar la página"
+                  >
+                    <span class="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span>{{ lastCatalogSyncLabel() ? 'Sync ' + lastCatalogSyncLabel() : 'Auto-sync 15s' }}</span>
+                  </span>
+                  <button
+                    type="button"
+                    (click)="manualSilentCatalogSync()"
+                    [disabled]="isSyncingCatalog()"
+                    title="Sincronizar catálogo y stock ahora sin perder el ticket"
+                    class="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition cursor-pointer"
+                  >
+                    <span>↻</span>
+                    <span>{{ isSyncingCatalog() ? 'Sincronizando...' : 'Actualizar' }}</span>
+                  </button>
+                </div>
               </div>
 
               <!-- Physical store pricing banner: web promotions exclusive to web -->
@@ -469,7 +488,7 @@ const POS_HOLD_TTL_MS = 15 * 60 * 1000;
                     "
                     class="rounded-xl border py-2.5 text-xs transition cursor-pointer"
                   >
-                    Factura RUC (Proforma + WA)
+                    Factura con RUC
                   </button>
                 </div>
 
@@ -722,6 +741,8 @@ export class PosPageComponent implements OnInit, OnDestroy {
   readonly branches = signal<Branch[]>([]);
   readonly allOrders = signal<Order[]>([]);
   readonly loadingParts = signal<boolean>(false);
+  readonly isSyncingCatalog = signal<boolean>(false);
+  readonly lastCatalogSyncLabel = signal<string>('');
 
   searchQuery = '';
   readonly searchQuerySignal = signal<string>('');
@@ -906,6 +927,8 @@ export class PosPageComponent implements OnInit, OnDestroy {
       this.focusListener = () => {
         this.onlineHolds.set(this.loadOnlineHoldsMap());
         this.reconcileTicketWithAvailableStock();
+        this.silentRefreshParts();
+        this.silentRefreshOrders();
       };
       window.addEventListener('focus', this.focusListener);
 
@@ -913,6 +936,8 @@ export class PosPageComponent implements OnInit, OnDestroy {
         if (document.visibilityState === 'visible') {
           this.onlineHolds.set(this.loadOnlineHoldsMap());
           this.reconcileTicketWithAvailableStock();
+          this.silentRefreshParts();
+          this.silentRefreshOrders();
         }
       };
       document.addEventListener('visibilitychange', this.visibilityListener);
@@ -928,6 +953,10 @@ export class PosPageComponent implements OnInit, OnDestroy {
       this.autoSyncTimer = setInterval(() => {
         this.onlineHolds.set(this.loadOnlineHoldsMap());
         this.reconcileTicketWithAvailableStock();
+        if (typeof document === 'undefined' || !document.hidden) {
+          this.silentRefreshParts();
+          this.silentRefreshOrders();
+        }
       }, 15000);
     }
   }
@@ -966,17 +995,60 @@ export class PosPageComponent implements OnInit, OnDestroy {
   }
 
   private isRefreshingParts = false;
-  private silentRefreshParts(): void {
+  private isRefreshingOrders = false;
+
+  manualSilentCatalogSync(): void {
+    this.onlineHolds.set(this.loadOnlineHoldsMap());
+    this.silentRefreshParts(true);
+    this.silentRefreshOrders();
+  }
+
+  private markCatalogSyncedNow(): void {
+    const now = new Date();
+    const label = now.toLocaleTimeString('es-PE', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+    });
+    this.lastCatalogSyncLabel.set(label);
+  }
+
+  private silentRefreshParts(showToastOnDone = false): void {
     if (this.isRefreshingParts) return;
     this.isRefreshingParts = true;
+    this.isSyncingCatalog.set(true);
     this.catalogService.getAdminParts(false).subscribe({
       next: (list) => {
         this.isRefreshingParts = false;
+        this.isSyncingCatalog.set(false);
         this.parts.set(list);
         this.reconcileTicketWithAvailableStock();
+        this.markCatalogSyncedNow();
+        if (showToastOnDone) {
+          this.toast.success('Catálogo actualizado', `${list.length} repuestos sincronizados con stock real.`);
+        }
       },
       error: () => {
         this.isRefreshingParts = false;
+        this.isSyncingCatalog.set(false);
+        if (showToastOnDone) {
+          this.toast.warning('Sincronización pendiente', 'No se pudo consultar el servidor en este momento.');
+        }
+      },
+    });
+  }
+
+  private silentRefreshOrders(): void {
+    if (this.isRefreshingOrders) return;
+    this.isRefreshingOrders = true;
+    this.ordersService.getAllOrders().subscribe({
+      next: (ords) => {
+        this.isRefreshingOrders = false;
+        this.allOrders.set(ords);
+      },
+      error: () => {
+        this.isRefreshingOrders = false;
       },
     });
   }
@@ -1014,6 +1086,7 @@ export class PosPageComponent implements OnInit, OnDestroy {
         next: (list) => {
           this.parts.set(list);
           this.reconcileTicketWithAvailableStock();
+          this.markCatalogSyncedNow();
         },
         error: () => {},
       });

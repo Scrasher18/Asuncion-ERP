@@ -177,35 +177,105 @@ public class AuthService {
         return toUserDto(saved);
     }
 
+    @Transactional
     public Map<String, Object> requestPasswordReset(ForgotPasswordRequest request) {
         String normalizedEmail = request.email().trim().toLowerCase();
         var userOpt = userRepository.findByEmailIgnoreCase(normalizedEmail);
 
-        if (userOpt.isPresent()) {
-            AppUser user = userOpt.get();
-            String code = String.format("%06d", secureRandom.nextInt(1_000_000));
-            resetCodeMap.put(normalizedEmail, new ResetCodeEntry(code, Instant.now().plus(15, ChronoUnit.MINUTES)));
-            emailNotificationService.notifyPasswordReset(user.getEmail(), user.getFullName(), code);
+        if (userOpt.isEmpty()) {
+            Map<String, Object> notFound = new java.util.LinkedHashMap<>();
+            notFound.put("success", false);
+            notFound.put("deliveryChannel", "NOT_FOUND");
+            notFound.put("emailSent", false);
+            notFound.put("canVerifyIdentity", false);
+            notFound.put("requiresDocument", false);
+            notFound.put("requiresPhone", false);
+            notFound.put("message", "No encontramos ninguna cuenta registrada con ese correo electrónico. Verifica que esté bien escrito o crea una cuenta nueva.");
+            return notFound;
         }
 
-        return Map.of(
-                "success", true,
-                "message", "Si tu correo está registrado, recibirás un código de 6 dígitos en tu bandeja de entrada en breve."
+        AppUser user = userOpt.get();
+        String code = String.format("%06d", secureRandom.nextInt(1_000_000));
+        Instant expiresAt = Instant.now().plus(15, ChronoUnit.MINUTES);
+        resetCodeMap.put(normalizedEmail, new ResetCodeEntry(code, expiresAt));
+        user.setResetCode(code);
+        user.setResetCodeExpiresAt(expiresAt);
+        userRepository.save(user);
+
+        boolean emailSent = emailNotificationService.sendPasswordResetSynchronously(
+                user.getEmail(),
+                user.getFullName(),
+                code
         );
+
+        String registeredDoc = normalizeDocument(user.getDocumentNumber());
+        String registeredPhone = normalizePhoneDigits(user.getPhone());
+        boolean hasDocument = !registeredDoc.isEmpty();
+        boolean hasPhone = registeredPhone.length() >= 6;
+        boolean canVerifyIdentity = hasDocument || hasPhone;
+
+        String supportWaText = java.net.URLEncoder.encode(
+                "Hola Autopartes Asunción, solicito restablecer la contraseña de mi cuenta (" + user.getEmail() + ").",
+                java.nio.charset.StandardCharsets.UTF_8
+        );
+        String supportWhatsappUrl = "https://wa.me/51922779157?text=" + supportWaText;
+
+        String deliveryChannel;
+        String message;
+        if (emailSent) {
+            deliveryChannel = "EMAIL";
+            message = "Enviamos un código de 6 dígitos a " + user.getEmail() + ". Revisa tu bandeja de entrada o Spam.";
+        } else if (canVerifyIdentity) {
+            deliveryChannel = "IDENTITY_VERIFICATION";
+            message = "El envío de correos automáticos no está activo en este momento. Verifica tu identidad con los datos registrados en tu cuenta para cambiar tu contraseña al instante.";
+        } else {
+            deliveryChannel = "SUPPORT_WHATSAPP";
+            message = "El envío de correos no está disponible y esta cuenta no tiene DNI/RUC ni celular registrados. Solicita tu restablecimiento directo por WhatsApp con Administración.";
+        }
+
+        Map<String, Object> response = new java.util.LinkedHashMap<>();
+        response.put("success", true);
+        response.put("deliveryChannel", deliveryChannel);
+        response.put("emailSent", emailSent);
+        response.put("canVerifyIdentity", canVerifyIdentity);
+        response.put("requiresDocument", hasDocument);
+        response.put("requiresPhone", hasPhone);
+        response.put("maskedDocument", maskTail(registeredDoc, 3));
+        response.put("maskedPhone", maskTail(registeredPhone, 3));
+        response.put("supportWhatsappUrl", supportWhatsappUrl);
+        response.put("message", message);
+        return response;
     }
 
     @Transactional
     public Map<String, Object> confirmPasswordReset(ResetPasswordRequest request) {
         String normalizedEmail = request.email().trim().toLowerCase();
-        ResetCodeEntry entry = resetCodeMap.get(normalizedEmail);
+        AppUser user = userRepository.findByEmailIgnoreCase(normalizedEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado con el correo: " + normalizedEmail));
 
-        if (entry == null || entry.expiresAt().isBefore(Instant.now())) {
-            resetCodeMap.remove(normalizedEmail);
-            throw new BadRequestException("El código de recuperación ha expirado o no es válido. Por favor solicita uno nuevo.");
-        }
-
-        if (!entry.code().equals(request.code().trim())) {
-            throw new BadRequestException("El código de 6 dígitos ingresado es incorrecto.");
+        String submittedCode = request.code() != null ? request.code().trim() : "";
+        if (!submittedCode.isEmpty()) {
+            String storedCode = user.getResetCode();
+            Instant storedExpiry = user.getResetCodeExpiresAt();
+            if (storedCode == null || storedExpiry == null) {
+                ResetCodeEntry memEntry = resetCodeMap.get(normalizedEmail);
+                if (memEntry != null) {
+                    storedCode = memEntry.code();
+                    storedExpiry = memEntry.expiresAt();
+                }
+            }
+            if (storedCode == null || storedExpiry == null || storedExpiry.isBefore(Instant.now())) {
+                resetCodeMap.remove(normalizedEmail);
+                user.setResetCode(null);
+                user.setResetCodeExpiresAt(null);
+                userRepository.save(user);
+                throw new BadRequestException("El código de recuperación ha expirado o no es válido. Por favor solicita uno nuevo.");
+            }
+            if (!storedCode.equals(submittedCode)) {
+                throw new BadRequestException("El código de 6 dígitos ingresado es incorrecto.");
+            }
+        } else {
+            verifyRegisteredIdentityForReset(user, request.documentNumber(), request.phone());
         }
 
         String newPassword = request.newPassword();
@@ -219,10 +289,9 @@ public class AuthService {
             throw new BadRequestException("La nueva contraseña debe contener al menos un caracter especial (ej: @, #, $, !, %, *, etc.).");
         }
 
-        AppUser user = userRepository.findByEmailIgnoreCase(normalizedEmail)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado con el correo: " + normalizedEmail));
-
         user.setPasswordHash(passwordEncoder.encode(newPassword));
+        user.setResetCode(null);
+        user.setResetCodeExpiresAt(null);
         userRepository.save(user);
         resetCodeMap.remove(normalizedEmail);
 
@@ -230,6 +299,58 @@ public class AuthService {
                 "success", true,
                 "message", "Tu contraseña ha sido actualizada exitosamente. Ahora puedes iniciar sesión con tu nueva clave."
         );
+    }
+
+    private void verifyRegisteredIdentityForReset(AppUser user, String providedDocRaw, String providedPhoneRaw) {
+        String expectedDoc = normalizeDocument(user.getDocumentNumber());
+        String expectedPhone = normalizePhoneDigits(user.getPhone());
+        boolean hasDocument = !expectedDoc.isEmpty();
+        boolean hasPhone = expectedPhone.length() >= 6;
+
+        if (!hasDocument && !hasPhone) {
+            throw new BadRequestException("Esta cuenta no tiene DNI/RUC ni celular registrados para validación directa. Solicita ayuda a Administración por WhatsApp.");
+        }
+        if (hasDocument) {
+            String providedDoc = normalizeDocument(providedDocRaw);
+            if (providedDoc.isEmpty() || !expectedDoc.equals(providedDoc)) {
+                throw new BadRequestException("El número de DNI/RUC ingresado no coincide con el registrado en tu cuenta.");
+            }
+        }
+        if (hasPhone) {
+            String providedPhone = normalizePhoneDigits(providedPhoneRaw);
+            if (!phonesMatch(expectedPhone, providedPhone)) {
+                throw new BadRequestException("El número de celular ingresado no coincide con el registrado en tu cuenta.");
+            }
+        }
+    }
+
+    private String normalizeDocument(String raw) {
+        return raw == null ? "" : raw.replaceAll("[^A-Za-z0-9]", "").toUpperCase();
+    }
+
+    private String normalizePhoneDigits(String raw) {
+        return raw == null ? "" : raw.replaceAll("[^0-9]", "");
+    }
+
+    private boolean phonesMatch(String expectedDigits, String providedDigits) {
+        if (providedDigits.length() < 6) {
+            return false;
+        }
+        if (expectedDigits.length() >= 9 && providedDigits.length() >= 9) {
+            return expectedDigits.substring(expectedDigits.length() - 9)
+                    .equals(providedDigits.substring(providedDigits.length() - 9));
+        }
+        return expectedDigits.equals(providedDigits);
+    }
+
+    private String maskTail(String value, int visibleTail) {
+        if (value == null || value.isBlank()) {
+            return "";
+        }
+        if (value.length() <= visibleTail) {
+            return value;
+        }
+        return "•".repeat(value.length() - visibleTail) + value.substring(value.length() - visibleTail);
     }
 
     public UserDto toUserDto(AppUser user) {

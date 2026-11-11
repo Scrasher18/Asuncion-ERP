@@ -477,7 +477,8 @@ import { LiveDriverMapComponent } from '../../shared/components/live-driver-map/
               </div>
 
               <!-- Security PIN Input -->
-              <div class="rounded-xl border-2 border-orange-200 bg-orange-50/50 p-3.5 space-y-1.5">
+              <div class="rounded-xl border-2 p-3.5 space-y-1.5"
+                [class]="completionError() ? 'border-red-400 bg-red-50/40' : 'border-orange-200 bg-orange-50/50'">
                 <label class="block font-bold text-gray-900 text-xs flex items-center justify-between">
                   <span class="flex items-center gap-1.5 text-orange-800">
                     <svg class="h-4 w-4 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
@@ -491,12 +492,14 @@ import { LiveDriverMapComponent } from '../../shared/components/live-driver-map/
                   type="text"
                   name="securityCode"
                   [(ngModel)]="securityCode"
+                  (ngModelChange)="completionError.set('')"
                   maxlength="4"
                   pattern="[0-9]*"
                   inputmode="numeric"
                   required
                   placeholder="PIN de 4 dígitos (Ej: 1234)"
-                  class="w-full min-h-[46px] rounded-xl border border-orange-300 bg-white px-3.5 py-2 text-center font-mono text-xl font-black tracking-widest text-gray-900 placeholder-gray-300 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none transition"
+                  [class]="completionError() ? 'border-red-500 ring-2 ring-red-500/20' : 'border-orange-300'"
+                  class="w-full min-h-[46px] rounded-xl border bg-white px-3.5 py-2 text-center font-mono text-xl font-black tracking-widest text-gray-900 placeholder-gray-300 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none transition"
                 />
                 <p class="text-[10.5px] text-gray-500 leading-tight">
                   Pide al cliente el PIN único que aparece en su pantalla de seguimiento para finalizar la entrega de forma segura.
@@ -513,6 +516,21 @@ import { LiveDriverMapComponent } from '../../shared/components/live-driver-map/
                   class="w-full min-h-[44px] rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-base sm:text-sm text-gray-900 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
                 />
               </div>
+
+              @if (completionError()) {
+                <div
+                  role="alert"
+                  class="rounded-xl border-2 border-red-400 bg-red-50 p-3 text-xs text-red-900 flex items-start gap-2.5 shadow-2xs"
+                >
+                  <svg class="h-4 w-4 text-red-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                  </svg>
+                  <div class="space-y-0.5">
+                    <div class="font-extrabold text-red-800">Código incorrecto o no válido</div>
+                    <div class="font-medium text-red-700 leading-snug">{{ completionError() }}</div>
+                  </div>
+                </div>
+              }
 
               <div class="grid grid-cols-2 gap-2.5 pt-2">
                 <button
@@ -754,6 +772,7 @@ export class DeliveryPageComponent implements OnInit, OnDestroy {
 
   readonly completingOrder = signal<Order | null>(null);
   readonly submittingProof = signal<boolean>(false);
+  readonly completionError = signal<string>('');
   readonly evidencePreviewUrl = signal<string>('');
   readonly capturedLat = signal<number | null>(null);
   readonly capturedLng = signal<number | null>(null);
@@ -996,6 +1015,7 @@ export class DeliveryPageComponent implements OnInit, OnDestroy {
 
   openCompletionModal(order: Order): void {
     this.completingOrder.set(order);
+    this.completionError.set('');
     this.securityCode = '';
     this.receiverName = order.recipientName || order.customerName || '';
     this.receiverDocument = '';
@@ -1048,6 +1068,7 @@ export class DeliveryPageComponent implements OnInit, OnDestroy {
 
   closeCompletionModal(): void {
     this.completingOrder.set(null);
+    this.completionError.set('');
     this.clearPreview();
   }
 
@@ -1081,6 +1102,7 @@ export class DeliveryPageComponent implements OnInit, OnDestroy {
   submitDeliveryCompletion(): void {
     const order = this.completingOrder();
     if (!order) return;
+    this.completionError.set('');
 
     const finalizeSubmit = (fileToUpload: File) => {
       this.submittingProof.set(true);
@@ -1097,6 +1119,7 @@ export class DeliveryPageComponent implements OnInit, OnDestroy {
         .pipe(finalize(() => this.submittingProof.set(false)))
         .subscribe({
           next: (updated) => {
+            this.completionError.set('');
             this.orders.update((list) => list.map((o) => (o.id === updated.id ? updated : o)));
             this.myDriverStatus.set('RETORNANDO');
             const dist = order.distanceMeters || order.calculatedDistanceMeters || 4000;
@@ -1113,11 +1136,11 @@ export class DeliveryPageComponent implements OnInit, OnDestroy {
             );
             this.closeCompletionModal();
           },
-          error: (err) =>
-            this.toast.error(
-              'Error al confirmar entrega',
-              err?.error?.message || 'Revisa los datos ingresados.'
-            ),
+          error: (err) => {
+            const msg = err?.error?.message || 'Código incorrecto o datos de entrega inválidos. Verifica con el cliente e intenta nuevamente.';
+            this.completionError.set(msg);
+            this.toast.error('Código de entrega incorrecto', msg);
+          },
         });
     };
 

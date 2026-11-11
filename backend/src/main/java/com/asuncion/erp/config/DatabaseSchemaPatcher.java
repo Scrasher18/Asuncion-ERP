@@ -149,6 +149,8 @@ public class DatabaseSchemaPatcher implements CommandLineRunner {
             jdbcTemplate.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS employee_code VARCHAR(30)");
             jdbcTemplate.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS license_number VARCHAR(30)");
             jdbcTemplate.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS vehicle_plate VARCHAR(20)");
+            jdbcTemplate.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_code VARCHAR(12)");
+            jdbcTemplate.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_code_expires_at TIMESTAMP");
 
             jdbcTemplate.execute("UPDATE users SET employee_code = 'ADM-001' WHERE email = 'admin@asuncion.pe' AND employee_code IS NULL");
             jdbcTemplate.execute("UPDATE users SET employee_code = 'VEN-001' WHERE email = 'ventas1@asuncion.pe' AND employee_code IS NULL");

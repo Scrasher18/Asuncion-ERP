@@ -267,14 +267,6 @@ export class CheckoutPageComponent implements OnInit, OnDestroy {
     () => this.invoiceType() === 'BOLETA' && this.grandTotal() >= BOLETA_DNI_REQUIRED_THRESHOLD
   );
 
-  useClientesVariosForBoleta(): void {
-    if (this.requiresBoletaDni()) return;
-    this.customerDni = '';
-    this.dniLookup.set(null);
-    this.lastLookedUpDni = '';
-    this.recipientName = 'CLIENTES VARIOS';
-  }
-
   ngOnInit(): void {
     const user = this.auth.currentUser();
     if (user) {
@@ -599,7 +591,16 @@ export class CheckoutPageComponent implements OnInit, OnDestroy {
       return null;
     }
 
-    // BOLETA DE VENTA: S/ 700+ exige DNI / CE y nombres completos; < S/ 700 permite Clientes Varios
+    // BOLETA DE VENTA ONLINE: Siempre exige nombres y apellidos reales (Clientes Varios aplica solo en Caja POS);
+    // desde S/ 700 exige además DNI / CE obligatorio.
+    if (!this.recipientName.trim() || isAnonymousBillingName(this.recipientName)) {
+      return {
+        title: 'Nombre completo obligatorio',
+        message:
+          'En compras online debes ingresar tus nombres y apellidos completos (Clientes Varios solo aplica en ventas en caja).',
+      };
+    }
+
     if (this.grandTotal() >= BOLETA_DNI_REQUIRED_THRESHOLD) {
       const cleanDoc = this.customerDni.replace(/[^A-Za-z0-9]/g, '');
       if (cleanDoc.length < 8 || /^0+$/.test(cleanDoc)) {
@@ -607,13 +608,6 @@ export class CheckoutPageComponent implements OnInit, OnDestroy {
           title: 'DNI / C.E. obligatorio desde S/ 700',
           message:
             'Por disposición SUNAT, las boletas de S/ 700.00 a más exigen DNI (8 dígitos) o C.E./Pasaporte.',
-        };
-      }
-      if (!this.recipientName.trim() || isAnonymousBillingName(this.recipientName)) {
-        return {
-          title: 'Nombre completo obligatorio desde S/ 700',
-          message:
-            'Por disposición SUNAT, las boletas de S/ 700.00 a más no pueden emitirse como Clientes Varios.',
         };
       }
     }
@@ -796,11 +790,7 @@ export class CheckoutPageComponent implements OnInit, OnDestroy {
     const branchId = this.selectedBranch()?.id ?? this.selectedBranchId ?? 1;
     const isFactura = this.invoiceType() === 'FACTURA';
     const docNum = isFactura ? this.customerTaxId.replace(/\D/g, '') : this.customerDni.trim();
-    const isUnder700Anon =
-      !isFactura &&
-      this.grandTotal() < BOLETA_DNI_REQUIRED_THRESHOLD &&
-      isAnonymousBillingName(this.recipientName);
-    const resolvedRecipient = isUnder700Anon ? 'CLIENTES VARIOS' : this.recipientName.trim();
+    const resolvedRecipient = this.recipientName.trim();
 
     return {
       branchId,

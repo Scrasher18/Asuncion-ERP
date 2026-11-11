@@ -15,6 +15,27 @@ import { ToastService } from './toast.service';
 const TOKEN_KEY = 'asuncion_jwt_token';
 const USER_KEY = 'asuncion_user_profile';
 
+export interface ForgotPasswordResponse {
+  success: boolean;
+  message: string;
+  deliveryChannel?: 'EMAIL' | 'IDENTITY_VERIFICATION' | 'SUPPORT_WHATSAPP' | 'NOT_FOUND';
+  emailSent?: boolean;
+  canVerifyIdentity?: boolean;
+  requiresDocument?: boolean;
+  requiresPhone?: boolean;
+  maskedDocument?: string;
+  maskedPhone?: string;
+  supportWhatsappUrl?: string;
+}
+
+export interface ResetPasswordPayload {
+  email: string;
+  code?: string;
+  documentNumber?: string;
+  phone?: string;
+  newPassword: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly http = inject(HttpClient);
@@ -76,17 +97,25 @@ export class AuthService {
       .pipe(tap((res) => this.persistSession(res)));
   }
 
-  forgotPassword(email: string): Observable<{ success: boolean; message: string }> {
-    return this.http.post<{ success: boolean; message: string }>(
+  forgotPassword(email: string): Observable<ForgotPasswordResponse> {
+    return this.http.post<ForgotPasswordResponse>(
       `${this.apiConfig.apiUrl}/auth/forgot-password`,
       { email }
     );
   }
 
-  resetPassword(email: string, code: string, newPassword: string): Observable<{ success: boolean; message: string }> {
+  resetPassword(
+    payloadOrEmail: ResetPasswordPayload | string,
+    code?: string,
+    newPassword?: string
+  ): Observable<{ success: boolean; message: string }> {
+    const body: ResetPasswordPayload =
+      typeof payloadOrEmail === 'string'
+        ? { email: payloadOrEmail, code, newPassword: newPassword || '' }
+        : payloadOrEmail;
     return this.http.post<{ success: boolean; message: string }>(
       `${this.apiConfig.apiUrl}/auth/reset-password`,
-      { email, code, newPassword }
+      body
     );
   }
 

@@ -190,7 +190,7 @@ import { RecaptchaV3Service } from '../../core/services/recaptcha-v3.service';
                   <div class="space-y-1">
                     <h2 class="text-sm font-bold text-gray-900">Recuperación de contraseña</h2>
                     <p class="text-xs text-gray-500">
-                      Ingresa el correo registrado en tu cuenta y te enviaremos un código de seguridad de 6 dígitos.
+                      Ingresa el correo registrado en tu cuenta para enviarte un código o validar tu identidad al instante.
                     </p>
                   </div>
 
@@ -202,6 +202,7 @@ import { RecaptchaV3Service } from '../../core/services/recaptcha-v3.service';
                       type="email"
                       name="forgotEmail"
                       [(ngModel)]="forgotEmail"
+                      (ngModelChange)="onFormChange()"
                       required
                       placeholder="nombre@correo.pe"
                       class="w-full min-h-[44px] rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-base sm:text-sm text-gray-900 placeholder-gray-400 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
@@ -216,38 +217,135 @@ import { RecaptchaV3Service } from '../../core/services/recaptcha-v3.service';
 
                   <button
                     type="submit"
-                    [disabled]="isLoading() || !forgotEmail"
+                    [disabled]="isLoading() || !forgotEmail.trim()"
                     class="w-full min-h-[44px] rounded-xl bg-orange-600 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-orange-700 disabled:opacity-50 transition cursor-pointer"
                   >
-                    {{ isLoading() ? 'Enviando código...' : 'Enviar código de recuperación' }}
+                    {{ isLoading() ? 'Verificando cuenta...' : 'Continuar' }}
                   </button>
                 </form>
+              } @else if (recoveryChannel() === 'SUPPORT_WHATSAPP') {
+                <div class="space-y-4">
+                  <div class="rounded-xl border border-amber-200 bg-amber-50 p-4 space-y-2">
+                    <div class="text-xs font-bold text-amber-900">Validación asistida requerida</div>
+                    <p class="text-xs text-amber-800 leading-relaxed">
+                      {{ recoveryNotice() }}
+                    </p>
+                  </div>
+
+                  <a
+                    [href]="recoveryWhatsappUrl()"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="w-full min-h-[44px] rounded-xl bg-emerald-600 py-2.5 px-4 text-sm font-semibold text-white shadow-xs hover:bg-emerald-700 transition inline-flex items-center justify-center gap-2"
+                  >
+                    <span>📲 Solicitar restablecimiento por WhatsApp</span>
+                  </a>
+
+                  <button
+                    type="button"
+                    (click)="forgotStep.set('request'); errorMessage.set('')"
+                    class="w-full text-xs text-orange-600 hover:text-orange-700 font-medium py-1"
+                  >
+                    Probar con otro correo electrónico
+                  </button>
+                </div>
               } @else {
                 <form (ngSubmit)="submitResetPasswordConfirm()" class="space-y-4">
                   <div class="space-y-1">
                     <div class="inline-flex items-center gap-1.5 rounded-full border border-orange-200 bg-orange-50 px-2.5 py-0.5 text-[11px] font-semibold text-orange-700">
-                      <span>Paso 2: Asignar nueva clave</span>
+                      <span>
+                        {{ recoveryChannel() === 'EMAIL' ? 'Paso 2: Código por correo' : 'Paso 2: Verificación de identidad' }}
+                      </span>
                     </div>
-                    <h2 class="text-sm font-bold text-gray-900">Ingresa el código y tu nueva contraseña</h2>
+                    <h2 class="text-sm font-bold text-gray-900">
+                      {{ recoveryChannel() === 'EMAIL' ? 'Ingresa el código y tu nueva contraseña' : 'Confirma tus datos registrados y asigna tu nueva clave' }}
+                    </h2>
                     <p class="text-xs text-gray-500">
-                      Revisa el código recibido en <strong class="text-gray-800">{{ forgotEmail }}</strong>.
+                      Cuenta: <strong class="text-gray-800">{{ forgotEmail }}</strong>
                     </p>
+                    @if (recoveryNotice()) {
+                      <div class="rounded-xl border border-blue-200 bg-blue-50/80 p-2.5 text-[11px] text-blue-900 leading-relaxed">
+                        {{ recoveryNotice() }}
+                      </div>
+                    }
                   </div>
 
-                  <div>
-                    <label class="block text-xs font-medium text-gray-700 mb-1.5">
-                      Código de 6 dígitos
-                    </label>
-                    <input
-                      type="text"
-                      name="forgotCode"
-                      [(ngModel)]="forgotCode"
-                      maxlength="6"
-                      required
-                      placeholder="123456"
-                      class="w-full min-h-[44px] rounded-xl border border-orange-200 bg-white px-3.5 py-2.5 text-center font-mono text-xl font-bold tracking-widest text-orange-700 placeholder-gray-300 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
-                    />
-                  </div>
+                  @if (recoveryChannel() === 'EMAIL') {
+                    <div>
+                      <div class="flex items-center justify-between gap-2 mb-1.5">
+                        <label class="block text-xs font-medium text-gray-700">
+                          Código de 6 dígitos
+                        </label>
+                        @if (recoveryCanVerifyIdentity()) {
+                          <button
+                            type="button"
+                            (click)="recoveryChannel.set('IDENTITY_VERIFICATION'); errorMessage.set('')"
+                            class="text-[11px] font-semibold text-orange-600 hover:text-orange-700 cursor-pointer"
+                          >
+                            Verificar con DNI/Celular
+                          </button>
+                        }
+                      </div>
+                      <input
+                        type="text"
+                        name="forgotCode"
+                        [(ngModel)]="forgotCode"
+                        (ngModelChange)="onFormChange()"
+                        maxlength="6"
+                        required
+                        placeholder="123456"
+                        class="w-full min-h-[44px] rounded-xl border border-orange-200 bg-white px-3.5 py-2.5 text-center font-mono text-xl font-bold tracking-widest text-orange-700 placeholder-gray-300 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
+                      />
+                    </div>
+                  } @else {
+                    <div class="space-y-3 rounded-xl border border-gray-200 bg-gray-50/70 p-3">
+                      @if (recoveryRequiresDocument()) {
+                        <div>
+                          <div class="flex items-center justify-between gap-2 mb-1">
+                            <label class="block text-xs font-medium text-gray-700">
+                              DNI / RUC registrado en tu cuenta *
+                            </label>
+                            @if (recoveryMaskedDocument()) {
+                              <span class="font-mono text-[10px] text-gray-500">{{ recoveryMaskedDocument() }}</span>
+                            }
+                          </div>
+                          <input
+                            type="text"
+                            name="forgotDocument"
+                            [(ngModel)]="forgotDocument"
+                            (ngModelChange)="onFormChange()"
+                            maxlength="15"
+                            required
+                            placeholder="Ingresa tu DNI (8 dígitos) o RUC (11)"
+                            class="w-full min-h-[42px] rounded-xl border border-gray-200 bg-white px-3.5 py-2 font-mono text-sm text-gray-900 placeholder-gray-400 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
+                          />
+                        </div>
+                      }
+
+                      @if (recoveryRequiresPhone()) {
+                        <div>
+                          <div class="flex items-center justify-between gap-2 mb-1">
+                            <label class="block text-xs font-medium text-gray-700">
+                              Número de celular registrado *
+                            </label>
+                            @if (recoveryMaskedPhone()) {
+                              <span class="font-mono text-[10px] text-gray-500">{{ recoveryMaskedPhone() }}</span>
+                            }
+                          </div>
+                          <input
+                            type="tel"
+                            name="forgotPhone"
+                            [(ngModel)]="forgotPhone"
+                            (ngModelChange)="onFormChange()"
+                            maxlength="15"
+                            required
+                            placeholder="Ej: 987654321"
+                            class="w-full min-h-[42px] rounded-xl border border-gray-200 bg-white px-3.5 py-2 font-mono text-sm text-gray-900 placeholder-gray-400 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
+                          />
+                        </div>
+                      }
+                    </div>
+                  }
 
                   <div>
                     <label class="block text-xs font-medium text-gray-700 mb-1.5">
@@ -258,6 +356,7 @@ import { RecaptchaV3Service } from '../../core/services/recaptcha-v3.service';
                         [type]="showResetPassword() ? 'text' : 'password'"
                         name="newResetPassword"
                         [(ngModel)]="newResetPassword"
+                        (ngModelChange)="onFormChange()"
                         required
                         placeholder="Nueva contraseña segura (ej: Repuesto#2026)"
                         class="w-full min-h-[44px] rounded-xl border border-gray-200 bg-white pl-3.5 pr-11 py-2.5 text-base sm:text-sm text-gray-900 placeholder-gray-400 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
@@ -310,9 +409,10 @@ import { RecaptchaV3Service } from '../../core/services/recaptcha-v3.service';
                       Confirmar nueva contraseña
                     </label>
                     <input
-                      type="password"
+                      [type]="showResetPassword() ? 'text' : 'password'"
                       name="confirmResetPassword"
                       [(ngModel)]="confirmResetPassword"
+                      (ngModelChange)="onFormChange()"
                       required
                       placeholder="Repite tu nueva contraseña"
                       class="w-full min-h-[44px] rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-base sm:text-sm text-gray-900 placeholder-gray-400 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
@@ -327,20 +427,28 @@ import { RecaptchaV3Service } from '../../core/services/recaptcha-v3.service';
 
                   <button
                     type="submit"
-                    [disabled]="isLoading() || !forgotCode || forgotCode.length !== 6 || !isResetPasswordFullyValid()"
+                    [disabled]="isLoading() || !isResetFormReady()"
                     class="w-full min-h-[44px] rounded-xl bg-orange-600 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-orange-700 disabled:opacity-50 transition cursor-pointer"
                   >
                     {{ isLoading() ? 'Guardando contraseña...' : 'Guardar y cambiar contraseña' }}
                   </button>
 
-                  <div class="text-center pt-1">
+                  <div class="flex flex-wrap items-center justify-between gap-2 pt-1 text-xs">
                     <button
                       type="button"
-                      (click)="forgotStep.set('request')"
-                      class="text-xs text-orange-600 hover:text-orange-700 font-medium"
+                      (click)="forgotStep.set('request'); errorMessage.set('')"
+                      class="text-orange-600 hover:text-orange-700 font-medium cursor-pointer"
                     >
-                      ¿No recibiste el código? Solicitar uno nuevo
+                      Cambiar correo / volver atrás
                     </button>
+                    <a
+                      [href]="recoveryWhatsappUrl()"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="text-emerald-700 hover:text-emerald-800 font-semibold"
+                    >
+                      📲 Ayuda por WhatsApp
+                    </a>
                   </div>
                 </form>
               }
@@ -624,8 +732,18 @@ export class LoginPageComponent implements OnInit {
   readonly forgotStep = signal<'request' | 'reset'>('request');
   readonly showResetPassword = signal(false);
   readonly resetSuccessMessage = signal('');
+  readonly recoveryChannel = signal<'EMAIL' | 'IDENTITY_VERIFICATION' | 'SUPPORT_WHATSAPP'>('EMAIL');
+  readonly recoveryCanVerifyIdentity = signal(false);
+  readonly recoveryRequiresDocument = signal(true);
+  readonly recoveryRequiresPhone = signal(true);
+  readonly recoveryMaskedDocument = signal('');
+  readonly recoveryMaskedPhone = signal('');
+  readonly recoveryNotice = signal('');
+  readonly recoveryWhatsappUrl = signal('https://wa.me/51922779157');
   forgotEmail = '';
   forgotCode = '';
+  forgotDocument = '';
+  forgotPhone = '';
   newResetPassword = '';
   confirmResetPassword = '';
 
@@ -665,13 +783,38 @@ export class LoginPageComponent implements OnInit {
     this.isPassLengthValid() && this.isPassNumberValid() && this.isPassSpecialValid()
   );
 
-  readonly isResetPassLengthValid = computed(() => (this.newResetPassword || '').length >= 8);
-  readonly isResetPassNumberValid = computed(() => /\d/.test(this.newResetPassword || ''));
-  readonly isResetPassSpecialValid = computed(() => /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/.test(this.newResetPassword || ''));
-  readonly isResetPassMatch = computed(() => Boolean(this.newResetPassword && this.newResetPassword === this.confirmResetPassword));
+  readonly isResetPassLengthValid = computed(() => {
+    this.formVersion();
+    return (this.newResetPassword || '').length >= 8;
+  });
+  readonly isResetPassNumberValid = computed(() => {
+    this.formVersion();
+    return /\d/.test(this.newResetPassword || '');
+  });
+  readonly isResetPassSpecialValid = computed(() => {
+    this.formVersion();
+    return /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/.test(this.newResetPassword || '');
+  });
+  readonly isResetPassMatch = computed(() => {
+    this.formVersion();
+    return Boolean(this.newResetPassword && this.newResetPassword === this.confirmResetPassword);
+  });
   readonly isResetPasswordFullyValid = computed(() =>
     this.isResetPassLengthValid() && this.isResetPassNumberValid() && this.isResetPassSpecialValid() && this.isResetPassMatch()
   );
+  readonly isResetFormReady = computed(() => {
+    this.formVersion();
+    if (!this.isResetPasswordFullyValid()) return false;
+    if (this.recoveryChannel() === 'EMAIL') {
+      return (this.forgotCode || '').trim().length === 6;
+    }
+    if (this.recoveryChannel() === 'IDENTITY_VERIFICATION') {
+      const docOk = !this.recoveryRequiresDocument() || (this.forgotDocument || '').trim().length >= 8;
+      const phoneOk = !this.recoveryRequiresPhone() || (this.forgotPhone || '').replace(/\D/g, '').length >= 6;
+      return docOk && phoneOk;
+    }
+    return false;
+  });
 
   readonly isEmailFormatValid = computed(() => {
     this.formVersion();
@@ -873,13 +1016,61 @@ export class LoginPageComponent implements OnInit {
       .pipe(finalize(() => this.isLoading.set(false)))
       .subscribe({
         next: (res) => {
-          this.toast.success('Código enviado', res.message || 'Hemos enviado el código a tu correo.');
+          if (!res.success || res.deliveryChannel === 'NOT_FOUND') {
+            const msg = res.message || 'No encontramos una cuenta registrada con ese correo electrónico.';
+            this.errorMessage.set(msg);
+            this.toast.error('Correo no encontrado', msg);
+            return;
+          }
+
+          const channel: 'EMAIL' | 'IDENTITY_VERIFICATION' | 'SUPPORT_WHATSAPP' =
+            res.deliveryChannel ??
+            (res.emailSent
+              ? 'EMAIL'
+              : res.canVerifyIdentity
+                ? 'IDENTITY_VERIFICATION'
+                : 'SUPPORT_WHATSAPP');
+
+          this.recoveryChannel.set(channel);
+          this.recoveryCanVerifyIdentity.set(Boolean(res.canVerifyIdentity));
+          this.recoveryRequiresDocument.set(res.requiresDocument !== false);
+          this.recoveryRequiresPhone.set(Boolean(res.requiresPhone));
+          this.recoveryMaskedDocument.set(res.maskedDocument || '');
+          this.recoveryMaskedPhone.set(res.maskedPhone || '');
+          this.recoveryNotice.set(res.message || '');
+          this.recoveryWhatsappUrl.set(
+            res.supportWhatsappUrl ||
+              `https://wa.me/51922779157?text=${encodeURIComponent(
+                `Hola Autopartes Asunción, solicito restablecer la contraseña de mi cuenta (${email}).`
+              )}`
+          );
+
+          this.forgotCode = '';
+          this.forgotDocument = '';
+          this.forgotPhone = '';
+          this.newResetPassword = '';
+          this.confirmResetPassword = '';
+          this.onFormChange();
           this.forgotStep.set('reset');
+
+          if (channel === 'EMAIL') {
+            this.toast.success('Código enviado', res.message || 'Hemos enviado el código a tu correo.');
+          } else if (channel === 'IDENTITY_VERIFICATION') {
+            this.toast.info(
+              'Verificación de identidad',
+              'Valida tu DNI/RUC y celular registrados para cambiar tu contraseña al instante.'
+            );
+          } else {
+            this.toast.warning(
+              'Asistencia por WhatsApp',
+              'Solicita el restablecimiento directo de tu contraseña con Administración.'
+            );
+          }
         },
         error: (err) => {
-          const msg = err?.error?.message || 'No se pudo enviar el código de recuperación. Inténtalo más tarde.';
+          const msg = err?.error?.message || 'No se pudo procesar la recuperación. Inténtalo más tarde.';
           this.errorMessage.set(msg);
-          this.toast.error('Error al solicitar código', msg);
+          this.toast.error('Error al recuperar contraseña', msg);
         }
       });
   }
@@ -887,12 +1078,25 @@ export class LoginPageComponent implements OnInit {
   submitResetPasswordConfirm(): void {
     const email = (this.forgotEmail || '').trim().toLowerCase();
     const code = (this.forgotCode || '').trim();
+    const documentNumber = (this.forgotDocument || '').trim();
+    const phone = (this.forgotPhone || '').trim();
     const newPass = this.newResetPassword || '';
     const confirmPass = this.confirmResetPassword || '';
+    const channel = this.recoveryChannel();
 
-    if (!code || code.length !== 6) {
+    if (channel === 'EMAIL' && (!code || code.length !== 6)) {
       this.errorMessage.set('El código debe contener exactamente 6 dígitos.');
       return;
+    }
+    if (channel === 'IDENTITY_VERIFICATION') {
+      if (this.recoveryRequiresDocument() && documentNumber.length < 8) {
+        this.errorMessage.set('Ingresa el número de DNI o RUC registrado en tu cuenta.');
+        return;
+      }
+      if (this.recoveryRequiresPhone() && phone.replace(/\D/g, '').length < 6) {
+        this.errorMessage.set('Ingresa el número de celular registrado en tu cuenta.');
+        return;
+      }
     }
     if (newPass.length < 8) {
       this.errorMessage.set('La nueva contraseña debe tener al menos 8 caracteres.');
@@ -913,7 +1117,11 @@ export class LoginPageComponent implements OnInit {
 
     this.isLoading.set(true);
     this.errorMessage.set('');
-    this.auth.resetPassword(email, code, newPass)
+    this.auth.resetPassword(
+      channel === 'EMAIL'
+        ? { email, code, newPassword: newPass }
+        : { email, documentNumber, phone, newPassword: newPass }
+    )
       .pipe(finalize(() => this.isLoading.set(false)))
       .subscribe({
         next: (res) => {
@@ -922,11 +1130,14 @@ export class LoginPageComponent implements OnInit {
           this.loginEmail = email;
           this.loginPassword = '';
           this.forgotCode = '';
+          this.forgotDocument = '';
+          this.forgotPhone = '';
           this.newResetPassword = '';
           this.confirmResetPassword = '';
+          this.onFormChange();
         },
         error: (err) => {
-          const msg = err?.error?.message || 'Código de recuperación inválido o expirado. Inténtalo de nuevo.';
+          const msg = err?.error?.message || 'No se pudo validar tu identidad o el código expiró. Inténtalo de nuevo.';
           this.errorMessage.set(msg);
           this.toast.error('Error al restablecer', msg);
         }

@@ -366,9 +366,19 @@ public class EmailNotificationService {
     @Async("mailTaskExecutor")
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void notifyPasswordReset(String email, String fullName, String code) {
+        sendPasswordResetSynchronously(email, fullName, code);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public boolean sendPasswordResetSynchronously(String email, String fullName, String code) {
         try {
             if (email == null || email.isBlank()) {
-                return;
+                return false;
+            }
+            EffectiveMailSettings settings = resolveEffectiveSettings();
+            if (!settings.hasCredentials()) {
+                persistLog("RECUPERACION_PASSWORD", email, "Código de Recuperación de Contraseña", "", null, "SIMULATED_NO_SMTP", "Correo automático no configurado.");
+                return false;
             }
             String subject = "Código de Recuperación de Contraseña: " + code + " — Repuestos Asunción";
             String content = """
@@ -399,9 +409,10 @@ public class EmailNotificationService {
                     frontendBaseUrl + "/login"
             );
 
-            dispatchOrSimulate("RECUPERACION_PASSWORD", email, subject, html, null);
+            return dispatchOrSimulateWithSettings(settings, "RECUPERACION_PASSWORD", email, subject, html, null);
         } catch (Exception e) {
             log.warn("Error procesando notificación RECUPERACION_PASSWORD para {}: {}", email, e.getMessage());
+            return false;
         }
     }
 
@@ -872,7 +883,7 @@ public class EmailNotificationService {
         dispatchOrSimulateWithSettings(settings, eventType, recipientEmail, subject, htmlBody, orderNumber);
     }
 
-    private void dispatchOrSimulateWithSettings(
+    private boolean dispatchOrSimulateWithSettings(
             EffectiveMailSettings settings,
             String eventType,
             String recipientEmail,
@@ -883,11 +894,13 @@ public class EmailNotificationService {
         try {
             sendRealMimeMessage(settings, recipientEmail, subject, htmlBody);
             persistLog(eventType, recipientEmail, subject, htmlBody, orderNumber, "SENT", null);
+            return true;
         } catch (Exception e) {
             String friendly = extractFriendlySmtpError(e);
             String status = !settings.hasCredentials() ? "SIMULATED_NO_SMTP" : "FAILED";
             log.warn("Notificación {} para {} no entregada ({}): {}", eventType, recipientEmail, status, friendly);
             persistLog(eventType, recipientEmail, subject, htmlBody, orderNumber, status, truncate(friendly, 480));
+            return false;
         }
     }
 
@@ -963,7 +976,8 @@ public class EmailNotificationService {
             return;
         }
 
-        boolean isCloudDeployment = frontendBaseUrl != null && frontendBaseUrl.startsWith("https://");
+        boolean isCloudDeployment = (frontendBaseUrl != null && frontendBaseUrl.startsWith("https://"))
+                || System.getenv("RENDER") != null;
         if (isCloudDeployment) {
             try {
                 dispatchViaHttpsRelay(settings, recipientEmail, subject, htmlBody);

@@ -534,9 +534,9 @@ import { SoundService } from '../../core/services/sound.service';
                   <span>Emisión de Comprobantes de Pago:</span>
                 </div>
                 <ul class="list-disc list-inside space-y-1 text-gray-600 text-[11px] pt-0.5">
-                  <li><strong class="text-gray-800">Boleta de venta menor a S/ 700:</strong> Emisión rápida sin DNI obligatorio (Clientes Varios).</li>
+                  <li><strong class="text-gray-800">Boleta de venta menor a S/ 700:</strong> Emisión rápida ingresando tus nombres y apellidos completos (DNI opcional).</li>
                   <li><strong class="text-gray-800">Boleta de venta desde S/ 700:</strong> Es obligatorio consignar DNI o Carnet de Extranjería vigente.</li>
-                  <li><strong class="text-gray-800">Factura con RUC (Proforma + WhatsApp):</strong> Requiere RUC de 11 dígitos, razón social y dirección fiscal. Generamos tu Proforma al instante y enviamos tu Factura SUNAT por WhatsApp.</li>
+                  <li><strong class="text-gray-800">Factura con RUC:</strong> Requiere RUC de 11 dígitos, razón social y dirección fiscal. Generamos tu Proforma al instante y enviamos tu Factura SUNAT por WhatsApp.</li>
                 </ul>
               </div>
 

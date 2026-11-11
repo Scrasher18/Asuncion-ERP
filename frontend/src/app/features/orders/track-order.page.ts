@@ -925,9 +925,11 @@ export class TrackOrderPageComponent implements OnInit, OnDestroy {
             this.order.set(null);
             this.liveTelemetry.set(null);
             this.stopPolling();
-            this.errorMsg.set(
-              err?.error?.message || `No encontramos ningún pedido con el código "${code}".`
-            );
+            const notFoundMessage =
+              err?.error?.message ||
+              `Código incorrecto: no encontramos ningún pedido con el código "${code}".`;
+            this.errorMsg.set(notFoundMessage);
+            this.toast.error('Código de seguimiento incorrecto', notFoundMessage);
           }
         },
       });

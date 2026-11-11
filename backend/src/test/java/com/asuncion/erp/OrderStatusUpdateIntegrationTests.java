@@ -271,4 +271,150 @@ class OrderStatusUpdateIntegrationTests {
                 .andExpect(jsonPath("$.billingDocumentNumber").value("20608899114"))
                 .andExpect(jsonPath("$.billingAddress").value("Av. Las Flores 456, San Isidro, Lima"));
     }
+
+    @Test
+    @DisplayName("Online orders reject Clientes Varios, wrong delivery PIN returns 400, and forgot-password falls back to identity verification")
+    void shouldRejectClientesVariosOnlineValidateWrongPinAndResetPasswordByIdentity() throws Exception {
+        String adminJwt = loginAndExtractJwt("admin@asuncion.pe", "Asuncion2026!");
+        String clientJwt = loginAndExtractJwt("cliente@empresa.pe", "Asuncion2026!");
+        String driverJwt = loginAndExtractJwt("motorizado@asuncion.pe", "Asuncion2026!");
+
+        // 1. Online < S/ 700 order cannot use "Clientes Varios"; must require customer's real name
+        String onlineClientesVarios = objectMapper.writeValueAsString(Map.ofEntries(
+                Map.entry("branchId", 1),
+                Map.entry("deliveryType", "PICKUP"),
+                Map.entry("invoiceType", "BOLETA"),
+                Map.entry("billingDocumentNumber", ""),
+                Map.entry("billingBusinessName", "Clientes Varios"),
+                Map.entry("recipientName", "Clientes Varios"),
+                Map.entry("paymentMethod", "YAPE"),
+                Map.entry("items", List.of(Map.of("partId", 1, "quantity", 1)))
+        ));
+        mockMvc.perform(post("/api/v1/orders")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + clientJwt)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(onlineClientesVarios))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("nombres y apellidos")));
+
+        String onlineRealNameNoDni = objectMapper.writeValueAsString(Map.ofEntries(
+                Map.entry("branchId", 1),
+                Map.entry("deliveryType", "PICKUP"),
+                Map.entry("invoiceType", "BOLETA"),
+                Map.entry("billingDocumentNumber", ""),
+                Map.entry("billingBusinessName", "María Torres Quispe"),
+                Map.entry("recipientName", "María Torres Quispe"),
+                Map.entry("paymentMethod", "YAPE"),
+                Map.entry("items", List.of(Map.of("partId", 1, "quantity", 1)))
+        ));
+        mockMvc.perform(post("/api/v1/orders")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + clientJwt)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(onlineRealNameNoDni))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.invoiceType").value("BOLETA"))
+                .andExpect(jsonPath("$.billingBusinessName").value("María Torres Quispe"));
+
+        // 2. Delivery completion rejects incorrect 4-digit security PIN with clear alert message, succeeds with real PIN
+        String deliveryPayload = objectMapper.writeValueAsString(Map.ofEntries(
+                Map.entry("branchId", 1),
+                Map.entry("deliveryType", "DELIVERY"),
+                Map.entry("deliveryAddress", "Av. Sta. Anita 250, Santa Anita, Lima"),
+                Map.entry("deliveryLatitude", -12.0450),
+                Map.entry("deliveryLongitude", -76.9580),
+                Map.entry("invoiceType", "BOLETA"),
+                Map.entry("billingBusinessName", "Carlos Vega León"),
+                Map.entry("recipientName", "Carlos Vega León"),
+                Map.entry("paymentMethod", "TRANSFERENCIA"),
+                Map.entry("items", List.of(Map.of("partId", 1, "quantity", 1)))
+        ));
+        MvcResult delivCreated = mockMvc.perform(post("/api/v1/orders")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + clientJwt)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(deliveryPayload))
+                .andExpect(status().isCreated())
+                .andReturn();
+        JsonNode delivJson = objectMapper.readTree(delivCreated.getResponse().getContentAsString());
+        long delivId = delivJson.get("id").asLong();
+        String expectedPin = delivJson.get("deliverySecurityCode").asText();
+        assertThat(expectedPin).matches("\\d{4}");
+
+        // Wrong PIN ("0000" is never generated in 1000..9999)
+        mockMvc.perform(post("/api/v1/delivery/orders/{id}/complete", delivId)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + driverJwt)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "receiverName", "Carlos Vega León",
+                                "securityCode", "0000"
+                        ))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("Código de seguridad de entrega incorrecto")));
+
+        // Real PIN completes delivery
+        mockMvc.perform(post("/api/v1/delivery/orders/{id}/complete", delivId)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminJwt)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "receiverName", "Carlos Vega León",
+                                "securityCode", expectedPin
+                        ))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("ENTREGADO"));
+
+        // 3. Forgot password: unknown email returns NOT_FOUND; registered email without SMTP falls back to DNI + Phone identity reset
+        mockMvc.perform(post("/api/v1/auth/forgot-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("email", "noexiste.prueba@asuncion.pe"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.deliveryChannel").value("NOT_FOUND"));
+
+        String resetEmail = "reset.prueba." + System.currentTimeMillis() + "@asuncion.pe";
+        mockMvc.perform(post("/api/v1/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "fullName", "Usuario Recuperación",
+                                "email", resetEmail,
+                                "password", "ClaveInicial1!",
+                                "phone", "944112233",
+                                "documentType", "DNI",
+                                "documentNumber", "45889911"
+                        ))))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(post("/api/v1/auth/forgot-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("email", resetEmail))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.deliveryChannel").value("IDENTITY_VERIFICATION"))
+                .andExpect(jsonPath("$.requiresDocument").value(true))
+                .andExpect(jsonPath("$.requiresPhone").value(true));
+
+        // Mismatched DNI must fail
+        mockMvc.perform(post("/api/v1/auth/reset-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "email", resetEmail,
+                                "documentNumber", "00000000",
+                                "phone", "944112233",
+                                "newPassword", "NuevaClave2@"
+                        ))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("DNI/RUC")));
+
+        // Matching DNI + +51-prefixed/spaced phone resets password cleanly
+        mockMvc.perform(post("/api/v1/auth/reset-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "email", resetEmail,
+                                "documentNumber", "45889911",
+                                "phone", "+51 944 112 233",
+                                "newPassword", "NuevaClave2@"
+                        ))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
+
+        // Verify login works with the new password
+        loginAndExtractJwt(resetEmail, "NuevaClave2@");
+    }
 }

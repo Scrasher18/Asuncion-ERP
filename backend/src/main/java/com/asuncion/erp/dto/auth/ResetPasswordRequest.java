@@ -9,12 +9,20 @@ public record ResetPasswordRequest(
         @Email(message = "Formato de correo electrónico inválido")
         String email,
 
-        @NotBlank(message = "El código de recuperación es obligatorio")
-        @Size(min = 6, max = 6, message = "El código debe ser exactamente de 6 dígitos")
+        @Size(max = 12, message = "Código de recuperación inválido")
         String code,
+
+        @Size(max = 25, message = "Documento inválido")
+        String documentNumber,
+
+        @Size(max = 30, message = "Celular inválido")
+        String phone,
 
         @NotBlank(message = "La nueva contraseña es obligatoria")
         @Size(min = 8, message = "La nueva contraseña debe tener al menos 8 caracteres")
         String newPassword
 ) {
+    public ResetPasswordRequest(String email, String code, String newPassword) {
+        this(email, code, null, null, newPassword);
+    }
 }

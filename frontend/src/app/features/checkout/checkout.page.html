@@ -164,7 +164,7 @@
                 "
                 class="min-h-[44px] rounded-xl border py-2.5 px-3 text-xs transition"
               >
-                Factura con RUC (Proforma + WhatsApp)
+                Factura con RUC
               </button>
             </div>
 
@@ -178,18 +178,9 @@
                     @if (requiresBoletaDni()) {
                       <strong>Compra desde S/ {{ boletaDniThreshold }}:</strong> Por norma SUNAT es obligatorio ingresar DNI / C.E. y nombres completos.
                     } @else {
-                      <strong>Compra menor a S/ {{ boletaDniThreshold }}:</strong> DNI opcional. Puedes emitirla a tu nombre o como <strong>Clientes Varios</strong>.
+                      <strong>Compra menor a S/ {{ boletaDniThreshold }}:</strong> El DNI / C.E. es opcional, pero en compras online debes ingresar tus nombres y apellidos completos.
                     }
                   </span>
-                  @if (!requiresBoletaDni()) {
-                    <button
-                      type="button"
-                      (click)="useClientesVariosForBoleta()"
-                      class="rounded-lg border border-blue-300 bg-white px-2.5 py-1 text-[10px] font-bold text-blue-700 hover:bg-blue-50 transition cursor-pointer shrink-0"
-                    >
-                      Usar Clientes Varios
-                    </button>
-                  }
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
@@ -221,7 +212,7 @@
                   <div class="sm:col-span-8">
                     <div class="flex items-center justify-between gap-2 mb-1">
                       <label class="block text-xs font-medium text-gray-700">
-                        {{ requiresBoletaDni() ? 'Nombres y apellidos completos *' : 'Nombre completo (o Clientes Varios)' }}
+                        Nombres y apellidos completos *
                       </label>
                       @if (dniLookup()?.found) {
                         <span class="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
@@ -235,7 +226,7 @@
                     <input
                       type="text"
                       [(ngModel)]="recipientName"
-                      placeholder="Nombres y apellidos o Clientes Varios"
+                      placeholder="Nombres y apellidos completos del titular"
                       [class]="
                         dniLookup()?.found
                           ? 'border-emerald-300 bg-white'

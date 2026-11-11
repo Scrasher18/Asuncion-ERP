@@ -48,6 +48,12 @@ public class AppUser {
     @Column(name = "vehicle_plate", length = 20)
     private String vehiclePlate;
 
+    @Column(name = "reset_code", length = 12)
+    private String resetCode;
+
+    @Column(name = "reset_code_expires_at")
+    private Instant resetCodeExpiresAt;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt = Instant.now();
 
@@ -194,5 +200,21 @@ public class AppUser {
 
     public void setVehiclePlate(String vehiclePlate) {
         this.vehiclePlate = vehiclePlate;
+    }
+
+    public String getResetCode() {
+        return resetCode;
+    }
+
+    public void setResetCode(String resetCode) {
+        this.resetCode = resetCode;
+    }
+
+    public Instant getResetCodeExpiresAt() {
+        return resetCodeExpiresAt;
+    }
+
+    public void setResetCodeExpiresAt(Instant resetCodeExpiresAt) {
+        this.resetCodeExpiresAt = resetCodeExpiresAt;
     }
 }
