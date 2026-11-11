@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, HostListener, computed, inject, signal } from '@angular/core';
-import { Router, RouterLink, RouterLinkActive } from '@angular/router';
+import { NavigationEnd, Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { CartService } from '../../../core/services/cart.service';
 import {
@@ -806,8 +806,8 @@ import {
         }
       </div>
     </nav>
-    <!-- Desktop Floating Quick-Cart Dock (PC & Laptop Ergonomics: NEVER scroll up) -->
-    @if (auth.canAccessCart() && cart.totalItems() > 0) {
+    <!-- Desktop Floating Quick-Cart Dock (only when browsing catalog, never over Checkout/Login/ERP) -->
+    @if (auth.canAccessCart() && cart.totalItems() > 0 && showQuickCartDock()) {
       <div class="hidden lg:flex fixed bottom-6 left-6 z-40 items-center gap-3 rounded-2xl bg-gradient-to-r from-orange-600 via-orange-500 to-amber-500 p-2 pl-4 text-white shadow-xl shadow-orange-600/35 ring-2 ring-white/90">
         <div class="flex items-center gap-2.5">
           <div class="relative flex h-8 w-8 items-center justify-center rounded-xl bg-white text-orange-600 font-bold shadow-xs">
@@ -853,6 +853,29 @@ export class NavbarComponent {
   readonly mobileOpen = signal(false);
   readonly notifOpen = signal(false);
   readonly notifFilter = signal<'ALL' | 'UNREAD' | 'SALES' | 'DELIVERY' | 'STOCK'>('ALL');
+  readonly showQuickCartDock = signal<boolean>(true);
+
+  constructor() {
+    this.showQuickCartDock.set(this.isQuickCartDockVisible(this.router.url));
+    this.router.events.subscribe((evt) => {
+      if (evt instanceof NavigationEnd) {
+        this.showQuickCartDock.set(this.isQuickCartDockVisible(evt.urlAfterRedirects || evt.url));
+      }
+    });
+  }
+
+  private isQuickCartDockVisible(rawUrl: string): boolean {
+    const clean = (rawUrl || '/').split('?')[0].split('#')[0];
+    return !(
+      clean.startsWith('/checkout') ||
+      clean.startsWith('/login') ||
+      clean.startsWith('/admin') ||
+      clean.startsWith('/pos') ||
+      clean.startsWith('/delivery') ||
+      clean.startsWith('/track') ||
+      clean.startsWith('/my-orders')
+    );
+  }
 
   readonly filteredNotifications = computed(() => {
     const list = this.notifService.notifications();

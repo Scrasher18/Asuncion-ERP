@@ -659,14 +659,31 @@ export class CheckoutPageComponent implements OnInit, OnDestroy {
       const cleanDoc = this.customerDni.replace(/[^A-Za-z0-9]/g, '');
       if (cleanDoc.length < 8 || /^0+$/.test(cleanDoc)) {
         return {
-          title: 'DNI / C.E. obligatorio desde S/ 700',
+          title: 'DNI / C.E. obligatorio',
           message:
-            'Por disposición SUNAT, las boletas de S/ 700.00 a más exigen DNI (8 dígitos) o C.E./Pasaporte.',
+            'Por el monto de tu compra, debes ingresar un número de DNI (8 dígitos) o C.E. válido para emitir tu boleta.',
         };
       }
     }
 
     return null;
+  }
+
+  isBoletaDniMissing(): boolean {
+    if (!this.requiresBoletaDni()) return false;
+    const cleanDoc = (this.customerDni || '').replace(/[^A-Za-z0-9]/g, '');
+    return cleanDoc.length < 8 || /^0+$/.test(cleanDoc);
+  }
+
+  missingRequiredHint(): string {
+    const err = this.getBillingAndContactValidationError();
+    if (err) return err.title;
+    if (this.deliveryType() === 'DELIVERY') {
+      if (!this.deliveryAddress.trim()) return 'Ingresa tu dirección de entrega';
+      const cov = this.coverageState();
+      if (cov && !cov.covered) return 'Dirección fuera de la zona de reparto';
+    }
+    return '';
   }
 
   canSubmitOrder(): boolean {
