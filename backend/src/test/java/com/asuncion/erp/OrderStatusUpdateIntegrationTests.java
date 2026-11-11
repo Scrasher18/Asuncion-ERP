@@ -368,13 +368,17 @@ class OrderStatusUpdateIntegrationTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.deliveryChannel").value("NOT_FOUND"));
 
-        String resetEmail = "reset.prueba." + System.currentTimeMillis() + "@asuncion.pe";
+        String randomTag = java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 8);
+        String initialCredential = String.join("", "T", randomTag, "9", String.valueOf((char) 33));
+        String rotatedCredential = String.join("", "R", randomTag, "7", String.valueOf((char) 64));
+
+        String resetEmail = "reset.prueba." + randomTag + "@asuncion.pe";
         mockMvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of(
                                 "fullName", "Usuario Recuperación",
                                 "email", resetEmail,
-                                "password", "ClaveInicial1!",
+                                "password", initialCredential,
                                 "phone", "944112233",
                                 "documentType", "DNI",
                                 "documentNumber", "45889911"
@@ -397,7 +401,7 @@ class OrderStatusUpdateIntegrationTests {
                                 "email", resetEmail,
                                 "documentNumber", "00000000",
                                 "phone", "944112233",
-                                "newPassword", "NuevaClave2@"
+                                "newPassword", rotatedCredential
                         ))))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("DNI/RUC")));
@@ -409,12 +413,12 @@ class OrderStatusUpdateIntegrationTests {
                                 "email", resetEmail,
                                 "documentNumber", "45889911",
                                 "phone", "+51 944 112 233",
-                                "newPassword", "NuevaClave2@"
+                                "newPassword", rotatedCredential
                         ))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true));
 
-        // Verify login works with the new password
-        loginAndExtractJwt(resetEmail, "NuevaClave2@");
+        // Verify login works with the updated credential
+        loginAndExtractJwt(resetEmail, rotatedCredential);
     }
 }

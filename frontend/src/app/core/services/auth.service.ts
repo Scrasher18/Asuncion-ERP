@@ -18,14 +18,13 @@ const USER_KEY = 'asuncion_user_profile';
 export interface ForgotPasswordResponse {
   success: boolean;
   message: string;
-  deliveryChannel?: 'EMAIL' | 'IDENTITY_VERIFICATION' | 'SUPPORT_WHATSAPP' | 'NOT_FOUND';
+  deliveryChannel?: 'EMAIL' | 'IDENTITY_VERIFICATION' | 'CONTACT_ADMIN' | 'NOT_FOUND';
   emailSent?: boolean;
   canVerifyIdentity?: boolean;
   requiresDocument?: boolean;
   requiresPhone?: boolean;
   maskedDocument?: string;
   maskedPhone?: string;
-  supportWhatsappUrl?: string;
 }
 
 export interface ResetPasswordPayload {

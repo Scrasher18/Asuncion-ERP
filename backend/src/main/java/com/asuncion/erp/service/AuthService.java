@@ -214,12 +214,6 @@ public class AuthService {
         boolean hasPhone = registeredPhone.length() >= 6;
         boolean canVerifyIdentity = hasDocument || hasPhone;
 
-        String supportWaText = java.net.URLEncoder.encode(
-                "Hola Autopartes Asunción, solicito restablecer la contraseña de mi cuenta (" + user.getEmail() + ").",
-                java.nio.charset.StandardCharsets.UTF_8
-        );
-        String supportWhatsappUrl = "https://wa.me/51922779157?text=" + supportWaText;
-
         String deliveryChannel;
         String message;
         if (emailSent) {
@@ -229,8 +223,8 @@ public class AuthService {
             deliveryChannel = "IDENTITY_VERIFICATION";
             message = "El envío de correos automáticos no está activo en este momento. Verifica tu identidad con los datos registrados en tu cuenta para cambiar tu contraseña al instante.";
         } else {
-            deliveryChannel = "SUPPORT_WHATSAPP";
-            message = "El envío de correos no está disponible y esta cuenta no tiene DNI/RUC ni celular registrados. Solicita tu restablecimiento directo por WhatsApp con Administración.";
+            deliveryChannel = "CONTACT_ADMIN";
+            message = "El envío de correos no está disponible y esta cuenta no tiene DNI/RUC ni celular registrados. Solicita el restablecimiento directamente con un administrador del sistema.";
         }
 
         Map<String, Object> response = new java.util.LinkedHashMap<>();
@@ -242,7 +236,6 @@ public class AuthService {
         response.put("requiresPhone", hasPhone);
         response.put("maskedDocument", maskTail(registeredDoc, 3));
         response.put("maskedPhone", maskTail(registeredPhone, 3));
-        response.put("supportWhatsappUrl", supportWhatsappUrl);
         response.put("message", message);
         return response;
     }

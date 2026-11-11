@@ -223,7 +223,7 @@ import { RecaptchaV3Service } from '../../core/services/recaptcha-v3.service';
                     {{ isLoading() ? 'Verificando cuenta...' : 'Continuar' }}
                   </button>
                 </form>
-              } @else if (recoveryChannel() === 'SUPPORT_WHATSAPP') {
+              } @else if (recoveryChannel() === 'CONTACT_ADMIN') {
                 <div class="space-y-4">
                   <div class="rounded-xl border border-amber-200 bg-amber-50 p-4 space-y-2">
                     <div class="text-xs font-bold text-amber-900">Validación asistida requerida</div>
@@ -232,19 +232,10 @@ import { RecaptchaV3Service } from '../../core/services/recaptcha-v3.service';
                     </p>
                   </div>
 
-                  <a
-                    [href]="recoveryWhatsappUrl()"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="w-full min-h-[44px] rounded-xl bg-emerald-600 py-2.5 px-4 text-sm font-semibold text-white shadow-xs hover:bg-emerald-700 transition inline-flex items-center justify-center gap-2"
-                  >
-                    <span>📲 Solicitar restablecimiento por WhatsApp</span>
-                  </a>
-
                   <button
                     type="button"
                     (click)="forgotStep.set('request'); errorMessage.set('')"
-                    class="w-full text-xs text-orange-600 hover:text-orange-700 font-medium py-1"
+                    class="w-full min-h-[40px] rounded-xl border border-orange-200 bg-orange-50 text-xs text-orange-700 hover:bg-orange-100 font-semibold py-2 transition cursor-pointer"
                   >
                     Probar con otro correo electrónico
                   </button>
@@ -433,7 +424,7 @@ import { RecaptchaV3Service } from '../../core/services/recaptcha-v3.service';
                     {{ isLoading() ? 'Guardando contraseña...' : 'Guardar y cambiar contraseña' }}
                   </button>
 
-                  <div class="flex flex-wrap items-center justify-between gap-2 pt-1 text-xs">
+                  <div class="text-center pt-1 text-xs">
                     <button
                       type="button"
                       (click)="forgotStep.set('request'); errorMessage.set('')"
@@ -441,14 +432,6 @@ import { RecaptchaV3Service } from '../../core/services/recaptcha-v3.service';
                     >
                       Cambiar correo / volver atrás
                     </button>
-                    <a
-                      [href]="recoveryWhatsappUrl()"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      class="text-emerald-700 hover:text-emerald-800 font-semibold"
-                    >
-                      📲 Ayuda por WhatsApp
-                    </a>
                   </div>
                 </form>
               }
@@ -732,14 +715,13 @@ export class LoginPageComponent implements OnInit {
   readonly forgotStep = signal<'request' | 'reset'>('request');
   readonly showResetPassword = signal(false);
   readonly resetSuccessMessage = signal('');
-  readonly recoveryChannel = signal<'EMAIL' | 'IDENTITY_VERIFICATION' | 'SUPPORT_WHATSAPP'>('EMAIL');
+  readonly recoveryChannel = signal<'EMAIL' | 'IDENTITY_VERIFICATION' | 'CONTACT_ADMIN'>('EMAIL');
   readonly recoveryCanVerifyIdentity = signal(false);
   readonly recoveryRequiresDocument = signal(true);
   readonly recoveryRequiresPhone = signal(true);
   readonly recoveryMaskedDocument = signal('');
   readonly recoveryMaskedPhone = signal('');
   readonly recoveryNotice = signal('');
-  readonly recoveryWhatsappUrl = signal('https://wa.me/51922779157');
   forgotEmail = '';
   forgotCode = '';
   forgotDocument = '';
@@ -1023,13 +1005,13 @@ export class LoginPageComponent implements OnInit {
             return;
           }
 
-          const channel: 'EMAIL' | 'IDENTITY_VERIFICATION' | 'SUPPORT_WHATSAPP' =
+          const channel: 'EMAIL' | 'IDENTITY_VERIFICATION' | 'CONTACT_ADMIN' =
             res.deliveryChannel ??
             (res.emailSent
               ? 'EMAIL'
               : res.canVerifyIdentity
                 ? 'IDENTITY_VERIFICATION'
-                : 'SUPPORT_WHATSAPP');
+                : 'CONTACT_ADMIN');
 
           this.recoveryChannel.set(channel);
           this.recoveryCanVerifyIdentity.set(Boolean(res.canVerifyIdentity));
@@ -1038,12 +1020,6 @@ export class LoginPageComponent implements OnInit {
           this.recoveryMaskedDocument.set(res.maskedDocument || '');
           this.recoveryMaskedPhone.set(res.maskedPhone || '');
           this.recoveryNotice.set(res.message || '');
-          this.recoveryWhatsappUrl.set(
-            res.supportWhatsappUrl ||
-              `https://wa.me/51922779157?text=${encodeURIComponent(
-                `Hola Autopartes Asunción, solicito restablecer la contraseña de mi cuenta (${email}).`
-              )}`
-          );
 
           this.forgotCode = '';
           this.forgotDocument = '';
@@ -1062,8 +1038,8 @@ export class LoginPageComponent implements OnInit {
             );
           } else {
             this.toast.warning(
-              'Asistencia por WhatsApp',
-              'Solicita el restablecimiento directo de tu contraseña con Administración.'
+              'Validación administrativa requerida',
+              'Solicita el restablecimiento con un administrador del sistema.'
             );
           }
         },
