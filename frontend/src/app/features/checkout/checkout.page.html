@@ -882,11 +882,13 @@
               <span>Envío</span>
               <span class="font-semibold text-gray-900">
                 @if (deliveryType() === 'PICKUP') {
-                  Gratis
+                  <span class="text-green-600 font-bold">Gratis (Recojo en tienda)</span>
+                } @else if (cart.subtotal() >= 200) {
+                  <span class="text-green-600 font-bold">¡GRATIS! (Compras ≥ S/ 200)</span>
                 } @else if (coverageState()?.covered) {
                   S/ {{ shippingFee() | number: '1.2-2' }}
                 } @else {
-                  Fuera de zona
+                  <span class="text-red-500 font-semibold">Fuera de zona</span>
                 }
               </span>
             </div>

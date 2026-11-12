@@ -255,6 +255,10 @@ public class OrderService {
 
         // Catalog and POS retail prices already include 18% IGV per SUNAT Peru rules.
         BigDecimal grossItemsTotal = subtotal.setScale(2, RoundingMode.HALF_UP);
+        // Promoción de reducción de costos: Envío GRATUITO para compras en repuestos >= S/ 200.00
+        if ("DELIVERY".equalsIgnoreCase(req.deliveryType()) && grossItemsTotal.compareTo(BigDecimal.valueOf(200.00)) >= 0) {
+            deliveryFee = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+        }
         BigDecimal baseSubtotal = grossItemsTotal.divide(ONE_PLUS_IGV, 2, RoundingMode.HALF_UP);
         BigDecimal taxAmount = grossItemsTotal.subtract(baseSubtotal).setScale(2, RoundingMode.HALF_UP);
         BigDecimal totalAmount = grossItemsTotal.add(deliveryFee).setScale(2, RoundingMode.HALF_UP);

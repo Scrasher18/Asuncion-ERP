@@ -212,8 +212,13 @@ public class GeospatialCoverageService {
     }
 
     private BigDecimal calculateDeliveryFee(BigDecimal baseFee, BigDecimal perKmFee, double distanceMeters) {
-        BigDecimal safeBase = baseFee != null ? baseFee : BigDecimal.ZERO;
-        BigDecimal safePerKm = perKmFee != null ? perKmFee : BigDecimal.ZERO;
+        // Tarifa reducida y accesible para despacho local en Lima Este (Santa Anita, Ate, El Agustino, La Molina)
+        BigDecimal safeBase = (baseFee != null && baseFee.compareTo(BigDecimal.valueOf(5.00)) <= 0)
+                ? baseFee
+                : BigDecimal.valueOf(3.50);
+        BigDecimal safePerKm = (perKmFee != null && perKmFee.compareTo(BigDecimal.valueOf(1.00)) <= 0)
+                ? perKmFee
+                : BigDecimal.valueOf(0.80);
         BigDecimal km = BigDecimal.valueOf(distanceMeters / 1000.0);
         return safeBase.add(safePerKm.multiply(km)).setScale(2, RoundingMode.HALF_UP);
     }

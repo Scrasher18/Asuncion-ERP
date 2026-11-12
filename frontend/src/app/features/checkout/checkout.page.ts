@@ -260,6 +260,8 @@ export class CheckoutPageComponent implements OnInit, OnDestroy {
 
   readonly shippingFee = computed<number>(() => {
     if (this.deliveryType() === 'PICKUP') return 0;
+    // Reducción de costo: Envío gratis en repuestos por compras >= S/ 200.00
+    if (this.cart.subtotal() >= 200) return 0;
     const cov = this.coverageState();
     if (cov && cov.covered) {
       return cov.estimatedDeliveryFee ?? 0;
