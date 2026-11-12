@@ -1741,6 +1741,21 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                         <span class="block mt-0.5 text-[10px] text-gray-500">
                           {{ formatPaymentMethodLabel(ord.paymentMethod) }}
                         </span>
+                        @if (getCashPaymentInfo(ord); as cashInfo) {
+                          @if (cashInfo.type === 'EFECTIVO' && !cashInfo.exact && cashInfo.change > 0) {
+                            <span class="inline-block mt-1 font-mono text-[10px] font-bold text-amber-900 bg-amber-100 border border-amber-300 rounded px-1.5 py-0.5">
+                              Paga S/ {{ cashInfo.paid | number: '1.2-2' }} • Vuelto: S/ {{ cashInfo.change | number: '1.2-2' }}
+                            </span>
+                          } @else if (cashInfo.type === 'EFECTIVO' && cashInfo.exact) {
+                            <span class="inline-block mt-1 font-mono text-[10px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-300 rounded px-1.5 py-0.5">
+                              Exacto (Sin vuelto)
+                            </span>
+                          } @else if (cashInfo.type === 'POS') {
+                            <span class="inline-block mt-1 font-mono text-[10px] font-bold text-blue-800 bg-blue-50 border border-blue-300 rounded px-1.5 py-0.5">
+                              Llevar POS móvil
+                            </span>
+                          }
+                        }
                       </td>
                       <td class="px-4 py-3.5 whitespace-nowrap">
                         @if (ord.deliveryType === 'DELIVERY') {
@@ -4916,6 +4931,41 @@ interface CompatibilityDraftRow extends PartCompatibilityInput {
                 }
               </div>
 
+              <!-- Cash Payment Details for Dispatcher -->
+              @if (getCashPaymentInfo(orderForDispatch); as cashInfo) {
+                @if (cashInfo.type === 'EFECTIVO') {
+                  <div class="rounded-xl border-2 border-amber-300 bg-amber-50/80 p-3 text-xs text-amber-950 space-y-1">
+                    <div class="flex items-center justify-between font-bold">
+                      <span class="flex items-center gap-1.5">
+                        <span class="text-sm">💵</span> Cobro contra entrega en efectivo:
+                      </span>
+                      <span class="font-mono text-amber-900 font-extrabold">Total: S/ {{ (orderForDispatch.totalAmount ?? orderForDispatch.total ?? orderForDispatch.subtotal) | number: '1.2-2' }}</span>
+                    </div>
+                    @if (!cashInfo.exact && cashInfo.change > 0) {
+                      <div class="flex items-center justify-between pt-1 text-[11px] border-t border-amber-200">
+                        <span>Cliente pagará con: <strong class="font-bold">S/ {{ cashInfo.paid | number: '1.2-2' }}</strong></span>
+                        <span class="rounded bg-emerald-100 border border-emerald-400 px-2 py-0.5 font-bold text-emerald-800">
+                          ⚠️ Preparar vuelto: S/ {{ cashInfo.change | number: '1.2-2' }}
+                        </span>
+                      </div>
+                    } @else {
+                      <p class="text-[11px] text-emerald-800 font-bold pt-0.5">
+                        👌 Cliente pagará monto exacto (no requiere vuelto).
+                      </p>
+                    }
+                  </div>
+                } @else if (cashInfo.type === 'POS') {
+                  <div class="rounded-xl border border-blue-300 bg-blue-50 p-2.5 text-xs text-blue-900 flex items-center justify-between font-medium">
+                    <span class="flex items-center gap-1.5 font-bold">
+                      <span>💳</span> Cobro con tarjeta:
+                    </span>
+                    <span class="text-[11px] font-bold text-blue-800">
+                      Entregar terminal POS móvil al motorizado
+                    </span>
+                  </div>
+                }
+              }
+
               <!-- Driver Selection -->
               <div>
                 <label class="block font-bold text-gray-900 mb-2">
@@ -6285,6 +6335,48 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
     if (ord.status === 'ENTREGADO') return true;
     const pm = (ord.paymentMethod || '').toUpperCase();
     return pm.includes('TARJETA') || pm.includes('CULQI') || pm.includes('CARD') || pm === 'PAGO_ONLINE';
+  }
+
+  getCashPaymentInfo(ord: any): { type: 'EFECTIVO' | 'POS'; paid: number; change: number; exact: boolean } | null {
+    if (!ord) return null;
+    const pm = (ord.paymentMethod || '').toUpperCase();
+    const notes = (ord.notes || '').trim();
+    const isContra = pm === 'CONTRA_ENTREGA' || notes.includes('COBRO') || notes.includes('PAGO CONTRAENTREGA');
+    if (!isContra) return null;
+
+    const total = Number((ord.totalAmount ?? ord.total ?? ord.subtotal ?? 0).toFixed(2));
+
+    if (notes.includes('POS MÓVIL') || (notes.includes('POS') && !notes.includes('EFECTIVO'))) {
+      return { type: 'POS', paid: total, change: 0, exact: true };
+    }
+
+    const changeMatch = notes.match(/(?:Paga(?: con)?\s*S\/?\s*([\d,.]+)).*?(?:vuelto(?: de)?\s*S\/?\s*([\d,.]+))/i);
+    if (changeMatch) {
+      const paid = parseFloat(changeMatch[1].replace(/,/g, ''));
+      const change = parseFloat(changeMatch[2].replace(/,/g, ''));
+      return {
+        type: 'EFECTIVO',
+        paid: isNaN(paid) ? total : paid,
+        change: isNaN(change) ? 0 : change,
+        exact: change <= 0
+      };
+    }
+
+    const exactMatch = notes.match(/monto exacto\s*S\/?\s*([\d,.]+)/i);
+    if (exactMatch) {
+      const entered = parseFloat(exactMatch[1].replace(/,/g, ''));
+      if (!isNaN(entered) && entered > total + 0.05) {
+        return {
+          type: 'EFECTIVO',
+          paid: entered,
+          change: Number((entered - total).toFixed(2)),
+          exact: false
+        };
+      }
+      return { type: 'EFECTIVO', paid: total, change: 0, exact: true };
+    }
+
+    return { type: 'EFECTIVO', paid: total, change: 0, exact: true };
   }
 
   formatPaymentMethodLabel(method?: string): string {

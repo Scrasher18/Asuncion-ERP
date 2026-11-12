@@ -215,11 +215,6 @@ import { LiveDriverMapComponent } from '../../shared/components/live-driver-map/
                   @if (ord.deliveryReference) {
                     <p class="text-xs text-gray-600">Referencia: {{ ord.deliveryReference }}</p>
                   }
-                  @if (ord.deliveryLatitude && ord.deliveryLongitude) {
-                    <p class="font-mono text-[10px] text-gray-400">
-                      Ubicación: {{ ord.deliveryLatitude }}, {{ ord.deliveryLongitude }}
-                    </p>
-                  }
                 </div>
 
                 <!-- Package Summary -->
@@ -234,14 +229,56 @@ import { LiveDriverMapComponent } from '../../shared/components/live-driver-map/
                 </div>
 
                 <!-- Cash Payment / Collection Instruction Strip for Driver -->
-                @if (ord.notes && ord.notes.includes('[PAGO')) {
-                  <div class="rounded-xl border-2 border-amber-300 bg-amber-50 p-3 text-xs text-amber-950 font-bold flex items-start gap-2.5 shadow-2xs">
-                    <span class="text-base shrink-0">💵</span>
-                    <div class="space-y-0.5">
-                      <span class="block text-[10px] font-black uppercase tracking-wider text-amber-800">Instrucción de Cobro Presencial</span>
-                      <p class="text-xs font-extrabold text-amber-950">{{ ord.notes }}</p>
+                @if (getCashPaymentInfo(ord); as cashInfo) {
+                  @if (cashInfo.type === 'EFECTIVO') {
+                    <div class="rounded-xl border-2 border-amber-400 bg-gradient-to-r from-amber-50 to-orange-50 p-3 shadow-2xs space-y-1.5">
+                      <div class="flex items-center justify-between">
+                        <span class="inline-flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-amber-950">
+                          <span class="text-sm">💵</span> Cobro en Efectivo al entregar
+                        </span>
+                        <span class="text-[11px] font-bold px-2 py-0.5 rounded-md bg-amber-200/80 text-amber-950">
+                          Total: S/ {{ (ord.totalAmount ?? ord.total ?? ord.subtotal) | number: '1.2-2' }}
+                        </span>
+                      </div>
+
+                      @if (!cashInfo.exact && cashInfo.change > 0) {
+                        <div class="grid grid-cols-2 gap-2 pt-1">
+                          <div class="rounded-lg bg-white border border-amber-200 p-2 text-center">
+                            <span class="block text-[10px] font-semibold uppercase text-gray-500">Cliente paga con</span>
+                            <strong class="font-mono text-sm font-extrabold text-gray-900">
+                              S/ {{ cashInfo.paid | number: '1.2-2' }}
+                            </strong>
+                          </div>
+                          <div class="rounded-lg bg-emerald-50 border-2 border-emerald-400 p-2 text-center">
+                            <span class="block text-[10px] font-bold uppercase text-emerald-800 animate-pulse">⚠️ Llevar Vuelto</span>
+                            <strong class="font-mono text-sm font-black text-emerald-700">
+                              S/ {{ cashInfo.change | number: '1.2-2' }}
+                            </strong>
+                          </div>
+                        </div>
+                      } @else {
+                        <div class="rounded-lg bg-emerald-50 border border-emerald-300 p-2 flex items-center justify-between text-xs text-emerald-950 font-bold">
+                          <span class="flex items-center gap-1.5">
+                            <span>👌</span> Cliente paga monto exacto
+                          </span>
+                          <span class="font-mono text-emerald-800 text-[11px]">Sin vuelto</span>
+                        </div>
+                      }
                     </div>
-                  </div>
+                  } @else if (cashInfo.type === 'POS') {
+                    <div class="rounded-xl border-2 border-blue-300 bg-blue-50/70 p-3 shadow-2xs flex items-center justify-between text-xs text-blue-950">
+                      <div class="flex items-center gap-2">
+                        <span class="text-base">💳</span>
+                        <div>
+                          <strong class="block font-bold">Cobro con POS Móvil</strong>
+                          <span class="text-[11px] text-blue-800">Llevar terminal para cobrar con tarjeta</span>
+                        </div>
+                      </div>
+                      <strong class="font-mono text-sm font-black text-blue-900">
+                        S/ {{ (ord.totalAmount ?? ord.total ?? ord.subtotal) | number: '1.2-2' }}
+                      </strong>
+                    </div>
+                  }
                 }
 
                 <!-- Driver Real-Time Navigation Map -->
@@ -453,22 +490,25 @@ import { LiveDriverMapComponent } from '../../shared/components/live-driver-map/
                 </div>
               </div>
 
-              <!-- Location Coordinates -->
-              <div class="rounded-xl border border-gray-200 bg-gray-50 p-3 flex items-center justify-between gap-2">
-                <div>
-                  <span class="block text-[11px] font-medium text-gray-500">
-                    Ubicación de entrega
-                  </span>
-                  <span class="font-mono text-xs font-medium text-gray-800">
-                    {{ capturedLat() ?? '—' }}, {{ capturedLng() ?? '—' }}
-                  </span>
+              <!-- Location Status -->
+              <div class="rounded-xl border border-emerald-200 bg-emerald-50/70 p-3 flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2 min-w-0">
+                  <div class="h-2 w-2 rounded-full bg-emerald-500 animate-pulse shrink-0"></div>
+                  <div>
+                    <span class="block text-[11px] font-bold text-emerald-950">
+                      Ubicación de entrega
+                    </span>
+                    <span class="text-[11px] text-emerald-700 font-medium">
+                      GPS verificado para constancia de entrega
+                    </span>
+                  </div>
                 </div>
                 <button
                   type="button"
                   (click)="captureDeviceGps(target)"
-                  class="inline-flex min-h-[36px] items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:border-orange-300 hover:text-orange-700 transition"
+                  class="inline-flex min-h-[36px] items-center gap-1.5 rounded-lg border border-emerald-300 bg-white px-3 py-1.5 text-xs font-semibold text-emerald-800 hover:bg-emerald-100 transition cursor-pointer shrink-0"
                 >
-                  <svg class="h-3.5 w-3.5 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.85">
+                  <svg class="h-3.5 w-3.5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
                     <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
                   </svg>
@@ -1350,6 +1390,48 @@ export class DeliveryPageComponent implements OnInit, OnDestroy {
       this.evidencePreviewUrl.set('');
     }
     this.evidenceFile = null;
+  }
+
+  getCashPaymentInfo(ord: any): { type: 'EFECTIVO' | 'POS'; paid: number; change: number; exact: boolean } | null {
+    if (!ord) return null;
+    const pm = (ord.paymentMethod || '').toUpperCase();
+    const notes = (ord.notes || '').trim();
+    const isContra = pm === 'CONTRA_ENTREGA' || notes.includes('COBRO') || notes.includes('PAGO CONTRAENTREGA');
+    if (!isContra) return null;
+
+    const total = Number((ord.totalAmount ?? ord.total ?? ord.subtotal ?? 0).toFixed(2));
+
+    if (notes.includes('POS MÓVIL') || (notes.includes('POS') && !notes.includes('EFECTIVO'))) {
+      return { type: 'POS', paid: total, change: 0, exact: true };
+    }
+
+    const changeMatch = notes.match(/(?:Paga(?: con)?\s*S\/?\s*([\d,.]+)).*?(?:vuelto(?: de)?\s*S\/?\s*([\d,.]+))/i);
+    if (changeMatch) {
+      const paid = parseFloat(changeMatch[1].replace(/,/g, ''));
+      const change = parseFloat(changeMatch[2].replace(/,/g, ''));
+      return {
+        type: 'EFECTIVO',
+        paid: isNaN(paid) ? total : paid,
+        change: isNaN(change) ? 0 : change,
+        exact: change <= 0
+      };
+    }
+
+    const exactMatch = notes.match(/monto exacto\s*S\/?\s*([\d,.]+)/i);
+    if (exactMatch) {
+      const entered = parseFloat(exactMatch[1].replace(/,/g, ''));
+      if (!isNaN(entered) && entered > total + 0.05) {
+        return {
+          type: 'EFECTIVO',
+          paid: entered,
+          change: Number((entered - total).toFixed(2)),
+          exact: false
+        };
+      }
+      return { type: 'EFECTIVO', paid: total, change: 0, exact: true };
+    }
+
+    return { type: 'EFECTIVO', paid: total, change: 0, exact: true };
   }
 
   ngOnDestroy(): void {

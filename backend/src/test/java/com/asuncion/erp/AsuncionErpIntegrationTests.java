@@ -221,6 +221,10 @@ class AsuncionErpIntegrationTests {
                 generateSamplePngBytes(1400, 900)
         );
 
+        String expectedPin = createdOrder.hasNonNull("deliverySecurityCode")
+                ? createdOrder.get("deliverySecurityCode").asText()
+                : String.format(java.util.Locale.US, "%04d", Math.abs(orderId * 37L + 1000L) % 9000L + 1000L);
+
         mockMvc.perform(multipart("/api/v1/delivery/orders/{id}/complete", orderId)
                         .file(evidencePhoto)
                         .param("receiverName", "Ing. Martín Torres")
@@ -228,6 +232,7 @@ class AsuncionErpIntegrationTests {
                         .param("deliveryNotes", "Entregado en almacén de flota con sello")
                         .param("capturedLatitude", "-12.0450")
                         .param("capturedLongitude", "-76.9580")
+                        .param("securityCode", expectedPin)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + driverJwt))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("ENTREGADO"))

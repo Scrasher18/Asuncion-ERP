@@ -123,15 +123,7 @@ export class CheckoutPageComponent implements OnInit, OnDestroy {
   formattedCashAmountToPay = '';
 
   quickCashOptions(): number[] {
-    const total = this.grandTotal();
-    const denominations = [50, 100, 200, 300, 500, 1000, 2000];
-    const opts: number[] = [];
-    for (const d of denominations) {
-      if (d > total && opts.length < 3) {
-        opts.push(d);
-      }
-    }
-    return opts;
+    return [];
   }
 
   readonly scheduleInfo = computed(() => {
@@ -192,11 +184,12 @@ export class CheckoutPageComponent implements OnInit, OnDestroy {
   });
 
   setExactCashAmount(val: number): void {
-    this.cashAmountToPay = val;
+    const rounded = Number(val.toFixed(2));
+    this.cashAmountToPay = rounded;
     this.formattedCashAmountToPay = new Intl.NumberFormat('en-US', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
-    }).format(val);
+    }).format(rounded);
   }
 
   onCashAmountInput(event: Event): void {
@@ -229,16 +222,16 @@ export class CheckoutPageComponent implements OnInit, OnDestroy {
     } else {
       const cleanNumber = `${intPart || '0'}.${decPart !== null ? decPart : '0'}`;
       const parsed = parseFloat(cleanNumber);
-      this.cashAmountToPay = isNaN(parsed) ? null : parsed;
+      this.cashAmountToPay = isNaN(parsed) ? null : Number(parsed.toFixed(2));
     }
   }
   notes = '';
 
-  readonly cashChangeAmount = computed<number>(() => {
-    if (this.paymentMethod !== 'CONTRA_ENTREGA' || this.cashPaymentSubtype !== 'EFECTIVO') return 0;
+  cashChangeAmount(): number {
+    if (this.paymentMethod !== 'CONTRA_ENTREGA' || this.cashPaymentSubtype !== 'EFECTIVO' || this.deliveryType() !== 'DELIVERY') return 0;
     if (!this.cashAmountToPay || this.cashAmountToPay <= this.grandTotal()) return 0;
     return Number((this.cashAmountToPay - this.grandTotal()).toFixed(2));
-  });
+  }
 
   // Card Payment Form & Dynamic Bank Detection
   cardForm = {
@@ -550,6 +543,9 @@ export class CheckoutPageComponent implements OnInit, OnDestroy {
   setDeliveryType(type: DeliveryType): void {
     this.deliveryType.set(type);
     this.geospatialRejectionAlert.set('');
+    if (type === 'PICKUP' && this.paymentMethod === 'CONTRA_ENTREGA') {
+      this.paymentMethod = 'YAPE';
+    }
   }
 
   onBranchSelectChange(): void {
@@ -697,7 +693,7 @@ export class CheckoutPageComponent implements OnInit, OnDestroy {
       }
     }
 
-    if (this.paymentMethod === 'CONTRA_ENTREGA' && this.cashPaymentSubtype === 'EFECTIVO') {
+    if (this.paymentMethod === 'CONTRA_ENTREGA' && this.deliveryType() === 'DELIVERY' && this.cashPaymentSubtype === 'EFECTIVO') {
       if (this.cashAmountToPay !== null && this.cashAmountToPay > 0 && this.cashAmountToPay < this.grandTotal()) {
         return false;
       }
@@ -839,19 +835,23 @@ export class CheckoutPageComponent implements OnInit, OnDestroy {
       const pickupTag = `[RECOJO EN TIENDA: Plazo 48h - Horario Lun-Sáb 08:00 a 20:00]`;
       finalNotes = `${pickupTag} ${finalNotes}`.trim();
     }
-    if (this.paymentMethod === 'CONTRA_ENTREGA') {
+    if (this.paymentMethod === 'CONTRA_ENTREGA' && this.deliveryType() === 'DELIVERY') {
       if (this.cashPaymentSubtype === 'EFECTIVO') {
-        if (this.cashAmountToPay && this.cashAmountToPay > 0) {
-          const change = this.cashChangeAmount();
-          const tag = change > 0
-            ? `[PAGO CONTRAENTREGA EN EFECTIVO: Cliente paga con S/ ${this.cashAmountToPay.toFixed(2)} - Llevar vuelto de S/ ${change.toFixed(2)}]`
-            : `[PAGO CONTRAENTREGA EN EFECTIVO: Cliente paga monto exacto S/ ${this.cashAmountToPay.toFixed(2)}]`;
-          finalNotes = `${tag} ${finalNotes}`.trim();
+        const total = this.grandTotal();
+        const paidWith = this.cashAmountToPay && this.cashAmountToPay > 0
+          ? Number(this.cashAmountToPay.toFixed(2))
+          : total;
+        const change = paidWith > total ? Number((paidWith - total).toFixed(2)) : 0;
+
+        let cashTag: string;
+        if (change > 0) {
+          cashTag = `[COBRO EFECTIVO: Paga S/ ${paidWith.toFixed(2)} | VUELTO S/ ${change.toFixed(2)}]`;
         } else {
-          finalNotes = `[PAGO CONTRAENTREGA EN EFECTIVO: Monto exacto / Llevar cambio estándar] ${finalNotes}`.trim();
+          cashTag = `[COBRO EFECTIVO: Monto exacto S/ ${total.toFixed(2)} (Sin vuelto)]`;
         }
+        finalNotes = `${cashTag} ${finalNotes}`.trim();
       } else {
-        finalNotes = `[PAGO CONTRAENTREGA CON TARJETA: Llevar terminal POS móvil] ${finalNotes}`.trim();
+        finalNotes = `[COBRO POS MÓVIL: Llevar terminal para cobrar S/ ${this.grandTotal().toFixed(2)}] ${finalNotes}`.trim();
       }
     }
     return finalNotes;
@@ -915,7 +915,7 @@ export class CheckoutPageComponent implements OnInit, OnDestroy {
       return;
     }
 
-    if (this.paymentMethod === 'CONTRA_ENTREGA' && this.cashPaymentSubtype === 'EFECTIVO') {
+    if (this.paymentMethod === 'CONTRA_ENTREGA' && this.deliveryType() === 'DELIVERY' && this.cashPaymentSubtype === 'EFECTIVO') {
       if (this.cashAmountToPay !== null && this.cashAmountToPay > 0 && this.cashAmountToPay < this.grandTotal()) {
         this.toast.error(
           'Monto insuficiente',
