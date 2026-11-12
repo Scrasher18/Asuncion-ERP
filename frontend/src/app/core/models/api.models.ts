@@ -112,6 +112,8 @@ export interface Part {
   primaryImageUrl?: string | null;
   images?: PartImage[];
   compatibilities?: PartCompatibility[];
+  totalSold?: number;
+  bestSeller?: boolean;
 }
 
 export interface PartCompatibilityInput {

@@ -121,6 +121,14 @@ import { PromotionService } from '../../core/services/promotion.service';
                       {{ p.categoryName }}
                     </span>
                   }
+                  @if (p.bestSeller || (p.totalSold != null && p.totalSold > 0)) {
+                    <span class="inline-flex items-center gap-1 rounded-lg border border-amber-400 bg-amber-500 text-white px-2.5 py-0.5 text-xs font-black shadow-2xs">
+                      <span>🔥 Producto Más Vendido</span>
+                      @if (p.totalSold && p.totalSold > 0) {
+                        <span class="text-amber-100 font-bold">({{ p.totalSold }} pedidos)</span>
+                      }
+                    </span>
+                  }
                 </div>
 
                 <h1 class="text-2xl sm:text-3xl font-black text-gray-950 leading-snug tracking-tight">

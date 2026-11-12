@@ -1,6 +1,7 @@
 package com.asuncion.erp.service;
 
 import com.asuncion.erp.domain.entity.*;
+import com.asuncion.erp.domain.enums.OrderStatus;
 import com.asuncion.erp.dto.autocomplete.VehicleModelSuggestionDto;
 import com.asuncion.erp.dto.autocomplete.VehicleQuickImportRequest;
 import com.asuncion.erp.dto.catalog.*;
@@ -57,7 +58,9 @@ public class CatalogService {
                     baseResponse.active(),
                     baseResponse.primaryImageUrl(),
                     baseResponse.images(),
-                    baseResponse.compatibilities()
+                    baseResponse.compatibilities(),
+                    baseResponse.totalSold(),
+                    baseResponse.bestSeller()
             );
         }
     }
@@ -82,6 +85,7 @@ public class CatalogService {
     private final ImageOptimizationService imageOptimizationService;
     private final StorageService storageService;
     private final StockReservationService stockReservationService;
+    private final CustomerOrderRepository orderRepository;
 
     public CatalogService(
             CategoryRepository categoryRepository,
@@ -92,7 +96,8 @@ public class CatalogService {
             PartImageRepository partImageRepository,
             ImageOptimizationService imageOptimizationService,
             StorageService storageService,
-            StockReservationService stockReservationService
+            StockReservationService stockReservationService,
+            CustomerOrderRepository orderRepository
     ) {
         this.categoryRepository = categoryRepository;
         this.manufacturerBrandRepository = manufacturerBrandRepository;
@@ -103,6 +108,7 @@ public class CatalogService {
         this.imageOptimizationService = imageOptimizationService;
         this.storageService = storageService;
         this.stockReservationService = stockReservationService;
+        this.orderRepository = orderRepository;
     }
 
     public void evictCatalogCache() {
@@ -135,8 +141,41 @@ public class CatalogService {
                 partRepository.hydrateCompatibilities(parts);
             }
 
+            // Cálculo real de unidades vendidas y productos más vendidos (Bestsellers)
+            Map<Long, Long> partSoldMap = new HashMap<>();
+            try {
+                List<CustomerOrder> orders = orderRepository.findAllByOrderByCreatedAtDesc();
+                for (CustomerOrder o : orders) {
+                    if (o.getStatus() == OrderStatus.CANCELADO || o.getItems() == null) continue;
+                    for (OrderItem it : o.getItems()) {
+                        if (it.getPart() != null && it.getPart().getId() != null) {
+                            partSoldMap.merge(it.getPart().getId(), (long) it.getQuantity(), Long::sum);
+                        }
+                    }
+                }
+            } catch (Exception ignored) {}
+
+            Set<Long> bestSellerIds = partSoldMap.entrySet().stream()
+                    .filter(e -> e.getValue() >= 2L)
+                    .sorted(Map.Entry.<Long, Long>comparingByValue().reversed())
+                    .limit(8)
+                    .map(Map.Entry::getKey)
+                    .collect(java.util.stream.Collectors.toSet());
+
+            if (bestSellerIds.isEmpty() && !partSoldMap.isEmpty()) {
+                bestSellerIds = partSoldMap.entrySet().stream()
+                        .filter(e -> e.getValue() >= 1L)
+                        .sorted(Map.Entry.<Long, Long>comparingByValue().reversed())
+                        .limit(5)
+                        .map(Map.Entry::getKey)
+                        .collect(java.util.stream.Collectors.toSet());
+            }
+
+            final Map<Long, Long> finalSoldMap = partSoldMap;
+            final Set<Long> finalBestSellerIds = bestSellerIds;
+
             List<CachedPartEntry> cachedParts = parts.stream()
-                    .map(this::buildCachedPartEntry)
+                    .map(p -> buildCachedPartEntry(p, finalSoldMap.getOrDefault(p.getId(), 0L), finalBestSellerIds.contains(p.getId())))
                     .toList();
 
             CatalogCacheSnapshot fresh = new CatalogCacheSnapshot(
@@ -151,8 +190,8 @@ public class CatalogService {
         }
     }
 
-    private CachedPartEntry buildCachedPartEntry(Part part) {
-        PartResponse base = toPartResponseWithReserved(part, 0);
+    private CachedPartEntry buildCachedPartEntry(Part part, Long soldCount, boolean isBestSeller) {
+        PartResponse base = toPartResponseWithReserved(part, 0, soldCount, isBestSeller);
         boolean universal = base.compatibilities().isEmpty()
                 && base.categoryName() != null
                 && base.categoryName().toLowerCase().contains("accesorio");
@@ -480,10 +519,28 @@ public class CatalogService {
 
     public PartResponse toPartResponse(Part part) {
         int reservedQty = stockReservationService.getReservedQuantity(part.getId());
-        return toPartResponseWithReserved(part, reservedQty);
+        long sold = 0L;
+        boolean best = false;
+        try {
+            List<CustomerOrder> orders = orderRepository.findAllByOrderByCreatedAtDesc();
+            for (CustomerOrder o : orders) {
+                if (o.getStatus() == OrderStatus.CANCELADO || o.getItems() == null) continue;
+                for (OrderItem it : o.getItems()) {
+                    if (it.getPart() != null && part.getId().equals(it.getPart().getId())) {
+                        sold += it.getQuantity();
+                    }
+                }
+            }
+            best = sold >= 2;
+        } catch (Exception ignored) {}
+        return toPartResponseWithReserved(part, reservedQty, sold, best);
     }
 
     private PartResponse toPartResponseWithReserved(Part part, int reservedQty) {
+        return toPartResponseWithReserved(part, reservedQty, 0L, false);
+    }
+
+    private PartResponse toPartResponseWithReserved(Part part, int reservedQty, Long soldCount, boolean isBestSeller) {
         List<PartImageDto> imageDtos = part.getImages().stream()
                 .sorted(Comparator
                         .comparingInt((PartImage img) -> img.getDisplayOrder() != null ? img.getDisplayOrder() : 0)
@@ -544,7 +601,9 @@ public class CatalogService {
                 part.isActive(),
                 primaryUrl,
                 imageDtos,
-                compatDtos
+                compatDtos,
+                soldCount != null ? soldCount : 0L,
+                isBestSeller
         );
     }
 

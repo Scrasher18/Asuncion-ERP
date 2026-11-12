@@ -415,6 +415,27 @@ interface CatalogLocalSnapshot {
               </div>
             }
 
+            @if (hasBestsellers()) {
+              <button
+                type="button"
+                (click)="togglePromoSort('BESTSELLERS')"
+                [class]="
+                  sortBy() === 'BESTSELLERS'
+                    ? 'border-amber-600 bg-amber-600 text-white shadow-2xs'
+                    : 'border-gray-300 bg-gray-50 text-gray-800 hover:border-amber-400 hover:bg-amber-50 hover:text-amber-800'
+                "
+                class="min-h-[38px] inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-extrabold transition cursor-pointer"
+              >
+                <span>🔥 Más Vendidos</span>
+                <span
+                  [class]="sortBy() === 'BESTSELLERS' ? 'bg-white/25 text-white' : 'bg-amber-100 text-amber-800'"
+                  class="rounded-full px-1.5 py-0.2 text-[11px] font-black tabular-nums"
+                >
+                  {{ bestsellerCount() }}
+                </span>
+              </button>
+            }
+
             @if (promotionService.activeDirectOffers().length > 0) {
               <button
                 type="button"
@@ -465,6 +486,7 @@ interface CatalogLocalSnapshot {
                 class="min-h-[38px] rounded-lg border border-gray-300 bg-gray-50 px-3 py-1.5 text-xs sm:text-sm font-bold text-gray-900 focus:border-orange-500 focus:outline-none cursor-pointer"
               >
                 <option value="RELEVANCE">Relevancia</option>
+                <option value="BESTSELLERS">🔥 Más Vendidos primero</option>
                 <option value="PROMOS_FIRST">Ofertas y Combos primero</option>
                 <option value="ONLY_OFFERS">Solo Ofertas Flash</option>
                 <option value="ONLY_COMBOS">Solo Combos Automotrices</option>
@@ -666,16 +688,26 @@ interface CatalogLocalSnapshot {
                     </span>
                   }
 
-                  <!-- Promo Badge -->
-                  @if (promotionService.getDirectOffer(part.sku); as offer) {
-                    <span class="absolute bottom-2.5 left-2.5 rounded-full border border-red-500 bg-red-600 px-2.5 py-0.5 text-[11px] font-extrabold text-white shadow-xs z-10 tabular-nums">
-                      -{{ offer.discountPercentage }}%
-                    </span>
-                  } @else if (promotionService.getPromotion(part.sku); as comboPromo) {
-                    <span class="absolute bottom-2.5 left-2.5 rounded-full border border-orange-500 bg-orange-600 px-2.5 py-0.5 text-[11px] font-extrabold text-white shadow-xs z-10">
-                      📦 En Combo
-                    </span>
-                  }
+                  <!-- Badges: Bestseller / Promo / Combo -->
+                  <div class="absolute bottom-2.5 left-2.5 flex flex-wrap items-center gap-1.5 z-10 max-w-[85%]">
+                    @if (isBestSeller(part)) {
+                      <span class="inline-flex items-center gap-1 rounded-full border border-amber-500 bg-amber-500 px-2.5 py-0.5 text-[11px] font-black text-white shadow-xs">
+                        <span>🔥 Más vendido</span>
+                        @if (getUnitsSold(part) > 0) {
+                          <span class="text-[10px] font-bold text-amber-100">({{ getUnitsSold(part) }})</span>
+                        }
+                      </span>
+                    }
+                    @if (promotionService.getDirectOffer(part.sku); as offer) {
+                      <span class="rounded-full border border-red-500 bg-red-600 px-2.5 py-0.5 text-[11px] font-extrabold text-white shadow-xs tabular-nums">
+                        -{{ offer.discountPercentage }}%
+                      </span>
+                    } @else if (promotionService.getPromotion(part.sku); as comboPromo) {
+                      <span class="rounded-full border border-orange-500 bg-orange-600 px-2.5 py-0.5 text-[11px] font-extrabold text-white shadow-xs">
+                        📦 En Combo
+                      </span>
+                    }
+                  </div>
 
                   <!-- Clean Stock & Reservation Badge -->
                   <div class="absolute top-2.5 right-2.5 flex flex-col items-end gap-1">
@@ -726,6 +758,14 @@ interface CatalogLocalSnapshot {
                   </a>
 
                   <div class="flex flex-wrap items-center gap-1.5">
+                    @if (isBestSeller(part)) {
+                      <span class="inline-flex items-center gap-1 rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-bold text-amber-900">
+                        <span>🔥 Alta demanda</span>
+                        @if (getUnitsSold(part) > 0) {
+                          <span class="text-amber-700">· {{ getUnitsSold(part) }} vendidos</span>
+                        }
+                      </span>
+                    }
                     @if (getPartViscosity(part); as visc) {
                       <span class="inline-flex items-center gap-1 rounded-md border border-amber-300 bg-amber-50 px-2 py-0.5 text-xs font-extrabold text-amber-950 tabular-nums">
                         🛢️ SAE {{ visc }}
@@ -907,6 +947,7 @@ export class CatalogPageComponent implements OnInit, OnDestroy {
   readonly showSuggestions = signal<boolean>(false);
   readonly sortBy = signal<
     | 'RELEVANCE'
+    | 'BESTSELLERS'
     | 'PROMOS_FIRST'
     | 'ONLY_OFFERS'
     | 'ONLY_COMBOS'
@@ -914,6 +955,22 @@ export class CatalogPageComponent implements OnInit, OnDestroy {
     | 'PRICE_DESC'
     | 'STOCK_DESC'
   >('RELEVANCE');
+
+  readonly bestsellerCount = computed<number>(() => {
+    return this.allParts().filter(
+      (p) => p.active !== false && (p.bestSeller || (p.totalSold != null && p.totalSold > 0))
+    ).length;
+  });
+
+  readonly hasBestsellers = computed<boolean>(() => this.bestsellerCount() > 0);
+
+  isBestSeller(part: Part): boolean {
+    return Boolean(part.bestSeller || (part.totalSold != null && part.totalSold > 0));
+  }
+
+  getUnitsSold(part: Part): number {
+    return part.totalSold ?? 0;
+  }
 
   // Reactive filter state signals for 0ms synchronous filtering
   private readonly searchQuerySig = signal<string>('');
@@ -1170,7 +1227,13 @@ export class CatalogPageComponent implements OnInit, OnDestroy {
       return true;
     });
 
-    if (sort === 'ONLY_OFFERS') {
+    if (sort === 'BESTSELLERS') {
+      list = [...list].sort((a, b) => {
+        const soldA = a.totalSold ?? (a.bestSeller ? 99 : 0);
+        const soldB = b.totalSold ?? (b.bestSeller ? 99 : 0);
+        return soldB - soldA;
+      });
+    } else if (sort === 'ONLY_OFFERS') {
       list = [...list].sort((a, b) => {
         const pctA = this.promotionService.getDirectOffer(a.sku)?.discountPercentage ?? 0;
         const pctB = this.promotionService.getDirectOffer(b.sku)?.discountPercentage ?? 0;
@@ -1208,12 +1271,19 @@ export class CatalogPageComponent implements OnInit, OnDestroy {
         const bExact = this.hasDirectCompatibility(b, makeId, modelId, year) ? 0 : 1;
         return aExact - bExact;
       });
+    } else if (sort === 'RELEVANCE') {
+      // Prioritize bestsellers naturally when browsing catalog
+      list = [...list].sort((a, b) => {
+        const rankA = (a.bestSeller ? 100 : 0) + (a.totalSold ?? 0);
+        const rankB = (b.bestSeller ? 100 : 0) + (b.totalSold ?? 0);
+        return rankB - rankA;
+      });
     }
 
     return list;
   });
 
-  togglePromoSort(mode: 'ONLY_OFFERS' | 'ONLY_COMBOS'): void {
+  togglePromoSort(mode: 'ONLY_OFFERS' | 'ONLY_COMBOS' | 'BESTSELLERS'): void {
     this.sortBy.update((curr) => (curr === mode ? 'RELEVANCE' : mode));
   }
 
