@@ -117,7 +117,7 @@ export interface BrandDistributionItem {
     <div class="min-h-screen bg-[#F8F9FA] pb-24 lg:pb-14">
       <!-- Top Workspace Header -->
       <div class="border-b border-gray-200 bg-white">
-        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-6">
+        <div class="mx-auto max-w-7xl 2xl:max-w-[1600px] px-4 sm:px-6 lg:px-8 pt-6">
         <!-- Live Real-Time New Order Chime Alert Banner -->
         @if (newOrderBanner(); as banner) {
           <div class="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border-2 border-orange-500 bg-orange-50/90 p-4 shadow-md transition animate-pulse">
@@ -397,7 +397,7 @@ export interface BrandDistributionItem {
         </div>
       </div>
 
-      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-6">
+      <div class="mx-auto max-w-7xl 2xl:max-w-[1600px] px-3 sm:px-6 lg:px-8 pt-6">
         <!-- ========================================================================= -->
         <!-- TAB 1: ANALYTICS & SALES SUMMARY                                          -->
         <!-- ========================================================================= -->
@@ -601,13 +601,13 @@ export interface BrandDistributionItem {
                 </div>
               </div>
 
-              <!-- 1. Interactive Time-Series Sales Chart (Día / Semana / Año) -->
+              <!-- 1. Interactive Time-Series Sales Chart (Horas / Día / Semana / Año) -->
               <app-sales-chart
                 [hourlySales]="computedHourlySales()"
                 [weekdaySales]="computedWeekdaySales()"
-                [dailySales]="dash.dailySales || []"
+                [dailySales]="computedDailySales()"
                 [weeklySales]="dash.weeklySales || []"
-                [monthlySales]="dash.monthlySales || []"
+                [monthlySales]="computedMonthlySales()"
               ></app-sales-chart>
 
               <!-- 2. Operational & Fiscal Intelligence Breakdown Cards -->
@@ -2354,12 +2354,12 @@ export interface BrandDistributionItem {
                     </button>
                   </div>
 
-                  <div class="relative">
+                  <div class="relative w-full sm:w-auto">
                     <input
                       type="search"
                       [(ngModel)]="completedSearchQuery"
                       placeholder="Buscar N.° pedido, cliente o DNI/RUC..."
-                      class="min-h-[36px] w-64 rounded-xl border border-gray-200 bg-gray-50/70 pl-8 pr-3 py-1.5 text-xs text-gray-900 placeholder:text-gray-400 focus:border-emerald-500 focus:bg-white focus:outline-none"
+                      class="min-h-[36px] w-full sm:w-72 rounded-xl border border-gray-200 bg-gray-50/70 pl-8 pr-3 py-1.5 text-xs text-gray-900 placeholder:text-gray-400 focus:border-emerald-500 focus:bg-white focus:outline-none"
                     />
                     <svg class="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
@@ -2368,23 +2368,23 @@ export interface BrandDistributionItem {
                 </div>
               </div>
 
-              <div class="overflow-x-auto">
+              <div class="overflow-x-auto scrollbar-thin">
                 <table class="min-w-full divide-y divide-gray-200 text-xs">
                   <thead class="bg-gray-50 text-left font-semibold text-gray-600">
                     <tr>
-                      <th class="px-4 py-3">N.° de Orden / Fecha</th>
-                      <th class="px-4 py-3">Canal / Vendedor</th>
-                      <th class="px-4 py-3">Cliente / Comprobante</th>
-                      <th class="px-4 py-3">Cobro y Medio</th>
-                      <th class="px-4 py-3">Atención / Entrega</th>
-                      <th class="px-4 py-3 text-right">Total</th>
-                      <th class="px-4 py-3 text-right">Acciones</th>
+                      <th class="sticky left-0 bg-gray-50 z-10 px-4 py-3 min-w-[130px] shadow-[1px_0_0_0_#e5e7eb]">N.° de Orden / Fecha</th>
+                      <th class="px-4 py-3 min-w-[170px]">Canal / Vendedor</th>
+                      <th class="px-4 py-3 min-w-[170px]">Cliente / Comprobante</th>
+                      <th class="px-4 py-3 min-w-[130px]">Cobro y Medio</th>
+                      <th class="px-4 py-3 min-w-[150px]">Atención / Entrega</th>
+                      <th class="px-4 py-3 text-right min-w-[100px]">Total</th>
+                      <th class="px-4 py-3 text-right min-w-[220px]">Acciones</th>
                     </tr>
                   </thead>
                   <tbody class="divide-y divide-gray-100">
                     @for (ord of filteredCompletedOrders(); track ord.id) {
-                      <tr class="hover:bg-gray-50/70 transition align-middle">
-                        <td class="px-4 py-3.5 font-mono font-semibold text-gray-900 whitespace-nowrap">
+                      <tr class="group hover:bg-gray-50/70 transition align-middle">
+                        <td class="sticky left-0 bg-white group-hover:bg-gray-50 z-10 px-4 py-3.5 font-mono font-semibold text-gray-900 whitespace-nowrap shadow-[1px_0_0_0_#f3f4f6]">
                           {{ ord.orderNumber }}
                           <span class="block font-sans font-normal text-[11px] text-gray-500">
                             {{ (ord.updatedAt || ord.createdAt) | date: 'dd/MM/yy HH:mm' }}
@@ -3895,6 +3895,37 @@ export interface BrandDistributionItem {
                     <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
+              </div>
+
+              <!-- Base Repuesto Selector for Combo / Promo (Allows choosing ANY product) -->
+              <div class="rounded-2xl border-2 border-amber-300 bg-linear-to-r from-amber-50 to-orange-50/40 p-4 space-y-2.5 shadow-2xs">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+                  <label for="primaryPartSelectDropdown" class="text-xs font-bold text-amber-950 flex items-center gap-1.5">
+                    <img src="/images/icons/combo-paquete.png" alt="Combo" class="h-4 w-4 object-contain inline-block shrink-0" />
+                    <span>Repuesto Base del Combo (Elige libremente de tu inventario):</span>
+                  </label>
+                  <span class="text-[11px] font-semibold text-amber-800 bg-amber-100/80 px-2 py-0.5 rounded-full">
+                    {{ adminParts().length }} repuestos disponibles
+                  </span>
+                </div>
+                
+                <div class="relative">
+                  <select
+                    id="primaryPartSelectDropdown"
+                    [ngModel]="part.sku"
+                    (ngModelChange)="onPrimaryPartSelect($event)"
+                    class="min-h-[44px] w-full rounded-xl border border-amber-300 bg-white px-3.5 py-2.5 text-xs sm:text-sm font-bold text-gray-900 shadow-2xs focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 focus:outline-none cursor-pointer"
+                  >
+                    @for (p of adminParts(); track p.id) {
+                      <option [value]="p.sku">
+                        {{ p.name }} — {{ p.sku }} (Stock: {{ p.stockQuantity }} un. | Venta: S/ {{ p.salePrice | number: '1.2-2' }})
+                      </option>
+                    }
+                  </select>
+                </div>
+                <p class="text-[11px] text-amber-900/80">
+                  Puedes cambiar el repuesto base en cualquier momento para armar combos con cualquier producto del almacén.
+                </p>
               </div>
 
               <!-- Part Identity Card -->
@@ -6502,7 +6533,10 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
   }
 
   openManualComboCreator(partItem?: any): void {
-    const item = partItem || (this.adminParts().length > 0 ? this.adminParts()[0] : null);
+    const filtered = this.filteredAdminParts();
+    const item =
+      partItem ||
+      (filtered.length > 0 ? filtered[0] : (this.adminParts().length > 0 ? this.adminParts()[0] : null));
     if (!item) {
       this.toast.info('Sin repuestos', 'Primero registra al menos un repuesto en inventario para crear un combo.');
       return;
@@ -6851,6 +6885,43 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
     });
   }
 
+  private getPeruDateString(date: Date = new Date()): string {
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Lima',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(date);
+  }
+
+  private getPeruHour(date: Date = new Date()): number {
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/Lima',
+      hour: 'numeric',
+      hour12: false,
+    }).formatToParts(date);
+    const hourPart = parts.find((p) => p.type === 'hour');
+    const val = hourPart ? parseInt(hourPart.value, 10) : date.getHours();
+    return val === 24 ? 0 : val;
+  }
+
+  private getPeruDayOfWeek(date: Date = new Date()): number {
+    const weekdayStr = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/Lima',
+      weekday: 'short',
+    }).format(date);
+    const map: Record<string, number> = {
+      Mon: 1,
+      Tue: 2,
+      Wed: 3,
+      Thu: 4,
+      Fri: 5,
+      Sat: 6,
+      Sun: 7,
+    };
+    return map[weekdayStr] || 1;
+  }
+
   readonly computedHourlySales = computed<SalesTimelinePoint[]>(() => {
     const orders = this.allSystemOrders().length > 0 ? this.allSystemOrders() : this.globalOrders();
     const hours = [
@@ -6869,15 +6940,32 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
       { h: 20, label: '20:00' },
     ];
 
+    const todayPeru = this.getPeruDateString(new Date());
+    const currentPeruHour = this.getPeruHour(new Date());
+
     const map = new Map<number, { sales: number; profit: number; count: number; units: number }>();
     hours.forEach(({ h }) => map.set(h, { sales: 0, profit: 0, count: 0, units: 0 }));
 
     for (const ord of orders) {
       if (ord.status === 'CANCELADO') continue;
+      if (!ord.createdAt) continue;
       const d = new Date(ord.createdAt);
-      let h = d.getHours();
+      if (isNaN(d.getTime())) continue;
+
+      // STRICT FILTER: Only count orders placed TODAY in Peru timezone (America/Lima)
+      const orderPeruDate = this.getPeruDateString(d);
+      if (orderPeruDate !== todayPeru) {
+        continue;
+      }
+
+      let h = this.getPeruHour(d);
       if (h < 8) h = 8;
       if (h > 20) h = 20;
+
+      // Ensure future hours today cannot have sales
+      if (h > currentPeruHour) {
+        continue;
+      }
 
       const existing = map.get(h) || { sales: 0, profit: 0, count: 0, units: 0 };
       const total = ord.totalAmount ?? ord.total ?? ord.subtotal ?? 0;
@@ -6905,10 +6993,11 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
 
     return hours.map(({ h, label }) => {
       const data = map.get(h)!;
+      const nextHour = h + 1 < 10 ? '0' + (h + 1) : `${h + 1}`;
       return {
-        periodKey: `hour-${h}`,
+        periodKey: `Hora ${label}`,
         label,
-        subLabel: `${label} - ${h + 1 < 10 ? '0' + (h + 1) : h + 1}:00`,
+        subLabel: `${label} - ${nextHour}:00 hrs`,
         totalSales: Number(data.sales.toFixed(2)),
         grossProfit: Number(data.profit.toFixed(2)),
         ordersCount: data.count,
@@ -6936,7 +7025,7 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
         const count = found ? found.ordersCount : 0;
         const share = found ? found.sharePercent : 0;
         return {
-          periodKey: `weekday-${dow}`,
+          periodKey: name,
           label: name,
           subLabel: `${share}% facturación`,
           totalSales: sales,
@@ -6953,9 +7042,10 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
 
     for (const ord of orders) {
       if (ord.status === 'CANCELADO') continue;
+      if (!ord.createdAt) continue;
       const d = new Date(ord.createdAt);
-      let dow = d.getDay();
-      dow = dow === 0 ? 7 : dow;
+      if (isNaN(d.getTime())) continue;
+      const dow = this.getPeruDayOfWeek(d);
       const total = ord.totalAmount ?? ord.total ?? ord.subtotal ?? 0;
       const existing = map.get(dow) || { sales: 0, count: 0, profit: 0, units: 0 };
       existing.sales += total;
@@ -6968,9 +7058,142 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
     return daysInfo.map(({ dow, name }) => {
       const data = map.get(dow)!;
       return {
-        periodKey: `weekday-${dow}`,
+        periodKey: name,
         label: name,
-        subLabel: `${name}`,
+        subLabel: `${name} (Semanal)`,
+        totalSales: Number(data.sales.toFixed(2)),
+        grossProfit: Number(data.profit.toFixed(2)),
+        ordersCount: data.count,
+        unitsSold: data.units,
+      };
+    });
+  });
+
+  readonly computedDailySales = computed<SalesTimelinePoint[]>(() => {
+    const backendDaily = this.dashboard()?.dailySales;
+    if (backendDaily && backendDaily.length > 0) {
+      return backendDaily;
+    }
+
+    const orders = this.allSystemOrders().length > 0 ? this.allSystemOrders() : this.globalOrders();
+    const daysCount = 14;
+    const today = new Date();
+    const points: { dateStr: string; label: string; subLabel: string }[] = [];
+
+    const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Set', 'Oct', 'Nov', 'Dic'];
+    const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+
+    for (let i = daysCount - 1; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(today.getDate() - i);
+      const peruDateStr = this.getPeruDateString(d);
+      const parts = peruDateStr.split('-').map(Number);
+      const month = parts[1];
+      const day = parts[2];
+      const label = `${day} ${monthNames[month - 1]}`;
+      const subLabel = dayNames[d.getDay()];
+      points.push({ dateStr: peruDateStr, label, subLabel });
+    }
+
+    const map = new Map<string, { sales: number; profit: number; count: number; units: number }>();
+    points.forEach((p) => map.set(p.dateStr, { sales: 0, profit: 0, count: 0, units: 0 }));
+
+    for (const ord of orders) {
+      if (ord.status === 'CANCELADO') continue;
+      if (!ord.createdAt) continue;
+      const d = new Date(ord.createdAt);
+      if (isNaN(d.getTime())) continue;
+      const dateStr = this.getPeruDateString(d);
+      if (!map.has(dateStr)) continue;
+
+      const existing = map.get(dateStr)!;
+      const total = ord.totalAmount ?? ord.total ?? ord.subtotal ?? 0;
+      existing.sales += total;
+      existing.count += 1;
+
+      let profit = 0;
+      let units = 0;
+      if (ord.items && ord.items.length > 0) {
+        for (const it of ord.items) {
+          const qty = it.quantity || 1;
+          units += qty;
+          const saleP = it.unitPrice || 0;
+          const costP = Number((saleP * 0.65).toFixed(2));
+          profit += (saleP - costP) * qty;
+        }
+      } else {
+        units += 1;
+        profit += total * 0.35;
+      }
+      existing.profit += profit;
+      existing.units += units;
+      map.set(dateStr, existing);
+    }
+
+    return points.map((p) => {
+      const data = map.get(p.dateStr)!;
+      return {
+        periodKey: p.label,
+        label: p.label,
+        subLabel: p.subLabel,
+        totalSales: Number(data.sales.toFixed(2)),
+        grossProfit: Number(data.profit.toFixed(2)),
+        ordersCount: data.count,
+        unitsSold: data.units,
+      };
+    });
+  });
+
+  readonly computedMonthlySales = computed<SalesTimelinePoint[]>(() => {
+    const backendMonthly = this.dashboard()?.monthlySales;
+    if (backendMonthly && backendMonthly.length > 0) {
+      return backendMonthly;
+    }
+
+    const orders = this.allSystemOrders().length > 0 ? this.allSystemOrders() : this.globalOrders();
+    const months = [
+      { m: 1, name: 'Ene' },
+      { m: 2, name: 'Feb' },
+      { m: 3, name: 'Mar' },
+      { m: 4, name: 'Abr' },
+      { m: 5, name: 'May' },
+      { m: 6, name: 'Jun' },
+      { m: 7, name: 'Jul' },
+      { m: 8, name: 'Ago' },
+      { m: 9, name: 'Set' },
+      { m: 10, name: 'Oct' },
+      { m: 11, name: 'Nov' },
+      { m: 12, name: 'Dic' },
+    ];
+
+    const map = new Map<number, { sales: number; count: number; profit: number; units: number }>();
+    months.forEach(({ m }) => map.set(m, { sales: 0, count: 0, profit: 0, units: 0 }));
+
+    for (const ord of orders) {
+      if (ord.status === 'CANCELADO') continue;
+      if (!ord.createdAt) continue;
+      const d = new Date(ord.createdAt);
+      if (isNaN(d.getTime())) continue;
+
+      const dateStr = this.getPeruDateString(d);
+      const m = parseInt(dateStr.split('-')[1], 10);
+      if (!map.has(m)) continue;
+
+      const existing = map.get(m)!;
+      const total = ord.totalAmount ?? ord.total ?? ord.subtotal ?? 0;
+      existing.sales += total;
+      existing.count += 1;
+      existing.profit += total * 0.35;
+      existing.units += 2;
+      map.set(m, existing);
+    }
+
+    return months.map(({ m, name }) => {
+      const data = map.get(m)!;
+      return {
+        periodKey: name,
+        label: name,
+        subLabel: `Mes ${m} · 2026`,
         totalSales: Number(data.sales.toFixed(2)),
         grossProfit: Number(data.profit.toFixed(2)),
         ordersCount: data.count,

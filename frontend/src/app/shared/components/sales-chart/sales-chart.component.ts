@@ -28,20 +28,8 @@ export type ChartGranularity = 'day' | 'hour' | 'week' | 'year';
           </p>
         </div>
 
-        <!-- Mode Switcher Tabs (Día / Horas / Semana / Año) -->
+        <!-- Mode Switcher Tabs (Horas / Día / Semana / Año) -->
         <div class="inline-flex rounded-xl border border-gray-200 bg-gray-50/80 p-1 shadow-2xs self-start sm:self-auto flex-wrap gap-1">
-          <button
-            type="button"
-            (click)="granularity.set('day')"
-            [class]="
-              granularity() === 'day'
-                ? 'bg-white text-orange-600 font-bold shadow-xs border border-gray-200/60'
-                : 'text-gray-600 hover:text-gray-900 font-medium'
-            "
-            class="min-h-[34px] rounded-lg px-3 py-1 text-xs transition cursor-pointer"
-          >
-            Por Día (Diario)
-          </button>
           <button
             type="button"
             (click)="granularity.set('hour')"
@@ -53,6 +41,18 @@ export type ChartGranularity = 'day' | 'hour' | 'week' | 'year';
             class="min-h-[34px] rounded-lg px-3 py-1 text-xs transition cursor-pointer"
           >
             Por Horas (Hoy)
+          </button>
+          <button
+            type="button"
+            (click)="granularity.set('day')"
+            [class]="
+              granularity() === 'day'
+                ? 'bg-white text-orange-600 font-bold shadow-xs border border-gray-200/60'
+                : 'text-gray-600 hover:text-gray-900 font-medium'
+            "
+            class="min-h-[34px] rounded-lg px-3 py-1 text-xs transition cursor-pointer"
+          >
+            Por Día (Diario)
           </button>
           <button
             type="button"
@@ -103,7 +103,7 @@ export type ChartGranularity = 'day' | 'hour' | 'week' | 'year';
             S/ {{ peakPoint()?.totalSales ?? 0 | number: '1.2-2' }}
           </p>
           <span class="text-[11px] text-orange-800 font-mono">
-            {{ peakPoint()?.label }}
+            {{ peakPoint() && peakPoint()!.totalSales > 0 ? peakPoint()!.label : 'Sin ventas aún' }}
           </span>
         </div>
 
@@ -302,7 +302,7 @@ export class SalesChartComponent {
   @Input() weeklySales: SalesTimelinePoint[] = [];
   @Input() monthlySales: SalesTimelinePoint[] = [];
 
-  readonly granularity = signal<ChartGranularity>('day');
+  readonly granularity = signal<ChartGranularity>('hour');
   readonly hoveredPoint = signal<SalesTimelinePoint | null>(null);
 
   readonly activePoints = computed<SalesTimelinePoint[]>(() => {
@@ -348,19 +348,21 @@ export class SalesChartComponent {
   readonly peakPoint = computed<SalesTimelinePoint | null>(() => {
     const pts = this.activePoints();
     if (pts.length === 0) return null;
+    const hasSales = pts.some((p) => (p.totalSales || 0) > 0);
+    if (!hasSales) return null;
     return pts.reduce((prev, curr) => (curr.totalSales > prev.totalSales ? curr : prev), pts[0]);
   });
 
   readonly chartDescription = computed<string>(() => {
     switch (this.granularity()) {
-      case 'day':
-        return 'Evolución diaria de ventas y facturación (últimos 30 días de operación).';
       case 'hour':
-        return 'Ventas por horas del día (distribución de 08:00 a 20:00 hrs para identificar horas pico).';
+        return 'Ventas por horas del día de hoy en Lima, Perú (distribución de 08:00 a 20:00 hrs para identificar horas pico en vivo).';
+      case 'day':
+        return 'Evolución diaria de ventas y facturación (últimos 14 días de operación).';
       case 'week':
         return 'Ventas por días de la semana (Lunes a Domingo para planificación operativa).';
       case 'year':
-        return 'Facturación y margen bruto mensual a lo largo del año calendario.';
+        return 'Facturación y margen bruto mensual a lo largo del año calendario 2026.';
     }
   });
 

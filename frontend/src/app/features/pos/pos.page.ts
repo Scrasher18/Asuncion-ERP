@@ -209,13 +209,6 @@ const POS_HOLD_TTL_MS = 15 * 60 * 1000;
                   </p>
                 </div>
                 <div class="flex items-center gap-2 shrink-0">
-                  <span
-                    class="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700"
-                    title="El catálogo y el stock se actualizan automáticamente cada 15 segundos sin recargar la página"
-                  >
-                    <span class="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                    <span>{{ lastCatalogSyncLabel() ? 'Sync ' + lastCatalogSyncLabel() : 'Auto-sync 15s' }}</span>
-                  </span>
                   <button
                     type="button"
                     (click)="manualSilentCatalogSync()"
