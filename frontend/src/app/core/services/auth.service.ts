@@ -71,12 +71,14 @@ export class AuthService {
     return roles.includes('MOTORIZADO') && !roles.includes('ADMIN');
   });
 
-  readonly isOperationalStaff = computed(() => this.isDeliveryDriverOnly());
+  // Internal staff accounts (ADMIN, VENDEDOR, MOTORIZADO) are exclusively for work
+  readonly isStaffAccount = computed(() => this.hasAnyRole(['ADMIN', 'VENDEDOR', 'MOTORIZADO']));
+  readonly isOperationalStaff = computed(() => this.isStaffAccount());
 
-  readonly canAccessCatalog = computed(() => !this.isOperationalStaff());
-  readonly canAccessCart = computed(() => !this.isOperationalStaff());
-  readonly canAccessTracking = computed(() => !this.isOperationalStaff() || this.hasAnyRole(['ADMIN', 'VENDEDOR']));
-  readonly canAccessMyOrders = computed(() => this.isAuthenticated() && !this.isOperationalStaff());
+  readonly canAccessCatalog = computed(() => !this.isDeliveryDriverOnly());
+  readonly canAccessCart = computed(() => !this.isStaffAccount());
+  readonly canAccessTracking = computed(() => !this.isStaffAccount());
+  readonly canAccessMyOrders = computed(() => this.isAuthenticated() && this.hasRole('CLIENTE') && !this.isStaffAccount());
 
   readonly brandHomeLink = computed(() => {
     if (this.isDeliveryDriverOnly()) return '/delivery';
@@ -139,6 +141,10 @@ export class AuthService {
   hasAnyRole(allowed: RoleName[]): boolean {
     const current = this.normalizedRoles();
     return allowed.some((role) => current.includes(role));
+  }
+
+  hasRole(role: RoleName): boolean {
+    return this.hasAnyRole([role]);
   }
 
   defaultHomeForUser(): string {

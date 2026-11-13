@@ -302,48 +302,70 @@ import { PromotionService } from '../../core/services/promotion.service';
                 </div>
               </div>
 
-              <!-- Quantity & Purchase Actions -->
-              <div class="pt-1 flex flex-col sm:flex-row gap-3">
-                <div class="inline-flex min-h-[46px] items-center justify-between rounded-xl border border-gray-200 bg-white px-2 sm:w-36">
+              <!-- Quantity & Purchase Actions (Segregated: Work-Only POS for Staff, E-commerce Cart for Customers) -->
+              @if (auth.isStaffAccount()) {
+                <div class="rounded-2xl border border-orange-200 bg-orange-50/70 p-4 space-y-3">
+                  <div class="flex items-center gap-2.5">
+                    <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-600 text-white text-sm font-bold shadow-2xs">💼</span>
+                    <div>
+                      <p class="text-xs font-black text-gray-900 uppercase tracking-wide">Cuenta de trabajo • {{ auth.primaryRole() }}</p>
+                      <p class="text-[11px] text-gray-600">Gestión de repuestos para clientes y taller</p>
+                    </div>
+                  </div>
+                  <p class="text-xs text-gray-700 leading-relaxed">
+                    Las compras en línea con carrito están habilitadas exclusivamente para clientes. Para facturar este repuesto a un cliente en mostrador o registrar la venta comercial, utiliza la caja del sistema.
+                  </p>
+                  <a
+                    routerLink="/pos"
+                    class="inline-flex min-h-[44px] w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-orange-600 px-5 py-2.5 text-xs font-black text-white shadow-xs hover:bg-orange-700 active:scale-[0.98] transition cursor-pointer"
+                  >
+                    <span>Facturar repuesto en Caja / POS</span>
+                    <span>→</span>
+                  </a>
+                </div>
+              } @else {
+                <div class="pt-1 flex flex-col sm:flex-row gap-3">
+                  <div class="inline-flex min-h-[46px] items-center justify-between rounded-xl border border-gray-200 bg-white px-2 sm:w-36">
+                    <button
+                      type="button"
+                      (click)="decrementQty()"
+                      class="h-9 w-9 rounded-lg text-base font-bold text-gray-600 hover:bg-gray-50 hover:text-gray-900 cursor-pointer"
+                    >
+                      −
+                    </button>
+                    <span class="font-mono text-sm font-extrabold text-gray-900">{{ quantity() }}</span>
+                    <button
+                      type="button"
+                      [disabled]="quantity() >= cart.getRemainingStockToAdd(p)"
+                      (click)="incrementQty(cart.getRemainingStockToAdd(p))"
+                      class="h-9 w-9 rounded-lg text-base font-bold text-gray-600 hover:bg-gray-50 hover:text-gray-900 disabled:opacity-40 cursor-pointer"
+                    >
+                      +
+                    </button>
+                  </div>
+
                   <button
                     type="button"
-                    (click)="decrementQty()"
-                    class="h-9 w-9 rounded-lg text-base font-bold text-gray-600 hover:bg-gray-50 hover:text-gray-900 cursor-pointer"
+                    [disabled]="cart.getRemainingStockToAdd(p) <= 0"
+                    (click)="addToCart(p)"
+                    class="flex-1 min-h-[46px] inline-flex items-center justify-center gap-2 rounded-xl bg-orange-600 py-3 px-5 text-sm font-bold text-white shadow-xs hover:bg-orange-700 active:scale-[0.98] disabled:bg-gray-200 disabled:text-gray-400 transition-all duration-150 ease-out select-none cursor-pointer"
                   >
-                    −
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
+                    </svg>
+                    <span>{{ cart.getRemainingStockToAdd(p) <= 0 ? (cart.getTotalReservedDisplay(p) > 0 ? 'En reserva' : 'Sin stock disp.') : 'Agregar al carrito' }}</span>
                   </button>
-                  <span class="font-mono text-sm font-extrabold text-gray-900">{{ quantity() }}</span>
+
                   <button
                     type="button"
-                    [disabled]="quantity() >= cart.getRemainingStockToAdd(p)"
-                    (click)="incrementQty(cart.getRemainingStockToAdd(p))"
-                    class="h-9 w-9 rounded-lg text-base font-bold text-gray-600 hover:bg-gray-50 hover:text-gray-900 disabled:opacity-40 cursor-pointer"
+                    [disabled]="cart.getRemainingStockToAdd(p) <= 0"
+                    (click)="buyNow(p)"
+                    class="flex-1 min-h-[46px] rounded-xl border border-orange-200 bg-orange-50 py-3 px-5 text-sm font-bold text-orange-700 hover:bg-orange-100 active:scale-[0.98] disabled:opacity-40 transition-all duration-150 ease-out select-none cursor-pointer"
                   >
-                    +
+                    Comprar ahora
                   </button>
                 </div>
-
-                <button
-                  type="button"
-                  [disabled]="cart.getRemainingStockToAdd(p) <= 0"
-                  (click)="addToCart(p)"
-                  class="flex-1 min-h-[46px] inline-flex items-center justify-center gap-2 rounded-xl bg-orange-600 py-3 px-5 text-sm font-bold text-white shadow-xs hover:bg-orange-700 active:scale-[0.98] disabled:bg-gray-200 disabled:text-gray-400 transition-all duration-150 ease-out select-none cursor-pointer"
-                >
-                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
-                  </svg>
-                  <span>{{ cart.getRemainingStockToAdd(p) <= 0 ? (cart.getTotalReservedDisplay(p) > 0 ? 'En reserva' : 'Sin stock disp.') : 'Agregar al carrito' }}</span>
-                </button>
-
-                <button
-                  type="button"
-                  [disabled]="cart.getRemainingStockToAdd(p) <= 0"
-                  (click)="buyNow(p)"
-                  class="flex-1 min-h-[46px] rounded-xl border border-orange-200 bg-orange-50 py-3 px-5 text-sm font-bold text-orange-700 hover:bg-orange-100 active:scale-[0.98] disabled:opacity-40 transition-all duration-150 ease-out select-none cursor-pointer"
-                >
-                  Comprar ahora
-                </button>
-              </div>
+              }
 
 
 

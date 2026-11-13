@@ -19,6 +19,7 @@ import {
 import { CatalogService } from '../../core/services/catalog.service';
 import { PartPromotion, PromotionService } from '../../core/services/promotion.service';
 import { SyncBusService } from '../../core/services/sync-bus.service';
+import { AuthService } from '../../core/services/auth.service';
 
 interface CatalogComboCard {
   promo: PartPromotion;
@@ -616,14 +617,24 @@ interface CatalogLocalSnapshot {
                       </div>
                     </div>
 
-                    <button
-                      type="button"
-                      [disabled]="!canAddCombo(combo)"
-                      (click)="cart.addCombo(combo.mainPart, combo.complementPart, true)"
-                      class="min-h-[42px] inline-flex items-center justify-center gap-2 rounded-xl bg-orange-600 px-4 py-2.5 text-xs sm:text-sm font-extrabold text-white shadow-xs hover:bg-orange-700 active:scale-[0.98] disabled:bg-gray-200 disabled:text-gray-500 transition cursor-pointer"
-                    >
-                      <span>{{ canAddCombo(combo) ? '🛒 Llevar Combo Completo' : 'Combo sin stock disponible' }}</span>
-                    </button>
+                    @if (auth.isStaffAccount()) {
+                      <a
+                        routerLink="/pos"
+                        class="min-h-[42px] inline-flex items-center justify-center gap-2 rounded-xl bg-orange-600 px-4 py-2.5 text-xs sm:text-sm font-extrabold text-white shadow-xs hover:bg-orange-700 active:scale-[0.98] transition cursor-pointer"
+                        title="Vender combo promocional en Punto de Venta"
+                      >
+                        <span>Facturar Combo en POS</span>
+                      </a>
+                    } @else {
+                      <button
+                        type="button"
+                        [disabled]="!canAddCombo(combo)"
+                        (click)="cart.addCombo(combo.mainPart, combo.complementPart, true)"
+                        class="min-h-[42px] inline-flex items-center justify-center gap-2 rounded-xl bg-orange-600 px-4 py-2.5 text-xs sm:text-sm font-extrabold text-white shadow-xs hover:bg-orange-700 active:scale-[0.98] disabled:bg-gray-200 disabled:text-gray-500 transition cursor-pointer"
+                      >
+                        <span>{{ canAddCombo(combo) ? '🛒 Llevar Combo Completo' : 'Combo sin stock disponible' }}</span>
+                      </button>
+                    }
                   </div>
                 </article>
               }
@@ -820,23 +831,39 @@ interface CatalogLocalSnapshot {
                     </div>
 
                     <div class="grid grid-cols-5 gap-2">
-                      <a
-                        [routerLink]="['/part', part.id]"
-                        class="col-span-2 min-h-[42px] flex items-center justify-center rounded-xl border border-gray-300 bg-white px-2 text-[13px] font-extrabold text-gray-800 hover:border-gray-400 hover:bg-gray-50 active:scale-[0.98] transition-all duration-150 ease-out select-none"
-                      >
-                        Ver ficha
-                      </a>
-                      <button
-                        type="button"
-                        [disabled]="cart.getRemainingStockToAdd(part) <= 0"
-                        (click)="cart.addPart(part, 1, true)"
-                        class="col-span-3 min-h-[42px] flex items-center justify-center gap-1.5 rounded-xl bg-orange-600 px-3 text-[13px] font-extrabold text-white shadow-2xs hover:bg-orange-700 active:scale-[0.98] disabled:bg-gray-200 disabled:text-gray-500 transition-all duration-150 ease-out select-none cursor-pointer"
-                      >
-                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.4">
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                        </svg>
-                        <span>{{ cart.getRemainingStockToAdd(part) <= 0 ? (cart.getTotalReservedDisplay(part) > 0 ? 'En reserva' : (cart.getMyCartQuantity(part.id) > 0 ? 'Máx. carrito' : 'Sin stock')) : 'Agregar' }}</span>
-                      </button>
+                      @if (auth.isStaffAccount()) {
+                        <a
+                          [routerLink]="['/part', part.id]"
+                          class="col-span-3 min-h-[42px] flex items-center justify-center rounded-xl border border-gray-300 bg-white px-2 text-[13px] font-extrabold text-gray-800 hover:border-gray-400 hover:bg-gray-50 active:scale-[0.98] transition-all duration-150 ease-out select-none"
+                        >
+                          Ver detalle
+                        </a>
+                        <a
+                          routerLink="/pos"
+                          class="col-span-2 min-h-[42px] flex items-center justify-center gap-1 rounded-xl bg-orange-600 px-2 text-[13px] font-extrabold text-white shadow-2xs hover:bg-orange-700 active:scale-[0.98] transition-all duration-150 ease-out select-none"
+                          title="Facturar repuesto en Caja POS"
+                        >
+                          Caja / POS
+                        </a>
+                      } @else {
+                        <a
+                          [routerLink]="['/part', part.id]"
+                          class="col-span-2 min-h-[42px] flex items-center justify-center rounded-xl border border-gray-300 bg-white px-2 text-[13px] font-extrabold text-gray-800 hover:border-gray-400 hover:bg-gray-50 active:scale-[0.98] transition-all duration-150 ease-out select-none"
+                        >
+                          Ver ficha
+                        </a>
+                        <button
+                          type="button"
+                          [disabled]="cart.getRemainingStockToAdd(part) <= 0"
+                          (click)="cart.addPart(part, 1, true)"
+                          class="col-span-3 min-h-[42px] flex items-center justify-center gap-1.5 rounded-xl bg-orange-600 px-3 text-[13px] font-extrabold text-white shadow-2xs hover:bg-orange-700 active:scale-[0.98] disabled:bg-gray-200 disabled:text-gray-500 transition-all duration-150 ease-out select-none cursor-pointer"
+                        >
+                          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.4">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                          </svg>
+                          <span>{{ cart.getRemainingStockToAdd(part) <= 0 ? (cart.getTotalReservedDisplay(part) > 0 ? 'En reserva' : (cart.getMyCartQuantity(part.id) > 0 ? 'Máx. carrito' : 'Sin stock')) : 'Agregar' }}</span>
+                        </button>
+                      }
                     </div>
                   </div>
                 </div>
@@ -927,6 +954,7 @@ export class CatalogPageComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   readonly cart = inject(CartService);
   readonly promotionService = inject(PromotionService);
+  readonly auth = inject(AuthService);
   private readonly syncBus = inject(SyncBusService);
   private stockRefreshInterval: ReturnType<typeof setInterval> | null = null;
   private reservationsPollInterval: ReturnType<typeof setInterval> | null = null;

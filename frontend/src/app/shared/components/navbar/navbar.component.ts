@@ -406,12 +406,23 @@ import {
                         (click)="notifOpen.set(false)"
                         class="inline-flex items-center gap-1.5 text-xs font-bold text-orange-600 hover:text-orange-700 transition"
                       >
-                        <span>Ver panel completo de administración</span>
+                        <span>{{ auth.primaryRole() === 'VENDEDOR' ? 'Ver panel de ventas ERP' : 'Ver panel completo de administración' }}</span>
                         <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                           <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
                         </svg>
                       </a>
-                    } @else if (auth.isAuthenticated()) {
+                    } @else if (auth.isDeliveryDriverOnly()) {
+                      <a
+                        routerLink="/delivery"
+                        (click)="notifOpen.set(false)"
+                        class="inline-flex items-center gap-1.5 text-xs font-bold text-orange-600 hover:text-orange-700 transition"
+                      >
+                        <span>Ver panel de reparto motorizado</span>
+                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                        </svg>
+                      </a>
+                    } @else if (auth.isAuthenticated() && !auth.isStaffAccount()) {
                       <a
                         routerLink="/my-orders"
                         (click)="notifOpen.set(false)"
@@ -559,14 +570,16 @@ import {
                 </div>
                 <p class="text-[11px] font-semibold text-orange-700 mt-0.5">{{ roleLabel() }} • {{ auth.currentUser()?.email }}</p>
               </div>
-              <a
-                routerLink="/my-orders"
-                [queryParams]="{ tab: 'profile' }"
-                (click)="mobileOpen.set(false)"
-                class="shrink-0 rounded-lg border border-orange-200 bg-white px-2.5 py-1 text-xs font-bold text-orange-700 shadow-2xs hover:bg-orange-50"
-              >
-                Mi perfil
-              </a>
+              @if (!auth.isStaffAccount()) {
+                <a
+                  routerLink="/my-orders"
+                  [queryParams]="{ tab: 'profile' }"
+                  (click)="mobileOpen.set(false)"
+                  class="shrink-0 rounded-lg border border-orange-200 bg-white px-2.5 py-1 text-xs font-bold text-orange-700 shadow-2xs hover:bg-orange-50"
+                >
+                  Mi perfil
+                </a>
+              }
             </div>
 
             <!-- Staff-only Quick Links -->
@@ -766,7 +779,7 @@ import {
             </svg>
             <span class="text-[11px] font-medium">Gestión</span>
           </a>
-        } @else if (auth.isAuthenticated()) {
+        } @else if (auth.isAuthenticated() && !auth.isStaffAccount()) {
           <a
             routerLink="/my-orders"
             [routerLinkActiveOptions]="{ exact: true }"
@@ -778,9 +791,7 @@ import {
             </svg>
             <span class="text-[11px] font-medium">Pedidos</span>
           </a>
-        }
 
-        @if (auth.isAuthenticated()) {
           <a
             routerLink="/my-orders"
             [queryParams]="{ tab: 'profile' }"

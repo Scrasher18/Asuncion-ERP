@@ -46,7 +46,7 @@ export const routes: Routes = [
   {
     path: 'my-orders',
     title: 'Mis pedidos | Autopartes Asunción',
-    canActivate: [authGuard, roleGuard(['CLIENTE', 'ADMIN', 'VENDEDOR'])],
+    canActivate: [authGuard, roleGuard(['CLIENTE'])],
     loadComponent: () =>
       import('./features/orders/my-orders.page').then((m) => m.MyOrdersPageComponent),
   },

@@ -433,69 +433,132 @@ export interface BrandDistributionItem {
                 Actualizando indicadores de ventas y rotación de inventario...
               </div>
             } @else if (dashboard(); as dash) {
-              <!-- KPI Cards -->
+              <!-- KPI Cards: Global for ADMIN, Personal Performance & Privacy for VENDEDOR -->
               <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div class="relative rounded-2xl border border-gray-200 bg-white p-5 shadow-2xs overflow-hidden hover:border-orange-200 transition">
-                  <div class="absolute inset-x-0 top-0 h-1 bg-orange-600"></div>
-                  <div class="flex items-center justify-between">
-                    <span class="text-[11px] font-bold uppercase tracking-wider text-gray-500">Ventas totales</span>
-                    <span class="flex h-9 w-9 items-center justify-center rounded-xl border border-orange-100 bg-orange-50 text-orange-600">
-                      <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="12" y1="1" x2="12" y2="23" />
-                        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-                      </svg>
-                    </span>
+                @if (auth.hasAnyRole(['ADMIN'])) {
+                  <div class="relative rounded-2xl border border-gray-200 bg-white p-5 shadow-2xs overflow-hidden hover:border-orange-200 transition">
+                    <div class="absolute inset-x-0 top-0 h-1 bg-orange-600"></div>
+                    <div class="flex items-center justify-between">
+                      <span class="text-[11px] font-bold uppercase tracking-wider text-gray-500">Ventas totales</span>
+                      <span class="flex h-9 w-9 items-center justify-center rounded-xl border border-orange-100 bg-orange-50 text-orange-600">
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round">
+                          <line x1="12" y1="1" x2="12" y2="23" />
+                          <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                        </svg>
+                      </span>
+                    </div>
+                    <p class="mt-2.5 text-2xl font-extrabold tracking-tight tabular-nums text-gray-900">
+                      S/ {{ (dash.kpis.totalRevenue ?? dash.kpis.totalSales ?? 0) | number: '1.2-2' }}
+                    </p>
+                    <div class="mt-2 flex items-center gap-1.5">
+                      <span class="inline-flex items-center rounded-md bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+                        Últimos {{ analyticsDays() }} días
+                      </span>
+                    </div>
                   </div>
-                  <p class="mt-2.5 text-2xl font-extrabold tracking-tight tabular-nums text-gray-900">
-                    S/ {{ (dash.kpis.totalRevenue ?? dash.kpis.totalSales ?? 0) | number: '1.2-2' }}
-                  </p>
-                  <div class="mt-2 flex items-center gap-1.5">
-                    <span class="inline-flex items-center rounded-md bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
-                      Últimos {{ analyticsDays() }} días
-                    </span>
-                  </div>
-                </div>
 
-                <div class="relative rounded-2xl border border-gray-200 bg-white p-5 shadow-2xs overflow-hidden hover:border-emerald-200 transition">
-                  <div class="absolute inset-x-0 top-0 h-1 bg-emerald-600"></div>
-                  <div class="flex items-center justify-between">
-                    <span class="text-[11px] font-bold uppercase tracking-wider text-gray-500">Pedidos registrados</span>
-                    <span class="flex h-9 w-9 items-center justify-center rounded-xl border border-emerald-100 bg-emerald-50 text-emerald-600">
-                      <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" />
-                        <path d="M3 6h18" />
-                        <path d="M16 10a4 4 0 0 1-8 0" />
-                      </svg>
-                    </span>
+                  <div class="relative rounded-2xl border border-gray-200 bg-white p-5 shadow-2xs overflow-hidden hover:border-emerald-200 transition">
+                    <div class="absolute inset-x-0 top-0 h-1 bg-emerald-600"></div>
+                    <div class="flex items-center justify-between">
+                      <span class="text-[11px] font-bold uppercase tracking-wider text-gray-500">Pedidos registrados</span>
+                      <span class="flex h-9 w-9 items-center justify-center rounded-xl border border-emerald-100 bg-emerald-50 text-emerald-600">
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" />
+                          <path d="M3 6h18" />
+                          <path d="M16 10a4 4 0 0 1-8 0" />
+                        </svg>
+                      </span>
+                    </div>
+                    <p class="mt-2.5 text-2xl font-extrabold tracking-tight tabular-nums text-gray-900">
+                      {{ dash.kpis.totalOrders ?? dash.kpis.completedOrders ?? 0 }}
+                    </p>
+                    <div class="mt-2 flex items-center justify-between text-xs">
+                      <span class="text-gray-500">
+                        Entregados: <strong class="font-bold text-emerald-700 tabular-nums">{{ dash.kpis.deliveredOrders ?? dash.kpis.completedOrders ?? 0 }}</strong>
+                      </span>
+                    </div>
                   </div>
-                  <p class="mt-2.5 text-2xl font-extrabold tracking-tight tabular-nums text-gray-900">
-                    {{ dash.kpis.totalOrders ?? dash.kpis.completedOrders ?? 0 }}
-                  </p>
-                  <div class="mt-2 flex items-center justify-between text-xs">
-                    <span class="text-gray-500">
-                      Entregados: <strong class="font-bold text-emerald-700 tabular-nums">{{ dash.kpis.deliveredOrders ?? dash.kpis.completedOrders ?? 0 }}</strong>
-                    </span>
-                  </div>
-                </div>
 
-                <div class="relative rounded-2xl border border-gray-200 bg-white p-5 shadow-2xs overflow-hidden hover:border-amber-200 transition">
-                  <div class="absolute inset-x-0 top-0 h-1 bg-amber-500"></div>
-                  <div class="flex items-center justify-between">
-                    <span class="text-[11px] font-bold uppercase tracking-wider text-gray-500">Ticket promedio</span>
-                    <span class="flex h-9 w-9 items-center justify-center rounded-xl border border-amber-100 bg-amber-50 text-amber-600">
-                      <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round">
-                        <rect width="20" height="14" x="2" y="5" rx="2" />
-                        <line x1="2" y1="10" x2="22" y2="10" />
-                      </svg>
+                  <div class="relative rounded-2xl border border-gray-200 bg-white p-5 shadow-2xs overflow-hidden hover:border-amber-200 transition">
+                    <div class="absolute inset-x-0 top-0 h-1 bg-amber-500"></div>
+                    <div class="flex items-center justify-between">
+                      <span class="text-[11px] font-bold uppercase tracking-wider text-gray-500">Ticket promedio</span>
+                      <span class="flex h-9 w-9 items-center justify-center rounded-xl border border-amber-100 bg-amber-50 text-amber-600">
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round">
+                          <rect width="20" height="14" x="2" y="5" rx="2" />
+                          <line x1="2" y1="10" x2="22" y2="10" />
+                        </svg>
+                      </span>
+                    </div>
+                    <p class="mt-2.5 text-2xl font-extrabold tracking-tight tabular-nums text-gray-900">
+                      S/ {{ (dash.kpis.averageTicket ?? 0) | number: '1.2-2' }}
+                    </p>
+                    <span class="mt-2 inline-block text-xs text-gray-500">
+                      Boletas y facturas comerciales
                     </span>
                   </div>
-                  <p class="mt-2.5 text-2xl font-extrabold tracking-tight tabular-nums text-gray-900">
-                    S/ {{ (dash.kpis.averageTicket ?? 0) | number: '1.2-2' }}
-                  </p>
-                  <span class="mt-2 inline-block text-xs text-gray-500">
-                    Boletas y facturas comerciales
-                  </span>
-                </div>
+                } @else {
+                  <!-- VENDEDOR: Mis Métricas Personales -->
+                  <div class="relative rounded-2xl border border-purple-200 bg-gradient-to-br from-purple-50/60 via-white to-white p-5 shadow-2xs overflow-hidden hover:border-purple-300 transition">
+                    <div class="absolute inset-x-0 top-0 h-1 bg-purple-600"></div>
+                    <div class="flex items-center justify-between">
+                      <span class="text-[11px] font-bold uppercase tracking-wider text-purple-700">Mis ventas realizadas</span>
+                      <span class="flex h-9 w-9 items-center justify-center rounded-xl border border-purple-100 bg-purple-50 text-purple-600">
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round">
+                          <line x1="12" y1="1" x2="12" y2="23" />
+                          <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                        </svg>
+                      </span>
+                    </div>
+                    <p class="mt-2.5 text-2xl font-extrabold tracking-tight tabular-nums text-purple-950">
+                      S/ {{ mySellerPerformance().totalSales | number: '1.2-2' }}
+                    </p>
+                    <div class="mt-2 flex items-center gap-1.5">
+                      <span class="inline-flex items-center rounded-md bg-purple-100/70 border border-purple-200 px-2 py-0.5 text-[10px] font-bold text-purple-800">
+                        Total personal acumulado
+                      </span>
+                    </div>
+                  </div>
+
+                  <div class="relative rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50/60 via-white to-white p-5 shadow-2xs overflow-hidden hover:border-emerald-300 transition">
+                    <div class="absolute inset-x-0 top-0 h-1 bg-emerald-600"></div>
+                    <div class="flex items-center justify-between">
+                      <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-700">Mis pedidos cerrados</span>
+                      <span class="flex h-9 w-9 items-center justify-center rounded-xl border border-emerald-100 bg-emerald-50 text-emerald-600">
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" />
+                          <path d="M3 6h18" />
+                          <path d="M16 10a4 4 0 0 1-8 0" />
+                        </svg>
+                      </span>
+                    </div>
+                    <p class="mt-2.5 text-2xl font-extrabold tracking-tight tabular-nums text-emerald-950">
+                      {{ mySellerPerformance().closedTransactions }}
+                    </p>
+                    <div class="mt-2 flex items-center text-xs text-gray-500">
+                      <span>Órdenes comerciales con éxito</span>
+                    </div>
+                  </div>
+
+                  <div class="relative rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50/60 via-white to-white p-5 shadow-2xs overflow-hidden hover:border-amber-300 transition">
+                    <div class="absolute inset-x-0 top-0 h-1 bg-amber-500"></div>
+                    <div class="flex items-center justify-between">
+                      <span class="text-[11px] font-bold uppercase tracking-wider text-amber-700">Mi ticket promedio</span>
+                      <span class="flex h-9 w-9 items-center justify-center rounded-xl border border-amber-100 bg-amber-50 text-amber-600">
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round">
+                          <rect width="20" height="14" x="2" y="5" rx="2" />
+                          <line x1="2" y1="10" x2="22" y2="10" />
+                        </svg>
+                      </span>
+                    </div>
+                    <p class="mt-2.5 text-2xl font-extrabold tracking-tight tabular-nums text-amber-950">
+                      S/ {{ mySellerPerformance().averageTicket | number: '1.2-2' }}
+                    </p>
+                    <span class="mt-2 inline-block text-xs text-gray-500">
+                      Promedio por venta concretada
+                    </span>
+                  </div>
+                }
 
                 <div class="rounded-2xl border-2 border-red-200 bg-linear-to-br from-red-50/80 via-white to-white p-5 shadow-2xs relative overflow-hidden group hover:border-red-300 transition">
                   <div class="absolute inset-x-0 top-0 h-1 bg-red-600"></div>
@@ -777,89 +840,154 @@ export interface BrandDistributionItem {
 
               <!-- Salesperson Ranking + Sales by Category -->
               <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                <!-- Dynamic Salesperson Ranking -->
-                <div class="lg:col-span-7 rounded-2xl border border-gray-200 bg-white p-5 sm:p-6 shadow-2xs space-y-4">
-                  <div class="flex items-center justify-between">
-                    <div>
-                      <h3 class="text-sm font-bold text-gray-900">
-                        Desempeño del equipo de ventas
-                      </h3>
-                      <p class="text-xs text-gray-500">
-                        Ventas cerradas y avance respecto a la meta mensual asignada.
-                      </p>
+                <!-- Salesperson Section: Team Leaderboard for ADMIN, Strict Personal Quota & Privacy for VENDEDOR -->
+                @if (auth.hasAnyRole(['ADMIN'])) {
+                  <div class="lg:col-span-7 rounded-2xl border border-gray-200 bg-white p-5 sm:p-6 shadow-2xs space-y-4">
+                    <div class="flex items-center justify-between">
+                      <div>
+                        <h3 class="text-sm font-bold text-gray-900">
+                          Desempeño del equipo de ventas
+                        </h3>
+                        <p class="text-xs text-gray-500">
+                          Ventas cerradas y avance respecto a la meta mensual asignada por vendedor.
+                        </p>
+                      </div>
                     </div>
-                  </div>
 
-                  @if (dash.salespersonRanking.length === 0) {
-                    <p class="text-xs text-gray-500 py-4">Sin registros de ventas en el periodo seleccionado.</p>
-                  } @else {
-                    <div class="space-y-3">
-                      @for (sp of dash.salespersonRanking; track $index; let idx = $index) {
-                        <div class="rounded-xl border border-gray-200 bg-gray-50/60 p-3.5 space-y-2.5">
-                          <div class="flex flex-wrap items-center justify-between gap-2">
-                            <div class="flex items-center gap-3">
-                              <span
-                                [class]="
-                                  idx === 0
-                                    ? 'border-orange-200 bg-orange-50 text-orange-700'
-                                    : 'border-gray-200 bg-white text-gray-700'
-                                "
-                                class="flex h-7 w-7 items-center justify-center rounded-full border text-xs font-bold tabular-nums"
-                              >
-                                {{ idx + 1 }}
-                              </span>
-                              <div>
-                                <p class="text-sm font-semibold text-gray-900">
-                                  {{ sp.fullName || sp.salespersonName || sp.name }}
-                                </p>
-                                <p class="text-xs text-gray-500">
-                                  {{ sp.closedTransactions ?? sp.transactionsCount ?? sp.ordersCount ?? 0 }} pedidos cerrados
-                                </p>
+                    @if (dash.salespersonRanking.length === 0) {
+                      <p class="text-xs text-gray-500 py-4">Sin registros de ventas en el periodo seleccionado.</p>
+                    } @else {
+                      <div class="space-y-3">
+                        @for (sp of dash.salespersonRanking; track $index; let idx = $index) {
+                          <div class="rounded-xl border border-gray-200 bg-gray-50/60 p-3.5 space-y-2.5">
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                              <div class="flex items-center gap-3">
+                                <span
+                                  [class]="
+                                    idx === 0
+                                      ? 'border-orange-200 bg-orange-50 text-orange-700'
+                                      : 'border-gray-200 bg-white text-gray-700'
+                                  "
+                                  class="flex h-7 w-7 items-center justify-center rounded-full border text-xs font-bold tabular-nums"
+                                >
+                                  {{ idx + 1 }}
+                                </span>
+                                <div>
+                                  <p class="text-sm font-semibold text-gray-900">
+                                    {{ sp.fullName || sp.salespersonName || sp.name }}
+                                  </p>
+                                  <p class="text-xs text-gray-500">
+                                    {{ sp.closedTransactions ?? sp.transactionsCount ?? sp.ordersCount ?? 0 }} pedidos cerrados
+                                  </p>
+                                </div>
+                              </div>
+
+                              <div class="text-right">
+                                <span class="block text-sm font-bold tabular-nums text-gray-900">
+                                  S/ {{ (sp.totalSalesVolume ?? sp.totalSales ?? sp.totalRevenue ?? 0) | number: '1.2-2' }}
+                                </span>
+                                <span class="block text-xs tabular-nums text-gray-500">
+                                  Meta: S/ {{ (sp.monthlyQuota ?? sp.salesQuota ?? sp.quotaAmount ?? 15000) | number: '1.0-0' }}
+                                </span>
                               </div>
                             </div>
 
-                            <div class="text-right">
-                              <span class="block text-sm font-bold tabular-nums text-gray-900">
-                                S/ {{ (sp.totalSalesVolume ?? sp.totalSales ?? sp.totalRevenue ?? 0) | number: '1.2-2' }}
-                              </span>
-                              <span class="block text-xs tabular-nums text-gray-500">
-                                Meta: S/ {{ (sp.monthlyQuota ?? sp.salesQuota ?? sp.quotaAmount ?? 15000) | number: '1.0-0' }}
-                              </span>
+                            <!-- Quota Progress Bar -->
+                            <div class="space-y-1">
+                              <div class="flex justify-between text-xs">
+                                <span class="text-gray-500">Cumplimiento de meta</span>
+                                <span
+                                  [class]="
+                                    quotaPercent(sp) >= 100
+                                      ? 'text-emerald-700 font-semibold'
+                                      : 'text-orange-700 font-semibold'
+                                  "
+                                  class="tabular-nums"
+                                >
+                                  {{ quotaPercent(sp) | number: '1.0-1' }}%
+                                </span>
+                              </div>
+                              <div class="h-2 w-full overflow-hidden rounded-full bg-gray-200">
+                                <div
+                                  [class]="
+                                    quotaPercent(sp) >= 100
+                                      ? 'bg-emerald-500'
+                                      : 'bg-orange-600'
+                                  "
+                                  class="h-full rounded-full transition-all duration-500"
+                                  [style.width.%]="Math.min(100, quotaPercent(sp))"
+                                ></div>
+                              </div>
                             </div>
                           </div>
-
-                          <!-- Quota Progress Bar -->
-                          <div class="space-y-1">
-                            <div class="flex justify-between text-xs">
-                              <span class="text-gray-500">Cumplimiento de meta</span>
-                              <span
-                                [class]="
-                                  quotaPercent(sp) >= 100
-                                    ? 'text-emerald-700 font-semibold'
-                                    : 'text-orange-700 font-semibold'
-                                "
-                                class="tabular-nums"
-                              >
-                                {{ quotaPercent(sp) | number: '1.0-1' }}%
-                              </span>
-                            </div>
-                            <div class="h-2 w-full overflow-hidden rounded-full bg-gray-200">
-                              <div
-                                [class]="
-                                  quotaPercent(sp) >= 100
-                                    ? 'bg-emerald-500'
-                                    : 'bg-orange-600'
-                                "
-                                class="h-full rounded-full transition-all duration-500"
-                                [style.width.%]="Math.min(100, quotaPercent(sp))"
-                              ></div>
-                            </div>
-                          </div>
-                        </div>
-                      }
+                        }
+                      </div>
+                    }
+                  </div>
+                } @else {
+                  <!-- VENDEDOR: Privacidad total, solo su desempeño personal y progreso de meta -->
+                  <div class="lg:col-span-7 rounded-2xl border border-purple-200 bg-white p-5 sm:p-6 shadow-2xs space-y-4">
+                    <div class="flex items-center justify-between">
+                      <div>
+                        <h3 class="text-sm font-bold text-gray-900">
+                          Mi Desempeño Comercial del Mes
+                        </h3>
+                        <p class="text-xs text-gray-500">
+                          Tu volumen de ventas y cumplimiento de la meta mensual asignada.
+                        </p>
+                      </div>
+                      <span class="inline-flex items-center gap-1.5 rounded-full bg-purple-50 border border-purple-200 px-3 py-1 text-xs font-bold text-purple-700">
+                        👤 {{ auth.currentUser()?.fullName }}
+                      </span>
                     </div>
-                  }
-                </div>
+
+                    <div class="rounded-xl border border-purple-100 bg-purple-50/40 p-4 space-y-3.5">
+                      <div class="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                          <p class="text-base font-extrabold text-gray-900">
+                            {{ mySellerPerformance().fullName }}
+                          </p>
+                          <p class="text-xs text-gray-600 font-medium">
+                            {{ mySellerPerformance().closedTransactions }} ventas concretadas exitosamente
+                          </p>
+                        </div>
+
+                        <div class="text-right">
+                          <span class="block text-lg font-black tabular-nums text-purple-950">
+                            S/ {{ mySellerPerformance().totalSales | number: '1.2-2' }}
+                          </span>
+                          <span class="block text-xs tabular-nums text-gray-500 font-medium">
+                            Meta asignada: S/ {{ (mySellerPerformance().monthlyQuota ?? 15000) | number: '1.0-0' }}
+                          </span>
+                        </div>
+                      </div>
+
+                      <!-- Quota Progress Bar -->
+                      <div class="space-y-1.5">
+                        <div class="flex justify-between text-xs font-semibold">
+                          <span class="text-gray-600">Avance de meta mensual</span>
+                          <span
+                            [class]="quotaPercent(mySellerPerformance()) >= 100 ? 'text-emerald-700' : 'text-orange-700'"
+                            class="tabular-nums"
+                          >
+                            {{ quotaPercent(mySellerPerformance()) | number: '1.0-1' }}%
+                          </span>
+                        </div>
+                        <div class="h-2.5 w-full overflow-hidden rounded-full bg-gray-200">
+                          <div
+                            [class]="quotaPercent(mySellerPerformance()) >= 100 ? 'bg-emerald-500' : 'bg-orange-600'"
+                            class="h-full rounded-full transition-all duration-500"
+                            [style.width.%]="Math.min(100, quotaPercent(mySellerPerformance()))"
+                          ></div>
+                        </div>
+                        <div class="flex justify-between text-[11px] text-gray-500 pt-0.5">
+                          <span>Ticket promedio: <strong class="text-gray-800">S/ {{ mySellerPerformance().averageTicket | number: '1.2-2' }}</strong></span>
+                          <span>Restante para la meta: <strong class="text-gray-800">S/ {{ Math.max(0, (mySellerPerformance().monthlyQuota ?? 15000) - (mySellerPerformance().totalSales ?? 0)) | number: '1.2-2' }}</strong></span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                }
 
                 <!-- Category Breakdown -->
                 <div class="lg:col-span-5 rounded-2xl border border-gray-200 bg-white p-5 sm:p-6 shadow-2xs space-y-4">
@@ -895,153 +1023,155 @@ export interface BrandDistributionItem {
                 </div>
               </div>
 
-              <!-- Rendimiento y Calificación de Repartidores Motorizados -->
-              <div class="rounded-2xl border border-gray-200 bg-white p-5 sm:p-6 shadow-2xs space-y-4">
-                <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 pb-3">
-                  <div class="flex items-center gap-3">
-                    <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-600 border border-amber-200 text-lg">
-                      ⭐
-                    </span>
-                    <div>
-                      <h3 class="text-sm font-bold text-gray-900">
-                        Calificación y Rendimiento de Repartidores Motorizados
-                      </h3>
-                      <p class="text-xs text-gray-500">
-                        Evaluación continua del servicio de delivery otorgada por los clientes al recibir sus pedidos.
-                      </p>
-                    </div>
-                  </div>
-                  <div class="flex items-center gap-2">
-                    <span class="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-bold text-amber-800">
-                      <span>★</span>
-                      @if (getDriverRatingStats('Miguel Ángel Flores').totalReviews > 0) {
-                        <span>Promedio flota: {{ getDriverRatingStats('Miguel Ángel Flores').averageRating }} / 5.0 ({{ getDriverRatingStats('Miguel Ángel Flores').totalReviews }} eval.)</span>
-                      } @else {
-                        <span>Flota: Sin evaluaciones de clientes aún</span>
-                      }
-                    </span>
-                  </div>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <!-- Motorizado Principal Card -->
-                  <div class="rounded-xl border border-gray-200 bg-gray-50/70 p-4 space-y-3">
-                    <div class="flex items-center justify-between">
-                      <div class="flex items-center gap-2.5">
-                        <div class="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 text-emerald-800 font-bold text-xs">
-                          MF
-                        </div>
-                        <div>
-                          <h4 class="font-bold text-gray-900 text-xs">Miguel Ángel Flores</h4>
-                          <span class="text-[11px] text-gray-500">Motorizado Asunción • Placa 4582-7B</span>
-                        </div>
+              <!-- Rendimiento y Calificación de Repartidores Motorizados (Exclusivo ADMIN) -->
+              @if (auth.hasAnyRole(['ADMIN'])) {
+                <div class="rounded-2xl border border-gray-200 bg-white p-5 sm:p-6 shadow-2xs space-y-4">
+                  <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 pb-3">
+                    <div class="flex items-center gap-3">
+                      <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-600 border border-amber-200 text-lg">
+                        ⭐
+                      </span>
+                      <div>
+                        <h3 class="text-sm font-bold text-gray-900">
+                          Calificación y Rendimiento de Repartidores Motorizados
+                        </h3>
+                        <p class="text-xs text-gray-500">
+                          Evaluación continua del servicio de delivery otorgada por los clientes al recibir sus pedidos.
+                        </p>
                       </div>
-                      <span class="rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 text-[10px] font-bold">
-                        Activo en ruta
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <span class="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-bold text-amber-800">
+                        <span>★</span>
+                        @if (getDriverRatingStats('Miguel Ángel Flores').totalReviews > 0) {
+                          <span>Promedio flota: {{ getDriverRatingStats('Miguel Ángel Flores').averageRating }} / 5.0 ({{ getDriverRatingStats('Miguel Ángel Flores').totalReviews }} eval.)</span>
+                        } @else {
+                          <span>Flota: Sin evaluaciones de clientes aún</span>
+                        }
                       </span>
                     </div>
-
-                    <div class="flex items-center justify-between rounded-lg bg-white p-3 border border-gray-200/80">
-                      <div>
-                        <span class="text-[11px] text-gray-500 block">Puntuación</span>
-                        <div class="flex items-center gap-1">
-                          @if (getDriverRatingStats('Miguel Ángel Flores').totalReviews > 0) {
-                            <span class="text-xl font-black text-amber-600">{{ getDriverRatingStats('Miguel Ángel Flores').averageRating }}</span>
-                            <span class="text-amber-400 text-xs">{{ getDriverRatingStars(getDriverRatingStats('Miguel Ángel Flores').averageRating) }}</span>
-                          } @else {
-                            <span class="text-xs font-bold text-gray-400">Sin calificar</span>
-                            <span class="text-gray-300 text-xs">☆☆☆☆☆</span>
-                          }
-                        </div>
-                      </div>
-                      <div class="text-right">
-                        <span class="text-[11px] text-gray-500 block">Entregas evaluadas</span>
-                        <span class="text-xs font-bold text-gray-900">
-                          {{ getDriverRatingStats('Miguel Ángel Flores').totalReviews }} {{ getDriverRatingStats('Miguel Ángel Flores').totalReviews === 1 ? 'opinión real' : 'opiniones reales' }}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div class="space-y-1">
-                      <span class="text-[10px] font-semibold text-gray-500 uppercase tracking-wider block">Cualidades votadas por clientes</span>
-                      @if (driverRatingService.getTopTagsForDriver('Miguel Ángel Flores').length > 0) {
-                        <div class="flex flex-wrap gap-1">
-                          @for (tag of driverRatingService.getTopTagsForDriver('Miguel Ángel Flores').slice(0, 4); track tag) {
-                            <span class="rounded-md bg-white border border-gray-200 px-1.5 py-0.5 text-[10px] font-medium text-gray-700">
-                              ✓ {{ tag }}
-                            </span>
-                          }
-                        </div>
-                      } @else {
-                        <p class="text-[11px] text-gray-400 italic">Sin cualidades evaluadas todavía</p>
-                      }
-                    </div>
-
-                    <button
-                      type="button"
-                      (click)="openDriverRatingsModal('Miguel Ángel Flores')"
-                      class="w-full rounded-lg bg-white border border-gray-300 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-100 hover:text-orange-600 transition cursor-pointer"
-                    >
-                      Ver detalle de opiniones
-                    </button>
                   </div>
 
-                  <!-- Feed de Reseñas Reales de Clientes -->
-                  <div class="md:col-span-2 rounded-xl border border-gray-200 bg-white p-4 space-y-2.5 flex flex-col justify-between">
-                    <div>
-                      <div class="flex items-center justify-between pb-2 border-b border-gray-100">
-                        <span class="text-xs font-bold text-gray-900">Comentarios reales de clientes sobre el motorizado</span>
-                        <span class="text-[11px] text-gray-500">Actualizado en tiempo real</span>
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <!-- Motorizado Principal Card -->
+                    <div class="rounded-xl border border-gray-200 bg-gray-50/70 p-4 space-y-3">
+                      <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2.5">
+                          <div class="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 text-emerald-800 font-bold text-xs">
+                            MF
+                          </div>
+                          <div>
+                            <h4 class="font-bold text-gray-900 text-xs">Miguel Ángel Flores</h4>
+                            <span class="text-[11px] text-gray-500">Motorizado Asunción • Placa 4582-7B</span>
+                          </div>
+                        </div>
+                        <span class="rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 text-[10px] font-bold">
+                          Activo en ruta
+                        </span>
                       </div>
-                      <div class="space-y-2 pt-2 max-h-48 overflow-y-auto pr-1">
-                        @if (driverRatingService.getRatingsForDriver('Miguel Ángel Flores').length === 0) {
-                          <div class="py-8 px-4 text-center text-gray-400 text-xs space-y-1.5">
-                            <span class="text-2xl block">💬</span>
-                            <p class="font-semibold text-gray-600">Aún no hay comentarios de clientes</p>
-                            <p class="text-[11px] text-gray-400 max-w-sm mx-auto">
-                              Cuando un cliente confirme la recepción de su pedido en la sección de seguimiento y escriba su opinión, se mostrará aquí de manera auténtica.
-                            </p>
+
+                      <div class="flex items-center justify-between rounded-lg bg-white p-3 border border-gray-200/80">
+                        <div>
+                          <span class="text-[11px] text-gray-500 block">Puntuación</span>
+                          <div class="flex items-center gap-1">
+                            @if (getDriverRatingStats('Miguel Ángel Flores').totalReviews > 0) {
+                              <span class="text-xl font-black text-amber-600">{{ getDriverRatingStats('Miguel Ángel Flores').averageRating }}</span>
+                              <span class="text-amber-400 text-xs">{{ getDriverRatingStars(getDriverRatingStats('Miguel Ángel Flores').averageRating) }}</span>
+                            } @else {
+                              <span class="text-xs font-bold text-gray-400">Sin calificar</span>
+                              <span class="text-gray-300 text-xs">☆☆☆☆☆</span>
+                            }
+                          </div>
+                        </div>
+                        <div class="text-right">
+                          <span class="text-[11px] text-gray-500 block">Entregas evaluadas</span>
+                          <span class="text-xs font-bold text-gray-900">
+                            {{ getDriverRatingStats('Miguel Ángel Flores').totalReviews }} {{ getDriverRatingStats('Miguel Ángel Flores').totalReviews === 1 ? 'opinión real' : 'opiniones reales' }}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div class="space-y-1">
+                        <span class="text-[10px] font-semibold text-gray-500 uppercase tracking-wider block">Cualidades votadas por clientes</span>
+                        @if (driverRatingService.getTopTagsForDriver('Miguel Ángel Flores').length > 0) {
+                          <div class="flex flex-wrap gap-1">
+                            @for (tag of driverRatingService.getTopTagsForDriver('Miguel Ángel Flores').slice(0, 4); track tag) {
+                              <span class="rounded-md bg-white border border-gray-200 px-1.5 py-0.5 text-[10px] font-medium text-gray-700">
+                                ✓ {{ tag }}
+                              </span>
+                            }
                           </div>
                         } @else {
-                          @for (rev of driverRatingService.getRatingsForDriver('Miguel Ángel Flores').slice(0, 3); track rev.id) {
-                            <div class="rounded-lg bg-gray-50 p-2.5 text-xs space-y-1 border border-gray-100">
-                              <div class="flex items-center justify-between">
-                                <span class="font-bold text-gray-900">{{ rev.customerName }}</span>
-                                <div class="flex items-center gap-1.5">
-                                  <span class="text-amber-500 font-bold text-xs">{{ '★'.repeat(rev.stars) }}{{ '☆'.repeat(5 - rev.stars) }}</span>
-                                  <span class="text-[10px] text-gray-400 font-mono">{{ rev.orderNumber }}</span>
-                                </div>
-                              </div>
-                              @if (rev.comment) {
-                                <p class="text-gray-600 text-[11px] italic">"{{ rev.comment }}"</p>
-                              }
-                              @if (rev.tags.length > 0) {
-                                <div class="flex flex-wrap gap-1 pt-0.5">
-                                  @for (t of rev.tags; track t) {
-                                    <span class="rounded-md bg-white border border-gray-200 px-1.5 py-0.5 text-[9px] text-gray-600">
-                                      {{ t }}
-                                    </span>
-                                  }
-                                </div>
-                              }
-                            </div>
-                          }
+                          <p class="text-[11px] text-gray-400 italic">Sin cualidades evaluadas todavía</p>
                         }
                       </div>
-                    </div>
-                    <div class="pt-2 text-right">
+
                       <button
                         type="button"
                         (click)="openDriverRatingsModal('Miguel Ángel Flores')"
-                        class="text-xs font-semibold text-orange-600 hover:text-orange-700 inline-flex items-center gap-1 cursor-pointer"
+                        class="w-full rounded-lg bg-white border border-gray-300 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-100 hover:text-orange-600 transition cursor-pointer"
                       >
-                        <span>Ver todas las calificaciones ({{ driverRatingService.getRatingsForDriver('Miguel Ángel Flores').length }})</span>
-                        <span>→</span>
+                        Ver detalle de opiniones
                       </button>
+                    </div>
+
+                    <!-- Feed de Reseñas Reales de Clientes -->
+                    <div class="md:col-span-2 rounded-xl border border-gray-200 bg-white p-4 space-y-2.5 flex flex-col justify-between">
+                      <div>
+                        <div class="flex items-center justify-between pb-2 border-b border-gray-100">
+                          <span class="text-xs font-bold text-gray-900">Comentarios reales de clientes sobre el motorizado</span>
+                          <span class="text-[11px] text-gray-500">Actualizado en tiempo real</span>
+                        </div>
+                        <div class="space-y-2 pt-2 max-h-48 overflow-y-auto pr-1">
+                          @if (driverRatingService.getRatingsForDriver('Miguel Ángel Flores').length === 0) {
+                            <div class="py-8 px-4 text-center text-gray-400 text-xs space-y-1.5">
+                              <span class="text-2xl block">💬</span>
+                              <p class="font-semibold text-gray-600">Aún no hay comentarios de clientes</p>
+                              <p class="text-[11px] text-gray-400 max-w-sm mx-auto">
+                                Cuando un cliente confirme la recepción de su pedido en la sección de seguimiento y escriba su opinión, se mostrará aquí de manera auténtica.
+                              </p>
+                            </div>
+                          } @else {
+                            @for (rev of driverRatingService.getRatingsForDriver('Miguel Ángel Flores').slice(0, 3); track rev.id) {
+                              <div class="rounded-lg bg-gray-50 p-2.5 text-xs space-y-1 border border-gray-100">
+                                <div class="flex items-center justify-between">
+                                  <span class="font-bold text-gray-900">{{ rev.customerName }}</span>
+                                  <div class="flex items-center gap-1.5">
+                                    <span class="text-amber-500 font-bold text-xs">{{ '★'.repeat(rev.stars) }}{{ '☆'.repeat(5 - rev.stars) }}</span>
+                                    <span class="text-[10px] text-gray-400 font-mono">{{ rev.orderNumber }}</span>
+                                  </div>
+                                </div>
+                                @if (rev.comment) {
+                                  <p class="text-gray-600 text-[11px] italic">"{{ rev.comment }}"</p>
+                                }
+                                @if (rev.tags.length > 0) {
+                                  <div class="flex flex-wrap gap-1 pt-0.5">
+                                    @for (t of rev.tags; track t) {
+                                      <span class="rounded-md bg-white border border-gray-200 px-1.5 py-0.5 text-[9px] text-gray-600">
+                                        {{ t }}
+                                      </span>
+                                    }
+                                  </div>
+                                }
+                              </div>
+                            }
+                          }
+                        </div>
+                      </div>
+                      <div class="pt-2 text-right">
+                        <button
+                          type="button"
+                          (click)="openDriverRatingsModal('Miguel Ángel Flores')"
+                          class="text-xs font-semibold text-orange-600 hover:text-orange-700 inline-flex items-center gap-1 cursor-pointer"
+                        >
+                          <span>Ver todas las calificaciones ({{ driverRatingService.getRatingsForDriver('Miguel Ángel Flores').length }})</span>
+                          <span>→</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
+              }
 
               <!-- High-Rotation vs Low-Rotation Inventory Tables -->
               <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -1764,7 +1894,7 @@ export interface BrandDistributionItem {
               </div>
 
               <div class="flex flex-wrap items-center justify-between gap-2.5 pt-1">
-                <!-- Status filter pills -->
+                <!-- Status filter pills: strictly operational pending fulfillment & dispatch -->
                 <div class="inline-flex flex-wrap items-center rounded-xl border border-gray-200 bg-gray-50 p-1 text-xs gap-0.5">
                   <button
                     type="button"
@@ -1772,7 +1902,7 @@ export interface BrandDistributionItem {
                     [class]="orderStatusFilter() === 'ALL' ? 'bg-white text-gray-900 font-bold shadow-2xs' : 'text-gray-600 hover:text-gray-900 font-medium'"
                     class="rounded-lg px-2.5 py-1.5 transition cursor-pointer"
                   >
-                    Todos ({{ globalOrders().length }})
+                    Todos pendientes ({{ globalOrders().length }})
                   </button>
                   <button
                     type="button"
@@ -1780,7 +1910,7 @@ export interface BrandDistributionItem {
                     [class]="orderStatusFilter() === 'PENDING' ? 'bg-orange-600 text-white font-bold shadow-2xs' : 'text-gray-600 hover:text-gray-900 font-medium'"
                     class="rounded-lg px-2.5 py-1.5 transition cursor-pointer"
                   >
-                    Por atender ({{ pendingDispatchOrdersCount() }})
+                    Por preparar ({{ pendingDispatchOrdersCount() }})
                   </button>
                   <button
                     type="button"
@@ -1792,11 +1922,11 @@ export interface BrandDistributionItem {
                   </button>
                   <button
                     type="button"
-                    (click)="orderStatusFilter.set('ENTREGADO')"
-                    [class]="orderStatusFilter() === 'ENTREGADO' ? 'bg-emerald-600 text-white font-bold shadow-2xs' : 'text-gray-600 hover:text-gray-900 font-medium'"
+                    (click)="orderStatusFilter.set('PICKUP')"
+                    [class]="orderStatusFilter() === 'PICKUP' ? 'bg-sky-600 text-white font-bold shadow-2xs' : 'text-gray-600 hover:text-gray-900 font-medium'"
                     class="rounded-lg px-2.5 py-1.5 transition cursor-pointer"
                   >
-                    Entregados
+                    Recojo en tienda
                   </button>
                 </div>
 
@@ -2023,6 +2153,18 @@ export interface BrandDistributionItem {
                         >
                           <span>{{ ord.status === 'ENTREGADO' ? 'Constancia' : (ord.deliveryType === 'PICKUP' ? 'Detalle' : 'Seguimiento') }}</span>
                         </a>
+                      </td>
+                    </tr>
+                  } @empty {
+                    <tr>
+                      <td colspan="8" class="px-6 py-12 text-center text-gray-500">
+                        <div class="mx-auto max-w-sm space-y-2">
+                          <svg class="mx-auto h-8 w-8 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <p class="text-sm font-bold text-gray-900">No hay pedidos pendientes de despacho</p>
+                          <p class="text-xs text-gray-500">Todos los pedidos han sido entregados o retirados. Las órdenes finalizadas se encuentran registradas en la pestaña «Ventas Finalizadas».</p>
+                        </div>
                       </td>
                     </tr>
                   }
@@ -6344,8 +6486,56 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
   // Global Orders & Unified Completed Orders State
   readonly allSystemOrders = signal<Order[]>([]);
   readonly globalOrders = signal<Order[]>([]);
-  readonly orderStatusFilter = signal<'ALL' | 'PENDING' | 'EN_RUTA' | 'ENTREGADO'>('ALL');
+  readonly orderStatusFilter = signal<'ALL' | 'PENDING' | 'EN_RUTA' | 'PICKUP'>('ALL');
   orderSearchQuery = '';
+
+  // Personalized Metrics for VENDEDOR (Individual Sales Quota & Performance Privacy)
+  readonly mySellerPerformance = computed<SalespersonMetric>(() => {
+    const user = this.auth.currentUser();
+    const ranking = this.dashboard()?.salespersonRanking || [];
+
+    const found = ranking.find((sp) => {
+      if (!user) return false;
+      if (sp.userId && user.id && sp.userId === user.id) return true;
+      if (sp.salespersonId && user.id && sp.salespersonId === user.id) return true;
+      if (sp.email && user.email && sp.email.toLowerCase() === user.email.toLowerCase()) return true;
+      if (sp.fullName && user.fullName && sp.fullName.trim().toLowerCase() === user.fullName.trim().toLowerCase()) return true;
+      return false;
+    });
+
+    const orders = this.allSystemOrders();
+    const myOrders = orders.filter((o) => {
+      if (o.status === 'CANCELADO') return false;
+      if (user?.id && o.salespersonId === user.id) return true;
+      if (user?.fullName && o.salespersonName && o.salespersonName.trim().toLowerCase() === user.fullName.trim().toLowerCase()) return true;
+      return false;
+    });
+
+    const ordersCount = myOrders.length;
+    const totalSales = Number(myOrders.reduce((sum, o) => sum + (o.totalAmount ?? o.total ?? o.subtotal ?? 0), 0).toFixed(2));
+    const averageTicket = ordersCount > 0 ? Number((totalSales / ordersCount).toFixed(2)) : 0;
+    const quota = found?.monthlyQuota ?? found?.salesQuota ?? 15000;
+    const quotaPercent = quota > 0 ? (totalSales / quota) * 100 : 0;
+
+    return {
+      userId: user?.id,
+      salespersonId: user?.id,
+      fullName: user?.fullName || 'Asesor Comercial',
+      salespersonName: user?.fullName || 'Asesor Comercial',
+      email: user?.email,
+      totalSales: totalSales > 0 ? totalSales : (found?.totalSales ?? found?.totalSalesVolume ?? 0),
+      totalSalesVolume: totalSales > 0 ? totalSales : (found?.totalSalesVolume ?? found?.totalSales ?? 0),
+      totalRevenue: totalSales > 0 ? totalSales : (found?.totalRevenue ?? found?.totalSales ?? 0),
+      closedTransactions: ordersCount > 0 ? ordersCount : (found?.closedTransactions ?? found?.ordersCount ?? 0),
+      transactionsCount: ordersCount > 0 ? ordersCount : (found?.transactionsCount ?? found?.ordersCount ?? 0),
+      ordersCount: ordersCount > 0 ? ordersCount : (found?.ordersCount ?? found?.closedTransactions ?? 0),
+      monthlyQuota: quota,
+      salesQuota: quota,
+      quotaAmount: quota,
+      quotaAchievementPercent: totalSales > 0 ? quotaPercent : (found?.quotaAchievementPercent ?? quotaPercent),
+      averageTicket: averageTicket > 0 ? averageTicket : (found?.averageTicket ?? averageTicket),
+    };
+  });
 
   // Unified Completed Orders (Online Delivery + Online Pickup + Caja POS)
   readonly completedChannelFilter = signal<'ALL' | 'ONLINE_DELIVERY' | 'ONLINE_PICKUP' | 'POS'>('ALL');
@@ -6445,13 +6635,13 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
     const q = this.orderSearchQuery.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
     return this.globalOrders().filter((o) => {
       if (statusFilter === 'PENDING') {
-        if (o.status === 'ENTREGADO' || o.status === 'CANCELADO' || o.status === 'EN_RUTA') {
+        if (o.status !== 'CONFIRMADO' && o.status !== 'EN_PREPARACION') {
           return false;
         }
       } else if (statusFilter === 'EN_RUTA') {
         if (o.status !== 'EN_RUTA') return false;
-      } else if (statusFilter === 'ENTREGADO') {
-        if (o.status !== 'ENTREGADO') return false;
+      } else if (statusFilter === 'PICKUP') {
+        if (o.deliveryType !== 'PICKUP') return false;
       }
       if (!q) return true;
       const isPos = this.isCounterSaleOrder(o);
@@ -6464,7 +6654,7 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
   }
 
   readonly computedHourlySales = computed<SalesTimelinePoint[]>(() => {
-    const orders = this.globalOrders();
+    const orders = this.allSystemOrders().length > 0 ? this.allSystemOrders() : this.globalOrders();
     const hours = [
       { h: 8, label: '08:00' },
       { h: 9, label: '09:00' },
@@ -6559,7 +6749,7 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
       });
     }
 
-    const orders = this.globalOrders();
+    const orders = this.allSystemOrders().length > 0 ? this.allSystemOrders() : this.globalOrders();
     const map = new Map<number, { sales: number; count: number; profit: number; units: number }>();
     daysInfo.forEach(({ dow }) => map.set(dow, { sales: 0, count: 0, profit: 0, units: 0 }));
 
@@ -8264,7 +8454,7 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
     this.ordersService.getAllOrders().subscribe({
       next: (list) => {
         this.allSystemOrders.set(list);
-        this.globalOrders.set(list.filter((o) => !this.isCounterSaleOrder(o)));
+        this.globalOrders.set(list.filter((o) => !this.isCounterSaleOrder(o) && o.status !== 'ENTREGADO' && o.status !== 'CANCELADO'));
       },
       error: () => {
         this.allSystemOrders.set([]);
@@ -8274,7 +8464,7 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
   }
 
   exportOrdersToExcelForSunat(): void {
-    const orders = this.globalOrders();
+    const orders = this.allSystemOrders().length > 0 ? this.allSystemOrders() : this.globalOrders();
     if (!orders || orders.length === 0) {
       this.toast.info('Sin registros', 'No hay pedidos disponibles para exportar.');
       return;
@@ -9210,10 +9400,11 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
 
         // Only monitor online orders (counter sales in Caja do not trigger notifications/chimes)
         const onlineOrders = orders.filter((o) => !this.isCounterSaleOrder(o));
+        const activeOnlineOrders = onlineOrders.filter((o) => o.status !== 'ENTREGADO' && o.status !== 'CANCELADO');
 
         this.allSystemOrders.set(orders);
         if (this.activeTab() === 'orders' || this.activeTab() === 'completed') {
-          this.globalOrders.set(onlineOrders);
+          this.globalOrders.set(activeOnlineOrders);
         }
 
         if (!this.hasInitializedOrderMonitor) {
