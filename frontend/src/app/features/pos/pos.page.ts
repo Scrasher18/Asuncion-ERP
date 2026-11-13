@@ -190,7 +190,7 @@ const POS_HOLD_TTL_MS = 15 * 60 * 1000;
               <span class="font-mono text-xl font-extrabold text-gray-900 mt-0.5 block">{{ parts().length }}</span>
             </div>
             <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-gray-100 border border-gray-200 text-gray-700 font-bold">
-              📦
+              <img src="/images/icons/combo-paquete.png" alt="Repuestos" class="h-5 w-5 object-contain" />
             </span>
           </div>
         </div>
@@ -231,7 +231,7 @@ const POS_HOLD_TTL_MS = 15 * 60 * 1000;
 
               <!-- Physical store pricing banner: web promotions exclusive to web -->
               <div class="rounded-xl border border-blue-200 bg-blue-50/80 p-3 flex items-center gap-2.5 text-xs text-blue-950 font-medium">
-                <span class="text-lg">🏪</span>
+                <img src="/images/icons/caja-mostrador.png" alt="Mostrador" class="h-5 w-5 object-contain shrink-0" />
                 <span><strong>Precios de Venta Presencial (Mostrador / Tienda Física):</strong> Rige tarifa estándar de mostrador o mayorista desde 4 und. Los combos automotrices y ofertas promocionales son exclusivos de la tienda web online.</span>
               </div>
 
@@ -351,12 +351,12 @@ const POS_HOLD_TTL_MS = 15 * 60 * 1000;
                           </span>
                           @if (getTicketQtyForPart(part.id) > 0) {
                             <span class="rounded-full bg-orange-50 border border-orange-200 px-1.5 py-0.2 text-[9px] font-bold text-orange-700">
-                              🛒 {{ getTicketQtyForPart(part.id) }} en ticket
+                              {{ getTicketQtyForPart(part.id) }} en ticket
                             </span>
                           }
                           @if (getOnlineReservedForPart(part) > 0) {
                             <span class="rounded-full bg-amber-50 border border-amber-200 px-1.5 py-0.2 text-[9px] font-bold text-amber-800" title="Unidades en carritos web sin pagar. La venta en mostrador tiene prioridad de despacho físico.">
-                              ⚡ {{ getOnlineReservedForPart(part) }} en carritos web (Prioridad mostrador)
+                              {{ getOnlineReservedForPart(part) }} en carritos web (Prioridad mostrador)
                             </span>
                           }
                         </div>
@@ -585,9 +585,9 @@ const POS_HOLD_TTL_MS = 15 * 60 * 1000;
                       [(ngModel)]="paymentMethod"
                       class="w-full min-h-[40px] rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-900 focus:border-orange-600 focus:outline-none"
                     >
-                      <option value="MOSTRADOR_EFECTIVO">💵 Efectivo</option>
-                      <option value="MOSTRADOR_YAPE_PLIN">📱 Yape / Plin</option>
-                      <option value="MOSTRADOR_POS_TARJETA">💳 Tarjeta (POS)</option>
+                      <option value="MOSTRADOR_EFECTIVO">Efectivo</option>
+                      <option value="MOSTRADOR_YAPE_PLIN">Yape / Plin</option>
+                      <option value="MOSTRADOR_POS_TARJETA">Tarjeta (POS)</option>
                     </select>
                   </div>
 
@@ -615,7 +615,8 @@ const POS_HOLD_TTL_MS = 15 * 60 * 1000;
                       </p>
                       @if (cashReceived !== null && ticketTotal() > 0 && cashReceived < ticketTotal()) {
                         <div class="rounded-lg bg-red-50 border border-red-200 p-2 text-red-800 text-[11px] font-bold flex items-center gap-1.5 mt-1.5">
-                          <span>⚠️ Monto menor al total: Faltan S/ {{ (ticketTotal() - cashReceived) | number: '1.2-2' }}</span>
+                          <img src="/images/icons/alarma.png" alt="Alerta" class="h-3.5 w-3.5 object-contain inline-block shrink-0" />
+                          <span>Monto menor al total: Faltan S/ {{ (ticketTotal() - cashReceived) | number: '1.2-2' }}</span>
                         </div>
                       }
                     </div>
@@ -694,8 +695,8 @@ const POS_HOLD_TTL_MS = 15 * 60 * 1000;
                   submitting()
                     ? 'Procesando cobro y descontando stock...'
                     : invoiceType === 'FACTURA'
-                      ? '✓ Registrar Venta y Emitir Proforma PDF'
-                      : '✓ Registrar Venta y Emitir Boleta PDF'
+                      ? 'Registrar Venta y Emitir Proforma PDF'
+                      : 'Registrar Venta y Emitir Boleta PDF'
                 }}
               </button>
 
@@ -710,7 +711,8 @@ const POS_HOLD_TTL_MS = 15 * 60 * 1000;
                     (click)="openWhatsAppFactura(lastFac)"
                     class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 px-3 py-1.5 text-[11px] font-bold text-white shadow-2xs cursor-pointer"
                   >
-                    <span>📲 Enviar Factura WA</span>
+                    <img src="/images/icons/whatsapp-factura.png" alt="WhatsApp" class="h-3.5 w-3.5 object-contain inline-block shrink-0" />
+                    <span>Enviar Factura WA</span>
                   </button>
                 </div>
               }

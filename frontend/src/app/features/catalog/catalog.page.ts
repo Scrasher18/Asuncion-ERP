@@ -264,8 +264,11 @@ interface CatalogLocalSnapshot {
             <!-- Integrated SAE Viscosity Row inside the Selector (only when Filtros / Lubricantes is selected) -->
             @if (shouldShowViscosityFilter()) {
               <div class="mt-4 pt-3.5 border-t border-gray-200 flex flex-wrap items-center gap-2">
-                <span class="text-xs sm:text-[13px] font-extrabold text-gray-800 mr-1">
-                  🛢️ Grado SAE:
+                <span class="text-xs sm:text-[13px] font-extrabold text-gray-800 mr-1 flex items-center gap-1.5">
+                  <svg class="h-3.5 w-3.5 text-amber-700 inline-block" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                  </svg>
+                  <span>Grado SAE:</span>
                 </span>
                 <button
                   type="button"
@@ -320,10 +323,13 @@ interface CatalogLocalSnapshot {
               <button
                 type="button"
                 (click)="sortBy.set('RELEVANCE')"
-                class="inline-flex items-center gap-1 rounded-lg bg-orange-50 border border-orange-200 px-2.5 py-1 text-xs font-extrabold text-orange-800 hover:bg-orange-100 cursor-pointer"
+                class="inline-flex items-center gap-1.5 rounded-lg bg-orange-50 border border-orange-200 px-2.5 py-1 text-xs font-extrabold text-orange-800 hover:bg-orange-100 cursor-pointer"
               >
-                <span>📦 Solo Combos</span>
-                <span>✕</span>
+                <img src="/images/icons/combo-paquete.png" alt="Combo" class="h-3 w-3 object-contain inline-block" />
+                <span>Solo Combos</span>
+                <svg class="h-3 w-3 text-orange-600 inline-block" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
               </button>
             } @else if (displayedParts().length === 0) {
               <span class="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-1 text-sm font-extrabold text-red-700">
@@ -348,10 +354,13 @@ interface CatalogLocalSnapshot {
                 <button
                   type="button"
                   (click)="sortBy.set('RELEVANCE')"
-                  class="inline-flex items-center gap-1 rounded-lg bg-red-50 border border-red-200 px-2.5 py-1 text-xs font-extrabold text-red-700 hover:bg-red-100 cursor-pointer"
+                  class="inline-flex items-center gap-1.5 rounded-lg bg-red-50 border border-red-200 px-2.5 py-1 text-xs font-extrabold text-red-700 hover:bg-red-100 cursor-pointer"
                 >
-                  <span>🔥 Solo Ofertas</span>
-                  <span>✕</span>
+                  <img src="/images/icons/etiqueta-oferta.png" alt="Ofertas" class="h-3 w-3 object-contain inline-block" />
+                  <span>Solo Ofertas</span>
+                  <svg class="h-3 w-3 text-red-600 inline-block" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
                 </button>
               }
             }
@@ -360,50 +369,60 @@ interface CatalogLocalSnapshot {
               <button
                 type="button"
                 (click)="selectedMakeId = null; onMakeChange()"
-                class="inline-flex items-center gap-1 rounded-lg bg-orange-50 border border-orange-200 px-2.5 py-1 text-xs font-extrabold text-orange-800 hover:bg-orange-100 cursor-pointer"
+                class="inline-flex items-center gap-1.5 rounded-lg bg-orange-50 border border-orange-200 px-2.5 py-1 text-xs font-extrabold text-orange-800 hover:bg-orange-100 cursor-pointer"
               >
                 <span>Marca: {{ makeLabel }}</span>
-                <span>✕</span>
+                <svg class="h-3 w-3 text-orange-600 inline-block" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
               </button>
             }
             @if (activeModelName(); as modelLabel) {
               <button
                 type="button"
                 (click)="selectedModelId = null; applyFilters()"
-                class="inline-flex items-center gap-1 rounded-lg bg-orange-50 border border-orange-200 px-2.5 py-1 text-xs font-extrabold text-orange-800 hover:bg-orange-100 cursor-pointer"
+                class="inline-flex items-center gap-1.5 rounded-lg bg-orange-50 border border-orange-200 px-2.5 py-1 text-xs font-extrabold text-orange-800 hover:bg-orange-100 cursor-pointer"
               >
                 <span>Modelo: {{ modelLabel }}</span>
-                <span>✕</span>
+                <svg class="h-3 w-3 text-orange-600 inline-block" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
               </button>
             }
             @if (selectedYear) {
               <button
                 type="button"
                 (click)="selectedYear = null; applyFilters()"
-                class="inline-flex items-center gap-1 rounded-lg bg-orange-50 border border-orange-200 px-2.5 py-1 text-xs font-extrabold text-orange-800 tabular-nums hover:bg-orange-100 cursor-pointer"
+                class="inline-flex items-center gap-1.5 rounded-lg bg-orange-50 border border-orange-200 px-2.5 py-1 text-xs font-extrabold text-orange-800 tabular-nums hover:bg-orange-100 cursor-pointer"
               >
                 <span>Año: {{ selectedYear }}</span>
-                <span>✕</span>
+                <svg class="h-3 w-3 text-orange-600 inline-block" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
               </button>
             }
             @if (activeCategoryName(); as catLabel) {
               <button
                 type="button"
                 (click)="selectCategoryPill(null)"
-                class="inline-flex items-center gap-1 rounded-lg bg-orange-50 border border-orange-200 px-2.5 py-1 text-xs font-extrabold text-orange-800 hover:bg-orange-100 cursor-pointer"
+                class="inline-flex items-center gap-1.5 rounded-lg bg-orange-50 border border-orange-200 px-2.5 py-1 text-xs font-extrabold text-orange-800 hover:bg-orange-100 cursor-pointer"
               >
                 <span>Sistema: {{ catLabel }}</span>
-                <span>✕</span>
+                <svg class="h-3 w-3 text-orange-600 inline-block" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
               </button>
             }
             @if (selectedViscosity()) {
               <button
                 type="button"
                 (click)="selectViscosity(null)"
-                class="inline-flex items-center gap-1 rounded-lg bg-amber-50 border border-amber-300 px-2.5 py-1 text-xs font-extrabold text-amber-900 tabular-nums hover:bg-amber-100 cursor-pointer"
+                class="inline-flex items-center gap-1.5 rounded-lg bg-amber-50 border border-amber-300 px-2.5 py-1 text-xs font-extrabold text-amber-900 tabular-nums hover:bg-amber-100 cursor-pointer"
               >
                 <span>SAE {{ selectedViscosity() }}</span>
-                <span>✕</span>
+                <svg class="h-3 w-3 text-amber-700 inline-block" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
               </button>
             }
           </div>
@@ -427,7 +446,8 @@ interface CatalogLocalSnapshot {
                 "
                 class="min-h-[38px] inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-extrabold transition cursor-pointer"
               >
-                <span>🔥 Más Vendidos</span>
+                <img src="/images/icons/fuego-demanda.png" alt="Más Vendidos" class="h-3.5 w-3.5 object-contain inline-block" />
+                <span>Más Vendidos</span>
                 <span
                   [class]="sortBy() === 'BESTSELLERS' ? 'bg-white/25 text-white' : 'bg-amber-100 text-amber-800'"
                   class="rounded-full px-1.5 py-0.2 text-[11px] font-black tabular-nums"
@@ -448,7 +468,8 @@ interface CatalogLocalSnapshot {
                 "
                 class="min-h-[38px] inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-extrabold transition cursor-pointer"
               >
-                <span>🔥 Ofertas</span>
+                <img src="/images/icons/etiqueta-oferta.png" alt="Ofertas" class="h-3.5 w-3.5 object-contain inline-block" />
+                <span>Ofertas</span>
                 <span
                   [class]="sortBy() === 'ONLY_OFFERS' ? 'bg-white/25 text-white' : 'bg-red-100 text-red-700'"
                   class="rounded-full px-1.5 py-0.2 text-[11px] font-black tabular-nums"
@@ -469,7 +490,8 @@ interface CatalogLocalSnapshot {
                 "
                 class="min-h-[38px] inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-extrabold transition cursor-pointer"
               >
-                <span>📦 Combos</span>
+                <img src="/images/icons/combo-paquete.png" alt="Combos" class="h-3.5 w-3.5 object-contain inline-block" />
+                <span>Combos</span>
                 <span
                   [class]="sortBy() === 'ONLY_COMBOS' ? 'bg-white/25 text-white' : 'bg-orange-100 text-orange-700'"
                   class="rounded-full px-1.5 py-0.2 text-[11px] font-black tabular-nums"
@@ -487,7 +509,7 @@ interface CatalogLocalSnapshot {
                 class="min-h-[38px] rounded-lg border border-gray-300 bg-gray-50 px-3 py-1.5 text-xs sm:text-sm font-bold text-gray-900 focus:border-orange-500 focus:outline-none cursor-pointer"
               >
                 <option value="RELEVANCE">Relevancia</option>
-                <option value="BESTSELLERS">🔥 Más Vendidos primero</option>
+                <option value="BESTSELLERS">Más Vendidos primero</option>
                 <option value="PROMOS_FIRST">Ofertas y Combos primero</option>
                 <option value="ONLY_OFFERS">Solo Ofertas Flash</option>
                 <option value="ONLY_COMBOS">Solo Combos Automotrices</option>
@@ -524,7 +546,8 @@ interface CatalogLocalSnapshot {
                   <div>
                     <div class="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-gray-100">
                       <span class="inline-flex items-center gap-1.5 rounded-full bg-orange-600 px-3 py-1 text-[11px] font-black text-white uppercase tracking-wide">
-                        📦 Combo Automotriz · {{ combo.promo.badgeLabel }}
+                        <img src="/images/icons/combo-paquete.png" alt="Combo" class="h-3.5 w-3.5 object-contain inline-block" />
+                        <span>Combo Automotriz · {{ combo.promo.badgeLabel }}</span>
                       </span>
                       <span class="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-extrabold text-emerald-800 tabular-nums">
                         Cupo: {{ combo.promo.unitsQuota - combo.promo.unitsSoldInPromo }} disp.
@@ -632,7 +655,7 @@ interface CatalogLocalSnapshot {
                         (click)="cart.addCombo(combo.mainPart, combo.complementPart, true)"
                         class="min-h-[42px] inline-flex items-center justify-center gap-2 rounded-xl bg-orange-600 px-4 py-2.5 text-xs sm:text-sm font-extrabold text-white shadow-xs hover:bg-orange-700 active:scale-[0.98] disabled:bg-gray-200 disabled:text-gray-500 transition cursor-pointer"
                       >
-                        <span>{{ canAddCombo(combo) ? '🛒 Llevar Combo Completo' : 'Combo sin stock disponible' }}</span>
+                        <span>{{ canAddCombo(combo) ? 'Llevar Combo Completo' : 'Combo sin stock disponible' }}</span>
                       </button>
                     }
                   </div>
@@ -703,7 +726,8 @@ interface CatalogLocalSnapshot {
                   <div class="absolute bottom-2.5 left-2.5 flex flex-wrap items-center gap-1.5 z-10 max-w-[85%]">
                     @if (isBestSeller(part)) {
                       <span class="inline-flex items-center gap-1 rounded-full border border-amber-500 bg-amber-500 px-2.5 py-0.5 text-[11px] font-black text-white shadow-xs">
-                        <span>🔥 Más vendido</span>
+                        <img src="/images/icons/fuego-demanda.png" alt="Más vendido" class="h-3 w-3 object-contain inline-block shrink-0" />
+                        <span>Más vendido</span>
                         @if (getUnitsSold(part) > 0) {
                           <span class="text-[10px] font-bold text-amber-100">({{ getUnitsSold(part) }})</span>
                         }
@@ -714,8 +738,9 @@ interface CatalogLocalSnapshot {
                         -{{ offer.discountPercentage }}%
                       </span>
                     } @else if (promotionService.getPromotion(part.sku); as comboPromo) {
-                      <span class="rounded-full border border-orange-500 bg-orange-600 px-2.5 py-0.5 text-[11px] font-extrabold text-white shadow-xs">
-                        📦 En Combo
+                      <span class="inline-flex items-center rounded-full border border-orange-500 bg-orange-600 px-2.5 py-0.5 text-[11px] font-extrabold text-white shadow-xs">
+                        <img src="/images/icons/combo-paquete.png" alt="Combo" class="h-3.5 w-3.5 object-contain inline-block mr-1 align-text-bottom" />
+                        <span>En Combo</span>
                       </span>
                     }
                   </div>
@@ -753,7 +778,8 @@ interface CatalogLocalSnapshot {
 
                     @if (cart.getTotalReservedDisplay(part) > 0 && cart.getRemainingStockToAdd(part) > 0) {
                       <span class="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50/95 px-2 py-0.5 text-[11px] font-extrabold text-amber-900 tabular-nums">
-                        ⏳ {{ cart.getTotalReservedDisplay(part) }} en reserva
+                        <img src="/images/icons/reloj-reserva.png" alt="Reserva" class="h-3 w-3 object-contain inline-block shrink-0" />
+                        <span>{{ cart.getTotalReservedDisplay(part) }} en reserva</span>
                       </span>
                     }
                   </div>
@@ -770,8 +796,9 @@ interface CatalogLocalSnapshot {
 
                   <div class="flex flex-wrap items-center gap-1.5">
                     @if (isBestSeller(part)) {
-                      <span class="inline-flex items-center gap-1 rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-bold text-amber-900">
-                        <span>🔥 Alta demanda</span>
+                      <span class="inline-flex items-center gap-1.5 rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-bold text-amber-900">
+                        <img src="/images/icons/fuego-demanda.png" alt="Demanda" class="h-3.5 w-3.5 object-contain inline-block shrink-0" />
+                        <span>Alta demanda</span>
                         @if (getUnitsSold(part) > 0) {
                           <span class="text-amber-700">· {{ getUnitsSold(part) }} vendidos</span>
                         }
@@ -779,12 +806,18 @@ interface CatalogLocalSnapshot {
                     }
                     @if (getPartViscosity(part); as visc) {
                       <span class="inline-flex items-center gap-1 rounded-md border border-amber-300 bg-amber-50 px-2 py-0.5 text-xs font-extrabold text-amber-950 tabular-nums">
-                        🛢️ SAE {{ visc }}
+                        <svg class="h-3.5 w-3.5 text-amber-700 inline-block shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                        </svg>
+                        <span>SAE {{ visc }}</span>
                       </span>
                     }
                     @if (hasVehicleOrYearFilter()) {
                       <span class="inline-flex max-w-full items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-bold text-emerald-800 truncate">
-                        ✓ {{ formatFirstCompatibility(part) }}
+                        <svg class="h-3.5 w-3.5 text-emerald-600 inline-block shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                        </svg>
+                        <span class="truncate">{{ formatFirstCompatibility(part) }}</span>
                       </span>
                     } @else if (part.compatibilities && part.compatibilities.length > 0) {
                       <span class="inline-flex max-w-full items-center gap-1 rounded-md border border-gray-200 bg-gray-50 px-2 py-0.5 text-xs font-semibold text-gray-700 truncate">
@@ -816,9 +849,10 @@ interface CatalogLocalSnapshot {
                           <button
                             type="button"
                             (click)="sortBy.set('ONLY_COMBOS')"
-                            class="inline-flex items-center gap-1 text-[11px] font-extrabold text-orange-700 hover:underline mt-0.5 cursor-pointer"
+                            class="inline-flex items-center gap-1.5 text-[11px] font-extrabold text-orange-700 hover:underline mt-0.5 cursor-pointer"
                           >
-                            <span>📦 Disponible en Combo (-{{ comboPromo.discountPercentage }}%)</span>
+                            <img src="/images/icons/combo-paquete.png" alt="Combo" class="h-3.5 w-3.5 object-contain inline-block shrink-0" />
+                            <span>Disponible en Combo (-{{ comboPromo.discountPercentage }}%)</span>
                             <span>→</span>
                           </button>
                         }

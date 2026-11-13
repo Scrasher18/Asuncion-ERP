@@ -213,8 +213,14 @@ import { SoundService } from '../../core/services/sound.service';
                         <span class="rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-0.5 text-[11px] font-semibold text-gray-600">
                           {{ ord.invoiceType === 'FACTURA' ? 'Proforma p/ Factura (WhatsApp)' : 'Boleta de Venta' }}
                         </span>
-                        <span class="rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-0.5 text-[11px] font-medium text-gray-600">
-                          {{ ord.deliveryType === 'PICKUP' ? '🏬 Recojo en sede' : '🛵 Despacho a domicilio' }}
+                        <span class="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-0.5 text-[11px] font-medium text-gray-600">
+                          @if (ord.deliveryType === 'PICKUP') {
+                            <img src="/images/icons/tienda-recojo.png" alt="Recojo" class="h-3.5 w-3.5 object-contain inline-block" />
+                            <span>Recojo en sede</span>
+                          } @else {
+                            <img src="/images/icons/moto-delivery.png" alt="Delivery" class="h-3.5 w-3.5 object-contain inline-block" />
+                            <span>Despacho a domicilio</span>
+                          }
                         </span>
 
                         <!-- Payment & Collection Status Badge -->
@@ -222,22 +228,24 @@ import { SoundService } from '../../core/services/sound.service';
                           @if (isPaidOnline(ord)) {
                             <span class="inline-flex items-center gap-1 rounded-full border border-emerald-300 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-extrabold text-emerald-800 shadow-2xs">
                               <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
-                              ✓ PAGADO (Tarjeta en línea)
+                              PAGADO (Tarjeta en línea)
                             </span>
                           } @else {
                             <span class="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-2.5 py-0.5 text-[11px] font-extrabold text-amber-800 shadow-2xs">
-                              <span class="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse"></span>
-                              ⏳ FALTA COBRAR EN TIENDA ({{ formatPaymentMethodLabel(ord.paymentMethod) }})
+                              <img src="/images/icons/reloj-reserva.png" alt="Pendiente" class="h-3.5 w-3.5 object-contain inline-block" />
+                              <span>FALTA COBRAR EN TIENDA ({{ formatPaymentMethodLabel(ord.paymentMethod) }})</span>
                             </span>
                           }
                         } @else {
                           @if (isPaidOnline(ord)) {
                             <span class="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-emerald-700">
-                              ✓ Pagado
+                              <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+                              <span>Pagado</span>
                             </span>
                           } @else {
                             <span class="inline-flex items-center gap-1 rounded-full border border-orange-200 bg-orange-50 px-2 py-0.5 text-[11px] font-bold text-orange-700">
-                              ⏳ Cobro contra entrega ({{ formatPaymentMethodLabel(ord.paymentMethod) }})
+                              <img src="/images/icons/caja-mostrador.png" alt="Cobro" class="h-3.5 w-3.5 object-contain inline-block" />
+                              <span>Cobro contra entrega ({{ formatPaymentMethodLabel(ord.paymentMethod) }})</span>
                             </span>
                           }
                         }
@@ -341,7 +349,7 @@ import { SoundService } from '../../core/services/sound.service';
                               class="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-800 hover:bg-amber-100 transition cursor-pointer"
                               title="Ver o modificar calificación del repartidor"
                             >
-                              <span class="text-amber-500">★</span>
+                              <img src="/images/icons/estrella-calificacion.png" alt="Estrella" class="h-3.5 w-3.5 object-contain inline-block" />
                               <span>{{ myRating.stars }}/5</span>
                             </button>
                           } @else {
@@ -350,7 +358,7 @@ import { SoundService } from '../../core/services/sound.service';
                               (click)="openRatingModalForOrder(ord)"
                               class="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-800 hover:bg-amber-100 transition cursor-pointer"
                             >
-                              <span>⭐</span>
+                              <img src="/images/icons/estrella-calificacion.png" alt="Calificar" class="h-3.5 w-3.5 object-contain inline-block" />
                               <span>Calificar atención</span>
                             </button>
                           }
@@ -590,8 +598,8 @@ import { SoundService } from '../../core/services/sound.service';
 
               <!-- Header -->
               <div class="text-center space-y-2 pt-2">
-                <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-tr from-amber-400 to-amber-500 text-white shadow-md shadow-amber-500/25 text-2xl">
-                  🛵
+                <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-tr from-amber-400 to-amber-500 text-white shadow-md shadow-amber-500/25 p-2">
+                  <img src="/images/icons/moto-delivery.png" alt="Motorizado" class="h-9 w-9 object-contain" />
                 </div>
                 <h3 class="text-lg font-black text-gray-900 tracking-tight">Calificar al Repartidor</h3>
                 <p class="text-xs text-gray-500 max-w-xs mx-auto">
@@ -606,11 +614,14 @@ import { SoundService } from '../../core/services/sound.service';
                     <button
                       type="button"
                       (click)="selectedStars.set(star)"
-                      class="text-3xl transition-transform hover:scale-125 active:scale-95 cursor-pointer focus:outline-none"
+                      class="p-1 transition-transform hover:scale-125 active:scale-95 cursor-pointer focus:outline-none"
                       [class.text-amber-400]="star <= selectedStars()"
                       [class.text-gray-200]="star > selectedStars()"
+                      aria-label="Calificar"
                     >
-                      ★
+                      <svg class="h-7 w-7" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                      </svg>
                     </button>
                   }
                 </div>

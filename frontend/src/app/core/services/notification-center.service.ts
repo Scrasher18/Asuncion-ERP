@@ -260,7 +260,7 @@ export class NotificationCenterService {
           notifs.push({
             id: stockId,
             category: 'STOCK_ALERT',
-            title: isAgotado ? `🚨 Stock Agotado: ${part.name}` : `⚠️ Stock Crítico: ${part.name}`,
+            title: isAgotado ? `Stock Agotado: ${part.name}` : `Stock Crítico: ${part.name}`,
             message: `${part.sku}${part.oemCode ? ' (OEM: ' + part.oemCode + ')' : ''}: cuenta con ${part.stockQuantity} un. en almacén (mínimo de seguridad: ${part.minStockLevel || 5} un.). Requiere reposición inmediata.`,
             timestamp: new Date().toISOString(),
             relativeTime: isAgotado ? 'Inmediato' : 'Atención hoy',
@@ -468,7 +468,7 @@ export class NotificationCenterService {
               break;
             case 'EN_RUTA':
               if (ord.proximityAlertSent) {
-                title = `🛵 ¡Tu Repartidor está muy cerca! #${ord.orderNumber}`;
+                title = `¡Tu Repartidor está muy cerca! #${ord.orderNumber}`;
                 message = `El repartidor está a menos de 500m de tu domicilio. Prepara tu PIN de entrega: ${ord.deliverySecurityCode || ''}`;
                 iconType = 'truck';
                 accentColor = 'orange';

@@ -59,7 +59,10 @@ import { LiveTrackingResponse } from '../../../core/models/telemetry.models';
           } @else if (telemetry?.orderStatus === 'ENTREGADO') {
             <div class="text-right">
               <span class="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700 border border-emerald-200">
-                ✓ Pedido Entregado
+                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                </svg>
+                <span>Pedido Entregado</span>
               </span>
             </div>
           } @else {
@@ -143,8 +146,9 @@ export class LiveDriverMapComponent implements AfterViewInit, OnChanges, OnDestr
             <div style="position:relative;width:44px;height:44px;border-radius:50%;background:#FFFFFF;border:3px solid #EA580C;box-shadow:0 4px 14px rgba(234,88,12,0.35);display:flex;align-items:center;justify-content:center;padding:4px;" title="${tel.branchName || 'Sede Santa Anita'}">
               <img src="/local.png" onerror="this.src='/images/icons/local.png'" style="width:30px;height:30px;object-fit:contain;" alt="Tienda Asuncion" />
             </div>
-            <div style="background:#FFFFFF;color:#EA580C;border:1.5px solid #EA580C;border-radius:8px;padding:2px 8px;font-size:10px;font-weight:800;box-shadow:0 2px 6px rgba(0,0,0,0.18);white-space:nowrap;margin-top:2px;">
-              🏢 Tienda Asunción
+            <div style="background:#FFFFFF;color:#EA580C;border:1.5px solid #EA580C;border-radius:8px;padding:2px 8px;font-size:10px;font-weight:800;box-shadow:0 2px 6px rgba(0,0,0,0.18);white-space:nowrap;margin-top:2px;display:flex;align-items:center;gap:3px;">
+              <img src="/images/icons/tienda-recojo.png" style="width:11px;height:11px;object-fit:contain;" alt="" />
+              <span>Tienda Asunción</span>
             </div>
           </div>
         `,
@@ -164,8 +168,9 @@ export class LiveDriverMapComponent implements AfterViewInit, OnChanges, OnDestr
             <div style="position:relative;width:48px;height:48px;border-radius:50%;background:#FFFFFF;border:3px solid #16A34A;box-shadow:0 4px 14px rgba(22,163,74,0.35);display:flex;align-items:center;justify-content:center;padding:4px;">
               <img src="/casa.png" onerror="this.src='/images/icons/casa.png'" style="width:34px;height:34px;object-fit:contain;" alt="Casa Destino" />
             </div>
-            <div style="background:#FFFFFF;color:#16A34A;border:1.5px solid #16A34A;border-radius:8px;padding:2px 8px;font-size:10px;font-weight:800;box-shadow:0 2px 6px rgba(0,0,0,0.18);white-space:nowrap;margin-top:3px;">
-              🏠 Casa / Destino
+            <div style="background:#FFFFFF;color:#16A34A;border:1.5px solid #16A34A;border-radius:8px;padding:2px 8px;font-size:10px;font-weight:800;box-shadow:0 2px 6px rgba(0,0,0,0.18);white-space:nowrap;margin-top:3px;display:flex;align-items:center;gap:3px;">
+              <img src="/images/icons/casa.png" style="width:11px;height:11px;object-fit:contain;" alt="" />
+              <span>Casa / Destino</span>
             </div>
           </div>
         `,
@@ -186,8 +191,9 @@ export class LiveDriverMapComponent implements AfterViewInit, OnChanges, OnDestr
             <img src="/repartidor.png" onerror="this.src='/images/icons/repartidor.png'" style="width:34px;height:34px;object-fit:contain;" alt="Motorizado en ruta" />
           </div>
         </div>
-        <div style="background:#EA580C;color:#FFFFFF;border:1.5px solid #FFFFFF;border-radius:8px;padding:2px 8px;font-size:10px;font-weight:800;box-shadow:0 2px 8px rgba(0,0,0,0.25);white-space:nowrap;margin-top:-2px;">
-          🛵 Motorizado en ruta
+        <div style="background:#EA580C;color:#FFFFFF;border:1.5px solid #FFFFFF;border-radius:8px;padding:2px 8px;font-size:10px;font-weight:800;box-shadow:0 2px 8px rgba(0,0,0,0.25);white-space:nowrap;margin-top:-2px;display:flex;align-items:center;gap:3px;">
+          <img src="/images/icons/moto-delivery.png" style="width:12px;height:12px;object-fit:contain;" alt="" />
+          <span>Motorizado en ruta</span>
         </div>
       </div>
     `;

@@ -71,7 +71,7 @@ import { LiveDriverMapComponent } from '../../shared/components/live-driver-map/
             @if (myDriverStatus() === 'RETORNANDO') {
               <div class="rounded-xl border border-amber-200 bg-amber-50 p-2.5 text-xs text-amber-900 flex flex-wrap items-center justify-between gap-2">
                 <div class="flex items-center gap-2">
-                  <span class="text-base">🛵</span>
+                  <img src="/images/icons/moto-delivery.png" alt="Motorizado" class="h-5 w-5 object-contain inline-block shrink-0" />
                   <div>
                     <p class="font-bold">Retornando a tienda en curso</p>
                     <p class="text-[11px] text-amber-800">
@@ -234,7 +234,8 @@ import { LiveDriverMapComponent } from '../../shared/components/live-driver-map/
                     <div class="rounded-xl border-2 border-amber-400 bg-gradient-to-r from-amber-50 to-orange-50 p-3 shadow-2xs space-y-1.5">
                       <div class="flex items-center justify-between">
                         <span class="inline-flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-amber-950">
-                          <span class="text-sm">💵</span> Cobro en Efectivo al entregar
+                          <img src="/images/icons/caja-mostrador.png" alt="Efectivo" class="h-4 w-4 object-contain inline-block shrink-0" />
+                          <span>Cobro en Efectivo al entregar</span>
                         </span>
                         <span class="text-[11px] font-bold px-2 py-0.5 rounded-md bg-amber-200/80 text-amber-950">
                           Total: S/ {{ (ord.totalAmount ?? ord.total ?? ord.subtotal) | number: '1.2-2' }}
@@ -250,7 +251,10 @@ import { LiveDriverMapComponent } from '../../shared/components/live-driver-map/
                             </strong>
                           </div>
                           <div class="rounded-lg bg-emerald-50 border-2 border-emerald-400 p-2 text-center">
-                            <span class="block text-[10px] font-bold uppercase text-emerald-800 animate-pulse">⚠️ Llevar Vuelto</span>
+                            <span class="flex items-center justify-center gap-1 text-[10px] font-bold uppercase text-emerald-800 animate-pulse">
+                              <img src="/images/icons/alarma.png" alt="Aviso" class="h-3 w-3 object-contain inline-block" />
+                              <span>Llevar Vuelto</span>
+                            </span>
                             <strong class="font-mono text-sm font-black text-emerald-700">
                               S/ {{ cashInfo.change | number: '1.2-2' }}
                             </strong>
@@ -259,7 +263,8 @@ import { LiveDriverMapComponent } from '../../shared/components/live-driver-map/
                       } @else {
                         <div class="rounded-lg bg-emerald-50 border border-emerald-300 p-2 flex items-center justify-between text-xs text-emerald-950 font-bold">
                           <span class="flex items-center gap-1.5">
-                            <span>👌</span> Cliente paga monto exacto
+                            <span class="h-2 w-2 rounded-full bg-emerald-600 inline-block"></span>
+                            <span>Cliente paga monto exacto</span>
                           </span>
                           <span class="font-mono text-emerald-800 text-[11px]">Sin vuelto</span>
                         </div>
@@ -268,7 +273,10 @@ import { LiveDriverMapComponent } from '../../shared/components/live-driver-map/
                   } @else if (cashInfo.type === 'POS') {
                     <div class="rounded-xl border-2 border-blue-300 bg-blue-50/70 p-3 shadow-2xs flex items-center justify-between text-xs text-blue-950">
                       <div class="flex items-center gap-2">
-                        <span class="text-base">💳</span>
+                        <svg class="h-4 w-4 text-blue-700 inline-block shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <rect width="20" height="14" x="2" y="5" rx="2" />
+                          <line x1="2" y1="10" x2="22" y2="10" />
+                        </svg>
                         <div>
                           <strong class="block font-bold">Cobro con POS Móvil</strong>
                           <span class="text-[11px] text-blue-800">Llevar terminal para cobrar con tarjeta</span>
@@ -610,8 +618,11 @@ import { LiveDriverMapComponent } from '../../shared/components/live-driver-map/
                 type="button"
                 (click)="closeIncidentModal()"
                 class="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 cursor-pointer"
+                aria-label="Cerrar modal"
               >
-                ✕
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
               </button>
             </div>
 

@@ -75,8 +75,9 @@ import { ToastService } from '../../../core/services/toast.service';
                     Estado: <strong class="font-extrabold text-amber-900 uppercase">RESERVADO</strong> para tu compra
                   </span>
                 </div>
-                <span class="rounded-md border border-amber-300 bg-white px-2 py-0.5 font-mono text-[11px] font-extrabold text-amber-800 tabular-nums">
-                  ⏳ {{ cart.reservationFormattedTimer() }}
+                <span class="rounded-md border border-amber-300 bg-white px-2 py-0.5 font-mono text-[11px] font-extrabold text-amber-800 tabular-nums inline-flex items-center gap-1">
+                  <img src="/images/icons/reloj-reserva.png" alt="Reserva" class="h-3 w-3 object-contain shrink-0" />
+                  <span>{{ cart.reservationFormattedTimer() }}</span>
                 </span>
               </div>
             }
@@ -165,8 +166,9 @@ import { ToastService } from '../../../core/services/toast.service';
                           </span>
                           @if (cart.effectiveUnitPrice(item) < item.part.salePrice) {
                             @if (cart.isComboPriceActiveOnItem(item)) {
-                              <span class="inline-block rounded bg-orange-50 border border-orange-200 px-1.5 py-0.5 text-[10px] font-extrabold text-orange-800">
-                                📦 Precio Combo Activo
+                              <span class="inline-flex items-center gap-1 rounded bg-orange-50 border border-orange-200 px-1.5 py-0.5 text-[10px] font-extrabold text-orange-800">
+                                <img src="/images/icons/combo-paquete.png" alt="Combo" class="h-3 w-3 object-contain inline-block" />
+                                <span>Precio Combo Activo</span>
                               </span>
 
                             } @else if (cart.promotionService.getDirectOffer(item.part.sku); as promo) {

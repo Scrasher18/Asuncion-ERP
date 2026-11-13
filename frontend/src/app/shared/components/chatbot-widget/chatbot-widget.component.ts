@@ -128,7 +128,10 @@ interface ChatMessageItem {
                     <div class="pt-1 flex items-center justify-between text-[10px] text-gray-400">
                       @if (msg.engineUsed === 'HYBRID_DB_PLUS_GEMINI') {
                         <span class="inline-flex items-center gap-1 font-medium text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded">
-                          <span>✨ Google Gemini AI</span>
+                          <svg class="h-3 w-3 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                          </svg>
+                          <span>Google Gemini AI</span>
                         </span>
                       } @else {
                         <span class="inline-flex items-center gap-1 text-gray-400">
@@ -266,26 +269,26 @@ export class ChatbotWidgetComponent {
   draftMessage = '';
 
   readonly quickReplies = signal<string[]>([
-    '🔍 Pastillas para Hilux 2021',
-    '📦 Filtros de aceite en stock',
-    '🔧 Bujías para Toyota Probox',
-    '📍 Zonas de delivery y pago',
+    'Pastillas para Hilux 2021',
+    'Filtros de aceite en stock',
+    'Bujías para Toyota Probox',
+    'Zonas de delivery y pago',
   ]);
 
   readonly messages = signal<ChatMessageItem[]>([
     {
       id: 'welcome-1',
       sender: 'bot',
-      text: `¡Hola! Bienvenido al Asistente Técnico de Autopartes Asunción 🚗🔧
+      text: `¡Hola! Bienvenido al Asistente Técnico de Autopartes Asunción.
 
-Estoy aquí para ayudarte exclusivamente con tus consultas y compras de repuestos:
+Estoy aquí para ayudarte con tus consultas y compras de repuestos:
 
-1. 🔍 **Búsqueda por vehículo:** Indícame la marca, modelo y año (ej: "pastillas para Hilux 2021" o "filtro de aceite para Nissan Frontier").
-2. 📦 **Stock y Precios:** Consulta disponibilidad en almacén y precios con IGV.
-3. 🛠️ **Compatibilidad y Asesoría:** Consulta especificaciones OEM, fallas comunes y repuestos certificados.
-4. 💳 **Métodos de Pago y Entrega:** Consulta información sobre envíos express en Lima y formas de pago.
+1. **Búsqueda por vehículo:** Indícame la marca, modelo y año (ej: "pastillas para Hilux 2021" o "filtro de aceite para Nissan Frontier").
+2. **Stock y Precios:** Consulta disponibilidad en almacén y precios con IGV.
+3. **Compatibilidad y Asesoría:** Consulta especificaciones OEM, fallas comunes y repuestos certificados.
+4. **Métodos de Pago y Entrega:** Consulta información sobre envíos express en Lima y formas de pago.
 
-💡 *Nota: El seguimiento en tiempo real de tus pedidos se realiza con GPS satelital en la sección "Seguimiento" (/track) del menú superior.*
+*Nota: El seguimiento en tiempo real de tus pedidos se realiza con GPS satelital en la sección "Seguimiento" (/track) del menú superior.*
 
 ¿Qué repuesto necesitas consultar hoy?`,
       timestamp: new Date(),

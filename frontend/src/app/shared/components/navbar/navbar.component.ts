@@ -374,10 +374,13 @@ import {
                         <button
                           type="button"
                           (click)="notifService.dismissNotification(item.id, $event)"
-                          class="absolute top-2.5 right-2.5 rounded-md p-1 text-[11px] text-gray-400 opacity-0 group-hover:opacity-100 hover:bg-gray-200/70 hover:text-gray-700 transition cursor-pointer"
+                          class="absolute top-2.5 right-2.5 rounded-md p-1 text-gray-400 opacity-0 group-hover:opacity-100 hover:bg-gray-200/70 hover:text-gray-700 transition cursor-pointer"
                           title="Descartar aviso"
+                          aria-label="Descartar"
                         >
-                          ✕
+                          <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                          </svg>
                         </button>
                       </div>
                     } @empty {
@@ -476,7 +479,8 @@ import {
                   </span>
                   @if (cart.hasActiveReservation()) {
                     <span class="hidden lg:inline-flex items-center gap-1 rounded-full bg-black/30 px-1.5 py-0.5 text-[10px] font-bold text-amber-200 ring-1 ring-white/20 font-mono">
-                      ⏳ {{ cart.reservationFormattedTimer() }}
+                      <img src="/images/icons/reloj-reserva.png" alt="Reserva" class="h-3 w-3 object-contain inline-block shrink-0" />
+                      <span>{{ cart.reservationFormattedTimer() }}</span>
                     </span>
                   }
                 }
@@ -740,8 +744,9 @@ import {
                   Carrito · S/ {{ cart.subtotal() | number: '1.0-0' }}
                 </span>
                 @if (cart.hasActiveReservation()) {
-                  <span class="text-[9px] font-extrabold text-amber-600 font-mono tracking-tighter">
-                    ⏳ {{ cart.reservationFormattedTimer() }}
+                  <span class="text-[9px] font-extrabold text-amber-600 font-mono tracking-tighter flex items-center gap-0.5">
+                    <img src="/images/icons/reloj-reserva.png" alt="Reserva" class="h-2.5 w-2.5 object-contain inline-block shrink-0" />
+                    <span>{{ cart.reservationFormattedTimer() }}</span>
                   </span>
                 }
               </div>
@@ -834,8 +839,9 @@ import {
               {{ cart.totalItems() }} {{ cart.totalItems() === 1 ? 'repuesto' : 'repuestos' }} · S/ {{ cart.subtotal() | number: '1.2-2' }}
             </span>
             @if (cart.hasActiveReservation()) {
-              <span class="block text-[10px] font-bold text-amber-100 font-mono">
-                ⏳ Reserva asegurada: {{ cart.reservationFormattedTimer() }}
+              <span class="block text-[10px] font-bold text-amber-100 font-mono flex items-center gap-1">
+                <img src="/images/icons/reloj-reserva.png" alt="Reserva" class="h-3 w-3 object-contain inline-block shrink-0" />
+                <span>Reserva asegurada: {{ cart.reservationFormattedTimer() }}</span>
               </span>
             }
           </div>

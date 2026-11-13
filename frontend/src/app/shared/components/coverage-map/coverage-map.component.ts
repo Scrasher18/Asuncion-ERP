@@ -292,8 +292,9 @@ export class CoverageMapComponent implements AfterViewInit, OnChanges, OnDestroy
           <div style="position:relative;width:48px;height:48px;border-radius:50%;background:#FFFFFF;border:3px solid #EA580C;box-shadow:0 4px 14px rgba(234,88,12,0.35);display:flex;align-items:center;justify-content:center;padding:4px;">
             <img src="/local.png" onerror="this.src='/images/icons/local.png'" style="width:34px;height:34px;object-fit:contain;" alt="Tienda Asuncion" />
           </div>
-          <div style="background:#FFFFFF;color:#EA580C;border:1.5px solid #EA580C;border-radius:8px;padding:2px 8px;font-size:11px;font-weight:800;box-shadow:0 2px 8px rgba(0,0,0,0.18);white-space:nowrap;margin-top:3px;">
-            🏢 ${this.effectiveBranch.name || 'Local Asunción'}
+          <div style="background:#FFFFFF;color:#EA580C;border:1.5px solid #EA580C;border-radius:8px;padding:2px 8px;font-size:11px;font-weight:800;box-shadow:0 2px 8px rgba(0,0,0,0.18);white-space:nowrap;margin-top:3px;display:flex;align-items:center;gap:4px;">
+            <img src="/images/icons/tienda-recojo.png" style="width:12px;height:12px;object-fit:contain;" alt="" />
+            <span>${this.effectiveBranch.name || 'Local Asunción'}</span>
           </div>
         </div>
       `,
@@ -356,8 +357,9 @@ export class CoverageMapComponent implements AfterViewInit, OnChanges, OnDestroy
           <div style="position:relative;width:48px;height:48px;border-radius:50%;background:#FFFFFF;border:3px solid #16A34A;box-shadow:0 4px 14px rgba(22,163,74,0.35);display:flex;align-items:center;justify-content:center;padding:4px;">
             <img src="/casa.png" onerror="this.src='/images/icons/casa.png'" style="width:34px;height:34px;object-fit:contain;" alt="Casa Destino" />
           </div>
-          <div style="background:#FFFFFF;color:#16A34A;border:1.5px solid #16A34A;border-radius:8px;padding:2px 8px;font-size:11px;font-weight:800;box-shadow:0 2px 6px rgba(0,0,0,0.18);white-space:nowrap;margin-top:3px;">
-            🏠 Dirección de Entrega
+          <div style="background:#FFFFFF;color:#16A34A;border:1.5px solid #16A34A;border-radius:8px;padding:2px 8px;font-size:11px;font-weight:800;box-shadow:0 2px 6px rgba(0,0,0,0.18);white-space:nowrap;margin-top:3px;display:flex;align-items:center;gap:4px;">
+            <img src="/images/icons/casa.png" style="width:12px;height:12px;object-fit:contain;" alt="" />
+            <span>Dirección de Entrega</span>
           </div>
         </div>
       `,

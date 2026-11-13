@@ -177,12 +177,26 @@ const ORDER_STAGES = [
 
               <div class="flex flex-wrap items-center gap-2">
                 <span class="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-semibold text-gray-700">
-                  <span>{{ ord.invoiceType === 'FACTURA' ? '📄 Proforma p/ Factura (WhatsApp)' : '🧾 Boleta de Venta' }}</span>
+                  <span class="inline-flex items-center gap-1">
+                    <img src="/images/icons/caja-mostrador.png" alt="Comprobante" class="h-3.5 w-3.5 object-contain inline-block" />
+                    <span>{{ ord.invoiceType === 'FACTURA' ? 'Proforma p/ Factura (WhatsApp)' : 'Boleta de Venta' }}</span>
+                  </span>
                   <span class="text-gray-300">|</span>
-                  <span>{{ ord.deliveryType === 'PICKUP' ? '🏬 Recojo en tienda' : '🛵 Envío a domicilio' }}</span>
+                  <span class="inline-flex items-center gap-1">
+                    @if (ord.deliveryType === 'PICKUP') {
+                      <img src="/images/icons/tienda-recojo.png" alt="Recojo" class="h-3.5 w-3.5 object-contain inline-block" />
+                      <span>Recojo en tienda</span>
+                    } @else {
+                      <img src="/images/icons/moto-delivery.png" alt="Delivery" class="h-3.5 w-3.5 object-contain inline-block" />
+                      <span>Envío a domicilio</span>
+                    }
+                  </span>
                   @if (ord.salespersonName) {
                     <span class="text-gray-300">|</span>
-                    <span class="text-purple-700 font-bold">👤 Asesor: {{ ord.salespersonName }}</span>
+                    <span class="inline-flex items-center gap-1 text-purple-700 font-bold">
+                      <img src="/images/icons/vendedor.png" alt="Asesor" class="h-3.5 w-3.5 object-contain inline-block" />
+                      <span>Asesor: {{ ord.salespersonName }}</span>
+                    </span>
                   }
                 </span>
 
@@ -356,9 +370,17 @@ const ORDER_STAGES = [
                     </span>
                     <p class="font-extrabold text-sm flex items-center gap-1.5">
                       @if (isPaidOnline(ord)) {
-                        <span>✓ PAGADO (Tarjeta en Línea)</span>
+                        <span class="inline-flex items-center gap-1 text-emerald-800">
+                          <svg class="h-4 w-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                          </svg>
+                          <span>PAGADO (Tarjeta en Línea)</span>
+                        </span>
                       } @else {
-                        <span>⏳ FALTA COBRAR EN TIENDA</span>
+                        <span class="inline-flex items-center gap-1.5 text-amber-800">
+                          <img src="/images/icons/reloj-reserva.png" alt="Pendiente" class="h-4 w-4 object-contain inline-block shrink-0" />
+                          <span>FALTA COBRAR EN TIENDA</span>
+                        </span>
                       }
                     </p>
                     <p class="text-xs" [class]="isPaidOnline(ord) ? 'text-emerald-800' : 'text-amber-900'">
@@ -380,16 +402,18 @@ const ORDER_STAGES = [
 
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs pt-1">
                 <div class="rounded-xl bg-white p-3 border border-emerald-200 shadow-2xs space-y-1">
-                  <span class="block font-bold text-gray-900 flex items-center gap-1">
-                    <span>⏰</span> Horario de Atención en Tienda:
+                  <span class="block font-bold text-gray-900 flex items-center gap-1.5">
+                    <img src="/images/icons/reloj-horario.png" alt="Horario" class="h-4 w-4 object-contain inline-block shrink-0" />
+                    <span>Horario de Atención en Tienda:</span>
                   </span>
                   <span class="text-gray-600 block">Lunes a Sábado de 08:00 a.m. a 08:00 p.m.</span>
                   <span class="text-[11px] text-gray-500 block">Acércate a mostrador con tu código de pedido: <strong>#{{ ord.orderNumber }}</strong></span>
                 </div>
 
                 <div class="rounded-xl bg-white p-3 border border-emerald-200 shadow-2xs space-y-1">
-                  <span class="block font-bold text-gray-900 flex items-center gap-1">
-                    <span>⏳</span> Plazo Máximo de Retiro:
+                  <span class="block font-bold text-gray-900 flex items-center gap-1.5">
+                    <img src="/images/icons/reloj-reserva.png" alt="Plazo" class="h-4 w-4 object-contain inline-block shrink-0" />
+                    <span>Plazo Máximo de Retiro:</span>
                   </span>
                   <span class="text-gray-600 block">Plazo de <strong>48 horas hábiles</strong> desde la compra.</span>
                   <span class="text-[11px] text-amber-700 font-semibold block">Vencido el plazo, el sistema cancela el pedido y restituye los repuestos al inventario disponible.</span>
@@ -519,7 +543,7 @@ const ORDER_STAGES = [
               <div class="flex items-center justify-between border-b border-gray-100 pb-3">
                 <div class="flex items-center gap-2">
                   <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-orange-50 text-orange-600 font-bold text-xs">
-                    📦
+                    <img src="/images/icons/combo-paquete.png" alt="Repuestos" class="h-4 w-4 object-contain" />
                   </span>
                   <h3 class="text-sm font-bold text-gray-900">
                     Detalle de repuestos solicitados
@@ -641,8 +665,8 @@ const ORDER_STAGES = [
 
               <!-- Header -->
               <div class="text-center space-y-2 pt-2">
-                <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-tr from-amber-400 to-amber-500 text-white shadow-md shadow-amber-500/25 text-2xl">
-                  🛵
+                <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-tr from-amber-400 to-amber-500 text-white shadow-md shadow-amber-500/25 p-2">
+                  <img src="/images/icons/moto-delivery.png" alt="Motorizado" class="h-9 w-9 object-contain" />
                 </div>
                 <h3 class="text-lg font-black text-gray-900 tracking-tight">¡Pedido Entregado con Éxito!</h3>
                 <p class="text-xs text-gray-500 max-w-xs mx-auto">
@@ -657,11 +681,14 @@ const ORDER_STAGES = [
                     <button
                       type="button"
                       (click)="selectedStars.set(star)"
-                      class="text-3xl transition-transform hover:scale-125 active:scale-95 cursor-pointer focus:outline-none"
+                      class="p-1 transition-transform hover:scale-125 active:scale-95 cursor-pointer focus:outline-none"
                       [class.text-amber-400]="star <= selectedStars()"
                       [class.text-gray-200]="star > selectedStars()"
+                      aria-label="Calificar"
                     >
-                      ★
+                      <svg class="h-7 w-7" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                      </svg>
                     </button>
                   }
                 </div>

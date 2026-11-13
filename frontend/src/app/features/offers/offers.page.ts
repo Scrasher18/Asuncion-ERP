@@ -50,7 +50,7 @@ export interface HydratedDirectOfferView {
           <div class="flex flex-wrap items-center justify-between gap-4">
             <div class="space-y-2.5 max-w-2xl">
               <div class="inline-flex items-center gap-2 rounded-full border border-orange-400/50 bg-orange-500/20 px-3.5 py-1 text-xs sm:text-[13px] font-extrabold text-orange-200">
-                <span>🔥</span>
+                <img src="/images/icons/fuego-demanda.png" alt="Oferta" class="h-4 w-4 object-contain inline-block" />
                 <span>Sección Especial · Ahorro Directo y Paquetes de Mantenimiento</span>
               </div>
               <h1 class="text-3xl sm:text-4xl font-black tracking-tight text-white leading-tight">
@@ -60,7 +60,7 @@ export interface HydratedDirectOfferView {
                 Aprovecha combos automotrices oficiales y descuentos directos para el mantenimiento de tu vehículo. Repuestos originales y alternativos con garantía directa Asunción S.A.C.
               </p>
               <div class="inline-flex items-center gap-2 rounded-xl border border-amber-300/40 bg-amber-500/20 px-3.5 py-1.5 text-xs font-bold text-amber-200 shadow-sm">
-                <span>⚡</span>
+                <img src="/images/icons/alarma.png" alt="Aviso" class="h-3.5 w-3.5 object-contain inline-block" />
                 <span>Promociones y Combos Exclusivos de nuestra Tienda Web Online (En mostrador de tienda física rige precio estándar).</span>
               </div>
             </div>
@@ -77,7 +77,11 @@ export interface HydratedDirectOfferView {
                   routerLink="/admin"
                   class="inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-orange-600 px-4 py-2 text-xs sm:text-sm font-extrabold text-white shadow-sm hover:bg-orange-700 transition"
                 >
-                  <span>⚙️ Gestionar en Administración</span>
+                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  <span>Gestionar en Administración</span>
                 </a>
               }
             </div>
@@ -106,9 +110,10 @@ export interface HydratedDirectOfferView {
                   ? 'bg-orange-600 text-white border-orange-500 shadow-sm'
                   : 'bg-white/10 text-gray-200 border-white/20 hover:bg-white/20'
               "
-              class="min-h-[40px] rounded-xl border px-4 py-2 text-xs sm:text-sm font-extrabold transition cursor-pointer"
+              class="min-h-[40px] rounded-xl border px-4 py-2 text-xs sm:text-sm font-extrabold transition cursor-pointer inline-flex items-center gap-1.5"
             >
-              📦 Combos Oficiales ({{ hydratedCombos().length }})
+              <img src="/images/icons/combo-paquete.png" alt="Combos" class="h-4 w-4 object-contain inline-block" />
+              <span>Combos Oficiales ({{ hydratedCombos().length }})</span>
             </button>
             <button
               type="button"
@@ -118,9 +123,10 @@ export interface HydratedDirectOfferView {
                   ? 'bg-orange-600 text-white border-orange-500 shadow-sm'
                   : 'bg-white/10 text-gray-200 border-white/20 hover:bg-white/20'
               "
-              class="min-h-[40px] rounded-xl border px-4 py-2 text-xs sm:text-sm font-extrabold transition cursor-pointer"
+              class="min-h-[40px] rounded-xl border px-4 py-2 text-xs sm:text-sm font-extrabold transition cursor-pointer inline-flex items-center gap-1.5"
             >
-              🏷️ Ofertas Directas ({{ hydratedOffers().length }})
+              <img src="/images/icons/etiqueta-oferta.png" alt="Ofertas" class="h-4 w-4 object-contain inline-block" />
+              <span>Ofertas Directas ({{ hydratedOffers().length }})</span>
             </button>
           </div>
         </div>
@@ -142,8 +148,9 @@ export interface HydratedDirectOfferView {
                 <span class="text-xs font-extrabold uppercase tracking-wider text-orange-600">
                   Paquetes Inteligentes de Mantenimiento
                 </span>
-                <h2 class="text-xl sm:text-2xl font-black text-gray-950">
-                  📦 Combos Automotrices Oficiales
+                <h2 class="text-xl sm:text-2xl font-black text-gray-950 flex items-center gap-2">
+                  <img src="/images/icons/combo-paquete.png" alt="Combos" class="h-6 w-6 object-contain inline-block shrink-0" />
+                  <span>Combos Automotrices Oficiales</span>
                 </h2>
               </div>
               <p class="text-xs sm:text-sm font-semibold text-gray-600">
@@ -227,7 +234,10 @@ export interface HydratedDirectOfferView {
                       (click)="cart.addCombo(combo.mainPart, combo.complementPart, true)"
                       class="min-h-[44px] inline-flex items-center justify-center gap-2 rounded-xl bg-orange-600 px-5 py-2.5 text-sm font-extrabold text-white shadow-sm hover:bg-orange-700 active:scale-[0.98] disabled:bg-gray-300 disabled:text-gray-500 transition cursor-pointer"
                     >
-                      <span>{{ canAddCombo(combo) ? '🛒 Llevar Combo' : 'Sin stock' }}</span>
+                      <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                      </svg>
+                      <span>{{ canAddCombo(combo) ? 'Llevar Combo' : 'Sin stock' }}</span>
                     </button>
                   </div>
                 </article>
@@ -243,8 +253,9 @@ export interface HydratedDirectOfferView {
               <span class="text-xs font-extrabold uppercase tracking-wider text-red-600">
                 Precios Rebajados Inmediatos
               </span>
-              <h2 class="text-xl sm:text-2xl font-black text-gray-950">
-                🏷️ Repuestos en Oferta Directa
+              <h2 class="text-xl sm:text-2xl font-black text-gray-950 flex items-center gap-2">
+                <img src="/images/icons/etiqueta-oferta.png" alt="Oferta" class="h-6 w-6 object-contain inline-block shrink-0" />
+                <span>Repuestos en Oferta Directa</span>
               </h2>
             </div>
 
@@ -262,8 +273,9 @@ export interface HydratedDirectOfferView {
                       loading="lazy"
                       class="max-h-full max-w-full object-contain group-hover:scale-105 transition duration-300"
                     />
-                    <span class="absolute top-2.5 left-2.5 rounded-lg bg-red-600 px-2.5 py-1 text-[11px] font-extrabold text-white shadow-xs">
-                      🔥 {{ offer.promo.badgeLabel || 'OFERTA' }} -{{ offer.promo.discountPercentage }}%
+                    <span class="absolute top-2.5 left-2.5 inline-flex items-center gap-1 rounded-lg bg-red-600 px-2.5 py-1 text-[11px] font-extrabold text-white shadow-xs">
+                      <img src="/images/icons/fuego-demanda.png" alt="Oferta" class="h-3 w-3 object-contain inline-block" />
+                      <span>{{ offer.promo.badgeLabel || 'OFERTA' }} -{{ offer.promo.discountPercentage }}%</span>
                     </span>
                     <span class="absolute top-2.5 right-2.5 rounded-full border border-emerald-300 bg-emerald-50/95 px-2.5 py-0.5 text-[11px] font-extrabold text-emerald-800 tabular-nums">
                       {{ cart.getRemainingStockToAdd(offer.part) }} en stock

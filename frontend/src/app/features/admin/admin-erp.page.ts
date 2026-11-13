@@ -72,6 +72,7 @@ export interface PaymentDistributionItem {
   key: string;
   name: string;
   icon: string;
+  iconSrc?: string;
   badge: string;
   count: number;
   amount: number;
@@ -122,7 +123,9 @@ export interface BrandDistributionItem {
           <div class="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border-2 border-orange-500 bg-orange-50/90 p-4 shadow-md transition animate-pulse">
             <div class="flex items-center gap-3">
               <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-orange-600 text-white font-extrabold text-xl shadow-xs">
-                🔔
+                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+                </svg>
               </span>
               <div>
                 <p class="font-extrabold text-sm text-gray-950 flex items-center gap-2">
@@ -147,7 +150,7 @@ export interface BrandDistributionItem {
                 (click)="dismissNewOrderBanner()"
                 class="rounded-xl border border-gray-300 bg-white px-3 py-2 text-xs font-bold text-gray-600 hover:bg-gray-100 transition cursor-pointer"
               >
-                Cerrar alerta ✕
+                Cerrar alerta
               </button>
             </div>
           </div>
@@ -726,7 +729,10 @@ export interface BrandDistributionItem {
                     <div>
                       <div class="flex items-center gap-2">
                         <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-purple-50 text-purple-700 text-xs font-bold">
-                          💳
+                          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <rect width="20" height="14" x="2" y="5" rx="2" stroke-width="2" />
+                            <line x1="2" y1="10" x2="22" y2="10" stroke-width="2" />
+                          </svg>
                         </span>
                         <h3 class="text-sm font-bold text-gray-900">Medios de pago y cobranza</h3>
                       </div>
@@ -739,7 +745,9 @@ export interface BrandDistributionItem {
                       <div class="space-y-1">
                         <div class="flex items-center justify-between text-xs">
                           <span class="font-medium text-gray-800 flex items-center gap-1.5">
-                            <span>{{ p.icon }}</span>
+                            @if (p.iconSrc) {
+                              <img [src]="p.iconSrc" [alt]="p.name" class="h-4 w-4 object-contain inline-block rounded-xs" />
+                            }
                             <span>{{ p.name }}</span>
                           </span>
                           <span class="font-bold tabular-nums text-gray-900">{{ p.percentage | number: '1.0-1' }}%</span>
@@ -766,7 +774,10 @@ export interface BrandDistributionItem {
                     <div>
                       <div class="flex items-center gap-2">
                         <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-orange-50 text-orange-600 text-xs font-bold">
-                          📍
+                          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
                         </span>
                         <h3 class="text-sm font-bold text-gray-900">Despacho por distritos (Lima Este)</h3>
                       </div>
@@ -803,7 +814,10 @@ export interface BrandDistributionItem {
                     <div>
                       <div class="flex items-center gap-2">
                         <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-50 text-blue-600 text-xs font-bold">
-                          ⚙️
+                          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
                         </span>
                         <h3 class="text-sm font-bold text-gray-900">Top marcas de repuestos</h3>
                       </div>
@@ -937,7 +951,8 @@ export interface BrandDistributionItem {
                         </p>
                       </div>
                       <span class="inline-flex items-center gap-1.5 rounded-full bg-purple-50 border border-purple-200 px-3 py-1 text-xs font-bold text-purple-700">
-                        👤 {{ auth.currentUser()?.fullName }}
+                        <img src="/images/icons/vendedor.png" alt="Usuario" class="h-3.5 w-3.5 object-contain inline-block" />
+                        <span>{{ auth.currentUser()?.fullName }}</span>
                       </span>
                     </div>
 
@@ -1028,8 +1043,8 @@ export interface BrandDistributionItem {
                 <div class="rounded-2xl border border-gray-200 bg-white p-5 sm:p-6 shadow-2xs space-y-4">
                   <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 pb-3">
                     <div class="flex items-center gap-3">
-                      <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-600 border border-amber-200 text-lg">
-                        ⭐
+                      <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-600 border border-amber-200">
+                        <img src="/images/icons/estrella-calificacion.png" alt="Calificación" class="h-6 w-6 object-contain" />
                       </span>
                       <div>
                         <h3 class="text-sm font-bold text-gray-900">
@@ -1042,7 +1057,7 @@ export interface BrandDistributionItem {
                     </div>
                     <div class="flex items-center gap-2">
                       <span class="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-bold text-amber-800">
-                        <span>★</span>
+                        <img src="/images/icons/estrella-calificacion.png" alt="Estrella" class="h-3.5 w-3.5 object-contain inline-block" />
                         @if (getDriverRatingStats('Miguel Ángel Flores').totalReviews > 0) {
                           <span>Promedio flota: {{ getDriverRatingStats('Miguel Ángel Flores').averageRating }} / 5.0 ({{ getDriverRatingStats('Miguel Ángel Flores').totalReviews }} eval.)</span>
                         } @else {
@@ -1073,13 +1088,25 @@ export interface BrandDistributionItem {
                       <div class="flex items-center justify-between rounded-lg bg-white p-3 border border-gray-200/80">
                         <div>
                           <span class="text-[11px] text-gray-500 block">Puntuación</span>
-                          <div class="flex items-center gap-1">
+                          <div class="flex items-center gap-1.5">
                             @if (getDriverRatingStats('Miguel Ángel Flores').totalReviews > 0) {
                               <span class="text-xl font-black text-amber-600">{{ getDriverRatingStats('Miguel Ángel Flores').averageRating }}</span>
-                              <span class="text-amber-400 text-xs">{{ getDriverRatingStars(getDriverRatingStats('Miguel Ángel Flores').averageRating) }}</span>
+                              <div class="flex items-center gap-0.5">
+                                @for (filled of getStarArray(getDriverRatingStats('Miguel Ángel Flores').averageRating); track $index) {
+                                  <svg class="h-3.5 w-3.5" [class]="filled ? 'fill-amber-400 text-amber-400' : 'fill-gray-200 text-gray-300'" viewBox="0 0 20 20">
+                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                  </svg>
+                                }
+                              </div>
                             } @else {
                               <span class="text-xs font-bold text-gray-400">Sin calificar</span>
-                              <span class="text-gray-300 text-xs">☆☆☆☆☆</span>
+                              <div class="flex items-center gap-0.5">
+                                @for (i of [1,2,3,4,5]; track i) {
+                                  <svg class="h-3.5 w-3.5 fill-gray-200 text-gray-300" viewBox="0 0 20 20">
+                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                  </svg>
+                                }
+                              </div>
                             }
                           </div>
                         </div>
@@ -1125,7 +1152,7 @@ export interface BrandDistributionItem {
                         <div class="space-y-2 pt-2 max-h-48 overflow-y-auto pr-1">
                           @if (driverRatingService.getRatingsForDriver('Miguel Ángel Flores').length === 0) {
                             <div class="py-8 px-4 text-center text-gray-400 text-xs space-y-1.5">
-                              <span class="text-2xl block">💬</span>
+                              <img src="/images/icons/mensaje-chat.png" alt="Comentarios" class="h-8 w-8 object-contain mx-auto block opacity-60" />
                               <p class="font-semibold text-gray-600">Aún no hay comentarios de clientes</p>
                               <p class="text-[11px] text-gray-400 max-w-sm mx-auto">
                                 Cuando un cliente confirme la recepción de su pedido en la sección de seguimiento y escriba su opinión, se mostrará aquí de manera auténtica.
@@ -1137,7 +1164,13 @@ export interface BrandDistributionItem {
                                 <div class="flex items-center justify-between">
                                   <span class="font-bold text-gray-900">{{ rev.customerName }}</span>
                                   <div class="flex items-center gap-1.5">
-                                    <span class="text-amber-500 font-bold text-xs">{{ '★'.repeat(rev.stars) }}{{ '☆'.repeat(5 - rev.stars) }}</span>
+                                    <div class="flex items-center gap-0.5">
+                                      @for (filled of getStarArray(rev.stars); track $index) {
+                                        <svg class="h-3 w-3" [class]="filled ? 'fill-amber-400 text-amber-400' : 'fill-gray-200 text-gray-300'" viewBox="0 0 20 20">
+                                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                        </svg>
+                                      }
+                                    </div>
                                     <span class="text-[10px] text-gray-400 font-mono">{{ rev.orderNumber }}</span>
                                   </div>
                                 </div>
@@ -1334,8 +1367,9 @@ export interface BrandDistributionItem {
                             </td>
                             <td class="px-4 py-3 text-center">
                               @if (promotionService.hasPromotion(item.sku)) {
-                                <span class="inline-flex items-center rounded-full border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-800 animate-pulse">
-                                  🏷️ En Oferta Web (-{{ promotionService.getPromotion(item.sku)?.discountPercentage }}%)
+                                <span class="inline-flex items-center gap-1 rounded-full border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-800 animate-pulse">
+                                  <img src="/images/icons/etiqueta-oferta.png" alt="Oferta" class="h-3 w-3 object-contain inline-block" />
+                                  <span>En Oferta Web (-{{ promotionService.getPromotion(item.sku)?.discountPercentage }}%)</span>
                                 </span>
                               } @else if (item.rotationStatus === 'SIN_MOVIMIENTO') {
                                 <span class="inline-flex items-center rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[10px] font-bold text-red-700">
@@ -1365,10 +1399,11 @@ export interface BrandDistributionItem {
                                 <button
                                   type="button"
                                   (click)="openPromotionModal(item)"
-                                  class="rounded-lg border border-orange-300 bg-orange-50 px-2.5 py-1 text-[11px] font-bold text-orange-800 hover:bg-orange-600 hover:text-white transition shadow-2xs cursor-pointer"
+                                  class="inline-flex items-center gap-1 rounded-lg border border-orange-300 bg-orange-50 px-2.5 py-1 text-[11px] font-bold text-orange-800 hover:bg-orange-600 hover:text-white transition shadow-2xs cursor-pointer"
                                   title="Crear oferta o combo para acelerar rotación"
                                 >
-                                  🏷️ Crear Oferta
+                                  <img src="/images/icons/etiqueta-oferta.png" alt="Oferta" class="h-3 w-3 object-contain inline-block" />
+                                  <span>Crear Oferta</span>
                                 </button>
                               }
                             </td>
@@ -1481,8 +1516,9 @@ export interface BrandDistributionItem {
                                 AGOTADO (0 UND)
                               </span>
                             } @else if (p.stockQuantity === 1) {
-                              <span class="inline-flex items-center gap-1 rounded-full bg-orange-100 border border-orange-300 px-2.5 py-0.5 text-[11px] font-black text-orange-800">
-                                ⚠️ ÚLTIMA UNIDAD
+                              <span class="inline-flex items-center gap-1.5 rounded-full bg-orange-100 border border-orange-300 px-2.5 py-0.5 text-[11px] font-black text-orange-800">
+                                <img src="/images/icons/alarma.png" alt="Alerta" class="h-3 w-3 object-contain inline-block" />
+                                <span>ÚLTIMA UNIDAD</span>
                               </span>
                             } @else {
                               <span class="inline-flex items-center gap-1 rounded-full bg-amber-100 border border-amber-300 px-2.5 py-0.5 text-[11px] font-bold text-amber-800">
@@ -1558,7 +1594,10 @@ export interface BrandDistributionItem {
                     (ngModelChange)="loadAdminParts()"
                     class="h-4 w-4 rounded border-gray-300 accent-red-600"
                   />
-                  <span>🚨 Solo stock bajo / crítico</span>
+                  <span class="inline-flex items-center gap-1.5">
+                    <img src="/images/icons/alarma.png" alt="Alerta" class="h-3.5 w-3.5 object-contain inline-block" />
+                    <span>Solo stock bajo / crítico</span>
+                  </span>
                   @if (lowStockOnlyFilter) {
                     <span class="rounded-full bg-red-600 px-1.5 py-0.2 text-[10px] text-white font-black">
                       ACTIVO
@@ -1573,7 +1612,8 @@ export interface BrandDistributionItem {
                 class="inline-flex min-h-[42px] items-center gap-2 rounded-xl border-2 border-amber-400 bg-amber-50 px-4 py-2.5 text-sm font-bold text-amber-900 shadow-2xs hover:bg-amber-100 transition cursor-pointer"
                 title="Crear un Combo Automotriz manualmente para la web"
               >
-                <span>📦 Crear Combo Automotriz</span>
+                <img src="/images/icons/combo-paquete.png" alt="Combo" class="h-4 w-4 object-contain inline-block" />
+                <span>Crear Combo Automotriz</span>
               </button>
               <button
                 type="button"
@@ -1678,7 +1718,8 @@ export interface BrandDistributionItem {
                             </span>
                             @if ((p.reservedQuantity ?? 0) > 0) {
                               <span class="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-800">
-                                ⏳ {{ p.reservedQuantity }} en reserva (disp: {{ p.availableStock ?? (p.stockQuantity - (p.reservedQuantity ?? 0)) }})
+                                <img src="/images/icons/reloj-reserva.png" alt="Reserva" class="h-3 w-3 object-contain inline-block shrink-0" />
+                                <span>{{ p.reservedQuantity }} en reserva (disp: {{ p.availableStock ?? (p.stockQuantity - (p.reservedQuantity ?? 0)) }})</span>
                               </span>
                             }
                           </div>
@@ -1692,10 +1733,16 @@ export interface BrandDistributionItem {
                                 ? 'border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-600 hover:text-white'
                                 : 'border-orange-200 bg-orange-50/70 text-orange-700 hover:bg-orange-600 hover:text-white'
                             "
-                            class="inline-flex min-h-[34px] items-center gap-1 rounded-lg border px-2.5 py-1.5 text-xs font-bold transition cursor-pointer"
+                            class="inline-flex min-h-[34px] items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-bold transition cursor-pointer"
                             title="Crear o editar Oferta o Combo Automotriz"
                           >
-                            <span>{{ promotionService.hasPromotion(p.sku) ? '✓ Oferta Activa' : '🏷️ Oferta / Combo' }}</span>
+                            @if (promotionService.hasPromotion(p.sku)) {
+                              <svg class="h-3.5 w-3.5 text-emerald-600 inline-block" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                              <span>Oferta Activa</span>
+                            } @else {
+                              <img src="/images/icons/etiqueta-oferta.png" alt="Oferta" class="h-3 w-3 object-contain inline-block" />
+                              <span>Oferta / Combo</span>
+                            }
                           </button>
                           <button
                             type="button"
@@ -1975,16 +2022,19 @@ export interface BrandDistributionItem {
                         </span>
                         <div class="mt-1">
                           @if (ord.salespersonName) {
-                            <span class="inline-flex items-center gap-1 rounded-md bg-purple-50 border border-purple-200 px-1.5 py-0.5 text-[10px] font-bold text-purple-700" title="Venta registrada por vendedor">
-                              👤 Vendedor: {{ ord.salespersonName }}
+                            <span class="inline-flex items-center gap-1.5 rounded-md bg-purple-50 border border-purple-200 px-1.5 py-0.5 text-[10px] font-bold text-purple-700" title="Venta registrada por vendedor">
+                              <img src="/images/icons/vendedor.png" alt="Vendedor" class="h-3 w-3 object-contain inline-block" />
+                              <span>Vendedor: {{ ord.salespersonName }}</span>
                             </span>
                           } @else if (isCounterSaleOrder(ord)) {
-                            <span class="inline-flex items-center gap-1 rounded-md bg-amber-50 border border-amber-200 px-1.5 py-0.5 text-[10px] font-bold text-amber-800" title="Venta presencial en tienda">
-                              🏪 Venta en Caja (Mostrador)
+                            <span class="inline-flex items-center gap-1.5 rounded-md bg-amber-50 border border-amber-200 px-1.5 py-0.5 text-[10px] font-bold text-amber-800" title="Venta presencial en tienda">
+                              <img src="/images/icons/caja-mostrador.png" alt="Caja" class="h-3 w-3 object-contain inline-block" />
+                              <span>Venta en Caja (Mostrador)</span>
                             </span>
                           } @else {
-                            <span class="inline-flex items-center gap-1 rounded-md bg-sky-50 border border-sky-200 px-1.5 py-0.5 text-[10px] font-medium text-sky-800" title="Compra realizada directamente por el cliente">
-                              🌐 Tienda Online (Cliente)
+                            <span class="inline-flex items-center gap-1.5 rounded-md bg-sky-50 border border-sky-200 px-1.5 py-0.5 text-[10px] font-medium text-sky-800" title="Compra realizada directamente por el cliente">
+                              <img src="/images/icons/tienda-online.png" alt="Online" class="h-3 w-3 object-contain inline-block" />
+                              <span>Tienda Online (Cliente)</span>
                             </span>
                           }
                         </div>
@@ -1992,9 +2042,15 @@ export interface BrandDistributionItem {
                       <td class="px-4 py-3.5 whitespace-nowrap">
                         <span
                           [class]="ord.deliveryType === 'PICKUP' ? 'bg-blue-50 text-blue-800 border-blue-200' : 'bg-orange-50 text-orange-800 border-orange-200'"
-                          class="inline-flex items-center gap-1 rounded-lg border px-2 py-0.5 text-[11px] font-semibold"
+                          class="inline-flex items-center gap-1.5 rounded-lg border px-2 py-0.5 text-[11px] font-semibold"
                         >
-                          {{ ord.deliveryType === 'PICKUP' ? '🏬 Recojo en tienda' : '🛵 Envío a domicilio' }}
+                          @if (ord.deliveryType === 'PICKUP') {
+                            <img src="/images/icons/tienda-recojo.png" alt="Recojo" class="h-3.5 w-3.5 object-contain inline-block" />
+                            <span>Recojo en tienda</span>
+                          } @else {
+                            <img src="/images/icons/moto-delivery.png" alt="Delivery" class="h-3.5 w-3.5 object-contain inline-block" />
+                            <span>Envío a domicilio</span>
+                          }
                         </span>
                         @if (ord.deliveryType === 'DELIVERY' && ord.distanceMeters) {
                           <span class="block mt-0.5 text-[11px] tabular-nums text-emerald-700">
@@ -2025,15 +2081,20 @@ export interface BrandDistributionItem {
                       <td class="px-4 py-3.5 whitespace-nowrap">
                         @if (isPaidOnline(ord)) {
                           <span class="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-emerald-800">
-                            ✓ PAGADO
+                            <svg class="h-3 w-3 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                            </svg>
+                            <span>PAGADO</span>
                           </span>
                         } @else if (ord.deliveryType === 'PICKUP') {
                           <span class="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-2.5 py-0.5 text-[11px] font-bold text-amber-800">
-                            ⏳ FALTA COBRAR
+                            <img src="/images/icons/reloj-reserva.png" alt="Pendiente" class="h-3 w-3 object-contain shrink-0" />
+                            <span>FALTA COBRAR</span>
                           </span>
                         } @else {
                           <span class="inline-flex items-center gap-1 rounded-full border border-orange-200 bg-orange-50 px-2.5 py-0.5 text-[11px] font-semibold text-orange-800">
-                            ⏳ Contra entrega
+                            <img src="/images/icons/reloj-reserva.png" alt="Contra entrega" class="h-3 w-3 object-contain shrink-0" />
+                            <span>Contra entrega</span>
                           </span>
                         }
                         <span class="block mt-0.5 text-[10px] text-gray-500">
@@ -2095,12 +2156,13 @@ export interface BrandDistributionItem {
                                 : 'border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 hover:border-emerald-400'"
                               class="inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-bold shadow-2xs transition cursor-pointer"
                             >
-                              <span>🏬</span>
+                              <img src="/images/icons/tienda-recojo.png" alt="Recojo" class="h-3.5 w-3.5 object-contain inline-block" />
                               <span>{{ !isPaidOnline(ord) ? 'Cobrar y Entregar' : 'Entregar en Tienda' }}</span>
                             </button>
                           } @else if (ord.status === 'ENTREGADO') {
                             <span class="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700">
-                              ✓ Retirado en tienda
+                              <svg class="h-3.5 w-3.5 text-emerald-600 inline-block" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                              <span>Retirado en tienda</span>
                             </span>
                           } @else {
                             <span class="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-500">
@@ -2143,7 +2205,8 @@ export interface BrandDistributionItem {
                             title="Enviar Factura emitida en SUNAT por WhatsApp al cliente"
                             class="inline-flex items-center gap-1 rounded-lg border border-emerald-300 bg-emerald-50 px-2 py-1 text-[11px] font-bold text-emerald-800 hover:bg-emerald-600 hover:text-white transition cursor-pointer"
                           >
-                            <span>📲 Factura WA</span>
+                            <img src="/images/icons/whatsapp-factura.png" alt="WhatsApp" class="h-3.5 w-3.5 object-contain inline-block" />
+                            <span>Factura WA</span>
                           </button>
                         }
                         <a
@@ -2191,7 +2254,10 @@ export interface BrandDistributionItem {
               </div>
 
               <div class="rounded-2xl border border-orange-200 bg-white p-4 shadow-2xs">
-                <span class="text-[10px] font-bold uppercase tracking-wider text-orange-700">🌐 Online · Delivery</span>
+                <span class="text-[10px] font-bold uppercase tracking-wider text-orange-700 flex items-center gap-1.5">
+                  <img src="/images/icons/moto-delivery.png" alt="Delivery" class="h-3.5 w-3.5 object-contain inline-block" />
+                  <span>Online · Delivery</span>
+                </span>
                 <div class="mt-1.5 flex items-baseline justify-between">
                   <span class="text-2xl font-black text-gray-900 tabular-nums">{{ completedUnifiedStats().deliveryCount }}</span>
                   <span class="font-mono text-sm font-extrabold text-orange-700">S/ {{ completedUnifiedStats().deliveryAmount | number: '1.2-2' }}</span>
@@ -2200,7 +2266,10 @@ export interface BrandDistributionItem {
               </div>
 
               <div class="rounded-2xl border border-blue-200 bg-white p-4 shadow-2xs">
-                <span class="text-[10px] font-bold uppercase tracking-wider text-blue-700">🏬 Online · Recojo en Tienda</span>
+                <span class="text-[10px] font-bold uppercase tracking-wider text-blue-700 flex items-center gap-1.5">
+                  <img src="/images/icons/tienda-recojo.png" alt="Recojo" class="h-3.5 w-3.5 object-contain inline-block" />
+                  <span>Online · Recojo en Tienda</span>
+                </span>
                 <div class="mt-1.5 flex items-baseline justify-between">
                   <span class="text-2xl font-black text-gray-900 tabular-nums">{{ completedUnifiedStats().pickupCount }}</span>
                   <span class="font-mono text-sm font-extrabold text-blue-700">S/ {{ completedUnifiedStats().pickupAmount | number: '1.2-2' }}</span>
@@ -2209,7 +2278,10 @@ export interface BrandDistributionItem {
               </div>
 
               <div class="rounded-2xl border border-purple-200 bg-white p-4 shadow-2xs">
-                <span class="text-[10px] font-bold uppercase tracking-wider text-purple-700">🧾 Caja POS · Presencial</span>
+                <span class="text-[10px] font-bold uppercase tracking-wider text-purple-700 flex items-center gap-1.5">
+                  <img src="/images/icons/caja-mostrador.png" alt="POS" class="h-3.5 w-3.5 object-contain inline-block" />
+                  <span>Caja POS · Presencial</span>
+                </span>
                 <div class="mt-1.5 flex items-baseline justify-between">
                   <span class="text-2xl font-black text-gray-900 tabular-nums">{{ completedUnifiedStats().posCount }}</span>
                   <span class="font-mono text-sm font-extrabold text-purple-700">S/ {{ completedUnifiedStats().posAmount | number: '1.2-2' }}</span>
@@ -2257,25 +2329,28 @@ export interface BrandDistributionItem {
                       type="button"
                       (click)="completedChannelFilter.set('ONLINE_DELIVERY')"
                       [class]="completedChannelFilter() === 'ONLINE_DELIVERY' ? 'bg-orange-600 text-white font-bold shadow-2xs' : 'text-gray-600 hover:text-gray-900 font-medium'"
-                      class="rounded-lg px-2.5 py-1.5 transition cursor-pointer"
+                      class="rounded-lg px-2.5 py-1.5 transition cursor-pointer inline-flex items-center gap-1.5"
                     >
-                      🛵 Online Delivery ({{ completedUnifiedStats().deliveryCount }})
+                      <img src="/images/icons/moto-delivery.png" alt="Delivery" class="h-3.5 w-3.5 object-contain inline-block" />
+                      <span>Online Delivery ({{ completedUnifiedStats().deliveryCount }})</span>
                     </button>
                     <button
                       type="button"
                       (click)="completedChannelFilter.set('ONLINE_PICKUP')"
                       [class]="completedChannelFilter() === 'ONLINE_PICKUP' ? 'bg-blue-600 text-white font-bold shadow-2xs' : 'text-gray-600 hover:text-gray-900 font-medium'"
-                      class="rounded-lg px-2.5 py-1.5 transition cursor-pointer"
+                      class="rounded-lg px-2.5 py-1.5 transition cursor-pointer inline-flex items-center gap-1.5"
                     >
-                      🏬 Online Recojo ({{ completedUnifiedStats().pickupCount }})
+                      <img src="/images/icons/tienda-recojo.png" alt="Recojo" class="h-3.5 w-3.5 object-contain inline-block" />
+                      <span>Online Recojo ({{ completedUnifiedStats().pickupCount }})</span>
                     </button>
                     <button
                       type="button"
                       (click)="completedChannelFilter.set('POS')"
                       [class]="completedChannelFilter() === 'POS' ? 'bg-purple-600 text-white font-bold shadow-2xs' : 'text-gray-600 hover:text-gray-900 font-medium'"
-                      class="rounded-lg px-2.5 py-1.5 transition cursor-pointer"
+                      class="rounded-lg px-2.5 py-1.5 transition cursor-pointer inline-flex items-center gap-1.5"
                     >
-                      🧾 Caja POS ({{ completedUnifiedStats().posCount }})
+                      <img src="/images/icons/caja-mostrador.png" alt="POS" class="h-3.5 w-3.5 object-contain inline-block" />
+                      <span>Caja POS ({{ completedUnifiedStats().posCount }})</span>
                     </button>
                   </div>
 
@@ -2317,30 +2392,36 @@ export interface BrandDistributionItem {
                         </td>
                         <td class="px-4 py-3.5 whitespace-nowrap">
                           @if (isCounterSaleOrder(ord)) {
-                            <span class="inline-flex items-center gap-1 rounded-lg border border-purple-200 bg-purple-50 px-2.5 py-0.5 text-[11px] font-bold text-purple-800">
-                              🧾 Caja POS
+                            <span class="inline-flex items-center gap-1.5 rounded-lg border border-purple-200 bg-purple-50 px-2.5 py-0.5 text-[11px] font-bold text-purple-800">
+                              <img src="/images/icons/caja-mostrador.png" alt="POS" class="h-3.5 w-3.5 object-contain inline-block" />
+                              <span>Caja POS</span>
                             </span>
                           } @else if (ord.deliveryType === 'PICKUP') {
-                            <span class="inline-flex items-center gap-1 rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-[11px] font-bold text-blue-800">
-                              🏬 Online · Recojo
+                            <span class="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-[11px] font-bold text-blue-800">
+                              <img src="/images/icons/tienda-recojo.png" alt="Recojo" class="h-3.5 w-3.5 object-contain inline-block" />
+                              <span>Online · Recojo</span>
                             </span>
                           } @else {
-                            <span class="inline-flex items-center gap-1 rounded-lg border border-orange-200 bg-orange-50 px-2.5 py-0.5 text-[11px] font-bold text-orange-800">
-                              🛵 Online · Delivery
+                            <span class="inline-flex items-center gap-1.5 rounded-lg border border-orange-200 bg-orange-50 px-2.5 py-0.5 text-[11px] font-bold text-orange-800">
+                              <img src="/images/icons/moto-delivery.png" alt="Delivery" class="h-3.5 w-3.5 object-contain inline-block" />
+                              <span>Online · Delivery</span>
                             </span>
                           }
                           <div class="mt-1">
                             @if (ord.salespersonName) {
-                              <span class="inline-flex items-center gap-1 rounded-md bg-purple-50 border border-purple-200 px-1.5 py-0.5 text-[10px] font-bold text-purple-700" title="Venta cerrada por asesor">
-                                👤 Vendedor: {{ ord.salespersonName }}
+                              <span class="inline-flex items-center gap-1.5 rounded-md bg-purple-50 border border-purple-200 px-1.5 py-0.5 text-[10px] font-bold text-purple-700" title="Venta cerrada por asesor">
+                                <img src="/images/icons/vendedor.png" alt="Vendedor" class="h-3 w-3 object-contain inline-block" />
+                                <span>Vendedor: {{ ord.salespersonName }}</span>
                               </span>
                             } @else if (isCounterSaleOrder(ord)) {
-                              <span class="inline-flex items-center gap-1 rounded-md bg-amber-50 border border-amber-200 px-1.5 py-0.5 text-[10px] font-bold text-amber-800">
-                                🏪 Venta en Caja (Mostrador)
+                              <span class="inline-flex items-center gap-1.5 rounded-md bg-amber-50 border border-amber-200 px-1.5 py-0.5 text-[10px] font-bold text-amber-800">
+                                <img src="/images/icons/caja-mostrador.png" alt="Caja" class="h-3 w-3 object-contain inline-block" />
+                                <span>Venta en Caja (Mostrador)</span>
                               </span>
                             } @else {
-                              <span class="inline-flex items-center gap-1 rounded-md bg-sky-50 border border-sky-200 px-1.5 py-0.5 text-[10px] font-medium text-sky-800">
-                                🌐 Tienda Online (Cliente)
+                              <span class="inline-flex items-center gap-1.5 rounded-md bg-sky-50 border border-sky-200 px-1.5 py-0.5 text-[10px] font-medium text-sky-800">
+                                <img src="/images/icons/tienda-online.png" alt="Online" class="h-3 w-3 object-contain inline-block" />
+                                <span>Tienda Online (Cliente)</span>
                               </span>
                             }
                           </div>
@@ -2403,9 +2484,10 @@ export interface BrandDistributionItem {
                               type="button"
                               (click)="openWhatsAppFactura(ord)"
                               title="Enviar Factura emitida en SUNAT por WhatsApp al cliente"
-                              class="inline-flex items-center gap-1 rounded-lg border border-emerald-300 bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-800 hover:bg-emerald-600 hover:text-white transition cursor-pointer"
+                              class="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-800 hover:bg-emerald-600 hover:text-white transition cursor-pointer"
                             >
-                              <span>📲 Factura WA</span>
+                              <img src="/images/icons/whatsapp-factura.png" alt="WhatsApp" class="h-3.5 w-3.5 object-contain inline-block" />
+                              <span>Factura WA</span>
                             </button>
                           }
                           @if (!isCounterSaleOrder(ord)) {
@@ -3532,10 +3614,13 @@ export interface BrandDistributionItem {
                               <button
                                 type="button"
                                 (click)="complaintsService.downloadComplaintPdf(c)"
-                                class="rounded-lg border border-orange-200 bg-orange-50 px-2 py-1 text-xs font-semibold text-orange-700 hover:bg-orange-100 transition cursor-pointer"
+                                class="inline-flex items-center gap-1 rounded-lg border border-orange-200 bg-orange-50 px-2.5 py-1 text-xs font-semibold text-orange-700 hover:bg-orange-100 transition cursor-pointer"
                                 title="Descargar comprobante oficial en PDF"
                               >
-                                📄 PDF
+                                <svg class="h-3.5 w-3.5 text-orange-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                </svg>
+                                <span>PDF</span>
                               </button>
                             </div>
                           </td>
@@ -3556,8 +3641,8 @@ export interface BrandDistributionItem {
           <div class="w-full max-w-2xl rounded-2xl border border-gray-200 bg-white p-6 shadow-2xl space-y-5 animate-scaleIn max-h-[90vh] overflow-y-auto">
             <div class="flex items-center justify-between border-b border-gray-100 pb-3">
               <div class="flex items-center gap-2.5">
-                <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-red-100 text-red-700 font-extrabold text-sm">
-                  ⚖️
+                <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-red-100 text-red-700 font-extrabold text-sm p-1.5">
+                  <img src="/images/icons/libro_reclamaciones.png" alt="Reclamaciones" class="h-6 w-6 object-contain" />
                 </span>
                 <div>
                   <h3 class="text-base font-bold text-gray-900">Hoja de Reclamación {{ claim.sheetNumber }}</h3>
@@ -3568,8 +3653,11 @@ export interface BrandDistributionItem {
                 type="button"
                 (click)="closeComplaintModal()"
                 class="rounded-xl border border-gray-200 p-1.5 text-gray-500 hover:bg-gray-100 transition cursor-pointer"
+                aria-label="Cerrar modal"
               >
-                ✕
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
               </button>
             </div>
 
@@ -3599,7 +3687,7 @@ export interface BrandDistributionItem {
               <span class="font-bold text-orange-950 block">Acción Adoptada por la Empresa (Respuesta Formal al Cliente):</span>
               @if (claim.status === 'ATENDIDO') {
                 <div class="bg-white p-3 rounded-lg border border-emerald-300 text-emerald-950 space-y-1">
-                  <p class="font-bold">✓ Reclamación Atendida el {{ claim.resolvedAt || 'Previamente' }}:</p>
+                  <p class="font-bold">Reclamación Atendida el {{ claim.resolvedAt || 'Previamente' }}:</p>
                   <p class="text-gray-700">{{ claim.adminResponseNote }}</p>
                 </div>
               } @else {
@@ -3626,9 +3714,12 @@ export interface BrandDistributionItem {
               <button
                 type="button"
                 (click)="complaintsService.downloadComplaintPdf(claim)"
-                class="rounded-xl border border-orange-200 bg-orange-50 px-3.5 py-2 text-xs font-bold text-orange-700 hover:bg-orange-100 transition cursor-pointer"
+                class="inline-flex items-center gap-1.5 rounded-xl border border-orange-200 bg-orange-50 px-3.5 py-2 text-xs font-bold text-orange-700 hover:bg-orange-100 transition cursor-pointer"
               >
-                📄 Descargar Hoja Oficial PDF
+                <svg class="h-4 w-4 text-orange-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                </svg>
+                <span>Descargar Hoja Oficial PDF</span>
               </button>
               <button
                 type="button"
@@ -3648,8 +3739,8 @@ export interface BrandDistributionItem {
           <div class="w-full max-w-xl rounded-2xl border border-gray-200 bg-white p-6 shadow-2xl space-y-5 animate-scaleIn max-h-[88vh] overflow-y-auto">
             <div class="flex items-center justify-between border-b border-gray-100 pb-3">
               <div class="flex items-center gap-3">
-                <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-100 text-amber-800 font-extrabold text-lg">
-                  ⭐
+                <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-800 border border-amber-200">
+                  <img src="/images/icons/estrella-calificacion.png" alt="Calificación" class="h-6 w-6 object-contain" />
                 </span>
                 <div>
                   <h3 class="text-base font-bold text-gray-900">Evaluación y Desempeño: {{ driverName }}</h3>
@@ -3660,8 +3751,11 @@ export interface BrandDistributionItem {
                 type="button"
                 (click)="closeDriverRatingsModal()"
                 class="rounded-xl border border-gray-200 p-1.5 text-gray-500 hover:bg-gray-100 transition cursor-pointer"
+                aria-label="Cerrar modal"
               >
-                ✕
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
               </button>
             </div>
 
@@ -3671,8 +3765,12 @@ export interface BrandDistributionItem {
                 @if (getDriverRatingStats(driverName).totalReviews > 0) {
                   <span class="text-3xl font-black text-amber-900">{{ getDriverRatingStats(driverName).averageRating }}</span>
                   <div>
-                    <div class="text-amber-500 text-sm font-bold">
-                      {{ getDriverRatingStars(getDriverRatingStats(driverName).averageRating) }}
+                    <div class="flex items-center gap-0.5">
+                      @for (filled of getStarArray(getDriverRatingStats(driverName).averageRating); track $index) {
+                        <svg class="h-4 w-4" [class]="filled ? 'fill-amber-400 text-amber-400' : 'fill-gray-200 text-gray-300'" viewBox="0 0 20 20">
+                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                        </svg>
+                      }
                     </div>
                     <span class="text-xs text-amber-800 font-medium">
                       Promedio general basado en {{ getDriverRatingStats(driverName).totalReviews }} {{ getDriverRatingStats(driverName).totalReviews === 1 ? 'entrega evaluada' : 'entregas evaluadas' }}
@@ -3681,7 +3779,13 @@ export interface BrandDistributionItem {
                 } @else {
                   <span class="text-2xl font-bold text-gray-400">0.0</span>
                   <div>
-                    <div class="text-gray-300 text-sm font-bold">☆☆☆☆☆</div>
+                    <div class="flex items-center gap-0.5">
+                      @for (i of [1,2,3,4,5]; track i) {
+                        <svg class="h-4 w-4 fill-gray-200 text-gray-300" viewBox="0 0 20 20">
+                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                        </svg>
+                      }
+                    </div>
                     <span class="text-xs text-gray-500 font-medium">
                       Sin entregas calificadas todavía
                     </span>
@@ -3705,7 +3809,7 @@ export interface BrandDistributionItem {
               <div class="space-y-2.5 max-h-60 overflow-y-auto pr-1">
                 @if (driverRatingService.getRatingsForDriver(driverName).length === 0) {
                   <div class="p-8 text-center text-gray-400 text-xs space-y-2 rounded-xl bg-gray-50 border border-dashed border-gray-200">
-                    <span class="text-2xl block">💬</span>
+                    <img src="/images/icons/mensaje-chat.png" alt="Comentarios" class="h-8 w-8 object-contain mx-auto block opacity-60" />
                     <p class="font-medium text-gray-600">No hay opiniones registradas para {{ driverName }}</p>
                     <p class="text-[11px] text-gray-400 max-w-md mx-auto">
                       Solo se mostrarán valoraciones cuando los clientes confirmen la entrega de sus compras y califiquen el servicio.
@@ -3717,9 +3821,13 @@ export interface BrandDistributionItem {
                       <div class="flex items-center justify-between">
                         <div class="flex items-center gap-2">
                           <span class="font-bold text-gray-900">{{ rev.customerName }}</span>
-                          <span class="text-amber-500 font-bold">
-                            {{ '★'.repeat(rev.stars) }}{{ '☆'.repeat(5 - rev.stars) }}
-                          </span>
+                          <div class="flex items-center gap-0.5">
+                            @for (filled of getStarArray(rev.stars); track $index) {
+                              <svg class="h-3 w-3" [class]="filled ? 'fill-amber-400 text-amber-400' : 'fill-gray-200 text-gray-300'" viewBox="0 0 20 20">
+                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                              </svg>
+                            }
+                          </div>
                         </div>
                         <span class="text-[11px] text-gray-400">{{ rev.createdAt }}</span>
                       </div>
@@ -3766,7 +3874,7 @@ export interface BrandDistributionItem {
               <div class="flex items-center justify-between border-b border-gray-100 pb-4">
                 <div class="flex items-center gap-3">
                   <span class="flex h-11 w-11 items-center justify-center rounded-2xl bg-orange-100 text-orange-600 font-extrabold text-xl shadow-2xs">
-                    🏷️
+                    <img src="/images/icons/etiqueta-oferta.png" alt="Oferta" class="h-6 w-6 object-contain" />
                   </span>
                   <div>
                     <h3 class="text-lg font-black text-gray-900">
@@ -3781,8 +3889,11 @@ export interface BrandDistributionItem {
                   type="button"
                   (click)="closePromotionModal()"
                   class="rounded-xl border border-gray-200 p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition cursor-pointer"
+                  aria-label="Cerrar modal"
                 >
-                  ✕
+                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
                 </button>
               </div>
 
@@ -3793,7 +3904,10 @@ export interface BrandDistributionItem {
                     @if (part.imageUrl) {
                       <img [src]="part.imageUrl" [alt]="part.name" class="h-full w-full object-cover" />
                     } @else {
-                      <span class="text-xl">⚙️</span>
+                      <svg class="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
                     }
                   </div>
                   <div>
@@ -3842,7 +3956,7 @@ export interface BrandDistributionItem {
                     class="rounded-xl border p-3.5 text-left transition cursor-pointer"
                   >
                     <div class="flex items-center gap-2">
-                      <span class="text-lg">🏷️</span>
+                      <img src="/images/icons/etiqueta-oferta.png" alt="Oferta" class="h-4 w-4 object-contain inline-block shrink-0" />
                       <span class="text-xs font-bold text-gray-900">Descuento Directo en Catálogo</span>
                     </div>
                     <p class="text-[11px] text-gray-500 mt-1">
@@ -3857,7 +3971,7 @@ export interface BrandDistributionItem {
                     class="rounded-xl border p-3.5 text-left transition cursor-pointer"
                   >
                     <div class="flex items-center gap-2">
-                      <span class="text-lg">📦</span>
+                      <img src="/images/icons/combo-paquete.png" alt="Combo" class="h-4 w-4 object-contain inline-block shrink-0" />
                       <span class="text-xs font-bold text-gray-900">Combo Automotriz Sugerido</span>
                     </div>
                     <p class="text-[11px] text-gray-500 mt-1">
@@ -3921,7 +4035,7 @@ export interface BrandDistributionItem {
                 <!-- Warning if unsafe -->
                 @if (!promoIsSafe) {
                   <div class="rounded-xl border border-red-300 bg-red-50 p-3 text-xs text-red-800 flex items-center gap-2">
-                    <span class="text-lg">⚠️</span>
+                    <img src="/images/icons/alarma.png" alt="Alerta" class="h-4 w-4 object-contain inline-block shrink-0" />
                     <span>
                       <strong>Alerta de Seguridad Financiera:</strong> Este descuento deja el precio por debajo del costo unitario (S/ {{ part.purchasePrice | number: '1.2-2' }}). Ajusta el porcentaje a máximo {{ promoMaxSafeDiscount }}%.
                     </span>
@@ -3943,7 +4057,8 @@ export interface BrandDistributionItem {
                         [class]="promoComboComplementMode() === 'RECOMMENDED' ? 'bg-white text-orange-700 font-bold shadow-xs' : 'text-gray-600 hover:text-gray-900 font-medium'"
                         class="flex-1 rounded-lg py-1.5 px-3 text-xs transition cursor-pointer flex items-center justify-center gap-1.5"
                       >
-                        <span>⭐ Sugerencias Automáticas</span>
+                        <img src="/images/icons/estrella-calificacion.png" alt="Sugerencias" class="h-3.5 w-3.5 object-contain inline-block" />
+                        <span>Sugerencias Automáticas</span>
                       </button>
                       <button
                         type="button"
@@ -3951,7 +4066,10 @@ export interface BrandDistributionItem {
                         [class]="promoComboComplementMode() === 'MANUAL' ? 'bg-white text-orange-700 font-bold shadow-xs' : 'text-gray-600 hover:text-gray-900 font-medium'"
                         class="flex-1 rounded-lg py-1.5 px-3 text-xs transition cursor-pointer flex items-center justify-center gap-1.5"
                       >
-                        <span>🔍 Búsqueda Manual (Inventario)</span>
+                        <svg class="h-3.5 w-3.5 text-orange-600 inline-block" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                        </svg>
+                        <span>Búsqueda Manual (Inventario)</span>
                       </button>
                       <span class="text-[11px] font-semibold text-orange-700">Doble descuento al llevar ambos repuestos</span>
                     </div>
@@ -4028,7 +4146,7 @@ export interface BrandDistributionItem {
                     @if (promoComboComplementSku) {
                       <div class="rounded-xl border border-orange-200 bg-orange-50/70 p-2.5 flex items-center justify-between text-xs">
                         <div class="flex items-center gap-2">
-                          <span class="text-base">🎁</span>
+                          <img src="/images/icons/combo-paquete.png" alt="Combo" class="h-4 w-4 object-contain inline-block shrink-0" />
                           <div>
                             <span class="text-[10px] font-bold text-orange-900 uppercase tracking-wide block">Repuesto Complementario Activo:</span>
                             <span class="font-bold text-gray-900">{{ promoComboComplementName }}</span>
@@ -4043,8 +4161,11 @@ export interface BrandDistributionItem {
 
                 <!-- Real-time Simulation Box -->
                 <div class="rounded-xl border border-emerald-200 bg-emerald-50/40 p-4 space-y-2.5">
-                  <span class="text-[11px] font-bold text-emerald-900 uppercase tracking-wider block">
-                    📊 {{ promoType === 'COMBO_SUGERIDO' ? 'Simulación Financiera del Combo Completo' : 'Simulación Financiera en Tiempo Real' }}
+                  <span class="text-[11px] font-bold text-emerald-900 uppercase tracking-wider flex items-center gap-1.5">
+                    <svg class="h-4 w-4 text-emerald-700 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+                    </svg>
+                    <span>{{ promoType === 'COMBO_SUGERIDO' ? 'Simulación Financiera del Combo Completo' : 'Simulación Financiera en Tiempo Real' }}</span>
                   </span>
                   @if (promoType === 'COMBO_SUGERIDO') {
                     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
@@ -4117,10 +4238,10 @@ export interface BrandDistributionItem {
                       [(ngModel)]="promoBadgeLabel"
                       class="h-9 w-full rounded-xl border border-gray-200 bg-white px-3 text-xs font-semibold text-gray-900 focus:border-orange-500 focus:outline-hidden"
                     >
-                      <option value="OFERTA FLASH">OFERTA FLASH 🔥</option>
-                      <option value="LIQUIDACIÓN DE STOCK">LIQUIDACIÓN DE STOCK 🏷️</option>
-                      <option value="PRECIO TALLER">PRECIO TALLER 🔧</option>
-                      <option value="PROMOCIÓN ESPECIAL">PROMOCIÓN ESPECIAL ⭐</option>
+                      <option value="OFERTA FLASH">OFERTA FLASH</option>
+                      <option value="LIQUIDACIÓN DE STOCK">LIQUIDACIÓN DE STOCK</option>
+                      <option value="PRECIO TALLER">PRECIO TALLER</option>
+                      <option value="PROMOCIÓN ESPECIAL">PROMOCIÓN ESPECIAL</option>
                     </select>
                   </div>
                 </div>
@@ -4132,9 +4253,12 @@ export interface BrandDistributionItem {
                   <button
                     type="button"
                     (click)="removeCurrentPromotion()"
-                    class="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-xs font-bold text-red-700 hover:bg-red-100 transition cursor-pointer"
+                    class="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-xs font-bold text-red-700 hover:bg-red-100 transition cursor-pointer flex items-center gap-1.5"
                   >
-                    🗑️ Desactivar Oferta
+                    <svg class="h-3.5 w-3.5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                    </svg>
+                    <span>Desactivar Oferta</span>
                   </button>
                 } @else {
                   <div></div>
@@ -4152,9 +4276,12 @@ export interface BrandDistributionItem {
                     type="button"
                     (click)="savePromotion()"
                     [disabled]="!promoIsSafe"
-                    class="rounded-xl bg-orange-600 px-5 py-2 text-xs font-bold text-white shadow-xs hover:bg-orange-700 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    class="rounded-xl bg-orange-600 px-5 py-2 text-xs font-bold text-white shadow-xs hover:bg-orange-700 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
                   >
-                    ✓ Guardar y Activar Oferta en Catálogo
+                    <svg class="h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                    </svg>
+                    <span>Guardar y Activar Oferta en Catálogo</span>
                   </button>
                 </div>
               </div>
@@ -4338,7 +4465,7 @@ export interface BrandDistributionItem {
                 <div class="rounded-xl border border-amber-200 bg-amber-50/60 p-3.5 space-y-2">
                   <div class="flex items-center justify-between">
                     <div class="flex items-center gap-1.5">
-                      <span class="text-base">🛢️</span>
+                      <img src="/images/icons/Motor.png" alt="Viscosidad" class="h-4 w-4 object-contain inline-block shrink-0" />
                       <label class="text-xs font-bold text-amber-950">
                         Grado de Viscosidad SAE (Aceites, Lubricantes y Filtros)
                       </label>
@@ -4574,7 +4701,9 @@ export interface BrandDistributionItem {
                         (click)="autoApplyMechanicalFitment(true)"
                         class="inline-flex items-center gap-1.5 rounded-lg border border-purple-200 bg-purple-50 hover:bg-purple-100 px-2.5 py-1 text-xs font-semibold text-purple-800 shadow-2xs transition cursor-pointer"
                       >
-                        <span class="text-xs">🔄</span>
+                        <svg class="h-3.5 w-3.5 inline-block text-purple-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                        </svg>
                         <span>Re-analizar compatibilidad</span>
                       </button>
                     }
@@ -4763,7 +4892,10 @@ export interface BrandDistributionItem {
 
                     @if (isSelectedMakeIncompatibleWithIgnition()) {
                       <div class="sm:col-span-4 rounded-xl border border-red-200 bg-red-50/90 p-3 flex items-start gap-2.5 text-xs text-red-900 animate-fadeIn">
-                        <span class="text-base text-red-600 font-bold shrink-0">🚫</span>
+                        <svg class="h-4 w-4 text-red-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                          <circle cx="12" cy="12" r="9" />
+                          <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+                        </svg>
                         <div>
                           <strong class="font-bold">Incompatibilidad mecánica crítica bloqueada:</strong>
                           <p class="mt-0.5 text-gray-700">
@@ -5240,9 +5372,18 @@ export interface BrandDistributionItem {
                   </span>
                   <span
                     [class]="detailOrd.deliveryType === 'PICKUP' ? 'bg-blue-50 text-blue-800 border-blue-200' : (isCounterSaleOrder(detailOrd) ? 'bg-purple-50 text-purple-800 border-purple-200' : 'bg-orange-50 text-orange-800 border-orange-200')"
-                    class="rounded-full px-2 py-0.5 text-[10px] font-bold border"
+                    class="rounded-full px-2 py-0.5 text-[10px] font-bold border inline-flex items-center gap-1"
                   >
-                    {{ isCounterSaleOrder(detailOrd) ? '🏪 Venta Mostrador (POS)' : (detailOrd.deliveryType === 'PICKUP' ? '🏬 Recojo en tienda' : '🛵 Envío a domicilio') }}
+                    @if (isCounterSaleOrder(detailOrd)) {
+                      <img src="/images/icons/caja-mostrador.png" alt="POS" class="h-3 w-3 object-contain shrink-0" />
+                      <span>Venta Mostrador (POS)</span>
+                    } @else if (detailOrd.deliveryType === 'PICKUP') {
+                      <img src="/images/icons/tienda-recojo.png" alt="Recojo" class="h-3 w-3 object-contain shrink-0" />
+                      <span>Recojo en tienda</span>
+                    } @else {
+                      <img src="/images/icons/moto-delivery.png" alt="Envío" class="h-3 w-3 object-contain shrink-0" />
+                      <span>Envío a domicilio</span>
+                    }
                   </span>
                 </div>
                 <p class="text-xs text-gray-500 mt-1">
@@ -5267,7 +5408,7 @@ export interface BrandDistributionItem {
               <div class="rounded-xl border border-purple-200 bg-purple-50/60 p-4 space-y-2">
                 <div class="flex items-center justify-between">
                   <div class="flex items-center gap-2">
-                    <span class="flex h-6 w-6 items-center justify-center rounded-md bg-purple-600 text-white font-bold text-xs">👤</span>
+                    <img src="/images/icons/vendedor.png" alt="Responsable" class="h-5 w-5 object-contain rounded" />
                     <h4 class="font-bold text-sm text-purple-950">Responsable y Canal de la Venta</h4>
                   </div>
                   <span class="rounded-full bg-purple-100 border border-purple-200 px-2.5 py-0.5 font-mono text-[10px] font-bold text-purple-800 uppercase">
@@ -5387,7 +5528,10 @@ export interface BrandDistributionItem {
                 (click)="downloadOrderPdf(detailOrd)"
                 class="inline-flex items-center gap-1.5 rounded-xl border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-700 hover:border-orange-300 hover:text-orange-700 transition cursor-pointer"
               >
-                <span>📄 Descargar Comprobante PDF</span>
+                <svg class="h-3.5 w-3.5 inline-block text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                </svg>
+                <span>Descargar Comprobante PDF</span>
               </button>
               <button
                 type="button"
@@ -5461,27 +5605,34 @@ export interface BrandDistributionItem {
                   <div class="rounded-xl border-2 border-amber-300 bg-amber-50/80 p-3 text-xs text-amber-950 space-y-1">
                     <div class="flex items-center justify-between font-bold">
                       <span class="flex items-center gap-1.5">
-                        <span class="text-sm">💵</span> Cobro contra entrega en efectivo:
+                        <img src="/images/icons/caja-mostrador.png" alt="Efectivo" class="h-4 w-4 object-contain inline-block shrink-0" />
+                        <span>Cobro contra entrega en efectivo:</span>
                       </span>
                       <span class="font-mono text-amber-900 font-extrabold">Total: S/ {{ (orderForDispatch.totalAmount ?? orderForDispatch.total ?? orderForDispatch.subtotal) | number: '1.2-2' }}</span>
                     </div>
                     @if (!cashInfo.exact && cashInfo.change > 0) {
                       <div class="flex items-center justify-between pt-1 text-[11px] border-t border-amber-200">
                         <span>Cliente pagará con: <strong class="font-bold">S/ {{ cashInfo.paid | number: '1.2-2' }}</strong></span>
-                        <span class="rounded bg-emerald-100 border border-emerald-400 px-2 py-0.5 font-bold text-emerald-800">
-                          ⚠️ Preparar vuelto: S/ {{ cashInfo.change | number: '1.2-2' }}
+                        <span class="rounded bg-emerald-100 border border-emerald-400 px-2 py-0.5 font-bold text-emerald-800 flex items-center gap-1">
+                          <img src="/images/icons/alarma.png" alt="Alerta" class="h-3.5 w-3.5 object-contain inline-block shrink-0" />
+                          <span>Preparar vuelto: S/ {{ cashInfo.change | number: '1.2-2' }}</span>
                         </span>
                       </div>
                     } @else {
-                      <p class="text-[11px] text-emerald-800 font-bold pt-0.5">
-                        👌 Cliente pagará monto exacto (no requiere vuelto).
+                      <p class="text-[11px] text-emerald-800 font-bold pt-0.5 flex items-center gap-1">
+                        <span class="h-2 w-2 rounded-full bg-emerald-600 inline-block"></span>
+                        <span>Cliente pagará monto exacto (no requiere vuelto).</span>
                       </p>
                     }
                   </div>
                 } @else if (cashInfo.type === 'POS') {
                   <div class="rounded-xl border border-blue-300 bg-blue-50 p-2.5 text-xs text-blue-900 flex items-center justify-between font-medium">
                     <span class="flex items-center gap-1.5 font-bold">
-                      <span>💳</span> Cobro con tarjeta:
+                      <svg class="h-4 w-4 text-blue-700 inline-block shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <rect width="20" height="14" x="2" y="5" rx="2" />
+                        <line x1="2" y1="10" x2="22" y2="10" />
+                      </svg>
+                      <span>Cobro con tarjeta:</span>
                     </span>
                     <span class="text-[11px] font-bold text-blue-800">
                       Entregar terminal POS móvil al motorizado
@@ -5497,8 +5648,12 @@ export interface BrandDistributionItem {
                 </label>
 
                 @if (loadingDrivers()) {
-                  <div class="py-8 text-center text-gray-500">
-                    <span class="inline-block animate-spin mr-2">⏳</span> Cargando lista de motorizados...
+                  <div class="py-8 text-center text-gray-500 flex items-center justify-center gap-2">
+                    <svg class="h-4 w-4 animate-spin text-orange-600 inline-block" fill="none" viewBox="0 0 24 24">
+                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                    </svg>
+                    <span>Cargando lista de motorizados...</span>
                   </div>
                 } @else if (drivers().length === 0) {
                   <div class="rounded-xl border border-amber-200 bg-amber-50 p-4 text-center text-amber-800 space-y-1">
@@ -5578,7 +5733,10 @@ export interface BrandDistributionItem {
                 class="h-9.5 rounded-xl bg-orange-600 px-5 text-xs font-bold text-white shadow-xs hover:bg-orange-700 disabled:opacity-50 transition cursor-pointer inline-flex items-center gap-2"
               >
                 @if (isAssigningDriver()) {
-                  <span class="inline-block animate-spin">⏳</span>
+                  <svg class="h-3.5 w-3.5 animate-spin inline-block text-white" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                  </svg>
                   <span>Asignando...</span>
                 } @else {
                   <span>Confirmar y Despachar</span>
@@ -5597,9 +5755,15 @@ export interface BrandDistributionItem {
               <div>
                 <div class="flex items-center gap-2">
                   <span class="font-mono text-xs font-bold text-orange-600">{{ orderForStatus.orderNumber }}</span>
-                  <span class="rounded-full px-2 py-0.5 text-[10px] font-bold border"
+                  <span class="rounded-full px-2 py-0.5 text-[10px] font-bold border inline-flex items-center gap-1"
                     [class]="orderForStatus.deliveryType === 'PICKUP' ? 'bg-blue-50 text-blue-800 border-blue-200' : 'bg-orange-50 text-orange-800 border-orange-200'">
-                    {{ orderForStatus.deliveryType === 'PICKUP' ? '🏬 Recojo en tienda' : '🛵 Envío a domicilio' }}
+                    @if (orderForStatus.deliveryType === 'PICKUP') {
+                      <img src="/images/icons/tienda-recojo.png" alt="Recojo" class="h-3 w-3 object-contain shrink-0" />
+                      <span>Recojo en tienda</span>
+                    } @else {
+                      <img src="/images/icons/moto-delivery.png" alt="Envío" class="h-3 w-3 object-contain shrink-0" />
+                      <span>Envío a domicilio</span>
+                    }
                   </span>
                 </div>
                 <h3 class="text-base font-bold text-gray-900 mt-0.5">Cambiar Estado del Pedido</h3>
@@ -5640,7 +5804,10 @@ export interface BrandDistributionItem {
                   class="w-full text-left rounded-xl border p-3 transition cursor-pointer flex items-center justify-between"
                 >
                   <div>
-                    <p class="font-bold text-gray-900">📦 En preparación</p>
+                    <p class="font-bold text-gray-900 flex items-center gap-1.5">
+                      <img src="/images/icons/combo-paquete.png" alt="Preparación" class="h-3.5 w-3.5 object-contain inline-block" />
+                      <span>En preparación</span>
+                    </p>
                     <p class="text-[11px] text-gray-500">Almacén está separando y verificando los repuestos</p>
                   </div>
                 </button>
@@ -5652,8 +5819,16 @@ export interface BrandDistributionItem {
                   class="w-full text-left rounded-xl border p-3 transition cursor-pointer flex items-center justify-between"
                 >
                   <div>
-                    <p class="font-bold text-gray-900">
-                      {{ orderForStatus.deliveryType === 'PICKUP' ? '🏬 Listo para recojo en mostrador' : '✅ Listo para despacho' }}
+                    <p class="font-bold text-gray-900 flex items-center gap-1.5">
+                      @if (orderForStatus.deliveryType === 'PICKUP') {
+                        <img src="/images/icons/tienda-recojo.png" alt="Recojo" class="h-3.5 w-3.5 object-contain inline-block" />
+                        <span>Listo para recojo en mostrador</span>
+                      } @else {
+                        <svg class="h-3.5 w-3.5 text-emerald-600 inline-block" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                        </svg>
+                        <span>Listo para despacho</span>
+                      }
                     </p>
                     <p class="text-[11px] text-gray-500">
                       {{ orderForStatus.deliveryType === 'PICKUP' ? 'Notifica al cliente por correo que ya puede acercarse a recoger' : 'Embalado al 100% para salida con motorizado' }}
@@ -5669,7 +5844,10 @@ export interface BrandDistributionItem {
                     class="w-full text-left rounded-xl border p-3 transition cursor-pointer flex items-center justify-between"
                   >
                     <div>
-                      <p class="font-bold text-gray-900">🛵 En ruta con repartidor</p>
+                      <p class="font-bold text-gray-900 flex items-center gap-1.5">
+                        <img src="/images/icons/moto-delivery.png" alt="En ruta" class="h-3.5 w-3.5 object-contain inline-block" />
+                        <span>En ruta con repartidor</span>
+                      </p>
                       <p class="text-[11px] text-gray-500">El motorizado ya salió hacia la dirección del cliente</p>
                     </div>
                   </button>
@@ -5682,8 +5860,11 @@ export interface BrandDistributionItem {
                   class="w-full text-left rounded-xl border p-3 transition cursor-pointer flex items-center justify-between"
                 >
                   <div>
-                    <p class="font-bold text-emerald-800">
-                      {{ orderForStatus.deliveryType === 'PICKUP' ? '✓ Entregado en tienda (y cobrar si falta)' : '✓ Marcar como Entregado' }}
+                    <p class="font-bold text-emerald-800 flex items-center gap-1.5">
+                      <svg class="h-3.5 w-3.5 text-emerald-600 inline-block" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                      </svg>
+                      <span>{{ orderForStatus.deliveryType === 'PICKUP' ? 'Entregado en tienda (y cobrar si falta)' : 'Marcar como Entregado' }}</span>
                     </p>
                     <p class="text-[11px] text-gray-500">
                       {{ orderForStatus.deliveryType === 'PICKUP' ? 'Cierra el pedido en mostrador y confirma el cobro' : 'Finaliza el pedido como completado' }}
@@ -5698,7 +5879,12 @@ export interface BrandDistributionItem {
                   class="w-full text-left rounded-xl border p-3 transition cursor-pointer flex items-center justify-between"
                 >
                   <div>
-                    <p class="font-bold text-red-700">✕ Cancelar pedido (Devolver stock)</p>
+                    <p class="font-bold text-red-700 flex items-center gap-1.5">
+                      <svg class="h-3.5 w-3.5 text-red-600 inline-block" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                      <span>Cancelar pedido (Devolver stock)</span>
+                    </p>
                     <p class="text-[11px] text-gray-500">Anula el pedido y reincorpora todas las unidades al inventario</p>
                   </div>
                 </button>
@@ -5806,9 +5992,17 @@ export interface BrandDistributionItem {
                 [class]="isPaidOnline(pickupOrd) ? 'border-emerald-300 bg-emerald-50 text-emerald-950' : 'border-amber-300 bg-amber-50 text-amber-950'"
               >
                 <div>
-                  <span class="block text-[10px] font-black uppercase tracking-wider"
+                  <span class="block text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5"
                     [class]="isPaidOnline(pickupOrd) ? 'text-emerald-700' : 'text-amber-800'">
-                    {{ isPaidOnline(pickupOrd) ? '✓ YA PAGADO CON TARJETA EN LÍNEA' : '⏳ FALTA COBRAR EN TIENDA' }}
+                    @if (isPaidOnline(pickupOrd)) {
+                      <svg class="h-3.5 w-3.5 text-emerald-600 inline-block" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                      </svg>
+                      <span>YA PAGADO CON TARJETA EN LÍNEA</span>
+                    } @else {
+                      <img src="/images/icons/reloj-reserva.png" alt="Pendiente" class="h-3.5 w-3.5 object-contain inline-block shrink-0" />
+                      <span>FALTA COBRAR EN TIENDA</span>
+                    }
                   </span>
                   <p class="text-[11px] mt-0.5">
                     {{ isPaidOnline(pickupOrd)
@@ -5827,18 +6021,19 @@ export interface BrandDistributionItem {
                   <label class="block font-bold text-gray-900">¿Con qué medio pagó el cliente en mostrador?</label>
                   <div class="grid grid-cols-2 gap-2">
                     @for (pm of [
-                      { key: 'EFECTIVO', label: '💵 Efectivo' },
-                      { key: 'YAPE', label: '📱 Yape' },
-                      { key: 'PLIN', label: '📲 Plin' },
-                      { key: 'TARJETA_POS', label: '💳 Tarjeta POS' }
+                      { key: 'EFECTIVO', label: 'Efectivo', icon: '/images/icons/caja-mostrador.png' },
+                      { key: 'YAPE', label: 'Yape', icon: '/images/icons/yape.jpg' },
+                      { key: 'PLIN', label: 'Plin', icon: '/images/icons/plin.png' },
+                      { key: 'TARJETA_POS', label: 'Tarjeta POS', icon: '/images/icons/visa.png' }
                     ]; track pm.key) {
                       <button
                         type="button"
                         (click)="pickupPaymentMethod.set(pm.key)"
                         [class]="pickupPaymentMethod() === pm.key ? 'border-amber-500 bg-amber-50 text-amber-950 font-extrabold ring-2 ring-amber-400/30' : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50 font-semibold'"
-                        class="rounded-xl border px-3 py-2.5 text-left transition cursor-pointer"
+                        class="rounded-xl border px-3 py-2.5 text-left transition cursor-pointer flex items-center gap-2"
                       >
-                        {{ pm.label }}
+                        <img [src]="pm.icon" [alt]="pm.label" class="h-4 w-4 object-contain rounded shrink-0" />
+                        <span>{{ pm.label }}</span>
                       </button>
                     }
                   </div>
@@ -5895,9 +6090,12 @@ export interface BrandDistributionItem {
                 type="button"
                 [disabled]="isCompletingPickup()"
                 (click)="confirmPickupDelivery()"
-                class="h-9.5 rounded-xl bg-emerald-600 px-5 text-xs font-bold text-white shadow-xs hover:bg-emerald-700 disabled:opacity-50 transition cursor-pointer"
+                class="h-9.5 rounded-xl bg-emerald-600 px-5 text-xs font-bold text-white shadow-xs hover:bg-emerald-700 disabled:opacity-50 transition cursor-pointer inline-flex items-center gap-1.5"
               >
-                {{ isCompletingPickup() ? 'Procesando...' : (!isPaidOnline(pickupOrd) ? '✓ Registrar Cobro y Entregar' : '✓ Confirmar Entrega en Tienda') }}
+                <svg class="h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                </svg>
+                <span>{{ isCompletingPickup() ? 'Procesando...' : (!isPaidOnline(pickupOrd) ? 'Registrar Cobro y Entregar' : 'Confirmar Entrega en Tienda') }}</span>
               </button>
             </div>
           </div>
@@ -6783,12 +6981,12 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
 
   readonly computedPaymentDistribution = computed<PaymentDistributionItem[]>(() => {
     const orders = this.allSystemOrders().length > 0 ? this.allSystemOrders() : this.globalOrders();
-    const buckets: Record<string, { name: string; icon: string; badge: string; count: number; amount: number; colorClass: string; barColor: string }> = {
-      YAPE: { name: 'Yape al recibir (QR BCP)', icon: '📱', badge: 'Billetera Digital', count: 0, amount: 0, colorClass: 'text-purple-700 bg-purple-50 border-purple-200', barColor: 'bg-purple-600' },
-      PLIN: { name: 'Plin al recibir (QR BBVA / Interbank)', icon: '⚡', badge: 'Billetera Digital', count: 0, amount: 0, colorClass: 'text-teal-700 bg-teal-50 border-teal-200', barColor: 'bg-teal-500' },
-      CULQI: { name: 'Culqi (Tarjetas Débito / Crédito)', icon: '💳', badge: 'Pago en Línea', count: 0, amount: 0, colorClass: 'text-sky-700 bg-sky-50 border-sky-200', barColor: 'bg-sky-600' },
-      EFECTIVO: { name: 'Efectivo contra-entrega (con vuelto)', icon: '💵', badge: 'Efectivo en Mano', count: 0, amount: 0, colorClass: 'text-emerald-700 bg-emerald-50 border-emerald-200', barColor: 'bg-emerald-600' },
-      POS: { name: 'POS Móvil presencial (Tarjeta física)', icon: '📠', badge: 'Cobro Presencial', count: 0, amount: 0, colorClass: 'text-slate-700 bg-slate-50 border-slate-200', barColor: 'bg-slate-600' },
+    const buckets: Record<string, { name: string; icon: string; iconSrc: string; badge: string; count: number; amount: number; colorClass: string; barColor: string }> = {
+      YAPE: { name: 'Yape al recibir (QR BCP)', icon: '', iconSrc: '/images/icons/yape.jpg', badge: 'Billetera Digital', count: 0, amount: 0, colorClass: 'text-purple-700 bg-purple-50 border-purple-200', barColor: 'bg-purple-600' },
+      PLIN: { name: 'Plin al recibir (QR BBVA / Interbank)', icon: '', iconSrc: '/images/icons/plin.png', badge: 'Billetera Digital', count: 0, amount: 0, colorClass: 'text-teal-700 bg-teal-50 border-teal-200', barColor: 'bg-teal-500' },
+      CULQI: { name: 'Culqi (Tarjetas Débito / Crédito)', icon: '', iconSrc: '/images/icons/visa.png', badge: 'Pago en Línea', count: 0, amount: 0, colorClass: 'text-sky-700 bg-sky-50 border-sky-200', barColor: 'bg-sky-600' },
+      EFECTIVO: { name: 'Efectivo contra-entrega (con vuelto)', icon: '', iconSrc: '/images/icons/caja-mostrador.png', badge: 'Efectivo en Mano', count: 0, amount: 0, colorClass: 'text-emerald-700 bg-emerald-50 border-emerald-200', barColor: 'bg-emerald-600' },
+      POS: { name: 'POS Móvil presencial (Tarjeta física)', icon: '', iconSrc: '/images/icons/caja-mostrador.png', badge: 'Cobro Presencial', count: 0, amount: 0, colorClass: 'text-slate-700 bg-slate-50 border-slate-200', barColor: 'bg-slate-600' },
     };
 
     let totalOrders = 0;
@@ -6832,6 +7030,7 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
       key,
       name: b.name,
       icon: b.icon,
+      iconSrc: b.iconSrc,
       badge: b.badge,
       count: b.count,
       amount: Number(b.amount.toFixed(2)),
@@ -9368,9 +9567,13 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
     return 'Sin calificaciones';
   }
 
-  getDriverRatingStars(rating: number): string {
+  getStarArray(rating: number): boolean[] {
     const full = Math.max(0, Math.min(5, Math.round(rating)));
-    return '★'.repeat(full) + '☆'.repeat(5 - full);
+    return [1, 2, 3, 4, 5].map(i => i <= full);
+  }
+
+  getDriverRatingStars(rating: number): string {
+    return `${rating.toFixed(1)} / 5.0`;
   }
 
   openDriverRatingsModal(driverName: string): void {

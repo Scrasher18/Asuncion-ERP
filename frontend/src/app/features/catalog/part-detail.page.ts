@@ -122,8 +122,9 @@ import { PromotionService } from '../../core/services/promotion.service';
                     </span>
                   }
                   @if (p.bestSeller || (p.totalSold != null && p.totalSold > 0)) {
-                    <span class="inline-flex items-center gap-1 rounded-lg border border-amber-400 bg-amber-500 text-white px-2.5 py-0.5 text-xs font-black shadow-2xs">
-                      <span>🔥 Producto Más Vendido</span>
+                    <span class="inline-flex items-center gap-1.5 rounded-lg border border-amber-400 bg-amber-500 text-white px-2.5 py-0.5 text-xs font-black shadow-2xs">
+                      <img src="/images/icons/fuego-demanda.png" alt="Más vendido" class="h-3.5 w-3.5 object-contain inline-block shrink-0" />
+                      <span>Producto Más Vendido</span>
                       @if (p.totalSold && p.totalSold > 0) {
                         <span class="text-amber-100 font-bold">({{ p.totalSold }} pedidos)</span>
                       }
@@ -154,7 +155,9 @@ import { PromotionService } from '../../core/services/promotion.service';
                 <!-- SAE Viscosity Badge if present -->
                 @if (getPartViscosity(p); as visc) {
                   <div class="rounded-xl border border-amber-300 bg-amber-50/80 p-3 flex items-start gap-2.5 text-xs text-amber-950">
-                    <span class="text-xl shrink-0">🛢️</span>
+                    <svg class="h-5 w-5 text-amber-700 shrink-0 inline-block" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                    </svg>
                     <div class="space-y-0.5">
                       <div class="flex items-center gap-2">
                         <strong class="font-bold text-amber-950">Grado de Viscosidad SAE {{ visc }}</strong>
@@ -179,8 +182,9 @@ import { PromotionService } from '../../core/services/promotion.service';
                 <div>
                   @if (promotionService.getDirectOffer(p.sku); as promo) {
                     <div class="flex items-center gap-2 mb-1">
-                      <span class="rounded-full bg-red-600 text-white font-extrabold text-[10px] px-2.5 py-0.5 animate-pulse">
-                        🏷️ {{ promo.badgeLabel || 'OFERTA' }} -{{ promo.discountPercentage }}%
+                      <span class="inline-flex items-center gap-1 rounded-full bg-red-600 text-white font-extrabold text-[10px] px-2.5 py-0.5 animate-pulse">
+                        <img src="/images/icons/etiqueta-oferta.png" alt="Oferta" class="h-3 w-3 object-contain inline-block" />
+                        <span>{{ promo.badgeLabel || 'OFERTA' }} -{{ promo.discountPercentage }}%</span>
                       </span>
                       <span class="font-mono text-xs text-gray-400 line-through">
                         Normal: S/ {{ p.salePrice | number: '1.2-2' }}
@@ -222,7 +226,7 @@ import { PromotionService } from '../../core/services/promotion.service';
                       S/ {{ p.wholesalePrice | number: '1.2-2' }} c/u
                     </span>
                     <span class="block text-[10px] font-semibold text-emerald-600">
-                      {{ quantity() >= 4 ? '✓ Tarifa mayorista activa' : 'Clic para llevar 4 und.' }}
+                      {{ quantity() >= 4 ? 'Tarifa mayorista activa' : 'Clic para llevar 4 und.' }}
                     </span>
                   </button>
                 }
@@ -233,8 +237,9 @@ import { PromotionService } from '../../core/services/promotion.service';
                   <div class="rounded-2xl border-2 border-orange-200 bg-orange-50/60 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div class="space-y-1">
                       <div class="flex items-center gap-2">
-                        <span class="rounded-full bg-orange-600 px-2.5 py-0.5 text-[10px] font-black text-white uppercase">
-                          📦 Combo Automotriz Activo
+                        <span class="inline-flex items-center gap-1 rounded-full bg-orange-600 px-2.5 py-0.5 text-[10px] font-black text-white uppercase">
+                          <img src="/images/icons/combo-paquete.png" alt="Combo" class="h-3 w-3 object-contain inline-block" />
+                          <span>Combo Automotriz Activo</span>
                         </span>
                         <span class="text-xs font-extrabold text-emerald-700">
                           Doble descuento al llevar el kit
@@ -284,7 +289,8 @@ import { PromotionService } from '../../core/services/promotion.service';
                     </span>
                     @if (cart.getTotalReservedDisplay(p) > 0) {
                       <span class="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-800">
-                        ⏳ {{ cart.getTotalReservedDisplay(p) }} en reserva
+                        <img src="/images/icons/reloj-reserva.png" alt="Reserva" class="h-3 w-3 object-contain inline-block shrink-0" />
+                        <span>{{ cart.getTotalReservedDisplay(p) }} en reserva</span>
                       </span>
                     }
                   </div>
@@ -306,7 +312,9 @@ import { PromotionService } from '../../core/services/promotion.service';
               @if (auth.isStaffAccount()) {
                 <div class="rounded-2xl border border-orange-200 bg-orange-50/70 p-4 space-y-3">
                   <div class="flex items-center gap-2.5">
-                    <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-600 text-white text-sm font-bold shadow-2xs">💼</span>
+                    <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-100 border border-orange-200 text-white text-sm font-bold shadow-2xs">
+                      <img src="/images/icons/vendedor.png" alt="Personal" class="h-5 w-5 object-contain" />
+                    </span>
                     <div>
                       <p class="text-xs font-black text-gray-900 uppercase tracking-wide">Cuenta de trabajo • {{ auth.primaryRole() }}</p>
                       <p class="text-[11px] text-gray-600">Gestión de repuestos para clientes y taller</p>
@@ -373,7 +381,7 @@ import { PromotionService } from '../../core/services/promotion.service';
               @if (isOilOrFilter(p)) {
                 <div class="rounded-xl border border-amber-200 bg-amber-50/70 p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
                   <div class="flex items-start gap-2.5">
-                    <span class="text-xl">💡</span>
+                    <img src="/images/icons/tip-bombilla.png" alt="Consejo" class="h-5 w-5 object-contain shrink-0" />
                     <div>
                       <p class="font-bold text-gray-900">
                         {{ isOil(p) ? '¿Realizando el cambio de aceite?' : '¿Comprando este filtro automotriz?' }}
