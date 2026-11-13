@@ -180,6 +180,10 @@ const ORDER_STAGES = [
                   <span>{{ ord.invoiceType === 'FACTURA' ? '📄 Proforma p/ Factura (WhatsApp)' : '🧾 Boleta de Venta' }}</span>
                   <span class="text-gray-300">|</span>
                   <span>{{ ord.deliveryType === 'PICKUP' ? '🏬 Recojo en tienda' : '🛵 Envío a domicilio' }}</span>
+                  @if (ord.salespersonName) {
+                    <span class="text-gray-300">|</span>
+                    <span class="text-purple-700 font-bold">👤 Asesor: {{ ord.salespersonName }}</span>
+                  }
                 </span>
 
                 <button

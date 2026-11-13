@@ -165,7 +165,7 @@ public class OrderService {
 
         if (req.salespersonId() != null) {
             userRepository.findById(req.salespersonId()).ifPresent(order::setSalesperson);
-        } else if (hasRole(currentUser, RoleName.VENDEDOR) || (isCounterSale && hasRole(currentUser, RoleName.ADMIN))) {
+        } else if (hasRole(currentUser, RoleName.VENDEDOR) || hasRole(currentUser, RoleName.ADMIN)) {
             order.setSalesperson(currentUser);
         }
 

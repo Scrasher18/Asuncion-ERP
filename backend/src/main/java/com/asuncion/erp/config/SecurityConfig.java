@@ -75,7 +75,10 @@ public class SecurityConfig {
                         // Public Catalog, Stock Reservations & Media
                         .requestMatchers(HttpMethod.GET, "/api/v1/catalog/**").permitAll()
                         .requestMatchers("/api/v1/catalog/reservations/**").permitAll()
-                        .requestMatchers("/api/v1/complaints/**").permitAll()
+                        // Public Complaints Submission (POST), Admin Management (GET/PUT)
+                        .requestMatchers(HttpMethod.POST, "/api/v1/complaints").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/complaints/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/complaints/**").hasRole("ADMIN")
                         .requestMatchers("/api/v1/media/**").permitAll()
                         // Public Logistics & Coverage Validation
                         .requestMatchers(HttpMethod.GET, "/api/v1/logistics/branches").permitAll()

@@ -368,28 +368,28 @@ export interface BrandDistributionItem {
                 </svg>
                 <span>Personal y Trabajadores</span>
               </button>
-            }
 
-            <button
-              type="button"
-              (click)="switchTab('claims')"
-              [class]="
-                activeTab() === 'claims'
-                  ? 'border-orange-600 text-orange-700 font-bold bg-orange-50/80 shadow-2xs'
-                  : 'border-transparent text-gray-600 hover:border-gray-200 hover:bg-gray-50/80 hover:text-gray-900 font-medium'
-              "
-              class="inline-flex min-h-[40px] shrink-0 items-center gap-1.5 rounded-xl border px-3 py-2 text-xs sm:text-[13px] whitespace-nowrap transition cursor-pointer"
-            >
-              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
-              </svg>
-              <span>Reclamaciones</span>
-              @if (pendingClaimsCount() > 0) {
-                <span class="rounded-full bg-red-600 px-1.5 py-0.5 font-mono text-[10px] font-bold text-white">
-                  {{ pendingClaimsCount() }}
-                </span>
-              }
-            </button>
+              <button
+                type="button"
+                (click)="switchTab('claims')"
+                [class]="
+                  activeTab() === 'claims'
+                    ? 'border-orange-600 text-orange-700 font-bold bg-orange-50/80 shadow-2xs'
+                    : 'border-transparent text-gray-600 hover:border-gray-200 hover:bg-gray-50/80 hover:text-gray-900 font-medium'
+                "
+                class="inline-flex min-h-[40px] shrink-0 items-center gap-1.5 rounded-xl border px-3 py-2 text-xs sm:text-[13px] whitespace-nowrap transition cursor-pointer"
+              >
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+                </svg>
+                <span>Reclamaciones</span>
+                @if (pendingClaimsCount() > 0) {
+                  <span class="rounded-full bg-red-600 px-1.5 py-0.5 font-mono text-[10px] font-bold text-white">
+                    {{ pendingClaimsCount() }}
+                  </span>
+                }
+              </button>
+            }
           </nav>
         </div>
       </div>
@@ -1843,6 +1843,21 @@ export interface BrandDistributionItem {
                         <span class="text-[11px] text-gray-500">
                           {{ ord.invoiceType }} {{ ord.customerTaxId ? '· Doc. ' + ord.customerTaxId : '' }}
                         </span>
+                        <div class="mt-1">
+                          @if (ord.salespersonName) {
+                            <span class="inline-flex items-center gap-1 rounded-md bg-purple-50 border border-purple-200 px-1.5 py-0.5 text-[10px] font-bold text-purple-700" title="Venta registrada por vendedor">
+                              👤 Vendedor: {{ ord.salespersonName }}
+                            </span>
+                          } @else if (isCounterSaleOrder(ord)) {
+                            <span class="inline-flex items-center gap-1 rounded-md bg-amber-50 border border-amber-200 px-1.5 py-0.5 text-[10px] font-bold text-amber-800" title="Venta presencial en tienda">
+                              🏪 Venta en Caja (Mostrador)
+                            </span>
+                          } @else {
+                            <span class="inline-flex items-center gap-1 rounded-md bg-sky-50 border border-sky-200 px-1.5 py-0.5 text-[10px] font-medium text-sky-800" title="Compra realizada directamente por el cliente">
+                              🌐 Tienda Online (Cliente)
+                            </span>
+                          }
+                        </div>
                       </td>
                       <td class="px-4 py-3.5 whitespace-nowrap">
                         <span
@@ -1968,6 +1983,18 @@ export interface BrandDistributionItem {
                         S/ {{ (ord.totalAmount ?? ord.total ?? ord.subtotal) | number: '1.2-2' }}
                       </td>
                       <td class="px-4 py-3.5 text-right whitespace-nowrap space-x-1.5">
+                        <button
+                          type="button"
+                          (click)="openOrderDetailModal(ord)"
+                          title="Ver detalle completo de la venta, cliente y repuestos"
+                          class="inline-flex items-center gap-1 rounded-lg border border-purple-200 bg-purple-50 px-2 py-1 text-[11px] font-bold text-purple-700 hover:bg-purple-100 transition cursor-pointer"
+                        >
+                          <svg class="h-3.5 w-3.5 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
+                          <span>Detalle</span>
+                        </button>
                         <button
                           type="button"
                           (click)="downloadOrderPdf(ord)"
@@ -2129,7 +2156,7 @@ export interface BrandDistributionItem {
                   <thead class="bg-gray-50 text-left font-semibold text-gray-600">
                     <tr>
                       <th class="px-4 py-3">N.° de Orden / Fecha</th>
-                      <th class="px-4 py-3">Canal de Venta</th>
+                      <th class="px-4 py-3">Canal / Vendedor</th>
                       <th class="px-4 py-3">Cliente / Comprobante</th>
                       <th class="px-4 py-3">Cobro y Medio</th>
                       <th class="px-4 py-3">Atención / Entrega</th>
@@ -2160,6 +2187,21 @@ export interface BrandDistributionItem {
                               🛵 Online · Delivery
                             </span>
                           }
+                          <div class="mt-1">
+                            @if (ord.salespersonName) {
+                              <span class="inline-flex items-center gap-1 rounded-md bg-purple-50 border border-purple-200 px-1.5 py-0.5 text-[10px] font-bold text-purple-700" title="Venta cerrada por asesor">
+                                👤 Vendedor: {{ ord.salespersonName }}
+                              </span>
+                            } @else if (isCounterSaleOrder(ord)) {
+                              <span class="inline-flex items-center gap-1 rounded-md bg-amber-50 border border-amber-200 px-1.5 py-0.5 text-[10px] font-bold text-amber-800">
+                                🏪 Venta en Caja (Mostrador)
+                              </span>
+                            } @else {
+                              <span class="inline-flex items-center gap-1 rounded-md bg-sky-50 border border-sky-200 px-1.5 py-0.5 text-[10px] font-medium text-sky-800">
+                                🌐 Tienda Online (Cliente)
+                              </span>
+                            }
+                          </div>
                         </td>
                         <td class="px-4 py-3.5">
                           <p class="font-semibold text-gray-900">{{ ord.recipientName || ord.customerName }}</p>
@@ -2194,6 +2236,18 @@ export interface BrandDistributionItem {
                           S/ {{ (ord.totalAmount ?? ord.total ?? ord.subtotal) | number: '1.2-2' }}
                         </td>
                         <td class="px-4 py-3.5 text-right whitespace-nowrap space-x-1.5">
+                          <button
+                            type="button"
+                            (click)="openOrderDetailModal(ord)"
+                            title="Ver detalle completo de la venta, vendedor y repuestos"
+                            class="inline-flex items-center gap-1 rounded-lg border border-purple-200 bg-purple-50 px-2 py-1 text-[11px] font-bold text-purple-700 hover:bg-purple-100 transition cursor-pointer"
+                          >
+                            <svg class="h-3.5 w-3.5 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            <span>Detalle</span>
+                          </button>
                           <button
                             type="button"
                             (click)="downloadOrderPdf(ord)"
@@ -3144,7 +3198,7 @@ export interface BrandDistributionItem {
         <!-- ========================================================================= -->
         <!-- TAB 8: LIBRO DE RECLAMACIONES VIRTUAL (INDECOPI - LEY 29571)              -->
         <!-- ========================================================================= -->
-        @if (activeTab() === 'claims') {
+        @if (activeTab() === 'claims' && auth.hasAnyRole(['ADMIN'])) {
           <div class="space-y-6">
             <!-- KPI Summary Cards -->
             <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
@@ -5030,6 +5084,181 @@ export interface BrandDistributionItem {
         </div>
       }
 
+      <!-- Comprehensive Order Detail Modal (Admin & Vendedor Inspection) -->
+      @if (selectedOrderForDetail(); as detailOrd) {
+        <div class="fixed inset-0 z-50 overflow-y-auto bg-gray-900/60 backdrop-blur-xs p-4 flex items-center justify-center animate-fadeIn">
+          <div class="w-full max-w-2xl rounded-2xl border border-gray-200 bg-white shadow-2xl overflow-hidden my-6">
+            <!-- Modal Header -->
+            <div class="border-b border-gray-200 bg-gradient-to-r from-gray-50 to-orange-50/30 px-6 py-4 flex items-center justify-between">
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="font-mono text-sm font-black text-gray-950">{{ detailOrd.orderNumber }}</span>
+                  <span [class]="statusBadgeClass(detailOrd.status)" class="rounded-full px-2.5 py-0.5 text-[10px] font-bold border">
+                    {{ formatOrderStatus(detailOrd.status, detailOrd.deliveryType) }}
+                  </span>
+                  <span
+                    [class]="detailOrd.deliveryType === 'PICKUP' ? 'bg-blue-50 text-blue-800 border-blue-200' : (isCounterSaleOrder(detailOrd) ? 'bg-purple-50 text-purple-800 border-purple-200' : 'bg-orange-50 text-orange-800 border-orange-200')"
+                    class="rounded-full px-2 py-0.5 text-[10px] font-bold border"
+                  >
+                    {{ isCounterSaleOrder(detailOrd) ? '🏪 Venta Mostrador (POS)' : (detailOrd.deliveryType === 'PICKUP' ? '🏬 Recojo en tienda' : '🛵 Envío a domicilio') }}
+                  </span>
+                </div>
+                <p class="text-xs text-gray-500 mt-1">
+                  Registrado el {{ (detailOrd.createdAt) | date: 'dd/MM/yyyy HH:mm' }}
+                </p>
+              </div>
+              <button
+                type="button"
+                (click)="closeOrderDetailModal()"
+                class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition cursor-pointer"
+                aria-label="Cerrar modal"
+              >
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="p-6 space-y-4 max-h-[75vh] overflow-y-auto text-xs">
+              <!-- RESPONSABLE DE LA VENTA (HIGHLIGHTED) -->
+              <div class="rounded-xl border border-purple-200 bg-purple-50/60 p-4 space-y-2">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <span class="flex h-6 w-6 items-center justify-center rounded-md bg-purple-600 text-white font-bold text-xs">👤</span>
+                    <h4 class="font-bold text-sm text-purple-950">Responsable y Canal de la Venta</h4>
+                  </div>
+                  <span class="rounded-full bg-purple-100 border border-purple-200 px-2.5 py-0.5 font-mono text-[10px] font-bold text-purple-800 uppercase">
+                    Auditoría de Venta
+                  </span>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  <div>
+                    <span class="text-gray-500 block text-[11px]">Vendido / Registrado por:</span>
+                    <strong class="text-gray-900 text-xs sm:text-sm">
+                      {{ detailOrd.salespersonName || (isCounterSaleOrder(detailOrd) ? 'Caja Mostrador' : 'Cliente (Autoservicio Web)') }}
+                    </strong>
+                    <span class="block text-[10px] text-gray-500">
+                      {{ detailOrd.salespersonName ? 'Asesor de Ventas Asignado' : (isCounterSaleOrder(detailOrd) ? 'Venta presencial en tienda' : 'Compra en tienda virtual') }}
+                    </span>
+                  </div>
+                  <div>
+                    <span class="text-gray-500 block text-[11px]">Canal Operativo:</span>
+                    <strong class="text-gray-900 text-xs sm:text-sm">
+                      {{ isCounterSaleOrder(detailOrd) ? 'Punto de Venta Mostrador (POS)' : (detailOrd.deliveryType === 'PICKUP' ? 'E-Commerce con Recojo en Tienda' : 'E-Commerce con Despacho Delivery') }}
+                    </strong>
+                    <span class="block text-[10px] text-gray-500">
+                      Sede: {{ detailOrd.branchName || 'Sede Central Santa Anita' }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- CLIENT & BILLING INFO -->
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div class="rounded-xl border border-gray-200 bg-gray-50/70 p-3.5 space-y-1">
+                  <span class="text-[10px] font-bold uppercase tracking-wider text-gray-400">Datos del Cliente</span>
+                  <p class="font-bold text-gray-900 text-sm">{{ detailOrd.recipientName || detailOrd.customerName || 'Cliente General' }}</p>
+                  <p class="text-gray-600">Doc: <span class="font-mono font-semibold">{{ detailOrd.customerTaxId || detailOrd.billingDocumentNumber || 'Sin documento' }}</span> ({{ detailOrd.invoiceType }})</p>
+                  @if (detailOrd.customerBusinessName && detailOrd.customerBusinessName !== detailOrd.recipientName) {
+                    <p class="text-gray-600">Razón Social: <strong>{{ detailOrd.customerBusinessName }}</strong></p>
+                  }
+                  @if (detailOrd.recipientPhone) {
+                    <p class="text-gray-600">Teléfono: <span class="font-mono">{{ detailOrd.recipientPhone }}</span></p>
+                  }
+                </div>
+
+                <div class="rounded-xl border border-gray-200 bg-gray-50/70 p-3.5 space-y-1">
+                  <span class="text-[10px] font-bold uppercase tracking-wider text-gray-400">Entrega y Cobro</span>
+                  <p class="font-semibold text-gray-900">
+                    Pago: <span class="font-bold text-orange-600">{{ formatPaymentMethodLabel(detailOrd.paymentMethod) }}</span>
+                    @if (isPaidOnline(detailOrd)) {
+                      <span class="ml-1 text-emerald-700 font-bold">(✓ Pagado)</span>
+                    }
+                  </p>
+                  @if (detailOrd.deliveryType === 'DELIVERY') {
+                    <p class="text-gray-600">Dirección: <strong>{{ detailOrd.deliveryAddress || 'Dirección no registrada' }}</strong></p>
+                    @if (detailOrd.deliveryReference) {
+                      <p class="text-gray-500 text-[11px]">Ref: {{ detailOrd.deliveryReference }}</p>
+                    }
+                    @if (detailOrd.assignedDriverName) {
+                      <p class="text-emerald-700 font-semibold">Repartidor: {{ detailOrd.assignedDriverName }}</p>
+                    }
+                  } @else {
+                    <p class="text-gray-600">Modalidad: <strong>Recojo en Tienda</strong></p>
+                    <p class="text-gray-500 text-[11px]">{{ detailOrd.branchName || 'Sede Central Santa Anita' }}</p>
+                  }
+                </div>
+              </div>
+
+              <!-- ITEMS TABLE -->
+              <div class="rounded-xl border border-gray-200 overflow-hidden">
+                <div class="bg-gray-50 px-4 py-2.5 border-b border-gray-200 flex items-center justify-between">
+                  <span class="font-bold text-gray-800">Repuestos del Pedido ({{ detailOrd.items.length }})</span>
+                  <span class="font-mono font-bold text-orange-600">Total: S/ {{ (detailOrd.totalAmount ?? detailOrd.total ?? detailOrd.subtotal) | number: '1.2-2' }}</span>
+                </div>
+                <div class="divide-y divide-gray-100 max-h-48 overflow-y-auto">
+                  @for (item of detailOrd.items; track item.id) {
+                    <div class="px-4 py-2.5 flex items-center justify-between gap-3 hover:bg-gray-50/50">
+                      <div>
+                        <p class="font-semibold text-gray-900">{{ item.partName || item.name }}</p>
+                        <span class="text-[11px] font-mono text-gray-400">
+                          SKU: {{ item.partSku || item.sku }} {{ (item.partOemCode || item.oemCode) ? '· OEM: ' + (item.partOemCode || item.oemCode) : '' }}
+                        </span>
+                      </div>
+                      <div class="text-right whitespace-nowrap">
+                        <span class="block font-bold text-gray-900">S/ {{ (item.quantity * item.unitPrice) | number: '1.2-2' }}</span>
+                        <span class="text-[11px] text-gray-500">{{ item.quantity }} und. × S/ {{ item.unitPrice | number: '1.2-2' }}</span>
+                      </div>
+                    </div>
+                  }
+                </div>
+              </div>
+
+              <!-- TOTALS BREAKDOWN -->
+              <div class="rounded-xl bg-gray-50 p-3.5 space-y-1.5 font-mono text-xs">
+                <div class="flex justify-between text-gray-600">
+                  <span>Subtotal / Op. Gravada (sin IGV):</span>
+                  <span>S/ {{ detailOrd.subtotal | number: '1.2-2' }}</span>
+                </div>
+                <div class="flex justify-between text-gray-600">
+                  <span>I.G.V. (18%):</span>
+                  <span>S/ {{ (detailOrd.igvAmount ?? (detailOrd.subtotal * 0.18)) | number: '1.2-2' }}</span>
+                </div>
+                @if (detailOrd.deliveryFee) {
+                  <div class="flex justify-between text-gray-600">
+                    <span>Costo de Envío:</span>
+                    <span>S/ {{ detailOrd.deliveryFee | number: '1.2-2' }}</span>
+                  </div>
+                }
+                <div class="border-t border-gray-200 pt-1.5 flex justify-between font-bold text-sm text-gray-900">
+                  <span>Importe Total:</span>
+                  <span class="text-orange-600">S/ {{ (detailOrd.totalAmount ?? detailOrd.total ?? detailOrd.subtotal) | number: '1.2-2' }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="border-t border-gray-200 bg-gray-50/80 px-6 py-3.5 flex items-center justify-between gap-3">
+              <button
+                type="button"
+                (click)="downloadOrderPdf(detailOrd)"
+                class="inline-flex items-center gap-1.5 rounded-xl border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-700 hover:border-orange-300 hover:text-orange-700 transition cursor-pointer"
+              >
+                <span>📄 Descargar Comprobante PDF</span>
+              </button>
+              <button
+                type="button"
+                (click)="closeOrderDetailModal()"
+                class="inline-flex items-center rounded-xl bg-orange-600 hover:bg-orange-700 text-white px-5 py-2 text-xs font-bold shadow-xs transition cursor-pointer"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      }
+
       <!-- Driver Assignment Modal for Delivery Orders -->
       @if (selectedOrderForDispatch(); as orderForDispatch) {
         <div class="fixed inset-0 z-50 overflow-y-auto bg-gray-900/50 backdrop-blur-xs p-4 flex items-center justify-center">
@@ -6170,12 +6399,23 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
       if (channel === 'ONLINE_PICKUP' && (isPos || o.deliveryType !== 'PICKUP')) return false;
       if (channel === 'ONLINE_DELIVERY' && (isPos || o.deliveryType !== 'DELIVERY')) return false;
       if (!q) return true;
-      const haystack = `${o.orderNumber} ${o.recipientName || ''} ${o.customerName || ''} ${o.customerTaxId || ''} ${o.assignedDriverName || ''}`
+      const haystack = `${o.orderNumber} ${o.recipientName || ''} ${o.customerName || ''} ${o.customerTaxId || ''} ${o.assignedDriverName || ''} ${o.salespersonName || ''} ${isPos ? 'caja pos mostrador presencial' : 'online virtual delivery'}`
         .toLowerCase()
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '');
       return haystack.includes(q);
     });
+  }
+
+  // Order Details Modal (Transparency into Seller, Channel & Items)
+  readonly selectedOrderForDetail = signal<Order | null>(null);
+
+  openOrderDetailModal(order: Order): void {
+    this.selectedOrderForDetail.set(order);
+  }
+
+  closeOrderDetailModal(): void {
+    this.selectedOrderForDetail.set(null);
   }
 
   // Order Status & Store Pickup Modals State
@@ -6214,7 +6454,8 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
         if (o.status !== 'ENTREGADO') return false;
       }
       if (!q) return true;
-      const haystack = `${o.orderNumber} ${o.recipientName || ''} ${o.customerName || ''} ${o.customerTaxId || ''}`
+      const isPos = this.isCounterSaleOrder(o);
+      const haystack = `${o.orderNumber} ${o.recipientName || ''} ${o.customerName || ''} ${o.customerTaxId || ''} ${o.assignedDriverName || ''} ${o.salespersonName || ''} ${isPos ? 'caja pos mostrador presencial' : 'online virtual'}`
         .toLowerCase()
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '');
@@ -6581,7 +6822,7 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
   }
 
   switchTab(tab: AdminTab): void {
-    if ((tab === 'branches' || tab === 'notifications' || tab === 'payments' || tab === 'users') && !this.auth.hasAnyRole(['ADMIN'])) {
+    if ((tab === 'branches' || tab === 'notifications' || tab === 'payments' || tab === 'users' || tab === 'claims') && !this.auth.hasAnyRole(['ADMIN'])) {
       this.activeTab.set('analytics');
       return;
     }
@@ -6608,7 +6849,7 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
     if (tab === 'users' && this.auth.hasAnyRole(['ADMIN'])) {
       this.loadStaffUsers();
     }
-    if (tab === 'claims') {
+    if (tab === 'claims' && this.auth.hasAnyRole(['ADMIN'])) {
       this.complaintsService.loadComplaints();
     }
   }
@@ -7916,6 +8157,10 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
   }
 
   deletePart(part: Part): void {
+    if (!this.auth.hasAnyRole(['ADMIN'])) {
+      this.toast.error('Acceso restringido', 'Solo el administrador general puede dar de baja repuestos del catálogo.');
+      return;
+    }
     this.catalogService.deletePart(part.id).subscribe({
       next: () => {
         if (typeof window !== 'undefined') {

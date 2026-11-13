@@ -298,6 +298,7 @@ export interface CreateOrderRequest {
   recipientPhone: string;
   paymentMethod: string;
   notes?: string;
+  salespersonId?: number;
   reservationSessionId?: string;
   items: CreateOrderItemInput[];
   customCombos?: CustomComboPair[];

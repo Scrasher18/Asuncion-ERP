@@ -9,6 +9,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -50,7 +51,8 @@ public class AdminPartController {
     }
 
     @DeleteMapping("/parts/{id}")
-    @Operation(summary = "Desactivar lógicamente un repuesto del catálogo")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Desactivar lógicamente un repuesto del catálogo (solo ADMIN)")
     public ResponseEntity<Void> deactivatePart(@PathVariable Long id) {
         catalogService.deactivatePart(id);
         return ResponseEntity.noContent().build();

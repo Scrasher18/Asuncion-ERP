@@ -1472,6 +1472,7 @@ export class PosPageComponent implements OnInit, OnDestroy {
           this.invoiceType === 'FACTURA' ? this.customerFiscalAddress.trim() : undefined,
         paymentMethod: this.paymentMethod,
         notes: 'Venta directa en Caja',
+        salespersonId: this.auth.currentUser()?.id,
         reservationSessionId: this.posReservationSessionId,
         items: items.map((i) => ({ partId: i.part.id, quantity: i.quantity })),
       })

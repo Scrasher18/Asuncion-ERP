@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.PostConstruct;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
@@ -128,7 +129,8 @@ public class ComplaintController {
     }
 
     @GetMapping
-    @Operation(summary = "Listar todas las hojas de reclamación registradas")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Listar todas las hojas de reclamación registradas (solo ADMIN)")
     public ResponseEntity<List<ComplaintDto>> getAllComplaints() {
         List<ComplaintDto> list = complaintRepository.findAllByOrderByCreatedAtDesc().stream()
                 .map(this::toDto)
@@ -172,8 +174,9 @@ public class ComplaintController {
     }
 
     @PutMapping("/{sheetNumber}/resolve")
+    @PreAuthorize("hasRole('ADMIN')")
     @Transactional
-    @Operation(summary = "Emitir respuesta formal del proveedor y marcar Hoja de Reclamación como ATENDIDO")
+    @Operation(summary = "Emitir respuesta formal del proveedor y marcar Hoja de Reclamación como ATENDIDO (solo ADMIN)")
     public ResponseEntity<ComplaintDto> resolveComplaint(
             @PathVariable String sheetNumber,
             @RequestBody ResolveComplaintRequest req

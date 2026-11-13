@@ -35,6 +35,7 @@ export class ExcelExportService {
       ...(includeOps
         ? [
             'Canal de Venta',
+            'Vendedor / Responsable',
             'N° Pedido Interno',
             'Gestión Comprobante SUNAT',
             'Método de Pago',
@@ -113,15 +114,22 @@ export class ExcelExportService {
           pmUpper.includes('CARD') ||
           pmUpper === 'PAGO_ONLINE';
 
+        const vendedorResp = ord.salespersonName
+          ? ord.salespersonName
+          : isPos
+            ? 'Caja Mostrador'
+            : 'Tienda Online (Cliente)';
+
         ws[XLSX.utils.encode_cell({ r: idx + 1, c: 9 })] = { t: 's', v: canal };
-        ws[XLSX.utils.encode_cell({ r: idx + 1, c: 10 })] = { t: 's', v: ord.orderNumber || '' };
-        ws[XLSX.utils.encode_cell({ r: idx + 1, c: 11 })] = {
+        ws[XLSX.utils.encode_cell({ r: idx + 1, c: 10 })] = { t: 's', v: vendedorResp };
+        ws[XLSX.utils.encode_cell({ r: idx + 1, c: 11 })] = { t: 's', v: ord.orderNumber || '' };
+        ws[XLSX.utils.encode_cell({ r: idx + 1, c: 12 })] = {
           t: 's',
           v: meta.isFactura ? 'Proforma → Factura SUNAT vía WhatsApp' : 'Boleta interna',
         };
-        ws[XLSX.utils.encode_cell({ r: idx + 1, c: 12 })] = { t: 's', v: pmLabel };
-        ws[XLSX.utils.encode_cell({ r: idx + 1, c: 13 })] = { t: 's', v: ord.status || 'CONFIRMADO' };
-        ws[XLSX.utils.encode_cell({ r: idx + 1, c: 14 })] = {
+        ws[XLSX.utils.encode_cell({ r: idx + 1, c: 13 })] = { t: 's', v: pmLabel };
+        ws[XLSX.utils.encode_cell({ r: idx + 1, c: 14 })] = { t: 's', v: ord.status || 'CONFIRMADO' };
+        ws[XLSX.utils.encode_cell({ r: idx + 1, c: 15 })] = {
           t: 's',
           v: isPaid ? 'PAGADO' : 'FALTA COBRAR',
         };
@@ -168,7 +176,7 @@ export class ExcelExportService {
       { wch: 16 }, // I.G.V. (18%)
       { wch: 16 }, // Importe Total
       ...(includeOps
-        ? [{ wch: 18 }, { wch: 18 }, { wch: 34 }, { wch: 18 }, { wch: 20 }, { wch: 15 }]
+        ? [{ wch: 18 }, { wch: 24 }, { wch: 18 }, { wch: 34 }, { wch: 18 }, { wch: 20 }, { wch: 15 }]
         : []),
     ];
 
