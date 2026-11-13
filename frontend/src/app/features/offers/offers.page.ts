@@ -15,6 +15,7 @@ export interface HydratedComboView {
   promo: PartPromotion;
   mainPart: Part;
   complementPart: Part;
+  additionalComplements?: Part[];
   regularCombinedPrice: number;
   comboTotalPrice: number;
   totalSavings: number;
@@ -231,7 +232,7 @@ export interface HydratedDirectOfferView {
                     <button
                       type="button"
                       [disabled]="!canAddCombo(combo)"
-                      (click)="cart.addCombo(combo.mainPart, combo.complementPart, true)"
+                      (click)="cart.addCombo(combo.mainPart, combo.additionalComplements && combo.additionalComplements.length > 0 ? combo.additionalComplements : combo.complementPart, true)"
                       class="min-h-[44px] inline-flex items-center justify-center gap-2 rounded-xl bg-orange-600 px-5 py-2.5 text-sm font-extrabold text-white shadow-sm hover:bg-orange-700 active:scale-[0.98] disabled:bg-gray-300 disabled:text-gray-500 transition cursor-pointer"
                     >
                       <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -370,22 +371,41 @@ export class OffersPageComponent implements OnInit {
     const out: HydratedComboView[] = [];
     for (const promo of this.promotionService.activeCombos()) {
       const mainPart = map.get((promo.sku || '').trim().toUpperCase());
-      const compPart = promo.comboComplementSku
-        ? map.get(promo.comboComplementSku.trim().toUpperCase())
-        : undefined;
-      if (!mainPart || !compPart) continue;
+      if (!mainPart) continue;
+
+      let comps: Part[] = [];
+      if (promo.comboComplements && promo.comboComplements.length > 0) {
+        comps = promo.comboComplements
+          .map((c) => map.get((c.sku || '').trim().toUpperCase()))
+          .filter((p): p is Part => Boolean(p));
+      }
+      if (comps.length === 0 && promo.comboComplementSku) {
+        const singleComp = map.get(promo.comboComplementSku.trim().toUpperCase());
+        if (singleComp) comps = [singleComp];
+      }
+      if (comps.length === 0) continue;
+      const compPart = comps[0];
+
       const compComboPrice = this.promotionService.getComplementComboPrice(
         promo,
         compPart.salePrice
       );
-      const regularCombined = Number((mainPart.salePrice + compPart.salePrice).toFixed(2));
-      const comboTotal = Number((promo.promoPrice + compComboPrice).toFixed(2));
+      const compsRegularTotal = comps.reduce((sum, c) => sum + c.salePrice, 0);
+      const compsComboTotal = comps.reduce((sum, c) => {
+        const itemPromo = (promo.comboComplements || []).find((ic) => ic.sku === c.sku);
+        const itemPrice = itemPromo?.promoPrice ?? Number(Math.max(c.purchasePrice ?? 0, c.salePrice * 0.85).toFixed(2));
+        return sum + itemPrice;
+      }, 0);
+
+      const regularCombined = Number((mainPart.salePrice + compsRegularTotal).toFixed(2));
+      const comboTotal = promo.comboTotalPromoPrice ?? Number((promo.promoPrice + compsComboTotal).toFixed(2));
       const savings = Math.max(0, Number((regularCombined - comboTotal).toFixed(2)));
       const remQuota = Math.max(1, (promo.unitsQuota || 8) - (promo.unitsSoldInPromo || 0));
       out.push({
         promo,
         mainPart,
         complementPart: compPart,
+        additionalComplements: comps,
         regularCombinedPrice: regularCombined,
         comboTotalPrice: comboTotal,
         totalSavings: savings,
@@ -562,10 +582,11 @@ export class OffersPageComponent implements OnInit {
     const mainOk =
       this.cart.getRemainingStockToAdd(combo.mainPart) > 0 ||
       this.cart.getMyCartQuantity(combo.mainPart.id) > 0;
-    const compOk =
-      this.cart.getRemainingStockToAdd(combo.complementPart) > 0 ||
-      this.cart.getMyCartQuantity(combo.complementPart.id) > 0;
-    return mainOk && compOk && combo.mainPart.stockQuantity > 0 && combo.complementPart.stockQuantity > 0;
+    const comps = combo.additionalComplements && combo.additionalComplements.length > 0 ? combo.additionalComplements : [combo.complementPart];
+    const compsOk = comps.every(
+      (c) => (this.cart.getRemainingStockToAdd(c) > 0 || this.cart.getMyCartQuantity(c.id) > 0) && c.stockQuantity > 0
+    );
+    return mainOk && compsOk && combo.mainPart.stockQuantity > 0;
   }
 
   resolveImage(part: Part): string {

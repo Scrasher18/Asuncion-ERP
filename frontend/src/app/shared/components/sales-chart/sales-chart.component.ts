@@ -64,7 +64,7 @@ export type ChartGranularity = 'day' | 'hour' | 'week' | 'year';
             "
             class="min-h-[34px] rounded-lg px-3 py-1 text-xs transition cursor-pointer"
           >
-            Por Semana (Días)
+            Esta Semana (Lun - Dom)
           </button>
           <button
             type="button"
@@ -360,7 +360,7 @@ export class SalesChartComponent {
       case 'day':
         return 'Evolución diaria de ventas y facturación (últimos 14 días de operación).';
       case 'week':
-        return 'Ventas por días de la semana (Lunes a Domingo para planificación operativa).';
+        return 'Ventas de la semana actual en curso (Lunes a Domingo en Lima, Perú).';
       case 'year':
         return 'Facturación y margen bruto mensual a lo largo del año calendario 2026.';
     }

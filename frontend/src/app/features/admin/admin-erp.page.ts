@@ -102,6 +102,17 @@ export interface BrandDistributionItem {
   barColor: string;
 }
 
+export interface ComboItem {
+  sku: string;
+  name: string;
+  price: number;
+  purchasePrice?: number;
+  discountPercent: number;
+  stockQuantity?: number;
+  oemCode?: string;
+  imageUrl?: string;
+}
+
 @Component({
   selector: 'app-admin-erp-page',
   standalone: true,
@@ -3897,35 +3908,94 @@ export interface BrandDistributionItem {
                 </button>
               </div>
 
-              <!-- Base Repuesto Selector for Combo / Promo (Allows choosing ANY product) -->
-              <div class="rounded-2xl border-2 border-amber-300 bg-linear-to-r from-amber-50 to-orange-50/40 p-4 space-y-2.5 shadow-2xs">
+              <!-- Base Repuesto Selector for Combo / Promo with Fast Search Engine -->
+              <div class="rounded-2xl border-2 border-amber-300 bg-linear-to-r from-amber-50 to-orange-50/40 p-4 space-y-3 shadow-2xs">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
-                  <label for="primaryPartSelectDropdown" class="text-xs font-bold text-amber-950 flex items-center gap-1.5">
+                  <label for="primaryPartSearchInput" class="text-xs font-bold text-amber-950 flex items-center gap-1.5">
                     <img src="/images/icons/combo-paquete.png" alt="Combo" class="h-4 w-4 object-contain inline-block shrink-0" />
-                    <span>Repuesto Base del Combo (Elige libremente de tu inventario):</span>
+                    <span>Repuesto Base del Combo (Buscar en inventario):</span>
                   </label>
                   <span class="text-[11px] font-semibold text-amber-800 bg-amber-100/80 px-2 py-0.5 rounded-full">
-                    {{ adminParts().length }} repuestos disponibles
+                    {{ adminParts().length }} repuestos en almacén
                   </span>
                 </div>
-                
+
+                <!-- Buscador de Repuesto Base Instantáneo -->
                 <div class="relative">
-                  <select
-                    id="primaryPartSelectDropdown"
-                    [ngModel]="part.sku"
-                    (ngModelChange)="onPrimaryPartSelect($event)"
-                    class="min-h-[44px] w-full rounded-xl border border-amber-300 bg-white px-3.5 py-2.5 text-xs sm:text-sm font-bold text-gray-900 shadow-2xs focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 focus:outline-none cursor-pointer"
-                  >
-                    @for (p of adminParts(); track p.id) {
-                      <option [value]="p.sku">
-                        {{ p.name }} — {{ p.sku }} (Stock: {{ p.stockQuantity }} un. | Venta: S/ {{ p.salePrice | number: '1.2-2' }})
-                      </option>
+                  <div class="relative flex items-center">
+                    <span class="absolute left-3 text-gray-400">
+                      <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                      </svg>
+                    </span>
+                    <input
+                      id="primaryPartSearchInput"
+                      type="text"
+                      [ngModel]="promoBasePartSearchTerm()"
+                      (ngModelChange)="promoBasePartSearchTerm.set($event)"
+                      placeholder="Escribe para buscar repuesto base (ej: bomba, disco, embrague, filtro)..."
+                      class="min-h-[44px] w-full rounded-xl border border-amber-300 bg-white pl-9 pr-10 py-2.5 text-xs sm:text-sm font-medium text-gray-900 shadow-2xs focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
+                    />
+                    @if (promoBasePartSearchTerm()) {
+                      <button
+                        type="button"
+                        (click)="promoBasePartSearchTerm.set('')"
+                        class="absolute right-2.5 rounded-lg p-1 text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition cursor-pointer"
+                        title="Limpiar búsqueda"
+                      >
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
                     }
-                  </select>
+                  </div>
+
+                  <!-- Dropdown de resultados filtrados cuando el usuario busca -->
+                  @if (promoBasePartSearchTerm().trim().length > 0) {
+                    <div class="absolute left-0 right-0 top-full mt-1.5 z-30 max-h-56 overflow-y-auto rounded-xl border border-amber-300 bg-white p-1.5 shadow-xl space-y-1">
+                      @for (p of filteredBaseParts(); track p.id) {
+                        <button
+                          type="button"
+                          (click)="onPrimaryPartSelect(p.sku); promoBasePartSearchTerm.set('')"
+                          [class]="part.sku === p.sku ? 'bg-orange-50 text-orange-950 font-bold border border-orange-300' : 'hover:bg-amber-50 text-gray-800 font-medium border border-transparent'"
+                          class="w-full text-left rounded-lg p-2.5 transition flex items-center justify-between gap-3 text-xs cursor-pointer"
+                        >
+                          <div class="min-w-0 flex-1">
+                            <div class="flex items-center gap-2">
+                              <span class="truncate font-bold">{{ p.name }}</span>
+                              @if (part.sku === p.sku) {
+                                <span class="shrink-0 rounded bg-orange-600 px-1.5 py-0.5 text-[9px] font-extrabold text-white">SELECCIONADO</span>
+                              }
+                            </div>
+                            <div class="flex items-center gap-2 text-[10px] text-gray-500 font-mono mt-0.5">
+                              <span>{{ p.sku }}</span>
+                              @if (p.oemCode) { <span>• OEM: {{ p.oemCode }}</span> }
+                              <span class="text-emerald-700 font-bold font-sans">Stock: {{ p.stockQuantity }} un.</span>
+                            </div>
+                          </div>
+                          <div class="text-right shrink-0">
+                            <span class="block text-xs font-black text-gray-900">S/ {{ p.salePrice | number: '1.2-2' }}</span>
+                          </div>
+                        </button>
+                      }
+                      @if (filteredBaseParts().length === 0) {
+                        <div class="p-3 text-center text-xs text-gray-400">
+                          No se encontraron repuestos con "{{ promoBasePartSearchTerm() }}".
+                        </div>
+                      }
+                    </div>
+                  }
                 </div>
-                <p class="text-[11px] text-amber-900/80">
-                  Puedes cambiar el repuesto base en cualquier momento para armar combos con cualquier producto del almacén.
-                </p>
+
+                <!-- Repuesto Base Seleccionado Actual -->
+                <div class="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-amber-200/60 text-xs">
+                  <div class="flex items-center gap-1.5 text-amber-950">
+                    <span class="font-bold">Base Activo:</span>
+                    <span class="font-semibold text-gray-900">{{ part.name }}</span>
+                    <span class="font-mono text-gray-600 text-[11px]">({{ part.sku }})</span>
+                  </div>
+                  <span class="font-bold text-orange-700">Precio Base: S/ {{ part.salePrice | number: '1.2-2' }}</span>
+                </div>
               </div>
 
               <!-- Part Identity Card -->
@@ -4073,155 +4143,247 @@ export interface BrandDistributionItem {
                   </div>
                 }
 
-                <!-- Complementary Item for Combo -->
+                <!-- Multi-Item Automotive Combo Section (Supports 2, 3, 4, 5+ parts) -->
                 @if (promoType === 'COMBO_SUGERIDO') {
-                  <div class="space-y-2 pt-2 border-t border-gray-100">
+                  <div class="space-y-4 pt-3 border-t border-gray-100">
                     <div class="flex flex-wrap items-center justify-between gap-1">
-                      <span class="text-xs font-bold text-gray-900">Repuesto complementario para el combo (-15% adicional):</span>
+                      <div>
+                        <span class="text-xs font-black text-gray-900 flex items-center gap-1.5">
+                          <img src="/images/icons/combo-paquete.png" alt="Combo" class="h-4 w-4 object-contain inline-block shrink-0" />
+                          <span>Repuestos incluidos en este combo ({{ totalComboItemsCount }} productos en el kit):</span>
+                        </span>
+                        <p class="text-[11px] text-gray-500">
+                          Puedes armar kits automotrices de más de 2 repuestos (pastillas + discos + líquido, o aceite + filtros).
+                        </p>
+                      </div>
+                      <span class="text-[11px] font-bold text-orange-700 bg-orange-50 border border-orange-200 px-2.5 py-0.5 rounded-full">
+                        {{ totalComboItemsCount }} productos en total
+                      </span>
                     </div>
 
-                    <!-- Selector de Modo de Complemento: Automático vs Manual -->
-                    <div class="flex items-center gap-1 rounded-xl bg-gray-100 p-1">
-                      <button
-                        type="button"
-                        (click)="promoComboComplementMode.set('RECOMMENDED')"
-                        [class]="promoComboComplementMode() === 'RECOMMENDED' ? 'bg-white text-orange-700 font-bold shadow-xs' : 'text-gray-600 hover:text-gray-900 font-medium'"
-                        class="flex-1 rounded-lg py-1.5 px-3 text-xs transition cursor-pointer flex items-center justify-center gap-1.5"
-                      >
-                        <img src="/images/icons/estrella-calificacion.png" alt="Sugerencias" class="h-3.5 w-3.5 object-contain inline-block" />
-                        <span>Sugerencias Automáticas</span>
-                      </button>
-                      <button
-                        type="button"
-                        (click)="promoComboComplementMode.set('MANUAL')"
-                        [class]="promoComboComplementMode() === 'MANUAL' ? 'bg-white text-orange-700 font-bold shadow-xs' : 'text-gray-600 hover:text-gray-900 font-medium'"
-                        class="flex-1 rounded-lg py-1.5 px-3 text-xs transition cursor-pointer flex items-center justify-center gap-1.5"
-                      >
-                        <svg class="h-3.5 w-3.5 text-orange-600 inline-block" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-                        </svg>
-                        <span>Búsqueda Manual (Inventario)</span>
-                      </button>
-                      <span class="text-[11px] font-semibold text-orange-700">Doble descuento al llevar ambos repuestos</span>
-                    </div>
-                    @if (promoComboComplementMode() === 'RECOMMENDED') {
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      @for (comp of suggestedComplements; track comp.sku) {
-                        <button
-                          type="button"
-                          (click)="onComboComplementSelect(comp.sku)"
-                          [class]="promoComboComplementSku === comp.sku ? 'border-orange-500 bg-orange-50/70 ring-1 ring-orange-500/30' : 'border-gray-200 bg-white hover:bg-gray-50'"
-                          class="rounded-xl border p-2.5 text-left text-xs transition cursor-pointer flex items-center justify-between gap-2"
-                        >
+                    <!-- Lista de Repuestos Activos en el Combo -->
+                    <div class="space-y-2 rounded-2xl border border-orange-200 bg-orange-50/30 p-3">
+                      <!-- 1. Repuesto Base Principal -->
+                      <div class="rounded-xl border border-amber-300 bg-white p-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 shadow-2xs">
+                        <div class="flex items-center gap-2.5 min-w-0">
+                          <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500 text-white font-black text-xs shrink-0">
+                            1
+                          </span>
                           <div class="min-w-0">
-                            <span class="block text-gray-900 font-semibold truncate">{{ comp.name }}</span>
-                            <span class="text-[10px] text-gray-500">{{ comp.sku }} • Regular S/ {{ comp.price | number: '1.2-2' }}</span>
+                            <div class="flex items-center gap-1.5">
+                              <span class="text-xs font-black text-gray-900 truncate">{{ part.name }}</span>
+                              <span class="rounded bg-amber-100 text-amber-800 text-[10px] font-bold px-1.5 py-0.2 shrink-0">Repuesto Base</span>
+                            </div>
+                            <span class="text-[10px] text-gray-500 font-mono">{{ part.sku }} • Stock: {{ part.stockQuantity }} un.</span>
                           </div>
-                          <div class="text-right shrink-0">
-                            <span class="block text-xs font-extrabold text-orange-600">+S/ {{ (comp.price * 0.85) | number: '1.2-2' }}</span>
-                            <span class="block text-[10px] font-bold text-emerald-700">-15% combo</span>
+                        </div>
+                        <div class="text-right shrink-0">
+                          <div class="flex items-center gap-1.5">
+                            <span class="text-[11px] text-gray-400 line-through">S/ {{ part.salePrice | number: '1.2-2' }}</span>
+                            <span class="text-xs font-black text-orange-700">S/ {{ promoCalculatedPrice | number: '1.2-2' }}</span>
+                            <span class="rounded bg-orange-100 text-orange-800 text-[10px] font-bold px-1">-{{ promoDiscountPercent }}%</span>
                           </div>
-                        </button>
+                        </div>
+                      </div>
+
+                      <!-- 2, 3, 4... Repuestos Complementarios en el Combo -->
+                      @for (comp of promoComboItems(); track comp.sku; let idx = $index) {
+                        <div class="rounded-xl border border-orange-200 bg-white p-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 shadow-2xs animate-fadeIn">
+                          <div class="flex items-center gap-2.5 min-w-0">
+                            <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-orange-600 text-white font-black text-xs shrink-0">
+                              {{ idx + 2 }}
+                            </span>
+                            <div class="min-w-0">
+                              <div class="flex items-center gap-1.5">
+                                <span class="text-xs font-bold text-gray-900 truncate">{{ comp.name }}</span>
+                                <span class="rounded bg-orange-100 text-orange-800 text-[10px] font-semibold px-1.5 py-0.2 shrink-0">Complemento</span>
+                              </div>
+                              <span class="text-[10px] text-gray-500 font-mono">{{ comp.sku }}</span>
+                            </div>
+                          </div>
+                          <div class="flex items-center gap-3 shrink-0 self-end sm:self-auto">
+                            <div class="text-right">
+                              <div class="flex items-center gap-1.5">
+                                <span class="text-[11px] text-gray-400 line-through">S/ {{ comp.price | number: '1.2-2' }}</span>
+                                <span class="text-xs font-black text-emerald-700">+S/ {{ (comp.price * (1 - (comp.discountPercent || 15) / 100)) | number: '1.2-2' }}</span>
+                                <span class="rounded bg-emerald-50 text-emerald-700 text-[10px] font-bold px-1">-{{ comp.discountPercent || 15 }}%</span>
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              (click)="removeComplementFromCombo(comp.sku)"
+                              class="rounded-lg border border-red-200 p-1.5 text-red-500 hover:bg-red-50 hover:text-red-700 transition cursor-pointer"
+                              title="Quitar este repuesto del combo"
+                            >
+                              <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          </div>
+                        </div>
+                      }
+
+                      @if (promoComboItems().length === 0) {
+                        <div class="rounded-xl border border-dashed border-amber-300 bg-amber-50/60 p-3 text-center text-xs text-amber-800">
+                          Agrega repuestos complementarios abajo para armar tu combo automotriz (2 o más repuestos).
+                        </div>
                       }
                     </div>
-                    } @else {
-                      <div class="space-y-2">
-                        <input
-                          type="text"
-                          [ngModel]="promoManualComboSearch()"
-                          (ngModelChange)="promoManualComboSearch.set($event)"
-                          placeholder="Buscar cualquier repuesto por nombre, SKU, marca u OEM..."
-                          class="w-full rounded-xl border border-gray-200 bg-gray-50/50 px-3.5 py-2 text-xs text-gray-800 placeholder:text-gray-400 focus:border-orange-500 focus:bg-white focus:outline-none transition"
-                        />
-                        <div class="max-h-52 overflow-y-auto space-y-1.5 pr-1 divide-y divide-gray-100 rounded-xl border border-gray-200 bg-white p-2">
-                          @for (p of filteredManualComboParts(); track p.sku) {
-                            <div
-                              (click)="onComboComplementSelect(p.sku)"
-                              [class]="promoComboComplementSku === p.sku ? 'bg-orange-50/90 border border-orange-400' : 'hover:bg-gray-50 border border-transparent'"
-                              class="rounded-lg p-2 transition cursor-pointer flex items-center justify-between gap-3 text-xs"
-                            >
+
+                    <!-- Selector para AGREGAR más repuestos al combo -->
+                    <div class="space-y-2 pt-2">
+                      <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold text-gray-900">Agregar más repuestos al kit (-15% descuento en paquete):</span>
+                      </div>
+
+                      <!-- Selector de Modo de Búsqueda: Sugerencias vs Todo el Inventario -->
+                      <div class="flex items-center gap-1 rounded-xl bg-gray-100 p-1">
+                        <button
+                          type="button"
+                          (click)="promoComboComplementMode.set('RECOMMENDED')"
+                          [class]="promoComboComplementMode() === 'RECOMMENDED' ? 'bg-white text-orange-700 font-bold shadow-xs' : 'text-gray-600 hover:text-gray-900 font-medium'"
+                          class="flex-1 rounded-lg py-1.5 px-3 text-xs transition cursor-pointer flex items-center justify-center gap-1.5"
+                        >
+                          <img src="/images/icons/estrella-calificacion.png" alt="Sugerencias" class="h-3.5 w-3.5 object-contain inline-block" />
+                          <span>Sugerencias Frecuentes</span>
+                        </button>
+                        <button
+                          type="button"
+                          (click)="promoComboComplementMode.set('MANUAL')"
+                          [class]="promoComboComplementMode() === 'MANUAL' ? 'bg-white text-orange-700 font-bold shadow-xs' : 'text-gray-600 hover:text-gray-900 font-medium'"
+                          class="flex-1 rounded-lg py-1.5 px-3 text-xs transition cursor-pointer flex items-center justify-center gap-1.5"
+                        >
+                          <svg class="h-3.5 w-3.5 text-orange-600 inline-block" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                          </svg>
+                          <span>Búsqueda Libre en Todo el Almacén</span>
+                        </button>
+                      </div>
+
+                      @if (promoComboComplementMode() === 'RECOMMENDED') {
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          @for (comp of suggestedComplements; track comp.sku) {
+                            <div class="rounded-xl border border-gray-200 bg-white p-2.5 text-xs flex items-center justify-between gap-2 shadow-2xs hover:border-orange-300 transition">
                               <div class="min-w-0 flex-1">
-                                <div class="flex items-center gap-1.5">
-                                  <span class="font-bold text-gray-900 truncate">{{ p.name }}</span>
-                                  @if (promoComboComplementSku === p.sku) {
-                                    <span class="shrink-0 rounded bg-orange-600 px-1.5 py-0.2 text-[9px] font-bold text-white">ELEGIDO</span>
-                                  }
-                                </div>
-                                <div class="flex items-center gap-2 text-[10px] text-gray-500 font-mono mt-0.5">
-                                  <span>{{ p.sku }}</span>
-                                  @if (p.oemCode) {
-                                    <span>OEM: {{ p.oemCode }}</span>
-                                  }
-                                  @if (p.manufacturerBrand) {
-                                    <span class="text-gray-700 font-sans font-semibold">· {{ p.manufacturerBrand }}</span>
-                                  }
-                                  <span class="text-emerald-700 font-sans font-bold">Stock: {{ p.stockQuantity }}</span>
+                                <span class="block text-gray-900 font-semibold truncate">{{ comp.name }}</span>
+                                <div class="flex items-center gap-1.5 text-[10px] text-gray-500">
+                                  <span>{{ comp.sku }}</span>
+                                  <span>• Normal S/ {{ comp.price | number: '1.2-2' }}</span>
                                 </div>
                               </div>
-                              <div class="text-right shrink-0">
-                                <span class="block text-xs font-bold text-orange-600">+S/ {{ ((p.salePrice || 50) * 0.85) | number: '1.2-2' }}</span>
-                                <span class="block text-[10px] text-gray-400 line-through">S/ {{ (p.salePrice || 50) | number: '1.2-2' }}</span>
+                              <div class="flex items-center gap-2 shrink-0">
+                                <div class="text-right">
+                                  <span class="block text-xs font-black text-orange-600">+S/ {{ (comp.price * 0.85) | number: '1.2-2' }}</span>
+                                  <span class="block text-[10px] font-bold text-emerald-700">-15% combo</span>
+                                </div>
+                                @if (isComplementInCombo(comp.sku)) {
+                                  <span class="rounded-lg bg-emerald-100 text-emerald-800 px-2 py-1 text-[10px] font-bold">✓ En combo</span>
+                                } @else {
+                                  <button
+                                    type="button"
+                                    (click)="addComplementToCombo(comp)"
+                                    class="rounded-lg bg-orange-600 hover:bg-orange-700 text-white px-2.5 py-1 text-[11px] font-bold transition cursor-pointer"
+                                  >
+                                    + Agregar
+                                  </button>
+                                }
                               </div>
-                            </div>
-                          }
-                          @if (filteredManualComboParts().length === 0) {
-                            <div class="p-4 text-center text-xs text-gray-400">
-                              No se encontraron repuestos con ese término en el inventario.
                             </div>
                           }
                         </div>
-                      </div>
-                    }
-
-                    <!-- Selected complement summary preview pill -->
-                    @if (promoComboComplementSku) {
-                      <div class="rounded-xl border border-orange-200 bg-orange-50/70 p-2.5 flex items-center justify-between text-xs">
-                        <div class="flex items-center gap-2">
-                          <img src="/images/icons/combo-paquete.png" alt="Combo" class="h-4 w-4 object-contain inline-block shrink-0" />
-                          <div>
-                            <span class="text-[10px] font-bold text-orange-900 uppercase tracking-wide block">Repuesto Complementario Activo:</span>
-                            <span class="font-bold text-gray-900">{{ promoComboComplementName }}</span>
-                            <span class="text-[10px] text-gray-500 ml-1 font-mono">({{ promoComboComplementSku }})</span>
+                      } @else {
+                        <div class="space-y-2">
+                          <input
+                            type="text"
+                            [ngModel]="promoManualComboSearch()"
+                            (ngModelChange)="promoManualComboSearch.set($event)"
+                            placeholder="Buscar repuesto complementario (pastillas, discos, filtros, bujías, aceite)..."
+                            class="w-full rounded-xl border border-gray-200 bg-gray-50/50 px-3.5 py-2 text-xs text-gray-800 placeholder:text-gray-400 focus:border-orange-500 focus:bg-white focus:outline-none transition"
+                          />
+                          <div class="max-h-52 overflow-y-auto space-y-1.5 pr-1 divide-y divide-gray-100 rounded-xl border border-gray-200 bg-white p-2">
+                            @for (p of filteredManualComboParts(); track p.sku) {
+                              <div class="rounded-lg p-2 transition flex items-center justify-between gap-3 text-xs hover:bg-gray-50">
+                                <div class="min-w-0 flex-1">
+                                  <div class="flex items-center gap-1.5">
+                                    <span class="font-bold text-gray-900 truncate">{{ p.name }}</span>
+                                  </div>
+                                  <div class="flex items-center gap-2 text-[10px] text-gray-500 font-mono mt-0.5">
+                                    <span>{{ p.sku }}</span>
+                                    @if (p.oemCode) { <span>OEM: {{ p.oemCode }}</span> }
+                                    @if (p.manufacturerBrand) { <span class="text-gray-700 font-sans font-semibold">· {{ p.manufacturerBrand }}</span> }
+                                    <span class="text-emerald-700 font-sans font-bold">Stock: {{ p.stockQuantity }}</span>
+                                  </div>
+                                </div>
+                                <div class="flex items-center gap-2 shrink-0">
+                                  <div class="text-right">
+                                    <span class="block text-xs font-bold text-orange-600">+S/ {{ ((p.salePrice || 50) * 0.85) | number: '1.2-2' }}</span>
+                                    <span class="block text-[10px] text-gray-400 line-through">S/ {{ (p.salePrice || 50) | number: '1.2-2' }}</span>
+                                  </div>
+                                  @if (isComplementInCombo(p.sku)) {
+                                    <span class="rounded-lg bg-emerald-100 text-emerald-800 px-2 py-1 text-[10px] font-bold">✓ En combo</span>
+                                  } @else {
+                                    <button
+                                      type="button"
+                                      (click)="addComplementToCombo(p)"
+                                      class="rounded-lg bg-orange-600 hover:bg-orange-700 text-white px-2.5 py-1 text-[11px] font-bold transition cursor-pointer"
+                                    >
+                                      + Agregar
+                                    </button>
+                                  }
+                                </div>
+                              </div>
+                            }
+                            @if (filteredManualComboParts().length === 0) {
+                              <div class="p-4 text-center text-xs text-gray-400">
+                                No se encontraron repuestos con ese término en el inventario.
+                              </div>
+                            }
                           </div>
                         </div>
-                        <span class="font-black text-orange-700 text-xs tabular-nums">+S/ {{ (promoComboComplementPrice * 0.85) | number: '1.2-2' }}</span>
-                      </div>
-                    }
+                      }
+                    </div>
                   </div>
                 }
 
-                <!-- Real-time Simulation Box -->
+                <!-- Real-time Simulation Box for Multi-Item Combos -->
                 <div class="rounded-xl border border-emerald-200 bg-emerald-50/40 p-4 space-y-2.5">
                   <span class="text-[11px] font-bold text-emerald-900 uppercase tracking-wider flex items-center gap-1.5">
                     <svg class="h-4 w-4 text-emerald-700 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
                     </svg>
-                    <span>{{ promoType === 'COMBO_SUGERIDO' ? 'Simulación Financiera del Combo Completo' : 'Simulación Financiera en Tiempo Real' }}</span>
+                    <span>{{ promoType === 'COMBO_SUGERIDO' ? ('Simulación Financiera del Combo (' + totalComboItemsCount + ' productos en kit)') : 'Simulación Financiera en Tiempo Real' }}</span>
                   </span>
                   @if (promoType === 'COMBO_SUGERIDO') {
                     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
                       <div>
                         <span class="text-gray-500 block">Precio Total Combo</span>
                         <span class="text-base font-black text-gray-900 tabular-nums">
-                          S/ {{ (promoCalculatedPrice + promoComboComplementPrice * 0.85) | number: '1.2-2' }}
+                          S/ {{ comboTotalPrice | number: '1.2-2' }}
                         </span>
                         <span class="block text-[10px] text-gray-400 line-through tabular-nums">
-                          Normal S/ {{ (part.salePrice + promoComboComplementPrice) | number: '1.2-2' }}
+                          Normal S/ {{ comboTotalNormalPrice | number: '1.2-2' }}
                         </span>
                       </div>
                       <div>
                         <span class="text-gray-500 block">Ahorro Total Cliente</span>
                         <span class="text-base font-bold text-emerald-700 tabular-nums">
-                          -S/ {{ (promoClientSavings + promoComboComplementPrice * 0.15) | number: '1.2-2' }}
+                          -S/ {{ comboTotalSavings | number: '1.2-2' }}
+                        </span>
+                        <span class="block text-[10px] text-emerald-800 font-semibold">
+                          {{ comboSavingsPercent }}% ahorro kit
                         </span>
                       </div>
                       <div>
-                        <span class="text-gray-500 block">Ganancia Pieza Base</span>
-                        <span class="text-base font-bold text-emerald-900 tabular-nums">S/ {{ promoUnitProfit | number: '1.2-2' }}</span>
+                        <span class="text-gray-500 block">Ganancia Est. Paquete</span>
+                        <span class="text-base font-bold text-emerald-900 tabular-nums">
+                          S/ {{ Math.max(0, comboTotalPrice - (part.purchasePrice + comboComplementsRegularTotal * 0.70)) | number: '1.2-2' }}
+                        </span>
                       </div>
                       <div>
                         <span class="text-gray-500 block">Margen Conservado</span>
-                        <span class="text-base font-bold text-emerald-800 tabular-nums">{{ promoProfitMargin }}%</span>
+                        <span class="text-base font-bold text-emerald-800 tabular-nums">
+                          {{ comboTotalPrice > 0 ? Math.round(((comboTotalPrice - (part.purchasePrice + comboComplementsRegularTotal * 0.70)) / comboTotalPrice) * 100) : 0 }}%
+                        </span>
                       </div>
                     </div>
                   } @else {
@@ -6449,6 +6611,66 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
   promoComboComplementName: string = 'Filtro de Aceite Blindado Denso';
   promoComboComplementPrice: number = 42;
 
+  readonly promoBasePartSearchTerm = signal<string>('');
+  readonly promoComboItems = signal<ComboItem[]>([
+    {
+      sku: 'ASU-FIL-001',
+      name: 'Filtro de Aceite Blindado Denso',
+      price: 42,
+      discountPercent: 15,
+      stockQuantity: 20,
+    },
+  ]);
+
+  readonly filteredBaseParts = computed<Part[]>(() => {
+    const q = this.promoBasePartSearchTerm().trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const list = this.adminParts();
+    if (!q) return list.slice(0, 10);
+    const tokens = q.split(/\s+/).filter(Boolean);
+    return list.filter((p) => {
+      const haystack = `${p.name} ${p.sku || ''} ${p.oemCode || ''} ${p.manufacturerBrand || ''} ${p.categoryName || ''}`
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
+      return tokens.every((t) => haystack.includes(t));
+    });
+  });
+
+  get totalComboItemsCount(): number {
+    return 1 + this.promoComboItems().length;
+  }
+
+  get comboComplementsRegularTotal(): number {
+    return Number(this.promoComboItems().reduce((sum, it) => sum + (it.price || 0), 0).toFixed(2));
+  }
+
+  get comboComplementsPromoTotal(): number {
+    return Number(
+      this.promoComboItems()
+        .reduce((sum, it) => sum + (it.price || 0) * (1 - (it.discountPercent || 15) / 100), 0)
+        .toFixed(2)
+    );
+  }
+
+  get comboTotalPrice(): number {
+    return Number((this.promoCalculatedPrice + this.comboComplementsPromoTotal).toFixed(2));
+  }
+
+  get comboTotalNormalPrice(): number {
+    const p = this.promoPart();
+    const basePrice = p ? p.salePrice : 0;
+    return Number((basePrice + this.comboComplementsRegularTotal).toFixed(2));
+  }
+
+  get comboTotalSavings(): number {
+    return Math.max(0, Number((this.comboTotalNormalPrice - this.comboTotalPrice).toFixed(2)));
+  }
+
+  get comboSavingsPercent(): number {
+    if (this.comboTotalNormalPrice <= 0) return 0;
+    return Math.round((this.comboTotalSavings / this.comboTotalNormalPrice) * 100);
+  }
+
   private readonly fallbackComplements = [
     { sku: 'ASU-FIL-001', name: 'Filtro de Aceite Blindado Denso', price: 42 },
     { sku: 'ASU-FRE-004', name: 'Líquido de Frenos DOT 4 Bosch 500ml', price: 28 },
@@ -6589,9 +6811,48 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
       this.promoType = existing.promoType;
       this.promoBadgeLabel = existing.badgeLabel;
       this.promoUnitsQuota = existing.unitsQuota;
-      this.promoComboComplementSku = existing.comboComplementSku || defaultComp.sku;
-      this.promoComboComplementName = existing.comboComplementName || defaultComp.name;
-      this.promoComboComplementPrice = existing.comboComplementPrice || defaultComp.price;
+
+      if (existing.comboComplements && existing.comboComplements.length > 0) {
+        this.promoComboItems.set(
+          existing.comboComplements.map((c) => ({
+            sku: c.sku,
+            name: c.name,
+            price: c.price,
+            purchasePrice: Number((c.price * 0.70).toFixed(2)),
+            discountPercent: c.discountPercent ?? 15,
+            imageUrl: c.imageUrl,
+          }))
+        );
+        this.promoComboComplementSku = existing.comboComplements[0].sku;
+        this.promoComboComplementName = existing.comboComplements[0].name;
+        this.promoComboComplementPrice = existing.comboComplements[0].price;
+      } else if (existing.comboComplementSku) {
+        this.promoComboComplementSku = existing.comboComplementSku;
+        this.promoComboComplementName = existing.comboComplementName || defaultComp.name;
+        this.promoComboComplementPrice = existing.comboComplementPrice || defaultComp.price;
+        this.promoComboItems.set([
+          {
+            sku: existing.comboComplementSku,
+            name: existing.comboComplementName || defaultComp.name,
+            price: existing.comboComplementPrice || defaultComp.price,
+            purchasePrice: Number(((existing.comboComplementPrice || defaultComp.price) * 0.70).toFixed(2)),
+            discountPercent: 15,
+          },
+        ]);
+      } else {
+        this.promoComboComplementSku = defaultComp.sku;
+        this.promoComboComplementName = defaultComp.name;
+        this.promoComboComplementPrice = defaultComp.price;
+        this.promoComboItems.set([
+          {
+            sku: defaultComp.sku,
+            name: defaultComp.name,
+            price: defaultComp.price,
+            purchasePrice: Number((defaultComp.price * 0.70).toFixed(2)),
+            discountPercent: 15,
+          },
+        ]);
+      }
     } else {
       this.promoDiscountPercent = Math.min(10, this.promoMaxSafeDiscount || 10);
       this.promoType = 'DESCUENTO_DIRECTO';
@@ -6600,6 +6861,15 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
       this.promoComboComplementSku = defaultComp.sku;
       this.promoComboComplementName = defaultComp.name;
       this.promoComboComplementPrice = defaultComp.price;
+      this.promoComboItems.set([
+        {
+          sku: defaultComp.sku,
+          name: defaultComp.name,
+          price: defaultComp.price,
+          purchasePrice: Number((defaultComp.price * 0.70).toFixed(2)),
+          discountPercent: 15,
+        },
+      ]);
     }
 
     this.showPromotionModal.set(true);
@@ -6616,25 +6886,65 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
     }
   }
 
+  addComplementToCombo(item: any): void {
+    const base = this.promoPart();
+    if (base && base.sku === item.sku) return;
+    const current = this.promoComboItems();
+    if (current.some((c) => c.sku === item.sku)) return;
+    const price = item.salePrice ?? item.price ?? 50;
+    const newItem: ComboItem = {
+      sku: item.sku,
+      name: item.name,
+      price,
+      purchasePrice: item.purchasePrice ?? Number((price * 0.70).toFixed(2)),
+      discountPercent: 15,
+      stockQuantity: item.stockQuantity,
+      oemCode: item.oemCode,
+      imageUrl: item.primaryImageUrl || item.imageUrl || '/images/categories/repuesto-default.png',
+    };
+    const updated = [...current, newItem];
+    this.promoComboItems.set(updated);
+    this.promoComboComplementSku = updated[0]?.sku || '';
+    this.promoComboComplementName = updated[0]?.name || '';
+    this.promoComboComplementPrice = updated[0]?.price || 0;
+  }
+
+  removeComplementFromCombo(sku: string): void {
+    const updated = this.promoComboItems().filter((c) => c.sku !== sku);
+    this.promoComboItems.set(updated);
+    if (updated.length > 0) {
+      this.promoComboComplementSku = updated[0].sku;
+      this.promoComboComplementName = updated[0].name;
+      this.promoComboComplementPrice = updated[0].price;
+    } else {
+      this.promoComboComplementSku = '';
+      this.promoComboComplementName = '';
+      this.promoComboComplementPrice = 0;
+    }
+  }
+
+  isComplementInCombo(sku: string): boolean {
+    return this.promoComboItems().some((c) => c.sku === sku);
+  }
+
   onComboComplementSelect(sku: string): void {
     const comp = this.suggestedComplements.find((c) => c.sku === sku);
     if (comp) {
-      this.promoComboComplementSku = comp.sku;
-      this.promoComboComplementName = comp.name;
-      this.promoComboComplementPrice = comp.price;
+      this.addComplementToCombo(comp);
       return;
     }
     const adminPart = this.adminParts().find((p: Part) => p.sku === sku);
     if (adminPart) {
-      this.promoComboComplementSku = adminPart.sku;
-      this.promoComboComplementName = adminPart.name;
-      this.promoComboComplementPrice = adminPart.salePrice || 50;
+      this.addComplementToCombo(adminPart);
     }
   }
 
   savePromotion(): void {
     const part = this.promoPart();
     if (!part || !this.promoIsSafe) return;
+
+    const complements = this.promoComboItems();
+    const firstComp = complements[0];
 
     this.promotionService.applyPromotion({
       sku: part.sku,
@@ -6647,10 +6957,21 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
       discountPercentage: this.promoDiscountPercent,
       badgeLabel: this.promoBadgeLabel,
       promoType: this.promoType,
-      comboComplementSku: this.promoType === 'COMBO_SUGERIDO' ? this.promoComboComplementSku : undefined,
-      comboComplementName: this.promoType === 'COMBO_SUGERIDO' ? this.promoComboComplementName : undefined,
-      comboComplementPrice: this.promoType === 'COMBO_SUGERIDO' ? this.promoComboComplementPrice : undefined,
-      comboTotalPromoPrice: this.promoType === 'COMBO_SUGERIDO' ? Number((this.promoCalculatedPrice + this.promoComboComplementPrice * 0.85).toFixed(2)) : undefined,
+      comboComplementSku: this.promoType === 'COMBO_SUGERIDO' ? (firstComp?.sku ?? this.promoComboComplementSku) : undefined,
+      comboComplementName: this.promoType === 'COMBO_SUGERIDO' ? (firstComp?.name ?? this.promoComboComplementName) : undefined,
+      comboComplementPrice: this.promoType === 'COMBO_SUGERIDO' ? (firstComp?.price ?? this.promoComboComplementPrice) : undefined,
+      comboComplements:
+        this.promoType === 'COMBO_SUGERIDO'
+          ? complements.map((c) => ({
+              sku: c.sku,
+              name: c.name,
+              price: c.price,
+              promoPrice: Number((c.price * (1 - (c.discountPercent || 15) / 100)).toFixed(2)),
+              discountPercent: c.discountPercent || 15,
+              imageUrl: c.imageUrl,
+            }))
+          : undefined,
+      comboTotalPromoPrice: this.promoType === 'COMBO_SUGERIDO' ? this.comboTotalPrice : undefined,
       unitsQuota: this.promoUnitsQuota,
       unitsSoldInPromo: 0,
       active: true,
@@ -7007,60 +7328,85 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
   });
 
   readonly computedWeekdaySales = computed<SalesTimelinePoint[]>(() => {
-    const weekdayData = this.dashboard()?.weekdaySales;
-    const daysInfo = [
-      { dow: 1, name: 'Lunes' },
-      { dow: 2, name: 'Martes' },
-      { dow: 3, name: 'Miércoles' },
-      { dow: 4, name: 'Jueves' },
-      { dow: 5, name: 'Viernes' },
-      { dow: 6, name: 'Sábado' },
-      { dow: 7, name: 'Domingo' },
-    ];
-
-    if (weekdayData && weekdayData.length > 0) {
-      return daysInfo.map(({ dow, name }) => {
-        const found = weekdayData.find((w) => w.dayOfWeek === dow);
-        const sales = found ? Number(found.totalAmount) : 0;
-        const count = found ? found.ordersCount : 0;
-        const share = found ? found.sharePercent : 0;
-        return {
-          periodKey: name,
-          label: name,
-          subLabel: `${share}% facturación`,
-          totalSales: sales,
-          grossProfit: Number((sales * 0.35).toFixed(2)),
-          ordersCount: count,
-          unitsSold: count * 2,
-        };
-      });
-    }
-
     const orders = this.allSystemOrders().length > 0 ? this.allSystemOrders() : this.globalOrders();
-    const map = new Map<number, { sales: number; count: number; profit: number; units: number }>();
-    daysInfo.forEach(({ dow }) => map.set(dow, { sales: 0, count: 0, profit: 0, units: 0 }));
+    const today = new Date();
+    const currentDow = this.getPeruDayOfWeek(today); // 1 = Lunes, ..., 5 = Viernes, 7 = Domingo
+
+    const mondayDate = new Date(today);
+    mondayDate.setDate(today.getDate() - (currentDow - 1));
+
+    const daysEs = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+    const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Set', 'Oct', 'Nov', 'Dic'];
+
+    const daysThisWeek = daysEs.map((name, idx) => {
+      const dow = idx + 1;
+      const d = new Date(mondayDate);
+      d.setDate(mondayDate.getDate() + idx);
+      const dateStr = this.getPeruDateString(d);
+      const parts = dateStr.split('-').map(Number);
+      const m = parts[1];
+      const dayNum = parts[2];
+      const isFuture = dow > currentDow;
+      const isToday = dow === currentDow;
+      return {
+        dow,
+        name,
+        dateStr,
+        label: `${name} (${dayNum} ${monthNames[m - 1]})`,
+        shortLabel: name,
+        isFuture,
+        isToday,
+        subLabel: isToday
+          ? `${dayNum} ${monthNames[m - 1]} · Hoy`
+          : isFuture
+          ? `${dayNum} ${monthNames[m - 1]} · Próximo`
+          : `${dayNum} ${monthNames[m - 1]} · Esta semana`,
+      };
+    });
+
+    const map = new Map<string, { sales: number; count: number; profit: number; units: number }>();
+    daysThisWeek.forEach((d) => map.set(d.dateStr, { sales: 0, count: 0, profit: 0, units: 0 }));
 
     for (const ord of orders) {
       if (ord.status === 'CANCELADO') continue;
       if (!ord.createdAt) continue;
       const d = new Date(ord.createdAt);
       if (isNaN(d.getTime())) continue;
-      const dow = this.getPeruDayOfWeek(d);
+
+      const orderPeruDate = this.getPeruDateString(d);
+      const matchedDay = daysThisWeek.find((dw) => dw.dateStr === orderPeruDate);
+      if (!matchedDay || matchedDay.isFuture) continue;
+
       const total = ord.totalAmount ?? ord.total ?? ord.subtotal ?? 0;
-      const existing = map.get(dow) || { sales: 0, count: 0, profit: 0, units: 0 };
+      const existing = map.get(orderPeruDate)!;
       existing.sales += total;
       existing.count += 1;
-      existing.profit += total * 0.35;
-      existing.units += 2;
-      map.set(dow, existing);
+
+      let profit = 0;
+      let units = 0;
+      if (ord.items && ord.items.length > 0) {
+        for (const it of ord.items) {
+          const qty = it.quantity || 1;
+          units += qty;
+          const saleP = it.unitPrice || 0;
+          const costP = Number((saleP * 0.65).toFixed(2));
+          profit += (saleP - costP) * qty;
+        }
+      } else {
+        units += 1;
+        profit += total * 0.35;
+      }
+      existing.profit += profit;
+      existing.units += units;
+      map.set(orderPeruDate, existing);
     }
 
-    return daysInfo.map(({ dow, name }) => {
-      const data = map.get(dow)!;
+    return daysThisWeek.map((dw) => {
+      const data = map.get(dw.dateStr)!;
       return {
-        periodKey: name,
-        label: name,
-        subLabel: `${name} (Semanal)`,
+        periodKey: dw.name,
+        label: dw.label,
+        subLabel: dw.subLabel,
         totalSales: Number(data.sales.toFixed(2)),
         grossProfit: Number(data.profit.toFixed(2)),
         ordersCount: data.count,

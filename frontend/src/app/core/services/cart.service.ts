@@ -328,8 +328,11 @@ export class CartService {
 
     const promo = this.promotionService.getPromotion(itemSku);
     if (promo && promo.active) {
-      if (promo.promoType === 'COMBO_SUGERIDO' && promo.comboComplementSku) {
-        if (cartSkus.has(promo.comboComplementSku.trim().toUpperCase())) {
+      if (promo.promoType === 'COMBO_SUGERIDO') {
+        const hasComplement =
+          (promo.comboComplementSku && cartSkus.has(promo.comboComplementSku.trim().toUpperCase())) ||
+          (promo.comboComplements && promo.comboComplements.some((c) => cartSkus.has(c.sku.trim().toUpperCase())));
+        if (hasComplement) {
           basePrice = Math.min(basePrice, promo.promoPrice);
         }
       } else {
@@ -341,7 +344,8 @@ export class CartService {
     if (pairedCombo) {
       const compPrice = this.promotionService.getComplementComboPrice(
         pairedCombo,
-        item.part.salePrice
+        item.part.salePrice,
+        itemSku
       );
       basePrice = Math.min(basePrice, compPrice);
     }
@@ -368,13 +372,11 @@ export class CartService {
     );
     const itemSku = (item.part.sku || '').trim().toUpperCase();
     const mainCombo = this.promotionService.getPromotion(itemSku);
-    if (
-      mainCombo &&
-      mainCombo.promoType === 'COMBO_SUGERIDO' &&
-      mainCombo.comboComplementSku &&
-      cartSkus.has(mainCombo.comboComplementSku.trim().toUpperCase())
-    ) {
-      return true;
+    if (mainCombo && mainCombo.promoType === 'COMBO_SUGERIDO') {
+      const hasComplement =
+        (mainCombo.comboComplementSku && cartSkus.has(mainCombo.comboComplementSku.trim().toUpperCase())) ||
+        (mainCombo.comboComplements && mainCombo.comboComplements.some((c) => cartSkus.has(c.sku.trim().toUpperCase())));
+      if (hasComplement) return true;
     }
     return Boolean(this.promotionService.findComboWhereComplementIs(itemSku, cartSkus));
   }
@@ -563,11 +565,11 @@ export class CartService {
     }
   }
 
-  addCombo(mainPart: Part, complementPart: Part, openDrawerAfter = true): void {
+  addCombo(mainPart: Part, complementPart: Part | Part[], openDrawerAfter = true): void {
     this.refreshPosHoldsAndReconcile(false);
-    const remMain = this.getRemainingStockToAdd(mainPart);
-    const remComp = this.getRemainingStockToAdd(complementPart);
+    const complements = Array.isArray(complementPart) ? complementPart : [complementPart];
 
+    const remMain = this.getRemainingStockToAdd(mainPart);
     if (remMain <= 0 && this.getMyCartQuantity(mainPart.id) === 0) {
       this.toast.warning(
         'Stock insuficiente en el repuesto principal',
@@ -575,12 +577,16 @@ export class CartService {
       );
       return;
     }
-    if (remComp <= 0 && this.getMyCartQuantity(complementPart.id) === 0) {
-      this.toast.warning(
-        'Stock insuficiente en el complemento',
-        `No hay unidades libres de ${complementPart.name} en este momento.`
-      );
-      return;
+
+    for (const comp of complements) {
+      const remComp = this.getRemainingStockToAdd(comp);
+      if (remComp <= 0 && this.getMyCartQuantity(comp.id) === 0) {
+        this.toast.warning(
+          'Stock insuficiente en complemento del combo',
+          `No hay unidades libres de ${comp.name} en este momento.`
+        );
+        return;
+      }
     }
 
     this.items.update((current) => {
@@ -599,14 +605,15 @@ export class CartService {
         }
       };
       upsertOne(mainPart);
-      upsertOne(complementPart);
+      complements.forEach((c) => upsertOne(c));
       return next;
     });
 
     this.persist();
+    const totalCount = 1 + complements.length;
     this.toast.success(
-      '¡Combo Automotriz activado en tu carrito!',
-      `Se agregaron ${mainPart.name} + ${complementPart.name} con descuento conjunto aplicado.`
+      `¡Combo de ${totalCount} repuestos agregado al carrito!`,
+      `Se incluyeron ${mainPart.name} y sus repuestos complementarios con descuento conjunto aplicado.`
     );
     this.syncReservationWithServer(true);
     if (openDrawerAfter) {

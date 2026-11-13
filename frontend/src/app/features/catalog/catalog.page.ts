@@ -25,6 +25,7 @@ interface CatalogComboCard {
   promo: PartPromotion;
   mainPart: Part;
   complementPart: Part;
+  complements?: Part[];
   regularTotal: number;
   comboTotal: number;
   savings: number;
@@ -652,7 +653,7 @@ interface CatalogLocalSnapshot {
                       <button
                         type="button"
                         [disabled]="!canAddCombo(combo)"
-                        (click)="cart.addCombo(combo.mainPart, combo.complementPart, true)"
+                        (click)="cart.addCombo(combo.mainPart, combo.complements && combo.complements.length > 0 ? combo.complements : combo.complementPart, true)"
                         class="min-h-[42px] inline-flex items-center justify-center gap-2 rounded-xl bg-orange-600 px-4 py-2.5 text-xs sm:text-sm font-extrabold text-white shadow-xs hover:bg-orange-700 active:scale-[0.98] disabled:bg-gray-200 disabled:text-gray-500 transition cursor-pointer"
                       >
                         <span>{{ canAddCombo(combo) ? 'Llevar Combo Completo' : 'Combo sin stock disponible' }}</span>
@@ -1203,18 +1204,30 @@ export class CatalogPageComponent implements OnInit, OnDestroy {
 
     const cards: CatalogComboCard[] = [];
     for (const promo of this.promotionService.activeCombos()) {
-      if (!promo.comboComplementSku) continue;
+      if (!promo.comboComplementSku && (!promo.comboComplements || promo.comboComplements.length === 0)) continue;
       const mainPart = partsMap.get(promo.sku);
-      const complementPart = partsMap.get(promo.comboComplementSku);
-      if (!mainPart || !complementPart) continue;
+      if (!mainPart) continue;
 
-      if (catId !== null && mainPart.categoryId !== catId && complementPart.categoryId !== catId) {
+      let complements: Part[] = [];
+      if (promo.comboComplements && promo.comboComplements.length > 0) {
+        complements = promo.comboComplements
+          .map((c) => partsMap.get(c.sku))
+          .filter((p): p is Part => Boolean(p));
+      }
+      if (complements.length === 0 && promo.comboComplementSku) {
+        const singleComp = partsMap.get(promo.comboComplementSku);
+        if (singleComp) complements = [singleComp];
+      }
+      if (complements.length === 0) continue;
+      const complementPart = complements[0];
+
+      if (catId !== null && mainPart.categoryId !== catId && !complements.some((c) => c.categoryId === catId)) {
         continue;
       }
       if (
         inStockOnly &&
         (this.cart.getRemainingStockToAdd(mainPart) <= 0 ||
-          this.cart.getRemainingStockToAdd(complementPart) <= 0)
+          complements.some((c) => this.cart.getRemainingStockToAdd(c) <= 0))
       ) {
         continue;
       }
@@ -1224,33 +1237,33 @@ export class CatalogPageComponent implements OnInit, OnDestroy {
       if (
         queryTokens.length > 0 &&
         !this.matchesQueryTokens(mainPart, queryTokens) &&
-        !this.matchesQueryTokens(complementPart, queryTokens)
+        !complements.some((c) => this.matchesQueryTokens(c, queryTokens))
       ) {
         continue;
       }
 
-      const complementComboPrice =
-        promo.comboComplementPromoPrice ??
-        Number(
-          Math.max(
-            complementPart.purchasePrice ?? 0,
-            complementPart.salePrice * 0.85
-          ).toFixed(2)
-        );
-      const regularTotal = Number((mainPart.salePrice + complementPart.salePrice).toFixed(2));
+      const complementsRegularTotal = complements.reduce((sum, c) => sum + c.salePrice, 0);
+      const complementsComboTotal = complements.reduce((sum, c) => {
+        const itemPromo = (promo.comboComplements || []).find((ic) => ic.sku === c.sku);
+        const itemPrice = itemPromo?.promoPrice ?? Number(Math.max(c.purchasePrice ?? 0, c.salePrice * 0.85).toFixed(2));
+        return sum + itemPrice;
+      }, 0);
+
+      const regularTotal = Number((mainPart.salePrice + complementsRegularTotal).toFixed(2));
       const comboTotal =
         promo.comboTotalPromoPrice ??
-        Number((promo.promoPrice + complementComboPrice).toFixed(2));
+        Number((promo.promoPrice + complementsComboTotal).toFixed(2));
       const savings = Math.max(0, Number((regularTotal - comboTotal).toFixed(2)));
 
       cards.push({
         promo,
         mainPart,
         complementPart,
+        complements,
         regularTotal,
         comboTotal,
         savings,
-        complementComboPrice,
+        complementComboPrice: Number((complements[0].salePrice * 0.85).toFixed(2)),
       });
     }
     return cards;
@@ -1350,10 +1363,9 @@ export class CatalogPageComponent implements OnInit, OnDestroy {
   }
 
   canAddCombo(combo: CatalogComboCard): boolean {
-    return (
-      this.cart.getRemainingStockToAdd(combo.mainPart) > 0 &&
-      this.cart.getRemainingStockToAdd(combo.complementPart) > 0
-    );
+    if (this.cart.getRemainingStockToAdd(combo.mainPart) <= 0) return false;
+    const comps = combo.complements && combo.complements.length > 0 ? combo.complements : [combo.complementPart];
+    return comps.every((c) => this.cart.getRemainingStockToAdd(c) > 0);
   }
 
   readonly predictiveResults = computed<Part[]>(() => {

@@ -20,6 +20,14 @@ export interface PartPromotion {
   comboComplementPrice?: number;
   comboComplementPromoPrice?: number;
   comboTotalPromoPrice?: number;
+  comboComplements?: Array<{
+    sku: string;
+    name: string;
+    price: number;
+    promoPrice?: number;
+    discountPercent?: number;
+    imageUrl?: string;
+  }>;
   unitsQuota: number;
   unitsSoldInPromo: number;
   active: boolean;
@@ -110,14 +118,26 @@ export class PromotionService {
     if (!sku) return undefined;
     const norm = sku.trim().toUpperCase();
     return this.activeCombos().find((c) => {
-      const compMatch = (c.comboComplementSku || '').trim().toUpperCase() === norm;
-      if (!compMatch) return false;
+      const singleMatch = (c.comboComplementSku || '').trim().toUpperCase() === norm;
+      const multiMatch = (c.comboComplements || []).some(
+        (comp) => (comp.sku || '').trim().toUpperCase() === norm
+      );
+      if (!singleMatch && !multiMatch) return false;
       if (!activeMainSkusInCart) return true;
       return activeMainSkusInCart.has((c.sku || '').trim().toUpperCase());
     });
   }
 
-  getComplementComboPrice(promo: PartPromotion, regularFallbackPrice = 0): number {
+  getComplementComboPrice(promo: PartPromotion, regularFallbackPrice = 0, itemSku?: string): number {
+    if (itemSku && promo.comboComplements && promo.comboComplements.length > 0) {
+      const norm = itemSku.trim().toUpperCase();
+      const matched = promo.comboComplements.find((c) => (c.sku || '').trim().toUpperCase() === norm);
+      if (matched) {
+        if (matched.promoPrice && matched.promoPrice > 0) return matched.promoPrice;
+        const disc = (matched.discountPercent || 15) / 100;
+        return Number((matched.price * (1 - disc)).toFixed(2));
+      }
+    }
     if (promo.comboComplementPromoPrice && promo.comboComplementPromoPrice > 0) {
       return promo.comboComplementPromoPrice;
     }
