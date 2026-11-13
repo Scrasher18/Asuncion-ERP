@@ -1330,19 +1330,17 @@ export interface ComboItem {
                   <div class="border-b border-gray-200 bg-white px-5 py-4 flex items-center justify-between gap-3">
                     <div>
                       <div class="flex items-center gap-2">
-                        <span class="flex h-6 w-6 items-center justify-center rounded-md bg-orange-50 text-orange-600 font-bold text-xs">
-                          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
-                          </svg>
+                        <span class="flex h-6 w-6 items-center justify-center rounded-md bg-amber-50 text-amber-700 font-bold text-xs">
+                          <img src="/images/icons/combo-paquete.png" alt="Rotación" class="h-4 w-4 object-contain inline-block" />
                         </span>
                         <h3 class="text-sm font-bold text-gray-900">
-                          Repuestos de menor rotación (Alerta stock)
+                          Inventario de Menor Rotación (Capital Inmovilizado)
                         </h3>
                       </div>
-                      <p class="text-xs text-gray-500 mt-0.5">Inventario estancado sugerido para promociones o liquidación.</p>
+                      <p class="text-xs text-gray-500 mt-0.5">Repuestos con baja salida comercial. Sugeridos para activar ofertas web y combos automotrices para recuperar capital.</p>
                     </div>
-                    <span class="inline-flex items-center rounded-full border border-orange-200 bg-orange-50 px-2.5 py-0.5 text-xs font-semibold text-orange-700">
-                      Riesgo capital
+                    <span class="inline-flex items-center rounded-full border border-amber-300 bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-800">
+                      Rotación Comercial
                     </span>
                   </div>
                   <div class="overflow-x-auto">
@@ -1436,14 +1434,14 @@ export interface ComboItem {
                     <div>
                       <div class="flex items-center gap-2">
                         <h3 class="text-sm font-black text-gray-900">
-                          Repuestos con Menor Stock (Reposición Urgente en Almacén)
+                          Alerta de Stock Mínimo (Reposición Urgente a Proveedores)
                         </h3>
                         <span class="rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-black text-white uppercase animate-pulse">
-                          Alerta Roja
+                          Quiebre de Stock
                         </span>
                       </div>
                       <p class="text-xs text-gray-500 mt-0.5">
-                        Piezas que han alcanzado o perforado su nivel mínimo de seguridad. Requieren emitir orden de reposición inmediata a proveedores.
+                        Piezas que alcanzaron o perforaron su stock mínimo de seguridad. Requieren generar orden de reposición inmediata a proveedores.
                       </p>
                     </div>
                   </div>
@@ -3877,117 +3875,121 @@ export interface ComboItem {
       <!-- MODAL: ESTRATEGIA COMERCIAL: CREAR OFERTA / PROMOCIÓN DE STOCK (CANDADO FINANCIERO) -->
       <!-- =========================================================================== -->
       @if (showPromotionModal()) {
-        @if (promoPart(); as part) {
-          <div class="fixed inset-0 z-50 overflow-y-auto bg-gray-900/50 backdrop-blur-xs p-3 sm:p-6 flex items-center justify-center">
-            <div class="w-full max-w-2xl rounded-3xl border border-gray-200 bg-white p-6 sm:p-8 shadow-2xl space-y-6 animate-scaleIn max-h-[92vh] overflow-y-auto">
-              
-              <!-- Modal Header -->
-              <div class="flex items-center justify-between border-b border-gray-100 pb-4">
-                <div class="flex items-center gap-3">
-                  <span class="flex h-11 w-11 items-center justify-center rounded-2xl bg-orange-100 text-orange-600 font-extrabold text-xl shadow-2xs">
-                    <img src="/images/icons/etiqueta-oferta.png" alt="Oferta" class="h-6 w-6 object-contain" />
-                  </span>
-                  <div>
-                    <h3 class="text-lg font-black text-gray-900">
-                      Estrategia Comercial: Oferta & Rotación de Stock
-                    </h3>
-                    <p class="text-xs text-gray-500">
-                      Impulsa la venta de inventario estancado protegiendo tu costo base y margen mínimo.
-                    </p>
-                  </div>
+        <div class="fixed inset-0 z-50 overflow-y-auto bg-gray-900/50 backdrop-blur-xs p-3 sm:p-6 flex items-center justify-center">
+          <div class="w-full max-w-2xl rounded-3xl border border-gray-200 bg-white p-6 sm:p-8 shadow-2xl space-y-6 animate-scaleIn max-h-[92vh] overflow-y-auto">
+            
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between border-b border-gray-100 pb-4">
+              <div class="flex items-center gap-3">
+                <span class="flex h-11 w-11 items-center justify-center rounded-2xl bg-orange-100 text-orange-600 font-extrabold text-xl shadow-2xs">
+                  <img src="/images/icons/combo-paquete.png" alt="Combo" class="h-6 w-6 object-contain" />
+                </span>
+                <div>
+                  <h3 class="text-lg font-black text-gray-900">
+                    {{ promoPart() ? (promoType === 'COMBO_SUGERIDO' ? 'Configurar Combo Automotriz' : 'Estrategia Comercial: Oferta & Rotación de Stock') : 'Crear Combo Automotriz' }}
+                  </h3>
+                  <p class="text-xs text-gray-500">
+                    {{ promoPart() ? 'Ajusta descuentos y complementos protegiendo tu costo base y margen mínimo.' : 'Selecciona el repuesto base en el buscador para comenzar a armar el paquete.' }}
+                  </p>
                 </div>
-                <button
-                  type="button"
-                  (click)="closePromotionModal()"
-                  class="rounded-xl border border-gray-200 p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition cursor-pointer"
-                  aria-label="Cerrar modal"
-                >
-                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
+              </div>
+              <button
+                type="button"
+                (click)="closePromotionModal()"
+                class="rounded-xl border border-gray-200 p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition cursor-pointer"
+                aria-label="Cerrar modal"
+              >
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <!-- Base Repuesto Selector for Combo / Promo with Fast Search Engine -->
+            <div class="rounded-2xl border-2 border-amber-300 bg-linear-to-r from-amber-50 to-orange-50/40 p-4 space-y-3 shadow-2xs">
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+                <label for="primaryPartSearchInput" class="text-xs font-bold text-amber-950 flex items-center gap-1.5">
+                  <img src="/images/icons/combo-paquete.png" alt="Combo" class="h-4 w-4 object-contain inline-block shrink-0" />
+                  <span>Repuesto Base del Combo (Buscar en inventario):</span>
+                </label>
+                <span class="text-[11px] font-semibold text-amber-800 bg-amber-100/80 px-2 py-0.5 rounded-full">
+                  {{ adminParts().length }} repuestos en almacén
+                </span>
               </div>
 
-              <!-- Base Repuesto Selector for Combo / Promo with Fast Search Engine -->
-              <div class="rounded-2xl border-2 border-amber-300 bg-linear-to-r from-amber-50 to-orange-50/40 p-4 space-y-3 shadow-2xs">
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
-                  <label for="primaryPartSearchInput" class="text-xs font-bold text-amber-950 flex items-center gap-1.5">
-                    <img src="/images/icons/combo-paquete.png" alt="Combo" class="h-4 w-4 object-contain inline-block shrink-0" />
-                    <span>Repuesto Base del Combo (Buscar en inventario):</span>
-                  </label>
-                  <span class="text-[11px] font-semibold text-amber-800 bg-amber-100/80 px-2 py-0.5 rounded-full">
-                    {{ adminParts().length }} repuestos en almacén
+              <!-- Buscador de Repuesto Base Instantáneo -->
+              <div class="relative">
+                <div class="relative flex items-center">
+                  <span class="absolute left-3 text-gray-400">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                    </svg>
                   </span>
-                </div>
-
-                <!-- Buscador de Repuesto Base Instantáneo -->
-                <div class="relative">
-                  <div class="relative flex items-center">
-                    <span class="absolute left-3 text-gray-400">
+                  <input
+                    id="primaryPartSearchInput"
+                    type="text"
+                    [ngModel]="promoBasePartSearchTerm()"
+                    (ngModelChange)="promoBasePartSearchTerm.set($event)"
+                    placeholder="Escribe para buscar repuesto base (ej: bomba, disco, embrague, filtro)..."
+                    class="min-h-[44px] w-full rounded-xl border border-amber-300 bg-white pl-9 pr-10 py-2.5 text-xs sm:text-sm font-medium text-gray-900 shadow-2xs focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
+                  />
+                  @if (promoBasePartSearchTerm()) {
+                    <button
+                      type="button"
+                      (click)="promoBasePartSearchTerm.set('')"
+                      class="absolute right-2.5 rounded-lg p-1 text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition cursor-pointer"
+                      title="Limpiar búsqueda"
+                    >
                       <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                       </svg>
-                    </span>
-                    <input
-                      id="primaryPartSearchInput"
-                      type="text"
-                      [ngModel]="promoBasePartSearchTerm()"
-                      (ngModelChange)="promoBasePartSearchTerm.set($event)"
-                      placeholder="Escribe para buscar repuesto base (ej: bomba, disco, embrague, filtro)..."
-                      class="min-h-[44px] w-full rounded-xl border border-amber-300 bg-white pl-9 pr-10 py-2.5 text-xs sm:text-sm font-medium text-gray-900 shadow-2xs focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
-                    />
-                    @if (promoBasePartSearchTerm()) {
-                      <button
-                        type="button"
-                        (click)="promoBasePartSearchTerm.set('')"
-                        class="absolute right-2.5 rounded-lg p-1 text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition cursor-pointer"
-                        title="Limpiar búsqueda"
-                      >
-                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
-                    }
-                  </div>
-
-                  <!-- Dropdown de resultados filtrados cuando el usuario busca -->
-                  @if (promoBasePartSearchTerm().trim().length > 0) {
-                    <div class="absolute left-0 right-0 top-full mt-1.5 z-30 max-h-56 overflow-y-auto rounded-xl border border-amber-300 bg-white p-1.5 shadow-xl space-y-1">
-                      @for (p of filteredBaseParts(); track p.id) {
-                        <button
-                          type="button"
-                          (click)="onPrimaryPartSelect(p.sku); promoBasePartSearchTerm.set('')"
-                          [class]="part.sku === p.sku ? 'bg-orange-50 text-orange-950 font-bold border border-orange-300' : 'hover:bg-amber-50 text-gray-800 font-medium border border-transparent'"
-                          class="w-full text-left rounded-lg p-2.5 transition flex items-center justify-between gap-3 text-xs cursor-pointer"
-                        >
-                          <div class="min-w-0 flex-1">
-                            <div class="flex items-center gap-2">
-                              <span class="truncate font-bold">{{ p.name }}</span>
-                              @if (part.sku === p.sku) {
-                                <span class="shrink-0 rounded bg-orange-600 px-1.5 py-0.5 text-[9px] font-extrabold text-white">SELECCIONADO</span>
-                              }
-                            </div>
-                            <div class="flex items-center gap-2 text-[10px] text-gray-500 font-mono mt-0.5">
-                              <span>{{ p.sku }}</span>
-                              @if (p.oemCode) { <span>• OEM: {{ p.oemCode }}</span> }
-                              <span class="text-emerald-700 font-bold font-sans">Stock: {{ p.stockQuantity }} un.</span>
-                            </div>
-                          </div>
-                          <div class="text-right shrink-0">
-                            <span class="block text-xs font-black text-gray-900">S/ {{ p.salePrice | number: '1.2-2' }}</span>
-                          </div>
-                        </button>
-                      }
-                      @if (filteredBaseParts().length === 0) {
-                        <div class="p-3 text-center text-xs text-gray-400">
-                          No se encontraron repuestos con "{{ promoBasePartSearchTerm() }}".
-                        </div>
-                      }
-                    </div>
+                    </button>
                   }
                 </div>
 
-                <!-- Repuesto Base Seleccionado Actual -->
+                <!-- Dropdown de resultados filtrados cuando el usuario busca o cuando no hay repuesto base seleccionado -->
+                @if (promoBasePartSearchTerm().trim().length > 0 || !promoPart()) {
+                  <div class="mt-2 max-h-56 overflow-y-auto rounded-xl border border-amber-300 bg-white p-1.5 shadow-md space-y-1">
+                    <div class="px-2.5 py-1 text-[10px] font-bold text-amber-900 uppercase tracking-wider bg-amber-50/60 rounded">
+                      {{ promoBasePartSearchTerm() ? 'Resultados de búsqueda:' : 'Elige un repuesto base para comenzar el combo:' }}
+                    </div>
+                    @for (p of filteredBaseParts(); track p.id) {
+                      <button
+                        type="button"
+                        (click)="onPrimaryPartSelect(p.sku); promoBasePartSearchTerm.set('')"
+                        [class]="promoPart()?.sku === p.sku ? 'bg-orange-50 text-orange-950 font-bold border border-orange-300' : 'hover:bg-amber-50 text-gray-800 font-medium border border-transparent'"
+                        class="w-full text-left rounded-lg p-2.5 transition flex items-center justify-between gap-3 text-xs cursor-pointer"
+                      >
+                        <div class="min-w-0 flex-1">
+                          <div class="flex items-center gap-2">
+                            <span class="truncate font-bold">{{ p.name }}</span>
+                            @if (promoPart()?.sku === p.sku) {
+                              <span class="shrink-0 rounded bg-orange-600 px-1.5 py-0.5 text-[9px] font-extrabold text-white">BASE ACTUAL</span>
+                            }
+                          </div>
+                          <div class="flex items-center gap-2 text-[10px] text-gray-500 font-mono mt-0.5">
+                            <span>{{ p.sku }}</span>
+                            @if (p.oemCode) { <span>• OEM: {{ p.oemCode }}</span> }
+                            <span class="text-emerald-700 font-bold font-sans">Stock: {{ p.stockQuantity }} un.</span>
+                          </div>
+                        </div>
+                        <div class="text-right shrink-0">
+                          <span class="block text-xs font-black text-gray-900">S/ {{ p.salePrice | number: '1.2-2' }}</span>
+                          <span class="text-[10px] text-orange-700 font-bold">+ Seleccionar Base</span>
+                        </div>
+                      </button>
+                    }
+                    @if (filteredBaseParts().length === 0) {
+                      <div class="p-3 text-center text-xs text-gray-400">
+                        No se encontraron repuestos con "{{ promoBasePartSearchTerm() }}".
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+
+              <!-- Repuesto Base Seleccionado Actual -->
+              @if (promoPart(); as part) {
                 <div class="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-amber-200/60 text-xs">
                   <div class="flex items-center gap-1.5 text-amber-950">
                     <span class="font-bold">Base Activo:</span>
@@ -3996,7 +3998,15 @@ export interface ComboItem {
                   </div>
                   <span class="font-bold text-orange-700">Precio Base: S/ {{ part.salePrice | number: '1.2-2' }}</span>
                 </div>
-              </div>
+              } @else {
+                <div class="pt-1 border-t border-amber-200/60 text-xs text-amber-900/80 font-medium">
+                  El combo debe tener un repuesto base. Selecciona uno en el buscador para habilitar la configuración del combo.
+                </div>
+              }
+            </div>
+
+            <!-- CUERPO DE CONFIGURACIÓN: SOLO SE MUESTRA CUANDO HAY UN REPUESTO BASE ACTIVO -->
+            @if (promoPart(); as part) {
 
               <!-- Part Identity Card -->
               <div class="rounded-2xl border border-gray-200 bg-[#F8F9FA] p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -4478,10 +4488,32 @@ export interface ComboItem {
                   </button>
                 </div>
               </div>
+            } @else {
+              <!-- Estado Inicial en Blanco para Crear Combo Automotriz -->
+              <div class="rounded-2xl border-2 border-dashed border-amber-300 bg-amber-50/40 p-8 text-center space-y-3">
+                <span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-100 text-amber-800 mx-auto shadow-2xs">
+                  <img src="/images/icons/combo-paquete.png" alt="Combo" class="h-6 w-6 object-contain" />
+                </span>
+                <h4 class="font-bold text-gray-900 text-sm">Paso 1: Elige el repuesto base en el buscador superior</h4>
+                <p class="text-xs text-gray-500 max-w-sm mx-auto">
+                  Escribe en el buscador o selecciona un repuesto de la lista para definir la pieza principal del combo. Luego podrás añadir piezas complementarias con descuento especial.
+                </p>
+              </div>
 
-            </div>
+              <!-- Footer Cancelar cuando está en blanco -->
+              <div class="flex justify-end pt-3 border-t border-gray-100">
+                <button
+                  type="button"
+                  (click)="closePromotionModal()"
+                  class="rounded-xl border border-gray-200 bg-white px-5 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition cursor-pointer"
+                >
+                  Cancelar
+                </button>
+              </div>
+            }
+
           </div>
-        }
+        </div>
       }
 
       <!-- =========================================================================== -->
@@ -6637,7 +6669,7 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
   });
 
   get totalComboItemsCount(): number {
-    return 1 + this.promoComboItems().length;
+    return (this.promoPart() ? 1 : 0) + this.promoComboItems().length;
   }
 
   get comboComplementsRegularTotal(): number {
@@ -6740,7 +6772,7 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
 
   get promoIsSafe(): boolean {
     const p = this.promoPart();
-    if (!p) return true;
+    if (!p) return false;
     return this.promoCalculatedPrice >= p.purchasePrice;
   }
 
@@ -6755,20 +6787,28 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
   }
 
   openManualComboCreator(partItem?: any): void {
-    const filtered = this.filteredAdminParts();
-    const item =
-      partItem ||
-      (filtered.length > 0 ? filtered[0] : (this.adminParts().length > 0 ? this.adminParts()[0] : null));
-    if (!item) {
-      this.toast.info('Sin repuestos', 'Primero registra al menos un repuesto en inventario para crear un combo.');
+    if (partItem) {
+      this.openPromotionModal(partItem);
+      this.promoType = 'COMBO_SUGERIDO';
+      this.promoBadgeLabel = 'COMBO RECOMENDADO';
+      if (!this.promoDiscountPercent || this.promoDiscountPercent < 5) {
+        this.promoDiscountPercent = 10;
+      }
       return;
     }
-    this.openPromotionModal(item);
+
+    // Opens EN BLANCO (unselected) when clicking the top "Crear Combo Automotriz" button
+    this.promoPart.set(null);
+    this.promoBasePartSearchTerm.set('');
     this.promoType = 'COMBO_SUGERIDO';
     this.promoBadgeLabel = 'COMBO RECOMENDADO';
-    if (!this.promoDiscountPercent || this.promoDiscountPercent < 5) {
-      this.promoDiscountPercent = 10;
-    }
+    this.promoDiscountPercent = 10;
+    this.promoUnitsQuota = 5;
+    this.promoComboItems.set([]);
+    this.promoComboComplementSku = '';
+    this.promoComboComplementName = '';
+    this.promoComboComplementPrice = 0;
+    this.showPromotionModal.set(true);
   }
 
   onPrimaryPartSelect(sku: string): void {
@@ -6878,6 +6918,7 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
   closePromotionModal(): void {
     this.showPromotionModal.set(false);
     this.promoPart.set(null);
+    this.promoBasePartSearchTerm.set('');
   }
 
   selectPresetDiscount(pct: number): void {
