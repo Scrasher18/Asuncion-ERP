@@ -2251,10 +2251,15 @@ export interface ComboItem {
         <!-- ========================================================================= -->
         @if (activeTab() === 'completed') {
           <div class="space-y-5">
-            <!-- Summary KPI Strip -->
+            <!-- Summary KPI Strip (Synchronized with Date Filter) -->
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div class="rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50/70 to-white p-4 shadow-2xs">
-                <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-700">Total Ventas Finalizadas</span>
+              <div class="rounded-2xl border border-emerald-200 bg-linear-to-br from-emerald-50/70 to-white p-4 shadow-2xs">
+                <div class="flex items-center justify-between">
+                  <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-700">Total Ventas Finalizadas</span>
+                  <span class="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
+                    {{ completedActivePeriodShortLabel() }}
+                  </span>
+                </div>
                 <div class="mt-1.5 flex items-baseline justify-between">
                   <span class="text-2xl font-black text-gray-900 tabular-nums">{{ completedUnifiedStats().totalCount }}</span>
                   <span class="font-mono text-sm font-extrabold text-emerald-700">S/ {{ completedUnifiedStats().totalAmount | number: '1.2-2' }}</span>
@@ -2263,10 +2268,15 @@ export interface ComboItem {
               </div>
 
               <div class="rounded-2xl border border-orange-200 bg-white p-4 shadow-2xs">
-                <span class="text-[10px] font-bold uppercase tracking-wider text-orange-700 flex items-center gap-1.5">
-                  <img src="/images/icons/moto-delivery.png" alt="Delivery" class="h-3.5 w-3.5 object-contain inline-block" />
-                  <span>Online · Delivery</span>
-                </span>
+                <div class="flex items-center justify-between">
+                  <span class="text-[10px] font-bold uppercase tracking-wider text-orange-700 flex items-center gap-1.5">
+                    <img src="/images/icons/moto-delivery.png" alt="Delivery" class="h-3.5 w-3.5 object-contain inline-block" />
+                    <span>Online · Delivery</span>
+                  </span>
+                  <span class="rounded-full bg-orange-50 px-2 py-0.5 text-[10px] font-bold text-orange-800">
+                    {{ completedActivePeriodShortLabel() }}
+                  </span>
+                </div>
                 <div class="mt-1.5 flex items-baseline justify-between">
                   <span class="text-2xl font-black text-gray-900 tabular-nums">{{ completedUnifiedStats().deliveryCount }}</span>
                   <span class="font-mono text-sm font-extrabold text-orange-700">S/ {{ completedUnifiedStats().deliveryAmount | number: '1.2-2' }}</span>
@@ -2275,10 +2285,15 @@ export interface ComboItem {
               </div>
 
               <div class="rounded-2xl border border-blue-200 bg-white p-4 shadow-2xs">
-                <span class="text-[10px] font-bold uppercase tracking-wider text-blue-700 flex items-center gap-1.5">
-                  <img src="/images/icons/tienda-recojo.png" alt="Recojo" class="h-3.5 w-3.5 object-contain inline-block" />
-                  <span>Online · Recojo en Tienda</span>
-                </span>
+                <div class="flex items-center justify-between">
+                  <span class="text-[10px] font-bold uppercase tracking-wider text-blue-700 flex items-center gap-1.5">
+                    <img src="/images/icons/tienda-recojo.png" alt="Recojo" class="h-3.5 w-3.5 object-contain inline-block" />
+                    <span>Online · Recojo en Tienda</span>
+                  </span>
+                  <span class="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-bold text-blue-800">
+                    {{ completedActivePeriodShortLabel() }}
+                  </span>
+                </div>
                 <div class="mt-1.5 flex items-baseline justify-between">
                   <span class="text-2xl font-black text-gray-900 tabular-nums">{{ completedUnifiedStats().pickupCount }}</span>
                   <span class="font-mono text-sm font-extrabold text-blue-700">S/ {{ completedUnifiedStats().pickupAmount | number: '1.2-2' }}</span>
@@ -2287,10 +2302,15 @@ export interface ComboItem {
               </div>
 
               <div class="rounded-2xl border border-purple-200 bg-white p-4 shadow-2xs">
-                <span class="text-[10px] font-bold uppercase tracking-wider text-purple-700 flex items-center gap-1.5">
-                  <img src="/images/icons/caja-mostrador.png" alt="POS" class="h-3.5 w-3.5 object-contain inline-block" />
-                  <span>Caja POS · Presencial</span>
-                </span>
+                <div class="flex items-center justify-between">
+                  <span class="text-[10px] font-bold uppercase tracking-wider text-purple-700 flex items-center gap-1.5">
+                    <img src="/images/icons/caja-mostrador.png" alt="POS" class="h-3.5 w-3.5 object-contain inline-block" />
+                    <span>Caja POS · Presencial</span>
+                  </span>
+                  <span class="rounded-full bg-purple-50 px-2 py-0.5 text-[10px] font-bold text-purple-800">
+                    {{ completedActivePeriodShortLabel() }}
+                  </span>
+                </div>
                 <div class="mt-1.5 flex items-baseline justify-between">
                   <span class="text-2xl font-black text-gray-900 tabular-nums">{{ completedUnifiedStats().posCount }}</span>
                   <span class="font-mono text-sm font-extrabold text-purple-700">S/ {{ completedUnifiedStats().posAmount | number: '1.2-2' }}</span>
@@ -2304,31 +2324,149 @@ export interface ComboItem {
               <div class="border-b border-gray-200 px-5 py-4 space-y-3">
                 <div class="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <h2 class="text-base font-bold text-gray-900">
-                      Ventas Finalizadas — Online y Caja POS ({{ filteredCompletedOrders().length }})
-                    </h2>
+                    <div class="flex items-center gap-2 flex-wrap">
+                      <h2 class="text-base font-bold text-gray-900">
+                        Ventas Finalizadas — Online y Caja POS ({{ filteredCompletedOrders().length }})
+                      </h2>
+                      <span class="rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2.5 py-0.5">
+                        {{ completedActivePeriodShortLabel() }}
+                      </span>
+                    </div>
                     <p class="text-xs text-gray-500">
-                      Todas las ventas finalizadas y cobradas del negocio: Online Delivery, Recojo en tienda y Caja POS.
+                      {{ completedActivePeriodDescription() }}
                     </p>
                   </div>
 
-                  <button
-                    type="button"
-                    (click)="exportCompletedConsolidatedToExcel()"
-                    class="inline-flex min-h-[36px] items-center gap-1.5 rounded-xl border border-emerald-300 bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-1.5 text-xs font-bold shadow-xs transition cursor-pointer"
-                  >
-                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
-                    </svg>
-                    <span>Exportar Ventas a Excel (.xlsx)</span>
-                  </button>
+                  <div class="flex items-center gap-2">
+                    @if (completedDateFilter() !== 'ALL' || completedChannelFilter() !== 'ALL' || completedSearchQuery) {
+                      <button
+                        type="button"
+                        (click)="resetAllCompletedFilters()"
+                        class="inline-flex min-h-[36px] items-center gap-1.5 rounded-xl border border-gray-200 bg-white hover:bg-gray-100 text-gray-700 px-3 py-1.5 text-xs font-semibold shadow-2xs transition cursor-pointer"
+                        title="Restablecer todos los filtros a todo el historial"
+                      >
+                        <svg class="h-3.5 w-3.5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        <span>Ver Todo</span>
+                      </button>
+                    }
+
+                    <button
+                      type="button"
+                      (click)="exportCompletedConsolidatedToExcel()"
+                      class="inline-flex min-h-[36px] items-center gap-1.5 rounded-xl border border-emerald-300 bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-1.5 text-xs font-bold shadow-xs transition cursor-pointer"
+                    >
+                      <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                      </svg>
+                      <span>Exportar Excel (.xlsx)</span>
+                    </button>
+                  </div>
                 </div>
 
-                <div class="flex flex-wrap items-center justify-between gap-2.5">
+                <!-- Date / Period Filter Bar: Quick Buttons + Custom Day/Month Picker -->
+                <div class="flex flex-wrap items-center justify-between gap-2.5 pt-2 border-t border-gray-100">
+                  <div class="flex flex-wrap items-center gap-1 text-xs">
+                    <span class="text-xs font-bold text-gray-700 flex items-center gap-1.5 mr-1">
+                      <svg class="h-3.5 w-3.5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      <span>Filtrar por Fecha:</span>
+                    </span>
+                    <button
+                      type="button"
+                      (click)="setDateFilter('ALL')"
+                      [class]="completedDateFilter() === 'ALL' ? 'bg-gray-900 text-white font-bold shadow-2xs' : 'bg-gray-100 text-gray-700 hover:bg-gray-200 font-medium'"
+                      class="rounded-lg px-2.5 py-1.5 transition cursor-pointer"
+                    >
+                      Todo el historial
+                    </button>
+                    <button
+                      type="button"
+                      (click)="setDateFilter('TODAY')"
+                      [class]="completedDateFilter() === 'TODAY' ? 'bg-emerald-600 text-white font-bold shadow-2xs' : 'bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 font-semibold'"
+                      class="rounded-lg px-2.5 py-1.5 transition cursor-pointer"
+                    >
+                      Hoy ({{ todayFormattedLabel() }})
+                    </button>
+                    <button
+                      type="button"
+                      (click)="setDateFilter('YESTERDAY')"
+                      [class]="completedDateFilter() === 'YESTERDAY' ? 'bg-amber-600 text-white font-bold shadow-2xs' : 'bg-gray-100 text-gray-700 hover:bg-gray-200 font-medium'"
+                      class="rounded-lg px-2.5 py-1.5 transition cursor-pointer"
+                    >
+                      Ayer
+                    </button>
+                    <button
+                      type="button"
+                      (click)="setDateFilter('THIS_WEEK')"
+                      [class]="completedDateFilter() === 'THIS_WEEK' ? 'bg-orange-600 text-white font-bold shadow-2xs' : 'bg-gray-100 text-gray-700 hover:bg-gray-200 font-medium'"
+                      class="rounded-lg px-2.5 py-1.5 transition cursor-pointer"
+                    >
+                      Esta semana
+                    </button>
+                    <button
+                      type="button"
+                      (click)="setDateFilter('THIS_MONTH')"
+                      [class]="completedDateFilter() === 'THIS_MONTH' ? 'bg-blue-600 text-white font-bold shadow-2xs' : 'bg-gray-100 text-gray-700 hover:bg-gray-200 font-medium'"
+                      class="rounded-lg px-2.5 py-1.5 transition cursor-pointer"
+                    >
+                      Este mes ({{ currentMonthFormattedLabel() }})
+                    </button>
+                  </div>
+
+                  <div class="flex flex-wrap items-center gap-2 text-xs">
+                    <!-- Selector de Día exacto -->
+                    <div class="inline-flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-xl px-2.5 py-1">
+                      <span class="text-[11px] text-gray-500 font-semibold">Día:</span>
+                      <input
+                        type="date"
+                        [value]="completedCustomDate()"
+                        (change)="onCustomDateChange($event)"
+                        class="bg-transparent text-xs text-gray-800 font-bold focus:outline-none cursor-pointer"
+                      />
+                      @if (completedCustomDate()) {
+                        <button
+                          type="button"
+                          (click)="clearCustomDate()"
+                          class="text-gray-400 hover:text-red-600 p-0.5 cursor-pointer text-xs font-bold"
+                          title="Limpiar fecha"
+                        >
+                          ✕
+                        </button>
+                      }
+                    </div>
+
+                    <!-- Selector de Mes exacto -->
+                    <div class="inline-flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-xl px-2.5 py-1">
+                      <span class="text-[11px] text-gray-500 font-semibold">Mes:</span>
+                      <input
+                        type="month"
+                        [value]="completedCustomMonth()"
+                        (change)="onCustomMonthChange($event)"
+                        class="bg-transparent text-xs text-gray-800 font-bold focus:outline-none cursor-pointer"
+                      />
+                      @if (completedCustomMonth()) {
+                        <button
+                          type="button"
+                          (click)="clearCustomMonth()"
+                          class="text-gray-400 hover:text-red-600 p-0.5 cursor-pointer text-xs font-bold"
+                          title="Limpiar mes"
+                        >
+                          ✕
+                        </button>
+                      }
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Channel Filter & Search -->
+                <div class="flex flex-wrap items-center justify-between gap-2.5 pt-2 border-t border-gray-100">
                   <div class="inline-flex flex-wrap items-center rounded-xl border border-gray-200 bg-gray-50 p-1 text-xs gap-0.5">
                     <button
                       type="button"
-                      (click)="completedChannelFilter.set('ALL')"
+                      (click)="completedChannelFilter.set('ALL'); completedCurrentPage.set(1)"
                       [class]="completedChannelFilter() === 'ALL' ? 'bg-white text-gray-900 font-bold shadow-2xs' : 'text-gray-600 hover:text-gray-900 font-medium'"
                       class="rounded-lg px-2.5 py-1.5 transition cursor-pointer"
                     >
@@ -2336,7 +2474,7 @@ export interface ComboItem {
                     </button>
                     <button
                       type="button"
-                      (click)="completedChannelFilter.set('ONLINE_DELIVERY')"
+                      (click)="completedChannelFilter.set('ONLINE_DELIVERY'); completedCurrentPage.set(1)"
                       [class]="completedChannelFilter() === 'ONLINE_DELIVERY' ? 'bg-orange-600 text-white font-bold shadow-2xs' : 'text-gray-600 hover:text-gray-900 font-medium'"
                       class="rounded-lg px-2.5 py-1.5 transition cursor-pointer inline-flex items-center gap-1.5"
                     >
@@ -2345,7 +2483,7 @@ export interface ComboItem {
                     </button>
                     <button
                       type="button"
-                      (click)="completedChannelFilter.set('ONLINE_PICKUP')"
+                      (click)="completedChannelFilter.set('ONLINE_PICKUP'); completedCurrentPage.set(1)"
                       [class]="completedChannelFilter() === 'ONLINE_PICKUP' ? 'bg-blue-600 text-white font-bold shadow-2xs' : 'text-gray-600 hover:text-gray-900 font-medium'"
                       class="rounded-lg px-2.5 py-1.5 transition cursor-pointer inline-flex items-center gap-1.5"
                     >
@@ -2354,7 +2492,7 @@ export interface ComboItem {
                     </button>
                     <button
                       type="button"
-                      (click)="completedChannelFilter.set('POS')"
+                      (click)="completedChannelFilter.set('POS'); completedCurrentPage.set(1)"
                       [class]="completedChannelFilter() === 'POS' ? 'bg-purple-600 text-white font-bold shadow-2xs' : 'text-gray-600 hover:text-gray-900 font-medium'"
                       class="rounded-lg px-2.5 py-1.5 transition cursor-pointer inline-flex items-center gap-1.5"
                     >
@@ -2367,6 +2505,7 @@ export interface ComboItem {
                     <input
                       type="search"
                       [(ngModel)]="completedSearchQuery"
+                      (ngModelChange)="completedCurrentPage.set(1)"
                       placeholder="Buscar N.° pedido, cliente o DNI/RUC..."
                       class="min-h-[36px] w-full sm:w-72 rounded-xl border border-gray-200 bg-gray-50/70 pl-8 pr-3 py-1.5 text-xs text-gray-900 placeholder:text-gray-400 focus:border-emerald-500 focus:bg-white focus:outline-none"
                     />
@@ -2377,41 +2516,42 @@ export interface ComboItem {
                 </div>
               </div>
 
-              <div class="overflow-x-auto scrollbar-thin">
+              <!-- Scrollable Table Container with Sticky Columns & Header -->
+              <div class="max-h-[580px] overflow-auto scrollbar-thin">
                 <table class="min-w-full divide-y divide-gray-200 text-xs">
-                  <thead class="bg-gray-50 text-left font-semibold text-gray-600">
+                  <thead class="sticky top-0 bg-gray-50 z-20 shadow-2xs text-left font-semibold text-gray-600">
                     <tr>
-                      <th class="sticky left-0 bg-gray-50 z-10 px-4 py-3 min-w-[130px] shadow-[1px_0_0_0_#e5e7eb]">N.° de Orden / Fecha</th>
-                      <th class="px-4 py-3 min-w-[170px]">Canal / Vendedor</th>
-                      <th class="px-4 py-3 min-w-[170px]">Cliente / Comprobante</th>
-                      <th class="px-4 py-3 min-w-[130px]">Cobro y Medio</th>
-                      <th class="px-4 py-3 min-w-[150px]">Atención / Entrega</th>
-                      <th class="px-4 py-3 text-right min-w-[100px]">Total</th>
-                      <th class="px-4 py-3 text-right min-w-[220px]">Acciones</th>
+                      <th class="sticky left-0 bg-gray-50 z-30 px-3.5 py-3 min-w-[130px] shadow-[1px_0_0_0_#e5e7eb]">N.° de Orden / Fecha</th>
+                      <th class="px-3.5 py-3 min-w-[155px]">Canal / Vendedor</th>
+                      <th class="px-3.5 py-3 min-w-[160px]">Cliente / Comprobante</th>
+                      <th class="px-3.5 py-3 min-w-[115px]">Cobro y Medio</th>
+                      <th class="px-3.5 py-3 min-w-[140px]">Atención / Entrega</th>
+                      <th class="px-3.5 py-3 text-right min-w-[95px]">Total</th>
+                      <th class="sticky right-0 bg-gray-50 z-30 px-3.5 py-3 text-right min-w-[195px] shadow-[-2px_0_4px_rgba(0,0,0,0.06)]">Acciones</th>
                     </tr>
                   </thead>
                   <tbody class="divide-y divide-gray-100">
-                    @for (ord of filteredCompletedOrders(); track ord.id) {
+                    @for (ord of paginatedCompletedOrders(); track ord.id) {
                       <tr class="group hover:bg-gray-50/70 transition align-middle">
-                        <td class="sticky left-0 bg-white group-hover:bg-gray-50 z-10 px-4 py-3.5 font-mono font-semibold text-gray-900 whitespace-nowrap shadow-[1px_0_0_0_#f3f4f6]">
+                        <td class="sticky left-0 bg-white group-hover:bg-gray-50 z-10 px-3.5 py-3 font-mono font-semibold text-gray-900 whitespace-nowrap shadow-[1px_0_0_0_#f3f4f6]">
                           {{ ord.orderNumber }}
                           <span class="block font-sans font-normal text-[11px] text-gray-500">
                             {{ (ord.updatedAt || ord.createdAt) | date: 'dd/MM/yy HH:mm' }}
                           </span>
                         </td>
-                        <td class="px-4 py-3.5 whitespace-nowrap">
+                        <td class="px-3.5 py-3 whitespace-nowrap">
                           @if (isCounterSaleOrder(ord)) {
-                            <span class="inline-flex items-center gap-1.5 rounded-lg border border-purple-200 bg-purple-50 px-2.5 py-0.5 text-[11px] font-bold text-purple-800">
+                            <span class="inline-flex items-center gap-1.5 rounded-lg border border-purple-200 bg-purple-50 px-2 py-0.5 text-[11px] font-bold text-purple-800">
                               <img src="/images/icons/caja-mostrador.png" alt="POS" class="h-3.5 w-3.5 object-contain inline-block" />
                               <span>Caja POS</span>
                             </span>
                           } @else if (ord.deliveryType === 'PICKUP') {
-                            <span class="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-[11px] font-bold text-blue-800">
+                            <span class="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-2 py-0.5 text-[11px] font-bold text-blue-800">
                               <img src="/images/icons/tienda-recojo.png" alt="Recojo" class="h-3.5 w-3.5 object-contain inline-block" />
                               <span>Online · Recojo</span>
                             </span>
                           } @else {
-                            <span class="inline-flex items-center gap-1.5 rounded-lg border border-orange-200 bg-orange-50 px-2.5 py-0.5 text-[11px] font-bold text-orange-800">
+                            <span class="inline-flex items-center gap-1.5 rounded-lg border border-orange-200 bg-orange-50 px-2 py-0.5 text-[11px] font-bold text-orange-800">
                               <img src="/images/icons/moto-delivery.png" alt="Delivery" class="h-3.5 w-3.5 object-contain inline-block" />
                               <span>Online · Delivery</span>
                             </span>
@@ -2435,21 +2575,21 @@ export interface ComboItem {
                             }
                           </div>
                         </td>
-                        <td class="px-4 py-3.5">
-                          <p class="font-semibold text-gray-900">{{ ord.recipientName || ord.customerName }}</p>
+                        <td class="px-3.5 py-3">
+                          <p class="font-semibold text-gray-900 truncate max-w-[180px]">{{ ord.recipientName || ord.customerName }}</p>
                           <span class="text-[11px] text-gray-500">
                             {{ ord.invoiceType }} {{ ord.customerTaxId ? '· Doc. ' + ord.customerTaxId : '' }}
                           </span>
                         </td>
-                        <td class="px-4 py-3.5 whitespace-nowrap">
-                          <span class="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-emerald-800">
+                        <td class="px-3.5 py-3 whitespace-nowrap">
+                          <span class="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-emerald-800">
                             ✓ Cobrado
                           </span>
                           <span class="block mt-0.5 text-[10px] text-gray-500">
                             {{ formatPaymentMethodLabel(ord.paymentMethod) }}
                           </span>
                         </td>
-                        <td class="px-4 py-3.5 whitespace-nowrap">
+                        <td class="px-3.5 py-3 whitespace-nowrap">
                           @if (!isCounterSaleOrder(ord) && ord.deliveryType === 'DELIVERY') {
                             <span class="inline-flex items-center gap-1.5 text-[11px] font-semibold text-gray-800">
                               <img src="/images/icons/repartidor.png" alt="" class="h-3.5 w-3.5 object-contain" />
@@ -2464,10 +2604,10 @@ export interface ComboItem {
                             </span>
                           }
                         </td>
-                        <td class="px-4 py-3.5 text-right font-bold tabular-nums text-gray-900 whitespace-nowrap">
+                        <td class="px-3.5 py-3 text-right font-bold tabular-nums text-gray-900 whitespace-nowrap">
                           S/ {{ (ord.totalAmount ?? ord.total ?? ord.subtotal) | number: '1.2-2' }}
                         </td>
-                        <td class="px-4 py-3.5 text-right whitespace-nowrap space-x-1.5">
+                        <td class="sticky right-0 bg-white group-hover:bg-gray-50 z-10 px-3.5 py-3 text-right whitespace-nowrap space-x-1 shadow-[-2px_0_4px_rgba(0,0,0,0.06)]">
                           <button
                             type="button"
                             (click)="openOrderDetailModal(ord)"
@@ -2486,24 +2626,24 @@ export interface ComboItem {
                             [title]="isFacturaOrder(ord) ? 'Descargar Proforma PDF (para Factura)' : 'Descargar Boleta PDF'"
                             class="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-2 py-1 text-[11px] font-semibold text-gray-700 hover:border-orange-300 hover:text-orange-700 transition cursor-pointer"
                           >
-                            <span>{{ isFacturaOrder(ord) ? 'Proforma PDF' : 'PDF' }}</span>
+                            <span>{{ isFacturaOrder(ord) ? 'Proforma' : 'PDF' }}</span>
                           </button>
                           @if (isFacturaOrder(ord)) {
                             <button
                               type="button"
                               (click)="openWhatsAppFactura(ord)"
                               title="Enviar Factura emitida en SUNAT por WhatsApp al cliente"
-                              class="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-800 hover:bg-emerald-600 hover:text-white transition cursor-pointer"
+                              class="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-50 px-2 py-1 text-[11px] font-bold text-emerald-800 hover:bg-emerald-600 hover:text-white transition cursor-pointer"
                             >
-                              <img src="/images/icons/whatsapp-factura.png" alt="WhatsApp" class="h-3.5 w-3.5 object-contain inline-block" />
-                              <span>Factura WA</span>
+                              <img src="/images/icons/whatsapp-factura.png" alt="WhatsApp" class="h-3 w-3 object-contain inline-block" />
+                              <span>WA</span>
                             </button>
                           }
                           @if (!isCounterSaleOrder(ord)) {
                             <a
                               routerLink="/track"
                               [queryParams]="{ order: ord.orderNumber }"
-                              class="inline-flex items-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-800 hover:bg-emerald-100 transition"
+                              class="inline-flex items-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1 text-[11px] font-bold text-emerald-800 hover:bg-emerald-100 transition"
                             >
                               <span>Constancia</span>
                             </a>
@@ -2519,6 +2659,78 @@ export interface ComboItem {
                     }
                   </tbody>
                 </table>
+              </div>
+
+              <!-- Pagination Footer Strip -->
+              <div class="border-t border-gray-200 px-5 py-3 bg-gray-50/60 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+                <div class="flex items-center gap-2 text-gray-600 flex-wrap">
+                  <span>Mostrando</span>
+                  <span class="font-bold text-gray-900">{{ completedPaginationInfo().startIndex }}</span>
+                  <span>a</span>
+                  <span class="font-bold text-gray-900">{{ completedPaginationInfo().endIndex }}</span>
+                  <span>de</span>
+                  <span class="font-bold text-gray-900">{{ filteredCompletedOrders().length }}</span>
+                  <span>ventas</span>
+                  
+                  <span class="text-gray-300 mx-1">|</span>
+                  
+                  <label for="completedPageSizeSelect" class="text-gray-500">Filas por página:</label>
+                  <select
+                    id="completedPageSizeSelect"
+                    [ngModel]="completedPageSize()"
+                    (ngModelChange)="onCompletedPageSizeChange($event)"
+                    class="rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs font-semibold text-gray-700 shadow-2xs focus:border-orange-500 focus:outline-none cursor-pointer"
+                  >
+                    <option [value]="10">10</option>
+                    <option [value]="20">20</option>
+                    <option [value]="50">50</option>
+                    <option [value]="99999">Todas</option>
+                  </select>
+                </div>
+
+                @if (completedTotalPages() > 1) {
+                  <div class="flex items-center gap-1">
+                    <button
+                      type="button"
+                      [disabled]="completedCurrentPage() === 1"
+                      (click)="completedCurrentPage.set(1)"
+                      class="rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
+                      title="Primera página"
+                    >
+                      «
+                    </button>
+                    <button
+                      type="button"
+                      [disabled]="completedCurrentPage() === 1"
+                      (click)="completedCurrentPage.set(completedCurrentPage() - 1)"
+                      class="rounded-lg border border-gray-200 bg-white px-2.5 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
+                    >
+                      ‹ Anterior
+                    </button>
+
+                    <span class="px-2 font-bold text-gray-800 text-xs">
+                      Pág. {{ completedCurrentPage() }} de {{ completedTotalPages() }}
+                    </span>
+
+                    <button
+                      type="button"
+                      [disabled]="completedCurrentPage() >= completedTotalPages()"
+                      (click)="completedCurrentPage.set(completedCurrentPage() + 1)"
+                      class="rounded-lg border border-gray-200 bg-white px-2.5 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
+                    >
+                      Siguiente ›
+                    </button>
+                    <button
+                      type="button"
+                      [disabled]="completedCurrentPage() >= completedTotalPages()"
+                      (click)="completedCurrentPage.set(completedTotalPages())"
+                      class="rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
+                      title="Última página"
+                    >
+                      »
+                    </button>
+                  </div>
+                }
               </div>
             </div>
           </div>
@@ -7125,14 +7337,71 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
 
   // Unified Completed Orders (Online Delivery + Online Pickup + Caja POS)
   readonly completedChannelFilter = signal<'ALL' | 'ONLINE_DELIVERY' | 'ONLINE_PICKUP' | 'POS'>('ALL');
+  readonly completedDateFilter = signal<'ALL' | 'TODAY' | 'YESTERDAY' | 'THIS_WEEK' | 'THIS_MONTH' | 'CUSTOM_DATE' | 'CUSTOM_MONTH'>('ALL');
+  readonly completedCustomDate = signal<string>('');
+  readonly completedCustomMonth = signal<string>('');
+  readonly completedPageSize = signal<number>(10);
+  readonly completedCurrentPage = signal<number>(1);
   completedSearchQuery = '';
 
   readonly completedUnifiedOrders = computed(() =>
     this.allSystemOrders().filter((o) => o.status === 'ENTREGADO')
   );
 
-  readonly completedUnifiedStats = computed(() => {
+  readonly completedDateFilteredOrders = computed(() => {
     const all = this.completedUnifiedOrders();
+    const filter = this.completedDateFilter();
+    const customDate = this.completedCustomDate();
+    const customMonth = this.completedCustomMonth();
+
+    if (filter === 'ALL') return all;
+
+    const todayStr = this.getPeruDateString(new Date());
+
+    return all.filter((o) => {
+      const dateField = o.updatedAt || o.createdAt;
+      if (!dateField) return false;
+      const d = new Date(dateField);
+      if (isNaN(d.getTime())) return false;
+      const orderDateStr = this.getPeruDateString(d);
+
+      if (filter === 'TODAY') {
+        return orderDateStr === todayStr;
+      }
+      if (filter === 'YESTERDAY') {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        return orderDateStr === this.getPeruDateString(yesterday);
+      }
+      if (filter === 'THIS_WEEK') {
+        const today = new Date();
+        const currentDow = this.getPeruDayOfWeek(today); // 1 = Lunes, 7 = Domingo
+        const monday = new Date(today);
+        monday.setDate(today.getDate() - (currentDow - 1));
+        const mondayStr = this.getPeruDateString(monday);
+        const sunday = new Date(monday);
+        sunday.setDate(monday.getDate() + 6);
+        const sundayStr = this.getPeruDateString(sunday);
+        return orderDateStr >= mondayStr && orderDateStr <= sundayStr;
+      }
+      if (filter === 'THIS_MONTH') {
+        const thisMonthPrefix = todayStr.substring(0, 7);
+        return orderDateStr.startsWith(thisMonthPrefix);
+      }
+      if (filter === 'CUSTOM_DATE') {
+        if (!customDate) return true;
+        return orderDateStr === customDate;
+      }
+      if (filter === 'CUSTOM_MONTH') {
+        if (!customMonth) return true;
+        return orderDateStr.startsWith(customMonth);
+      }
+      return true;
+    });
+  });
+
+  readonly completedUnifiedStats = computed(() => {
+    const all = this.completedDateFilteredOrders();
     let deliveryCount = 0;
     let deliveryAmount = 0;
     let pickupCount = 0;
@@ -7169,7 +7438,7 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
   filteredCompletedOrders(): Order[] {
     const channel = this.completedChannelFilter();
     const q = this.completedSearchQuery.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-    return this.completedUnifiedOrders().filter((o) => {
+    return this.completedDateFilteredOrders().filter((o) => {
       const isPos = this.isCounterSaleOrder(o);
       if (channel === 'POS' && !isPos) return false;
       if (channel === 'ONLINE_PICKUP' && (isPos || o.deliveryType !== 'PICKUP')) return false;
@@ -7181,6 +7450,123 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
         .replace(/[\u0300-\u036f]/g, '');
       return haystack.includes(q);
     });
+  }
+
+  readonly completedTotalPages = computed(() => {
+    const total = this.filteredCompletedOrders().length;
+    const size = this.completedPageSize();
+    if (size >= 99999 || total === 0) return 1;
+    return Math.ceil(total / size);
+  });
+
+  readonly paginatedCompletedOrders = computed(() => {
+    const list = this.filteredCompletedOrders();
+    const size = this.completedPageSize();
+    if (size >= 99999) return list;
+    const totalPages = this.completedTotalPages();
+    const currentPage = Math.max(1, Math.min(this.completedCurrentPage(), totalPages));
+    const start = (currentPage - 1) * size;
+    return list.slice(start, start + size);
+  });
+
+  readonly completedPaginationInfo = computed(() => {
+    const total = this.filteredCompletedOrders().length;
+    if (total === 0) {
+      return { startIndex: 0, endIndex: 0, total: 0 };
+    }
+    const size = this.completedPageSize();
+    const totalPages = this.completedTotalPages();
+    const currentPage = Math.max(1, Math.min(this.completedCurrentPage(), totalPages));
+    const startIndex = (currentPage - 1) * size + 1;
+    const endIndex = Math.min(currentPage * size, total);
+    return { startIndex, endIndex, total };
+  });
+
+  readonly completedActivePeriodShortLabel = computed(() => {
+    const filter = this.completedDateFilter();
+    if (filter === 'TODAY') return 'HOY';
+    if (filter === 'YESTERDAY') return 'AYER';
+    if (filter === 'THIS_WEEK') return 'ESTA SEMANA';
+    if (filter === 'THIS_MONTH') return 'ESTE MES';
+    if (filter === 'CUSTOM_DATE') return `DÍA ${this.completedCustomDate()}`;
+    if (filter === 'CUSTOM_MONTH') return `MES ${this.completedCustomMonth()}`;
+    return 'HISTORIAL COMPLETO';
+  });
+
+  readonly completedActivePeriodDescription = computed(() => {
+    const filter = this.completedDateFilter();
+    if (filter === 'TODAY') return `Ventas registradas hoy (${this.todayFormattedLabel()})`;
+    if (filter === 'YESTERDAY') return 'Ventas registradas el día de ayer';
+    if (filter === 'THIS_WEEK') return 'Ventas registradas durante la semana en curso (Lunes a Domingo)';
+    if (filter === 'THIS_MONTH') return `Ventas del mes en curso (${this.currentMonthFormattedLabel()})`;
+    if (filter === 'CUSTOM_DATE') return `Ventas del día ${this.completedCustomDate()}`;
+    if (filter === 'CUSTOM_MONTH') return `Ventas del mes ${this.completedCustomMonth()}`;
+    return 'Todas las ventas finalizadas del negocio (histórico consolidado)';
+  });
+
+  todayFormattedLabel(): string {
+    const parts = this.getPeruDateString(new Date()).split('-');
+    return `${parts[2]}/${parts[1]}/${parts[0]}`;
+  }
+
+  currentMonthFormattedLabel(): string {
+    const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Set', 'Oct', 'Nov', 'Dic'];
+    const parts = this.getPeruDateString(new Date()).split('-');
+    const m = parseInt(parts[1], 10);
+    return `${monthNames[m - 1]} ${parts[0]}`;
+  }
+
+  setDateFilter(filter: 'ALL' | 'TODAY' | 'YESTERDAY' | 'THIS_WEEK' | 'THIS_MONTH'): void {
+    this.completedDateFilter.set(filter);
+    this.completedCustomDate.set('');
+    this.completedCustomMonth.set('');
+    this.completedCurrentPage.set(1);
+  }
+
+  onCustomDateChange(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.value) {
+      this.completedCustomDate.set(input.value);
+      this.completedCustomMonth.set('');
+      this.completedDateFilter.set('CUSTOM_DATE');
+      this.completedCurrentPage.set(1);
+    }
+  }
+
+  clearCustomDate(): void {
+    this.completedCustomDate.set('');
+    this.completedDateFilter.set('ALL');
+    this.completedCurrentPage.set(1);
+  }
+
+  onCustomMonthChange(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.value) {
+      this.completedCustomMonth.set(input.value);
+      this.completedCustomDate.set('');
+      this.completedDateFilter.set('CUSTOM_MONTH');
+      this.completedCurrentPage.set(1);
+    }
+  }
+
+  clearCustomMonth(): void {
+    this.completedCustomMonth.set('');
+    this.completedDateFilter.set('ALL');
+    this.completedCurrentPage.set(1);
+  }
+
+  resetAllCompletedFilters(): void {
+    this.completedDateFilter.set('ALL');
+    this.completedCustomDate.set('');
+    this.completedCustomMonth.set('');
+    this.completedChannelFilter.set('ALL');
+    this.completedSearchQuery = '';
+    this.completedCurrentPage.set(1);
+  }
+
+  onCompletedPageSizeChange(newSize: any): void {
+    this.completedPageSize.set(Number(newSize));
+    this.completedCurrentPage.set(1);
   }
 
   // Order Details Modal (Transparency into Seller, Channel & Items)
