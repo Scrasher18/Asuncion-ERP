@@ -261,7 +261,7 @@ const POS_HOLD_TTL_MS = 15 * 60 * 1000;
                 <div class="flex items-center gap-1.5 overflow-x-auto pb-2">
                   <button
                     type="button"
-                    (click)="selectedCategoryName.set(null)"
+                    (click)="selectedCategoryName.set(null); posPartsPage.set(1)"
                     [class]="
                       selectedCategoryName() === null
                         ? 'border-orange-600 bg-orange-600 text-white font-bold'
@@ -274,7 +274,7 @@ const POS_HOLD_TTL_MS = 15 * 60 * 1000;
                   @for (cat of categories(); track cat.id) {
                     <button
                       type="button"
-                      (click)="selectedCategoryName.set(cat.name)"
+                      (click)="selectedCategoryName.set(cat.name); posPartsPage.set(1)"
                       [class]="
                         selectedCategoryName() === cat.name
                           ? 'border-orange-600 bg-orange-600 text-white font-bold'
@@ -290,7 +290,7 @@ const POS_HOLD_TTL_MS = 15 * 60 * 1000;
 
               <!-- Parts Grid -->
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[540px] overflow-y-auto pr-1">
-                @for (part of filteredParts(); track part.id) {
+                @for (part of paginatedPosParts(); track part.id) {
                   <div
                     class="group rounded-xl border border-gray-200 bg-white p-3.5 hover:border-orange-300 hover:shadow-xs transition flex flex-col justify-between gap-3"
                   >
@@ -371,6 +371,35 @@ const POS_HOLD_TTL_MS = 15 * 60 * 1000;
                   </div>
                 }
               </div>
+
+              @if (filteredParts().length > posPartsPageSize) {
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-t border-gray-100 pt-3">
+                  <span class="text-xs font-medium text-gray-500">
+                    Mostrando <strong class="font-bold text-gray-900">{{ (posPartsPage() - 1) * posPartsPageSize + 1 }} – {{ Math.min(posPartsPage() * posPartsPageSize, filteredParts().length) }}</strong> de <strong class="font-bold text-gray-900">{{ filteredParts().length }}</strong> repuestos
+                  </span>
+                  <div class="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      [disabled]="posPartsPage() <= 1"
+                      (click)="posPartsPage.set(posPartsPage() - 1)"
+                      class="rounded-lg border border-gray-200 bg-white px-2.5 py-1 text-xs font-bold text-gray-700 hover:bg-gray-100 disabled:opacity-40 cursor-pointer"
+                    >
+                      ‹ Anterior
+                    </button>
+                    <span class="px-2.5 py-1 text-xs font-extrabold text-orange-700 bg-orange-50 rounded-lg border border-orange-200">
+                      Pág. {{ posPartsPage() }} de {{ posPartsTotalPages() }}
+                    </span>
+                    <button
+                      type="button"
+                      [disabled]="posPartsPage() >= posPartsTotalPages()"
+                      (click)="posPartsPage.set(posPartsPage() + 1)"
+                      class="rounded-lg border border-gray-200 bg-white px-2.5 py-1 text-xs font-bold text-gray-700 hover:bg-gray-100 disabled:opacity-40 cursor-pointer"
+                    >
+                      Siguiente ›
+                    </button>
+                  </div>
+                </div>
+              }
             </div>
           </div>
 
@@ -832,11 +861,27 @@ export class PosPageComponent implements OnInit, OnDestroy {
   onSearchInput(val: string): void {
     this.searchQuery = val ?? '';
     this.searchQuerySignal.set(this.searchQuery);
+    this.posPartsPage.set(1);
   }
 
   clearSearch(): void {
     this.searchQuery = '';
     this.searchQuerySignal.set('');
+    this.posPartsPage.set(1);
+  }
+
+  readonly Math = Math;
+  readonly posPartsPageSize = 16;
+  readonly posPartsPage = signal<number>(1);
+
+  posPartsTotalPages(): number {
+    return Math.max(1, Math.ceil(this.filteredParts().length / this.posPartsPageSize));
+  }
+
+  paginatedPosParts(): Part[] {
+    const list = this.filteredParts();
+    const page = Math.max(1, Math.min(this.posPartsPage(), this.posPartsTotalPages()));
+    return list.slice((page - 1) * this.posPartsPageSize, page * this.posPartsPageSize);
   }
 
   filteredParts(): Part[] {

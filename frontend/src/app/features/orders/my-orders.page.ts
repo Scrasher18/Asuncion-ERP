@@ -126,7 +126,7 @@ import { SoundService } from '../../core/services/sound.service';
             <div class="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
               <button
                 type="button"
-                (click)="orderFilter.set('ALL')"
+                (click)="orderFilter.set('ALL'); myOrdersPage.set(1)"
                 [class]="orderFilter() === 'ALL' ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'"
                 class="rounded-lg border px-3 py-1.5 text-xs font-semibold transition cursor-pointer shrink-0"
               >
@@ -134,7 +134,7 @@ import { SoundService } from '../../core/services/sound.service';
               </button>
               <button
                 type="button"
-                (click)="orderFilter.set('ACTIVE')"
+                (click)="orderFilter.set('ACTIVE'); myOrdersPage.set(1)"
                 [class]="orderFilter() === 'ACTIVE' ? 'bg-orange-600 text-white border-orange-600' : 'bg-white text-gray-600 border-gray-200 hover:bg-orange-50'"
                 class="rounded-lg border px-3 py-1.5 text-xs font-semibold transition cursor-pointer shrink-0"
               >
@@ -142,7 +142,7 @@ import { SoundService } from '../../core/services/sound.service';
               </button>
               <button
                 type="button"
-                (click)="orderFilter.set('COMPLETED')"
+                (click)="orderFilter.set('COMPLETED'); myOrdersPage.set(1)"
                 [class]="orderFilter() === 'COMPLETED' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-gray-600 border-gray-200 hover:bg-emerald-50'"
                 class="rounded-lg border px-3 py-1.5 text-xs font-semibold transition cursor-pointer shrink-0"
               >
@@ -194,7 +194,7 @@ import { SoundService } from '../../core/services/sound.service';
             </div>
           } @else {
             <div class="space-y-3.5">
-              @for (ord of filteredOrders(); track ord.id) {
+              @for (ord of paginatedMyOrders(); track ord.id) {
                 <div class="rounded-2xl border border-gray-200/90 bg-white p-5 shadow-xs hover:border-orange-300/90 hover:shadow-md transition-all">
                   <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                     <!-- Left Info -->
@@ -402,6 +402,35 @@ import { SoundService } from '../../core/services/sound.service';
                         </a>
                       </div>
                     </div>
+                  </div>
+                </div>
+              }
+
+              @if (filteredOrders().length > myOrdersPageSize) {
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-gray-200 bg-white px-5 py-3.5 shadow-2xs">
+                  <span class="text-xs font-medium text-gray-500">
+                    Mostrando <strong class="font-bold text-gray-900">{{ (myOrdersPage() - 1) * myOrdersPageSize + 1 }} – {{ Math.min(myOrdersPage() * myOrdersPageSize, filteredOrders().length) }}</strong> de <strong class="font-bold text-gray-900">{{ filteredOrders().length }}</strong> pedidos
+                  </span>
+                  <div class="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      [disabled]="myOrdersPage() <= 1"
+                      (click)="myOrdersPage.set(myOrdersPage() - 1)"
+                      class="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-bold text-gray-700 hover:bg-gray-100 disabled:opacity-40 cursor-pointer"
+                    >
+                      ‹ Anterior
+                    </button>
+                    <span class="px-2.5 py-1 text-xs font-extrabold text-orange-700 bg-orange-50 rounded-lg border border-orange-200">
+                      Pág. {{ myOrdersPage() }} de {{ myOrdersTotalPages() }}
+                    </span>
+                    <button
+                      type="button"
+                      [disabled]="myOrdersPage() >= myOrdersTotalPages()"
+                      (click)="myOrdersPage.set(myOrdersPage() + 1)"
+                      class="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-bold text-gray-700 hover:bg-gray-100 disabled:opacity-40 cursor-pointer"
+                    >
+                      Siguiente ›
+                    </button>
                   </div>
                 </div>
               }
@@ -777,6 +806,18 @@ export class MyOrdersPageComponent implements OnInit, OnDestroy {
       return list.filter((o) => o.status === 'ENTREGADO');
     }
     return list;
+  });
+
+  readonly Math = Math;
+  readonly myOrdersPageSize = 6;
+  readonly myOrdersPage = signal<number>(1);
+  readonly myOrdersTotalPages = computed(() =>
+    Math.max(1, Math.ceil(this.filteredOrders().length / this.myOrdersPageSize))
+  );
+  readonly paginatedMyOrders = computed(() => {
+    const list = this.filteredOrders();
+    const page = Math.max(1, Math.min(this.myOrdersPage(), this.myOrdersTotalPages()));
+    return list.slice((page - 1) * this.myOrdersPageSize, page * this.myOrdersPageSize);
   });
 
   profileFullName = '';

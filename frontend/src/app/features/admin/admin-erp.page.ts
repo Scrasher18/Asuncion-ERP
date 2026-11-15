@@ -732,8 +732,8 @@ export interface ComboItem {
                 </div>
               </div>
 
-              <!-- 3. Indicadores Estratégicos de Negocio: Medios de Pago, Cobertura por Distritos y Top Marcas -->
-              <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <!-- 3. Indicadores Estratégicos de Negocio: Medios de Pago y Top Marcas -->
+              <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <!-- Gráfico A: Distribución Real de Medios de Pago -->
                 <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-2xs space-y-4">
                   <div class="flex items-center justify-between">
@@ -779,47 +779,7 @@ export interface ComboItem {
                   </div>
                 </div>
 
-                <!-- Gráfico B: Zonas de Cobertura y Demanda por Distrito (Lima Este) -->
-                <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-2xs space-y-4">
-                  <div class="flex items-center justify-between">
-                    <div>
-                      <div class="flex items-center gap-2">
-                        <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-orange-50 text-orange-600 text-xs font-bold">
-                          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                          </svg>
-                        </span>
-                        <h3 class="text-sm font-bold text-gray-900">Despacho por distritos (Lima Este)</h3>
-                      </div>
-                      <p class="text-xs text-gray-500 mt-0.5">Concentración de entregas motorizadas en tiempo real</p>
-                    </div>
-                  </div>
-
-                  <div class="space-y-3 pt-1">
-                    @for (d of computedDistrictDistribution(); track d.district) {
-                      <div class="space-y-1">
-                        <div class="flex items-center justify-between text-xs">
-                          <span class="font-medium text-gray-800">{{ d.district }}</span>
-                          <span class="font-bold tabular-nums text-gray-900">{{ d.percentage | number: '1.0-1' }}%</span>
-                        </div>
-                        <div class="h-2 w-full overflow-hidden rounded-full bg-gray-100">
-                          <div
-                            [class]="d.barColor"
-                            class="h-full rounded-full transition-all duration-500"
-                            [style.width.%]="d.percentage"
-                          ></div>
-                        </div>
-                        <div class="flex justify-between text-[11px] text-gray-500">
-                          <span>{{ d.count }} envíos · <span class="text-orange-700 font-semibold">~{{ d.avgDeliveryMinutes }} min</span></span>
-                          <span class="font-semibold text-gray-800">S/ {{ d.amount | number: '1.2-2' }}</span>
-                        </div>
-                      </div>
-                    }
-                  </div>
-                </div>
-
-                <!-- Gráfico C: Participación de Ventas por Marcas Fabricantes (Top Brands) -->
+                <!-- Gráfico B: Participación de Ventas por Marcas Fabricantes (Top Brands) -->
                 <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-2xs space-y-4">
                   <div class="flex items-center justify-between">
                     <div>
@@ -1208,7 +1168,7 @@ export interface ComboItem {
                           (click)="openDriverRatingsModal('Miguel Ángel Flores')"
                           class="text-xs font-semibold text-orange-600 hover:text-orange-700 inline-flex items-center gap-1 cursor-pointer"
                         >
-                          <span>Ver todas las calificaciones ({{ driverRatingService.getRatingsForDriver('Miguel Ángel Flores').length }})</span>
+                          <span>Explorar historial de calificaciones ({{ driverRatingService.getRatingsForDriver('Miguel Ángel Flores').length }})</span>
                           <span>→</span>
                         </button>
                       </div>
@@ -1588,6 +1548,7 @@ export interface ComboItem {
                   <input
                     type="text"
                     [(ngModel)]="partSearchTerm"
+                    (ngModelChange)="partsCurrentPage.set(1)"
                     placeholder="Buscar por nombre, marca o código..."
                     class="min-h-[42px] w-full rounded-xl border border-gray-200 bg-white pl-10 pr-3.5 py-2 text-base sm:text-sm text-gray-900 placeholder:text-gray-400 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
                   />
@@ -1600,7 +1561,7 @@ export interface ComboItem {
                   <input
                     type="checkbox"
                     [(ngModel)]="lowStockOnlyFilter"
-                    (ngModelChange)="loadAdminParts()"
+                    (ngModelChange)="partsCurrentPage.set(1); loadAdminParts()"
                     class="h-4 w-4 rounded border-gray-300 accent-red-600"
                   />
                   <span class="inline-flex items-center gap-1.5">
@@ -1654,10 +1615,10 @@ export interface ComboItem {
                 </div>
                 <button
                   type="button"
-                  (click)="lowStockOnlyFilter = false; loadAdminParts()"
+                  (click)="lowStockOnlyFilter = false; partsCurrentPage.set(1); loadAdminParts()"
                   class="rounded-lg border border-red-200 bg-white px-2.5 py-1 text-xs font-bold text-red-700 hover:bg-red-100 transition shadow-2xs cursor-pointer"
                 >
-                  Quitar filtro (Ver todos)
+                  Quitar filtro de stock
                 </button>
               </div>
             }
@@ -1672,12 +1633,12 @@ export interface ComboItem {
                       <th class="px-4 py-3">Código SKU / OEM</th>
                       <th class="px-4 py-3 text-right">Costo / Venta</th>
                       <th class="px-4 py-3 text-center">Stock</th>
-                      <th class="px-4 py-3 text-right">Acciones</th>
+                      <th class="px-4 py-3 text-right sticky right-0 z-10 bg-gray-50 shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.06)]">Acciones</th>
                     </tr>
                   </thead>
                   <tbody class="divide-y divide-gray-100">
-                    @for (p of filteredAdminParts(); track p.id) {
-                      <tr class="hover:bg-gray-50/70 transition">
+                    @for (p of paginatedAdminParts(); track p.id) {
+                      <tr class="group hover:bg-gray-50/70 transition">
                         <td class="px-4 py-3.5">
                           <div class="flex items-center gap-3">
                             <img
@@ -1733,7 +1694,7 @@ export interface ComboItem {
                             }
                           </div>
                         </td>
-                        <td class="px-4 py-3.5 text-right whitespace-nowrap space-x-1.5">
+                        <td class="px-4 py-3.5 text-right whitespace-nowrap space-x-1.5 sticky right-0 z-10 bg-white group-hover:bg-gray-50 shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.06)] transition">
                           <button
                             type="button"
                             (click)="openPromotionModal(p)"
@@ -1775,6 +1736,79 @@ export interface ComboItem {
                   </tbody>
                 </table>
               </div>
+
+              <!-- Paginación Acotada de Inventario -->
+              @if (filteredAdminParts().length > 0) {
+                <div class="border-t border-gray-200 bg-gray-50/60 px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                  <div class="flex flex-wrap items-center gap-2 text-gray-600">
+                    <span>Mostrando</span>
+                    <span class="font-bold text-gray-900">{{ partsPaginationInfo().startIndex }}</span>
+                    <span>a</span>
+                    <span class="font-bold text-gray-900">{{ partsPaginationInfo().endIndex }}</span>
+                    <span>de</span>
+                    <span class="font-bold text-gray-900">{{ filteredAdminParts().length }}</span>
+                    <span>repuestos</span>
+
+                    <span class="text-gray-300 mx-1">|</span>
+
+                    <label for="partsPageSizeSelect" class="text-gray-500">Filas por página:</label>
+                    <select
+                      id="partsPageSizeSelect"
+                      [ngModel]="partsPageSize()"
+                      (ngModelChange)="onPartsPageSizeChange($event)"
+                      class="rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs font-semibold text-gray-700 shadow-2xs focus:border-orange-500 focus:outline-none cursor-pointer"
+                    >
+                      <option [value]="15">15</option>
+                      <option [value]="30">30</option>
+                      <option [value]="50">50</option>
+                    </select>
+                  </div>
+
+                  @if (partsTotalPages() > 1) {
+                    <div class="flex items-center gap-1">
+                      <button
+                        type="button"
+                        [disabled]="partsCurrentPage() === 1"
+                        (click)="partsCurrentPage.set(1)"
+                        class="rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
+                        title="Primera página"
+                      >
+                        «
+                      </button>
+                      <button
+                        type="button"
+                        [disabled]="partsCurrentPage() === 1"
+                        (click)="partsCurrentPage.set(partsCurrentPage() - 1)"
+                        class="rounded-lg border border-gray-200 bg-white px-2.5 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
+                      >
+                        ‹ Anterior
+                      </button>
+
+                      <span class="px-2 font-bold text-gray-800 text-xs">
+                        Pág. {{ partsCurrentPage() }} de {{ partsTotalPages() }}
+                      </span>
+
+                      <button
+                        type="button"
+                        [disabled]="partsCurrentPage() >= partsTotalPages()"
+                        (click)="partsCurrentPage.set(partsCurrentPage() + 1)"
+                        class="rounded-lg border border-gray-200 bg-white px-2.5 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
+                      >
+                        Siguiente ›
+                      </button>
+                      <button
+                        type="button"
+                        [disabled]="partsCurrentPage() >= partsTotalPages()"
+                        (click)="partsCurrentPage.set(partsTotalPages())"
+                        class="rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
+                        title="Última página"
+                      >
+                        »
+                      </button>
+                    </div>
+                  }
+                </div>
+              }
             </div>
           </div>
         }
@@ -1954,7 +1988,7 @@ export interface ComboItem {
                 <div class="inline-flex flex-wrap items-center rounded-xl border border-gray-200 bg-gray-50 p-1 text-xs gap-0.5">
                   <button
                     type="button"
-                    (click)="orderStatusFilter.set('ALL')"
+                    (click)="orderStatusFilter.set('ALL'); ordersCurrentPage.set(1)"
                     [class]="orderStatusFilter() === 'ALL' ? 'bg-white text-gray-900 font-bold shadow-2xs' : 'text-gray-600 hover:text-gray-900 font-medium'"
                     class="rounded-lg px-2.5 py-1.5 transition cursor-pointer"
                   >
@@ -1962,7 +1996,7 @@ export interface ComboItem {
                   </button>
                   <button
                     type="button"
-                    (click)="orderStatusFilter.set('PENDING')"
+                    (click)="orderStatusFilter.set('PENDING'); ordersCurrentPage.set(1)"
                     [class]="orderStatusFilter() === 'PENDING' ? 'bg-orange-600 text-white font-bold shadow-2xs' : 'text-gray-600 hover:text-gray-900 font-medium'"
                     class="rounded-lg px-2.5 py-1.5 transition cursor-pointer"
                   >
@@ -1970,7 +2004,7 @@ export interface ComboItem {
                   </button>
                   <button
                     type="button"
-                    (click)="orderStatusFilter.set('EN_RUTA')"
+                    (click)="orderStatusFilter.set('EN_RUTA'); ordersCurrentPage.set(1)"
                     [class]="orderStatusFilter() === 'EN_RUTA' ? 'bg-amber-600 text-white font-bold shadow-2xs' : 'text-gray-600 hover:text-gray-900 font-medium'"
                     class="rounded-lg px-2.5 py-1.5 transition cursor-pointer"
                   >
@@ -1978,7 +2012,7 @@ export interface ComboItem {
                   </button>
                   <button
                     type="button"
-                    (click)="orderStatusFilter.set('PICKUP')"
+                    (click)="orderStatusFilter.set('PICKUP'); ordersCurrentPage.set(1)"
                     [class]="orderStatusFilter() === 'PICKUP' ? 'bg-sky-600 text-white font-bold shadow-2xs' : 'text-gray-600 hover:text-gray-900 font-medium'"
                     class="rounded-lg px-2.5 py-1.5 transition cursor-pointer"
                   >
@@ -1991,6 +2025,7 @@ export interface ComboItem {
                   <input
                     type="search"
                     [(ngModel)]="orderSearchQuery"
+                    (ngModelChange)="ordersCurrentPage.set(1)"
                     placeholder="Buscar N.° pedido, cliente o DNI/RUC..."
                     class="min-h-[36px] w-64 rounded-xl border border-gray-200 bg-gray-50/70 pl-8 pr-3 py-1.5 text-xs text-gray-900 placeholder:text-gray-400 focus:border-orange-500 focus:bg-white focus:outline-none"
                   />
@@ -2012,12 +2047,12 @@ export interface ComboItem {
                     <th class="px-4 py-3">Cobro / Pago</th>
                     <th class="px-4 py-3">Gestión de Entrega</th>
                     <th class="px-4 py-3 text-right">Total</th>
-                    <th class="px-4 py-3 text-right">Acciones</th>
+                    <th class="px-4 py-3 text-right sticky right-0 z-10 bg-gray-50 shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.06)]">Acciones</th>
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100">
-                  @for (ord of filteredGlobalOrders(); track ord.id) {
-                    <tr class="hover:bg-gray-50/70 transition align-middle">
+                  @for (ord of paginatedGlobalOrders(); track ord.id) {
+                    <tr class="group hover:bg-gray-50/70 transition align-middle">
                       <td class="px-4 py-3.5 font-mono font-semibold text-gray-900 whitespace-nowrap">
                         {{ ord.orderNumber }}
                         <span class="block font-sans font-normal text-[11px] text-gray-500">
@@ -2183,7 +2218,7 @@ export interface ComboItem {
                       <td class="px-4 py-3.5 text-right font-bold tabular-nums text-gray-900 whitespace-nowrap">
                         S/ {{ (ord.totalAmount ?? ord.total ?? ord.subtotal) | number: '1.2-2' }}
                       </td>
-                      <td class="px-4 py-3.5 text-right whitespace-nowrap space-x-1.5">
+                      <td class="px-4 py-3.5 text-right whitespace-nowrap space-x-1.5 sticky right-0 z-10 bg-white group-hover:bg-gray-50 shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.06)] transition">
                         <button
                           type="button"
                           (click)="openOrderDetailModal(ord)"
@@ -2243,6 +2278,79 @@ export interface ComboItem {
                 </tbody>
               </table>
             </div>
+
+            <!-- Paginación Acotada de Pedidos y Despacho -->
+            @if (filteredGlobalOrders().length > 0) {
+              <div class="border-t border-gray-200 bg-gray-50/60 px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                <div class="flex flex-wrap items-center gap-2 text-gray-600">
+                  <span>Mostrando</span>
+                  <span class="font-bold text-gray-900">{{ ordersPaginationInfo().startIndex }}</span>
+                  <span>a</span>
+                  <span class="font-bold text-gray-900">{{ ordersPaginationInfo().endIndex }}</span>
+                  <span>de</span>
+                  <span class="font-bold text-gray-900">{{ filteredGlobalOrders().length }}</span>
+                  <span>pedidos pendientes</span>
+
+                  <span class="text-gray-300 mx-1">|</span>
+
+                  <label for="ordersPageSizeSelect" class="text-gray-500">Filas por página:</label>
+                  <select
+                    id="ordersPageSizeSelect"
+                    [ngModel]="ordersPageSize()"
+                    (ngModelChange)="onOrdersPageSizeChange($event)"
+                    class="rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs font-semibold text-gray-700 shadow-2xs focus:border-orange-500 focus:outline-none cursor-pointer"
+                  >
+                    <option [value]="10">10</option>
+                    <option [value]="20">20</option>
+                    <option [value]="50">50</option>
+                  </select>
+                </div>
+
+                @if (ordersTotalPages() > 1) {
+                  <div class="flex items-center gap-1">
+                    <button
+                      type="button"
+                      [disabled]="ordersCurrentPage() === 1"
+                      (click)="ordersCurrentPage.set(1)"
+                      class="rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
+                      title="Primera página"
+                    >
+                      «
+                    </button>
+                    <button
+                      type="button"
+                      [disabled]="ordersCurrentPage() === 1"
+                      (click)="ordersCurrentPage.set(ordersCurrentPage() - 1)"
+                      class="rounded-lg border border-gray-200 bg-white px-2.5 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
+                    >
+                      ‹ Anterior
+                    </button>
+
+                    <span class="px-2 font-bold text-gray-800 text-xs">
+                      Pág. {{ ordersCurrentPage() }} de {{ ordersTotalPages() }}
+                    </span>
+
+                    <button
+                      type="button"
+                      [disabled]="ordersCurrentPage() >= ordersTotalPages()"
+                      (click)="ordersCurrentPage.set(ordersCurrentPage() + 1)"
+                      class="rounded-lg border border-gray-200 bg-white px-2.5 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
+                    >
+                      Siguiente ›
+                    </button>
+                    <button
+                      type="button"
+                      [disabled]="ordersCurrentPage() >= ordersTotalPages()"
+                      (click)="ordersCurrentPage.set(ordersTotalPages())"
+                      class="rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
+                      title="Última página"
+                    >
+                      »
+                    </button>
+                  </div>
+                }
+              </div>
+            }
           </div>
         }
 
@@ -2684,7 +2792,6 @@ export interface ComboItem {
                     <option [value]="10">10</option>
                     <option [value]="20">20</option>
                     <option [value]="50">50</option>
-                    <option [value]="99999">Todas</option>
                   </select>
                 </div>
 
@@ -2917,7 +3024,7 @@ export interface ComboItem {
                         </tr>
                       </thead>
                       <tbody class="divide-y divide-gray-100">
-                        @for (mailLog of notificationLogs(); track mailLog.id) {
+                        @for (mailLog of paginatedNotificationLogs(); track mailLog.id) {
                           <tr class="hover:bg-gray-50/70 transition">
                             <td class="px-4 py-3.5 whitespace-nowrap font-mono text-[11px] text-gray-600">
                               {{ mailLog.createdAt | date: 'dd/MM/yyyy HH:mm' }}
@@ -2967,6 +3074,32 @@ export interface ComboItem {
                       </tbody>
                     </table>
                   </div>
+                  @if (notificationLogs().length > mailLogsPageSize) {
+                    <div class="border-t border-gray-200 bg-gray-50/60 px-4 py-3 flex items-center justify-between text-xs">
+                      <span class="text-gray-600">
+                        Mostrando <strong class="text-gray-900">{{ (mailLogsCurrentPage() - 1) * mailLogsPageSize + 1 }}</strong> a <strong class="text-gray-900">{{ Math.min(mailLogsCurrentPage() * mailLogsPageSize, notificationLogs().length) }}</strong> de <strong class="text-gray-900">{{ notificationLogs().length }}</strong> notificaciones
+                      </span>
+                      <div class="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          [disabled]="mailLogsCurrentPage() === 1"
+                          (click)="mailLogsCurrentPage.set(mailLogsCurrentPage() - 1)"
+                          class="rounded-lg border border-gray-200 bg-white px-2.5 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-100 disabled:opacity-40 cursor-pointer"
+                        >
+                          ‹ Anterior
+                        </button>
+                        <span class="px-2 font-bold text-gray-800">Pág. {{ mailLogsCurrentPage() }} de {{ mailLogsTotalPages() }}</span>
+                        <button
+                          type="button"
+                          [disabled]="mailLogsCurrentPage() >= mailLogsTotalPages()"
+                          (click)="mailLogsCurrentPage.set(mailLogsCurrentPage() + 1)"
+                          class="rounded-lg border border-gray-200 bg-white px-2.5 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-100 disabled:opacity-40 cursor-pointer"
+                        >
+                          Siguiente ›
+                        </button>
+                      </div>
+                    </div>
+                  }
                 }
               </div>
             </div>
@@ -3330,7 +3463,7 @@ export interface ComboItem {
                       </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100">
-                      @for (tx of paymentTransactions(); track tx.id) {
+                      @for (tx of paginatedPaymentTransactions(); track tx.id) {
                         <tr class="hover:bg-gray-50/70 transition">
                           <td class="px-4 py-3 font-mono text-[11px] text-gray-500 whitespace-nowrap">
                             {{ tx.createdAt | date: 'dd/MM/yyyy HH:mm' }}
@@ -3373,6 +3506,32 @@ export interface ComboItem {
                     </tbody>
                   </table>
                 </div>
+                @if (paymentTransactions().length > txPageSize) {
+                  <div class="border-t border-gray-200 bg-gray-50/60 px-4 py-3 flex items-center justify-between text-xs">
+                    <span class="text-gray-600">
+                      Mostrando <strong class="text-gray-900">{{ (txCurrentPage() - 1) * txPageSize + 1 }}</strong> a <strong class="text-gray-900">{{ Math.min(txCurrentPage() * txPageSize, paymentTransactions().length) }}</strong> de <strong class="text-gray-900">{{ paymentTransactions().length }}</strong> transacciones
+                    </span>
+                    <div class="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        [disabled]="txCurrentPage() === 1"
+                        (click)="txCurrentPage.set(txCurrentPage() - 1)"
+                        class="rounded-lg border border-gray-200 bg-white px-2.5 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-100 disabled:opacity-40 cursor-pointer"
+                      >
+                        ‹ Anterior
+                      </button>
+                      <span class="px-2 font-bold text-gray-800">Pág. {{ txCurrentPage() }} de {{ txTotalPages() }}</span>
+                      <button
+                        type="button"
+                        [disabled]="txCurrentPage() >= txTotalPages()"
+                        (click)="txCurrentPage.set(txCurrentPage() + 1)"
+                        class="rounded-lg border border-gray-200 bg-white px-2.5 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-100 disabled:opacity-40 cursor-pointer"
+                      >
+                        Siguiente ›
+                      </button>
+                    </div>
+                  </div>
+                }
               }
             </div>
           </div>
@@ -3503,7 +3662,7 @@ export interface ComboItem {
                       </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100">
-                      @for (u of filteredStaffUsers(); track u.id) {
+                      @for (u of paginatedStaffUsers(); track u.id) {
                         <tr class="hover:bg-gray-50/70 transition">
                           <!-- Name and Avatar -->
                           <td class="px-5 py-3.5">
@@ -3554,7 +3713,7 @@ export interface ComboItem {
                             @if (u.role === 'MOTORIZADO') {
                               <div class="mt-1.5 flex items-center gap-1.5">
                                 <span class="inline-flex items-center gap-1 rounded-md bg-amber-50 border border-amber-200 px-2 py-0.5 text-[11px] font-bold text-amber-900">
-                                  <span>⭐</span>
+                                  <img src="/images/icons/estrella-calificacion.png" alt="Calificación" class="h-3.5 w-3.5 object-contain inline-block" />
                                   @if (getDriverRatingStats(u.fullName).totalReviews > 0) {
                                     <span>{{ getDriverRatingStats(u.fullName).averageRating }}</span>
                                     <span class="text-amber-700 font-normal">({{ getDriverRatingStats(u.fullName).totalReviews }} op.)</span>
@@ -3635,6 +3794,32 @@ export interface ComboItem {
                     </tbody>
                   </table>
                 </div>
+                @if (filteredStaffUsers().length > usersPageSize) {
+                  <div class="border-t border-gray-200 bg-gray-50/60 px-4 py-3 flex items-center justify-between text-xs">
+                    <span class="text-gray-600">
+                      Mostrando <strong class="text-gray-900">{{ (usersCurrentPage() - 1) * usersPageSize + 1 }}</strong> a <strong class="text-gray-900">{{ Math.min(usersCurrentPage() * usersPageSize, filteredStaffUsers().length) }}</strong> de <strong class="text-gray-900">{{ filteredStaffUsers().length }}</strong> trabajadores
+                    </span>
+                    <div class="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        [disabled]="usersCurrentPage() === 1"
+                        (click)="usersCurrentPage.set(usersCurrentPage() - 1)"
+                        class="rounded-lg border border-gray-200 bg-white px-2.5 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-100 disabled:opacity-40 cursor-pointer"
+                      >
+                        ‹ Anterior
+                      </button>
+                      <span class="px-2 font-bold text-gray-800">Pág. {{ usersCurrentPage() }} de {{ usersTotalPages() }}</span>
+                      <button
+                        type="button"
+                        [disabled]="usersCurrentPage() >= usersTotalPages()"
+                        (click)="usersCurrentPage.set(usersCurrentPage() + 1)"
+                        class="rounded-lg border border-gray-200 bg-white px-2.5 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-100 disabled:opacity-40 cursor-pointer"
+                      >
+                        Siguiente ›
+                      </button>
+                    </div>
+                  </div>
+                }
               }
             </div>
           </div>
@@ -3771,7 +3956,7 @@ export interface ComboItem {
                       </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100">
-                      @for (c of filteredComplaints(); track c.sheetNumber) {
+                      @for (c of paginatedComplaints(); track c.sheetNumber) {
                         <tr class="hover:bg-gray-50/70 transition">
                           <!-- Sheet Number & Date -->
                           <td class="px-5 py-3.5">
@@ -3850,6 +4035,32 @@ export interface ComboItem {
                     </tbody>
                   </table>
                 </div>
+                @if (filteredComplaints().length > claimsPageSize) {
+                  <div class="border-t border-gray-200 bg-gray-50/60 px-4 py-3 flex items-center justify-between text-xs">
+                    <span class="text-gray-600">
+                      Mostrando <strong class="text-gray-900">{{ (claimsCurrentPage() - 1) * claimsPageSize + 1 }}</strong> a <strong class="text-gray-900">{{ Math.min(claimsCurrentPage() * claimsPageSize, filteredComplaints().length) }}</strong> de <strong class="text-gray-900">{{ filteredComplaints().length }}</strong> hojas de reclamación
+                    </span>
+                    <div class="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        [disabled]="claimsCurrentPage() === 1"
+                        (click)="claimsCurrentPage.set(claimsCurrentPage() - 1)"
+                        class="rounded-lg border border-gray-200 bg-white px-2.5 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-100 disabled:opacity-40 cursor-pointer"
+                      >
+                        ‹ Anterior
+                      </button>
+                      <span class="px-2 font-bold text-gray-800">Pág. {{ claimsCurrentPage() }} de {{ claimsTotalPages() }}</span>
+                      <button
+                        type="button"
+                        [disabled]="claimsCurrentPage() >= claimsTotalPages()"
+                        (click)="claimsCurrentPage.set(claimsCurrentPage() + 1)"
+                        class="rounded-lg border border-gray-200 bg-white px-2.5 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-100 disabled:opacity-40 cursor-pointer"
+                      >
+                        Siguiente ›
+                      </button>
+                    </div>
+                  </div>
+                }
               }
             </div>
           </div>
@@ -4024,10 +4235,57 @@ export interface ComboItem {
               }
             </div>
 
-            <!-- Reviews Feed -->
+            <!-- Reviews Feed (Paginada de 5 en 5 y con filtro por estrellas) -->
             <div class="space-y-3">
-              <h4 class="text-xs font-bold text-gray-900 uppercase tracking-wider">Opiniones registradas de clientes</h4>
-              <div class="space-y-2.5 max-h-60 overflow-y-auto pr-1">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <h4 class="text-xs font-bold text-gray-900 uppercase tracking-wider">Opiniones registradas de clientes</h4>
+                @if (driverRatingService.getRatingsForDriver(driverName).length > 0) {
+                  <div class="flex flex-wrap items-center gap-1 rounded-xl bg-gray-100 p-1 text-[11px]">
+                    <button
+                      type="button"
+                      (click)="setDriverReviewsStarFilter('ALL')"
+                      [class]="driverReviewsStarFilter() === 'ALL' ? 'bg-white text-gray-900 font-bold shadow-2xs' : 'text-gray-600 hover:text-gray-900'"
+                      class="rounded-lg px-2 py-0.5 transition cursor-pointer"
+                    >
+                      Recientes ({{ driverRatingService.getRatingsForDriver(driverName).length }})
+                    </button>
+                    <button
+                      type="button"
+                      (click)="setDriverReviewsStarFilter(5)"
+                      [class]="driverReviewsStarFilter() === 5 ? 'bg-amber-500 text-white font-bold shadow-2xs' : 'text-gray-600 hover:text-gray-900'"
+                      class="rounded-lg px-2 py-0.5 transition cursor-pointer"
+                    >
+                      5 ★
+                    </button>
+                    <button
+                      type="button"
+                      (click)="setDriverReviewsStarFilter(4)"
+                      [class]="driverReviewsStarFilter() === 4 ? 'bg-amber-500 text-white font-bold shadow-2xs' : 'text-gray-600 hover:text-gray-900'"
+                      class="rounded-lg px-2 py-0.5 transition cursor-pointer"
+                    >
+                      4 ★
+                    </button>
+                    <button
+                      type="button"
+                      (click)="setDriverReviewsStarFilter(3)"
+                      [class]="driverReviewsStarFilter() === 3 ? 'bg-amber-500 text-white font-bold shadow-2xs' : 'text-gray-600 hover:text-gray-900'"
+                      class="rounded-lg px-2 py-0.5 transition cursor-pointer"
+                    >
+                      3 ★
+                    </button>
+                    <button
+                      type="button"
+                      (click)="setDriverReviewsStarFilter('LOW')"
+                      [class]="driverReviewsStarFilter() === 'LOW' ? 'bg-rose-600 text-white font-bold shadow-2xs' : 'text-gray-600 hover:text-gray-900'"
+                      class="rounded-lg px-2 py-0.5 transition cursor-pointer"
+                    >
+                      1-2 ★
+                    </button>
+                  </div>
+                }
+              </div>
+
+              <div class="space-y-2.5 pr-1">
                 @if (driverRatingService.getRatingsForDriver(driverName).length === 0) {
                   <div class="p-8 text-center text-gray-400 text-xs space-y-2 rounded-xl bg-gray-50 border border-dashed border-gray-200">
                     <img src="/images/icons/mensaje-chat.png" alt="Comentarios" class="h-8 w-8 object-contain mx-auto block opacity-60" />
@@ -4036,8 +4294,19 @@ export interface ComboItem {
                       Solo se mostrarán valoraciones cuando los clientes confirmen la entrega de sus compras y califiquen el servicio.
                     </p>
                   </div>
+                } @else if (getFilteredDriverReviews(driverName).length === 0) {
+                  <div class="p-6 text-center text-gray-500 text-xs space-y-2 rounded-xl bg-gray-50 border border-dashed border-gray-200">
+                    <p class="font-semibold text-gray-700">No hay opiniones con esta calificación</p>
+                    <button
+                      type="button"
+                      (click)="setDriverReviewsStarFilter('ALL')"
+                      class="rounded-lg border border-gray-200 bg-white px-3 py-1 text-xs font-semibold text-orange-600 hover:bg-orange-50 transition cursor-pointer"
+                    >
+                      Mostrar calificaciones recientes
+                    </button>
+                  </div>
                 } @else {
-                  @for (rev of driverRatingService.getRatingsForDriver(driverName); track rev.id) {
+                  @for (rev of getPaginatedDriverReviews(driverName); track rev.id) {
                     <div class="rounded-xl border border-gray-200 bg-[#F8F9FA] p-3 text-xs space-y-1.5">
                       <div class="flex items-center justify-between">
                         <div class="flex items-center gap-2">
@@ -4049,6 +4318,9 @@ export interface ComboItem {
                               </svg>
                             }
                           </div>
+                          @if (rev.orderNumber) {
+                            <span class="font-mono text-[10px] text-gray-400">· {{ rev.orderNumber }}</span>
+                          }
                         </div>
                         <span class="text-[11px] text-gray-400">{{ rev.createdAt }}</span>
                       </div>
@@ -4066,6 +4338,61 @@ export interface ComboItem {
                       }
                     </div>
                   }
+
+                  <!-- Paginación de Opiniones (Máximo 5 por página) -->
+                  <div class="pt-2 flex flex-wrap items-center justify-between gap-2 text-xs text-gray-600 border-t border-gray-100">
+                    <span>
+                      Mostrando
+                      <strong class="text-gray-900">{{ (driverReviewsPage() - 1) * driverReviewsPageSize + 1 }}</strong>
+                      a
+                      <strong class="text-gray-900">{{ Math.min(driverReviewsPage() * driverReviewsPageSize, getFilteredDriverReviews(driverName).length) }}</strong>
+                      de
+                      <strong class="text-gray-900">{{ getFilteredDriverReviews(driverName).length }}</strong>
+                      opiniones
+                    </span>
+
+                    @if (getDriverReviewsTotalPages(driverName) > 1) {
+                      <div class="flex items-center gap-1">
+                        <button
+                          type="button"
+                          [disabled]="driverReviewsPage() === 1"
+                          (click)="driverReviewsPage.set(1)"
+                          class="rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-100 disabled:opacity-40 cursor-pointer"
+                          title="Primera página"
+                        >
+                          «
+                        </button>
+                        <button
+                          type="button"
+                          [disabled]="driverReviewsPage() === 1"
+                          (click)="driverReviewsPage.set(driverReviewsPage() - 1)"
+                          class="rounded-lg border border-gray-200 bg-white px-2.5 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-100 disabled:opacity-40 cursor-pointer"
+                        >
+                          ‹ Anterior
+                        </button>
+                        <span class="px-2 font-bold text-gray-800 text-xs">
+                          Pág. {{ driverReviewsPage() }} de {{ getDriverReviewsTotalPages(driverName) }}
+                        </span>
+                        <button
+                          type="button"
+                          [disabled]="driverReviewsPage() >= getDriverReviewsTotalPages(driverName)"
+                          (click)="driverReviewsPage.set(driverReviewsPage() + 1)"
+                          class="rounded-lg border border-gray-200 bg-white px-2.5 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-100 disabled:opacity-40 cursor-pointer"
+                        >
+                          Siguiente ›
+                        </button>
+                        <button
+                          type="button"
+                          [disabled]="driverReviewsPage() >= getDriverReviewsTotalPages(driverName)"
+                          (click)="driverReviewsPage.set(getDriverReviewsTotalPages(driverName))"
+                          class="rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-100 disabled:opacity-40 cursor-pointer"
+                          title="Última página"
+                        >
+                          »
+                        </button>
+                      </div>
+                    }
+                  </div>
                 }
               </div>
             </div>
@@ -8030,60 +8357,25 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
 
   readonly computedDistrictDistribution = computed<DistrictDistributionItem[]>(() => {
     const orders = this.allSystemOrders().length > 0 ? this.allSystemOrders() : this.globalOrders();
-    const zones: Record<string, { district: string; zoneLabel: string; count: number; amount: number; avgDeliveryMinutes: number; badgeColor: string; barColor: string }> = {
-      SANTA_ANITA: { district: 'Santa Anita (Central & Alrededores)', zoneLabel: 'Zona Núcleo', count: 0, amount: 0, avgDeliveryMinutes: 20, badgeColor: 'text-orange-700 bg-orange-50 border-orange-200', barColor: 'bg-orange-600' },
-      ATE_VITARTE: { district: 'Ate / Vitarte / Ceres / Vulcano', zoneLabel: 'Talleres & Mayorista', count: 0, amount: 0, avgDeliveryMinutes: 32, badgeColor: 'text-blue-700 bg-blue-50 border-blue-200', barColor: 'bg-blue-600' },
-      EL_AGUSTINO: { district: 'El Agustino / Puente Nuevo', zoneLabel: 'Zona Adyacente', count: 0, amount: 0, avgDeliveryMinutes: 28, badgeColor: 'text-amber-700 bg-amber-50 border-amber-200', barColor: 'bg-amber-500' },
-      LA_MOLINA: { district: 'La Molina / Constructores', zoneLabel: 'Zona Residencial & Talleres', count: 0, amount: 0, avgDeliveryMinutes: 40, badgeColor: 'text-emerald-700 bg-emerald-50 border-emerald-200', barColor: 'bg-emerald-600' },
-      SAN_LUIS: { district: 'San Luis / Circunvalación', zoneLabel: 'Zona Perimetral', count: 0, amount: 0, avgDeliveryMinutes: 35, badgeColor: 'text-purple-700 bg-purple-50 border-purple-200', barColor: 'bg-purple-600' },
-    };
-
-    let totalDeliveries = 0;
+    let count = 0;
+    let amount = 0;
     for (const ord of orders) {
       if (ord.status === 'CANCELADO') continue;
-      const addr = ((ord.deliveryAddress || '') + ' ' + (ord.deliveryReference || '')).toUpperCase();
-      const total = ord.totalAmount ?? ord.total ?? ord.subtotal ?? 0;
-
-      let key = 'SANTA_ANITA';
-      if (addr.includes('ATE') || addr.includes('VITARTE') || addr.includes('CERES') || addr.includes('VULCANO') || addr.includes('PURUCHUCO') || addr.includes('SEPARADORA')) {
-        key = 'ATE_VITARTE';
-      } else if (addr.includes('AGUSTINO') || addr.includes('PUENTE NUEVO') || addr.includes('RIVA AGUERO')) {
-        key = 'EL_AGUSTINO';
-      } else if (addr.includes('MOLINA') || addr.includes('CONSTRUCTORES') || addr.includes('JAVIER PRADO')) {
-        key = 'LA_MOLINA';
-      } else if (addr.includes('SAN LUIS') || addr.includes('CIRCUNVALACION')) {
-        key = 'SAN_LUIS';
-      } else if (addr.includes('ANITA') || addr.includes('AYLLON') || addr.includes('HESPERIDES') || addr.includes('RUISEÑORES') || addr.includes('ENCALADA')) {
-        key = 'SANTA_ANITA';
-      } else {
-        key = 'SANTA_ANITA';
-      }
-
-      zones[key].count += 1;
-      zones[key].amount += total;
-      totalDeliveries += 1;
+      count += 1;
+      amount += ord.totalAmount ?? ord.total ?? ord.subtotal ?? 0;
     }
-
-    if (totalDeliveries === 0) {
-      zones['SANTA_ANITA'].count = 18; zones['SANTA_ANITA'].amount = 4920.00;
-      zones['ATE_VITARTE'].count = 11; zones['ATE_VITARTE'].amount = 3150.80;
-      zones['EL_AGUSTINO'].count = 6; zones['EL_AGUSTINO'].amount = 1680.00;
-      zones['LA_MOLINA'].count = 4; zones['LA_MOLINA'].amount = 1240.50;
-      zones['SAN_LUIS'].count = 3; zones['SAN_LUIS'].amount = 890.00;
-      totalDeliveries = 42;
-    }
-
-    const totalAmount = Object.values(zones).reduce((acc, z) => acc + z.amount, 0) || 1;
-    return Object.values(zones).map((z) => ({
-      district: z.district,
-      zoneLabel: z.zoneLabel,
-      count: z.count,
-      amount: Number(z.amount.toFixed(2)),
-      percentage: Number(((z.amount / totalAmount) * 100).toFixed(1)),
-      avgDeliveryMinutes: z.avgDeliveryMinutes,
-      badgeColor: z.badgeColor,
-      barColor: z.barColor,
-    })).sort((a, b) => b.amount - a.amount);
+    return [
+      {
+        district: 'Santa Anita (Cobertura Exclusiva)',
+        zoneLabel: 'Zona Única',
+        count,
+        amount: Number(amount.toFixed(2)),
+        percentage: 100,
+        avgDeliveryMinutes: 20,
+        badgeColor: 'text-orange-700 bg-orange-50 border-orange-200',
+        barColor: 'bg-orange-600',
+      },
+    ];
   });
 
   readonly computedTopBrandsDistribution = computed<BrandDistributionItem[]>(() => {
@@ -8170,6 +8462,121 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
         .replace(/[\u0300-\u036f]/g, '');
       return tokens.every((t) => haystack.includes(t));
     });
+  }
+
+  // Bounded Pagination Signals & Helpers Across All ERP Tables
+  readonly partsPageSize = signal<number>(15);
+  readonly partsCurrentPage = signal<number>(1);
+
+  readonly partsTotalPages = computed(() => {
+    const total = this.filteredAdminParts().length;
+    const size = this.partsPageSize();
+    if (total === 0) return 1;
+    return Math.max(1, Math.ceil(total / size));
+  });
+
+  readonly paginatedAdminParts = computed(() => {
+    const list = this.filteredAdminParts();
+    const size = this.partsPageSize();
+    const totalPages = this.partsTotalPages();
+    const page = Math.max(1, Math.min(this.partsCurrentPage(), totalPages));
+    return list.slice((page - 1) * size, page * size);
+  });
+
+  readonly partsPaginationInfo = computed(() => {
+    const total = this.filteredAdminParts().length;
+    if (total === 0) return { startIndex: 0, endIndex: 0, total: 0 };
+    const size = this.partsPageSize();
+    const page = Math.max(1, Math.min(this.partsCurrentPage(), this.partsTotalPages()));
+    return {
+      startIndex: (page - 1) * size + 1,
+      endIndex: Math.min(page * size, total),
+      total,
+    };
+  });
+
+  onPartsPageSizeChange(newSize: any): void {
+    this.partsPageSize.set(Number(newSize));
+    this.partsCurrentPage.set(1);
+  }
+
+  readonly ordersPageSize = signal<number>(10);
+  readonly ordersCurrentPage = signal<number>(1);
+
+  readonly ordersTotalPages = computed(() => {
+    const total = this.filteredGlobalOrders().length;
+    const size = this.ordersPageSize();
+    if (total === 0) return 1;
+    return Math.max(1, Math.ceil(total / size));
+  });
+
+  readonly paginatedGlobalOrders = computed(() => {
+    const list = this.filteredGlobalOrders();
+    const size = this.ordersPageSize();
+    const totalPages = this.ordersTotalPages();
+    const page = Math.max(1, Math.min(this.ordersCurrentPage(), totalPages));
+    return list.slice((page - 1) * size, page * size);
+  });
+
+  readonly ordersPaginationInfo = computed(() => {
+    const total = this.filteredGlobalOrders().length;
+    if (total === 0) return { startIndex: 0, endIndex: 0, total: 0 };
+    const size = this.ordersPageSize();
+    const page = Math.max(1, Math.min(this.ordersCurrentPage(), this.ordersTotalPages()));
+    return {
+      startIndex: (page - 1) * size + 1,
+      endIndex: Math.min(page * size, total),
+      total,
+    };
+  });
+
+  onOrdersPageSizeChange(newSize: any): void {
+    this.ordersPageSize.set(Number(newSize));
+    this.ordersCurrentPage.set(1);
+  }
+
+  readonly mailLogsPageSize = 10;
+  readonly mailLogsCurrentPage = signal<number>(1);
+  readonly mailLogsTotalPages = computed(() =>
+    Math.max(1, Math.ceil(this.notificationLogs().length / this.mailLogsPageSize))
+  );
+  readonly paginatedNotificationLogs = computed(() => {
+    const list = this.notificationLogs();
+    const page = Math.max(1, Math.min(this.mailLogsCurrentPage(), this.mailLogsTotalPages()));
+    return list.slice((page - 1) * this.mailLogsPageSize, page * this.mailLogsPageSize);
+  });
+
+  readonly txPageSize = 10;
+  readonly txCurrentPage = signal<number>(1);
+  readonly txTotalPages = computed(() =>
+    Math.max(1, Math.ceil(this.paymentTransactions().length / this.txPageSize))
+  );
+  readonly paginatedPaymentTransactions = computed(() => {
+    const list = this.paymentTransactions();
+    const page = Math.max(1, Math.min(this.txCurrentPage(), this.txTotalPages()));
+    return list.slice((page - 1) * this.txPageSize, page * this.txPageSize);
+  });
+
+  readonly usersPageSize = 10;
+  readonly usersCurrentPage = signal<number>(1);
+  usersTotalPages(): number {
+    return Math.max(1, Math.ceil(this.filteredStaffUsers().length / this.usersPageSize));
+  }
+  paginatedStaffUsers(): AdminUserResponse[] {
+    const list = this.filteredStaffUsers();
+    const page = Math.max(1, Math.min(this.usersCurrentPage(), this.usersTotalPages()));
+    return list.slice((page - 1) * this.usersPageSize, page * this.usersPageSize);
+  }
+
+  readonly claimsPageSize = 10;
+  readonly claimsCurrentPage = signal<number>(1);
+  claimsTotalPages(): number {
+    return Math.max(1, Math.ceil(this.filteredComplaints().length / this.claimsPageSize));
+  }
+  paginatedComplaints(): ComplaintRecord[] {
+    const list = this.filteredComplaints();
+    const page = Math.max(1, Math.min(this.claimsCurrentPage(), this.claimsTotalPages()));
+    return list.slice((page - 1) * this.claimsPageSize, page * this.claimsPageSize);
   }
 
   ngOnInit(): void {
@@ -10564,7 +10971,38 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
     return `${rating.toFixed(1)} / 5.0`;
   }
 
+  readonly driverReviewsStarFilter = signal<'ALL' | 5 | 4 | 3 | 'LOW'>('ALL');
+  readonly driverReviewsPage = signal<number>(1);
+  readonly driverReviewsPageSize = 5;
+
+  setDriverReviewsStarFilter(filter: 'ALL' | 5 | 4 | 3 | 'LOW'): void {
+    this.driverReviewsStarFilter.set(filter);
+    this.driverReviewsPage.set(1);
+  }
+
+  getFilteredDriverReviews(driverName: string): DriverRatingItem[] {
+    const all = this.driverRatingService.getRatingsForDriver(driverName);
+    const f = this.driverReviewsStarFilter();
+    if (f === 'ALL') return all;
+    if (f === 'LOW') return all.filter((r) => r.stars <= 2);
+    return all.filter((r) => Math.round(r.stars) === f);
+  }
+
+  getDriverReviewsTotalPages(driverName: string): number {
+    const total = this.getFilteredDriverReviews(driverName).length;
+    return Math.max(1, Math.ceil(total / this.driverReviewsPageSize));
+  }
+
+  getPaginatedDriverReviews(driverName: string): DriverRatingItem[] {
+    const list = this.getFilteredDriverReviews(driverName);
+    const totalPages = this.getDriverReviewsTotalPages(driverName);
+    const page = Math.max(1, Math.min(this.driverReviewsPage(), totalPages));
+    return list.slice((page - 1) * this.driverReviewsPageSize, page * this.driverReviewsPageSize);
+  }
+
   openDriverRatingsModal(driverName: string): void {
+    this.driverReviewsStarFilter.set('ALL');
+    this.driverReviewsPage.set(1);
     this.selectedDriverForRatings.set(driverName);
   }
 
