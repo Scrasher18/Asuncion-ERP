@@ -31,6 +31,15 @@ public class OrderService {
 
     private static final BigDecimal ONE_PLUS_IGV = new BigDecimal("1.18");
     private static final BigDecimal BOLETA_DNI_THRESHOLD = new BigDecimal("700.00");
+    private static final int MAX_PIN_ATTEMPTS = 3;
+    private static final long PIN_LOCKOUT_SECONDS = 300L; // 5 minutos de bloqueo antifraude
+
+    private static class PinAttemptTracker {
+        int failedAttempts = 0;
+        Instant lockedUntil = null;
+    }
+
+    private final Map<Long, PinAttemptTracker> pinAttemptTrackers = new java.util.concurrent.ConcurrentHashMap<>();
 
     private final CustomerOrderRepository orderRepository;
     private final PartRepository partRepository;
@@ -829,22 +838,83 @@ public class OrderService {
             throw new BadRequestException("No se puede completar la entrega de un pedido cancelado.");
         }
 
-        // Validación estricta del código único de seguridad del cliente antes de permitir finalizar la entrega
+        AppUser effectiveDriver = order.getAssignedDriver() != null ? order.getAssignedDriver() : currentUser;
+
+        // 1. Restricciones estrictas sobre el DNI del receptor en entregas motorizadas
         if ("DELIVERY".equalsIgnoreCase(order.getDeliveryType())) {
-            String expectedCode = order.getDeliverySecurityCode();
-            if (expectedCode == null || expectedCode.isBlank()) {
-                expectedCode = String.format(Locale.US, "%04d", Math.abs((order.getId() != null ? order.getId() : 1L) * 37L + 1000L) % 9000L + 1000L);
-                order.setDeliverySecurityCode(expectedCode);
+            String cleanDni = receiverDocument != null ? receiverDocument.replaceAll("\\D", "") : "";
+            if (cleanDni.length() != 8) {
+                throw new BadRequestException("El DNI del receptor es obligatorio y debe contener exactamente 8 dígitos numéricos.");
             }
-            if (securityCode == null || !expectedCode.trim().equalsIgnoreCase(securityCode.trim())) {
-                throw new BadRequestException("Código de seguridad de entrega incorrecto. Solicita al cliente su PIN de 4 dígitos que figura en su pantalla de seguimiento.");
+            if (cleanDni.matches("^(\\d)\\1{7}$")
+                    || "12345678".equals(cleanDni)
+                    || "87654321".equals(cleanDni)
+                    || "01234567".equals(cleanDni)
+                    || "00000001".equals(cleanDni)) {
+                throw new BadRequestException("DNI del receptor inválido: no se permiten dígitos repetidos ni secuencias ficticias (ej. 00000000 o 12345678).");
             }
-        }
-        if (order.getStatus() == OrderStatus.CANCELADO) {
-            throw new BadRequestException("No se puede completar la entrega de un pedido cancelado.");
+            String driverDoc = effectiveDriver != null && effectiveDriver.getDocumentNumber() != null
+                    ? effectiveDriver.getDocumentNumber().replaceAll("\\D", "")
+                    : "";
+            if (!driverDoc.isEmpty() && driverDoc.equals(cleanDni)) {
+                throw new BadRequestException("Restricción de seguridad: El repartidor no puede registrar su propio DNI como receptor de la entrega.");
+            }
+            String cleanName = receiverName != null ? receiverName.trim() : "";
+            if (cleanName.length() < 4 || cleanName.split("\\s+").length < 2) {
+                throw new BadRequestException("Debes ingresar el nombre y apellido completos de la persona que recibe el pedido.");
+            }
+
+            // 2. Control de Máximos Intentos de PIN (Máximo 3 intentos antes de bloqueo de seguridad)
+            Instant now = Instant.now();
+            PinAttemptTracker tracker = pinAttemptTrackers.computeIfAbsent(orderId, k -> new PinAttemptTracker());
+            synchronized (tracker) {
+                if (tracker.lockedUntil != null) {
+                    if (now.isBefore(tracker.lockedUntil)) {
+                        long remainingSec = Math.max(1L, ChronoUnit.SECONDS.between(now, tracker.lockedUntil));
+                        long mins = remainingSec / 60;
+                        long secs = remainingSec % 60;
+                        throw new BadRequestException(String.format(
+                                "Entrega bloqueada por seguridad tras superar el máximo de %d intentos fallidos de PIN. Intenta nuevamente en %02d:%02d o reporta la incidencia.",
+                                MAX_PIN_ATTEMPTS, mins, secs
+                        ));
+                    } else {
+                        tracker.failedAttempts = 0;
+                        tracker.lockedUntil = null;
+                    }
+                }
+
+                String expectedCode = order.getDeliverySecurityCode();
+                if (expectedCode == null || expectedCode.isBlank()) {
+                    expectedCode = String.format(Locale.US, "%04d", Math.abs((order.getId() != null ? order.getId() : 1L) * 37L + 1000L) % 9000L + 1000L);
+                    order.setDeliverySecurityCode(expectedCode);
+                }
+
+                String submittedPin = securityCode != null ? securityCode.replaceAll("\\D", "") : "";
+                if (submittedPin.length() != 4 || !expectedCode.trim().equalsIgnoreCase(submittedPin)) {
+                    tracker.failedAttempts += 1;
+                    if (tracker.failedAttempts >= MAX_PIN_ATTEMPTS) {
+                        tracker.lockedUntil = now.plusSeconds(PIN_LOCKOUT_SECONDS);
+                        throw new BadRequestException(String.format(
+                                "Has alcanzado el límite máximo de %d intentos fallidos de PIN. Por seguridad antifraude, la confirmación de este pedido ha sido bloqueada por 5 minutos.",
+                                MAX_PIN_ATTEMPTS
+                        ));
+                    }
+                    int remaining = MAX_PIN_ATTEMPTS - tracker.failedAttempts;
+                    throw new BadRequestException(String.format(
+                            "Código PIN de seguridad incorrecto (Intento %d de %d). Te %s %d %s antes del bloqueo de seguridad.",
+                            tracker.failedAttempts,
+                            MAX_PIN_ATTEMPTS,
+                            remaining == 1 ? "queda" : "quedan",
+                            remaining,
+                            remaining == 1 ? "último intento" : "intentos disponibles"
+                    ));
+                }
+
+                // PIN verificado correctamente: limpiar contador de intentos
+                pinAttemptTrackers.remove(orderId);
+            }
         }
 
-        AppUser effectiveDriver = order.getAssignedDriver() != null ? order.getAssignedDriver() : currentUser;
         order.setAssignedDriver(effectiveDriver);
 
         if (effectiveDriver != null) {

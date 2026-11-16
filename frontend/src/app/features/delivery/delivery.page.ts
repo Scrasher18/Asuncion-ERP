@@ -346,16 +346,45 @@ import { LiveDriverMapComponent } from '../../shared/components/live-driver-map/
                       <span>Iniciar ruta de entrega</span>
                     </button>
                   } @else if (ord.status === 'EN_RUTA') {
-                    <div class="flex flex-wrap items-center gap-2">
+                    @if (isPinLockedOut(ord.id)) {
+                      <div class="sm:col-span-2 rounded-xl border border-red-300 bg-red-50 px-3.5 py-2 text-xs font-bold text-red-800 flex items-center justify-between gap-2">
+                        <span class="flex items-center gap-1.5">
+                          <img src="/images/icons/bloquear.png" alt="Bloqueado" class="h-4 w-4 object-contain shrink-0" />
+                          <span>PIN bloqueado por 3 intentos fallidos</span>
+                        </span>
+                        <span class="font-mono bg-white px-2 py-0.5 rounded border border-red-200 text-red-700">
+                          {{ getPinLockoutRemainingFormatted(ord.id) }}
+                        </span>
+                      </div>
+                    } @else if (getFailedPinAttempts(ord.id) > 0) {
+                      <div class="sm:col-span-2 rounded-xl border border-amber-300 bg-amber-50 px-3.5 py-2 text-xs font-semibold text-amber-900 flex items-center justify-between gap-2">
+                        <span>Intentos de PIN disponibles para este pedido:</span>
+                        <span class="font-mono font-extrabold text-amber-800 bg-white px-2 py-0.5 rounded border border-amber-200">
+                          {{ getRemainingPinAttempts(ord.id) }} de {{ maxPinAttempts }}
+                        </span>
+                      </div>
+                    }
+                    <div class="flex flex-wrap items-center gap-2 sm:col-span-2">
                       <button
                         type="button"
                         (click)="openCompletionModal(ord)"
-                        class="min-h-[48px] flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 px-4 text-xs font-bold text-white shadow-xs hover:bg-emerald-700 transition cursor-pointer"
+                        [class]="
+                          isPinLockedOut(ord.id)
+                            ? 'bg-red-600 hover:bg-red-700'
+                            : 'bg-emerald-600 hover:bg-emerald-700'
+                        "
+                        class="min-h-[48px] flex-1 inline-flex items-center justify-center gap-2 rounded-xl py-3 px-4 text-xs font-bold text-white shadow-xs transition cursor-pointer"
                       >
                         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                           <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
-                        <span>Confirmar entrega</span>
+                        <span>
+                          @if (isPinLockedOut(ord.id)) {
+                            PIN Bloqueado ({{ getPinLockoutRemainingFormatted(ord.id) }})
+                          } @else {
+                            Confirmar entrega ({{ getRemainingPinAttempts(ord.id) }}/{{ maxPinAttempts }} intentos PIN)
+                          }
+                        </span>
                       </button>
 
                       <button
@@ -441,23 +470,59 @@ import { LiveDriverMapComponent } from '../../shared/components/live-driver-map/
                 </div>
               </div>
 
-              <!-- DNI del receptor right above Nombre de quien recibe -->
+              <!-- DNI del receptor right above Nombre de quien recibe (Con restricciones antifraude) -->
               <div class="space-y-3">
                 <div>
-                  <label class="block font-medium text-gray-700 mb-1">
-                    DNI del receptor (8 dígitos) *
-                  </label>
+                  <div class="flex flex-wrap items-center justify-between gap-1.5 mb-1">
+                    <label class="block font-bold text-gray-800">
+                      DNI del receptor (8 dígitos) *
+                    </label>
+                    <div class="flex items-center gap-1.5">
+                      @if (getOrderHolderDni(target); as holderDni) {
+                        @if (receiverDocument !== holderDni) {
+                          <button
+                            type="button"
+                            (click)="useOrderHolderDni(target)"
+                            class="rounded-md border border-orange-200 bg-orange-50 px-2 py-0.5 text-[10px] font-bold text-orange-700 hover:bg-orange-100 transition cursor-pointer"
+                          >
+                            Usar DNI titular ({{ holderDni }})
+                          </button>
+                        }
+                      }
+                      <span
+                        [class]="
+                          receiverDocument.length === 8 && !getReceiverDniValidationError(target)
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            : 'bg-gray-100 text-gray-600 border-gray-200'
+                        "
+                        class="rounded border px-1.5 py-0.5 font-mono text-[10px] font-bold"
+                      >
+                        {{ receiverDocument.length }}/8 dígitos
+                      </span>
+                    </div>
+                  </div>
+
                   <div class="relative">
                     <input
                       type="text"
                       name="receiverDoc"
                       [(ngModel)]="receiverDocument"
                       (ngModelChange)="onReceiverDocChange($event)"
-                      maxlength="11"
+                      maxlength="8"
+                      minlength="8"
+                      pattern="[0-9]{8}"
                       inputmode="numeric"
+                      autocomplete="off"
                       required
-                      placeholder="Ingresa los 8 dígitos del DNI"
-                      class="w-full min-h-[44px] rounded-xl border border-gray-200 bg-white pl-3.5 pr-9 py-2 font-mono text-base sm:text-sm text-gray-900 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
+                      placeholder="Ingresa los 8 dígitos numéricos del DNI"
+                      [class]="
+                        getReceiverDniValidationError(target)
+                          ? 'border-red-400 bg-red-50/20 focus:border-red-600 focus:ring-red-500/20'
+                          : receiverDocument.length === 8
+                            ? 'border-emerald-400 bg-emerald-50/10 focus:border-emerald-600'
+                            : 'border-gray-200 bg-white focus:border-orange-600'
+                      "
+                      class="w-full min-h-[44px] rounded-xl border pl-3.5 pr-9 py-2 font-mono text-base sm:text-sm font-bold tracking-wider text-gray-900 focus:ring-2 focus:outline-none transition"
                     />
                     @if (isLookingUpReceiver()) {
                       <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
@@ -468,17 +533,40 @@ import { LiveDriverMapComponent } from '../../shared/components/live-driver-map/
                       </span>
                     }
                   </div>
+
+                  <!-- Mensajes de restricción o validación de DNI -->
+                  @if (getReceiverDniValidationError(target); as dniErr) {
+                    <div class="mt-1.5 rounded-lg border border-red-300 bg-red-50 px-2.5 py-1.5 text-[11px] font-semibold text-red-700 flex items-start gap-1.5">
+                      <svg class="h-3.5 w-3.5 text-red-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                      </svg>
+                      <span>{{ dniErr }}</span>
+                    </div>
+                  } @else if (receiverDocument.length === 8) {
+                    @if (getOrderHolderDni(target) && receiverDocument === getOrderHolderDni(target)) {
+                      <div class="mt-1.5 inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-800">
+                        <svg class="h-3.5 w-3.5 text-emerald-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                        </svg>
+                        <span>DNI coincide con el titular de la compra</span>
+                      </div>
+                    } @else if (getOrderHolderDni(target)) {
+                      <div class="mt-1.5 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-900">
+                        <span>Receptor distinto al titular (Tercero autorizado): queda registrado su DNI de 8 dígitos en el acta.</span>
+                      </div>
+                    }
+                  }
                 </div>
 
                 <div>
                   <div class="flex items-center justify-between gap-2 mb-1">
-                    <label class="block font-medium text-gray-700">Nombre de quien recibe *</label>
+                    <label class="block font-bold text-gray-800">Nombre y apellido de quien recibe *</label>
                     @if (receiverDocVerified()) {
-                      <span class="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+                      <span class="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
                         <svg class="h-3 w-3 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                           <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                         </svg>
-                        <span>Verificado</span>
+                        <span>Identidad RENIEC verificada</span>
                       </span>
                     }
                   </div>
@@ -486,15 +574,28 @@ import { LiveDriverMapComponent } from '../../shared/components/live-driver-map/
                     type="text"
                     name="receiverName"
                     [(ngModel)]="receiverName"
+                    (ngModelChange)="onReceiverNameChange($event)"
+                    [readonly]="receiverDocVerified()"
                     required
-                    placeholder="Nombre completo del receptor"
+                    placeholder="Nombre y apellido completos del receptor"
                     [class]="
                       receiverDocVerified()
-                        ? 'border-emerald-300 bg-emerald-50/30'
-                        : 'border-gray-200 bg-white'
+                        ? 'border-emerald-300 bg-emerald-50/40 text-emerald-950 font-semibold cursor-not-allowed'
+                        : getReceiverNameValidationError()
+                          ? 'border-red-300 bg-red-50/20'
+                          : 'border-gray-200 bg-white'
                     "
                     class="w-full min-h-[44px] rounded-xl border px-3.5 py-2 text-base sm:text-sm text-gray-900 focus:border-orange-600 focus:bg-white focus:ring-2 focus:ring-orange-500/20 focus:outline-none transition"
                   />
+                  @if (receiverDocVerified()) {
+                    <p class="mt-1 text-[10.5px] text-emerald-700 font-medium">
+                      Nombre bloqueado automáticamente según padrón oficial RENIEC para el DNI {{ receiverDocument }}.
+                    </p>
+                  } @else if (getReceiverNameValidationError(); as nameErr) {
+                    <p class="mt-1 text-[11px] font-semibold text-red-600">
+                      {{ nameErr }}
+                    </p>
+                  }
                 </div>
               </div>
 
@@ -524,34 +625,108 @@ import { LiveDriverMapComponent } from '../../shared/components/live-driver-map/
                 </button>
               </div>
 
-              <!-- Security PIN Input -->
-              <div class="rounded-xl border-2 p-3.5 space-y-1.5"
-                [class]="completionError() ? 'border-red-400 bg-red-50/40' : 'border-orange-200 bg-orange-50/50'">
-                <label class="block font-bold text-gray-900 text-xs flex items-center justify-between">
-                  <span class="flex items-center gap-1.5 text-orange-800">
-                    <svg class="h-4 w-4 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+              <!-- Security PIN Input with Maximum Attempts Control (Max 3 Attempts) -->
+              <div
+                class="rounded-xl border-2 p-3.5 space-y-2"
+                [class]="
+                  isPinLockedOut(target.id)
+                    ? 'border-red-500 bg-red-50/70'
+                    : completionError()
+                      ? 'border-red-400 bg-red-50/40'
+                      : 'border-orange-200 bg-orange-50/50'
+                "
+              >
+                <div class="flex flex-wrap items-center justify-between gap-1.5">
+                  <label class="font-bold text-gray-900 text-xs flex items-center gap-1.5">
+                    <svg class="h-4 w-4 text-orange-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
                     </svg>
-                    Código de Seguridad del Cliente (PIN de 4 dígitos) *
-                  </span>
-                  <span class="text-[10px] uppercase font-mono font-bold tracking-wider text-orange-600 bg-white px-2 py-0.5 rounded border border-orange-200">Obligatorio</span>
-                </label>
-                <input
-                  type="text"
-                  name="securityCode"
-                  [(ngModel)]="securityCode"
-                  (ngModelChange)="completionError.set('')"
-                  maxlength="4"
-                  pattern="[0-9]*"
-                  inputmode="numeric"
-                  required
-                  placeholder="PIN de 4 dígitos (Ej: 1234)"
-                  [class]="completionError() ? 'border-red-500 ring-2 ring-red-500/20' : 'border-orange-300'"
-                  class="w-full min-h-[46px] rounded-xl border bg-white px-3.5 py-2 text-center font-mono text-xl font-black tracking-widest text-gray-900 placeholder-gray-300 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none transition"
-                />
-                <p class="text-[10.5px] text-gray-500 leading-tight">
-                  Pide al cliente el PIN único que aparece en su pantalla de seguimiento para finalizar la entrega de forma segura.
-                </p>
+                    <span class="text-orange-900">Código PIN del Cliente (4 dígitos) *</span>
+                  </label>
+
+                  <!-- Attempt Counter Pill -->
+                  <div class="flex items-center gap-1.5">
+                    <div class="flex items-center gap-1">
+                      @for (attemptIdx of [1, 2, 3]; track attemptIdx) {
+                        <span
+                          class="h-2 w-2 rounded-full transition-colors"
+                          [class]="
+                            attemptIdx <= getRemainingPinAttempts(target.id)
+                              ? 'bg-emerald-500'
+                              : 'bg-red-400'
+                          "
+                        ></span>
+                      }
+                    </div>
+                    <span
+                      [class]="
+                        isPinLockedOut(target.id)
+                          ? 'bg-red-600 text-white border-red-700'
+                          : getFailedPinAttempts(target.id) === 2
+                            ? 'bg-red-100 text-red-800 border-red-300'
+                            : getFailedPinAttempts(target.id) === 1
+                              ? 'bg-amber-100 text-amber-900 border-amber-300'
+                              : 'bg-white text-orange-700 border-orange-200'
+                      "
+                      class="text-[10px] uppercase font-mono font-extrabold tracking-wider px-2 py-0.5 rounded border"
+                    >
+                      @if (isPinLockedOut(target.id)) {
+                        BLOQUEADO (0/{{ maxPinAttempts }})
+                      } @else {
+                        Intentos: {{ getRemainingPinAttempts(target.id) }}/{{ maxPinAttempts }}
+                      }
+                    </span>
+                  </div>
+                </div>
+
+                @if (isPinLockedOut(target.id)) {
+                  <!-- Security Lockout Banner when 3 PIN attempts are exhausted -->
+                  <div class="rounded-xl border-2 border-red-500 bg-white p-3.5 space-y-2.5 text-xs shadow-2xs">
+                    <div class="flex items-start gap-2.5">
+                      <img src="/images/icons/bloquear.png" alt="Bloqueado" class="h-6 w-6 object-contain shrink-0 mt-0.5" />
+                      <div class="space-y-1">
+                        <p class="font-extrabold text-red-800 text-xs uppercase tracking-wide">
+                          Máximo de {{ maxPinAttempts }} intentos de PIN alcanzado
+                        </p>
+                        <p class="text-[11px] text-gray-700 leading-relaxed">
+                          Por protocolo antifraude, se ha bloqueado temporalmente el ingreso del PIN para este pedido tras 3 intentos fallidos consecutivos.
+                        </p>
+                      </div>
+                    </div>
+                    <div class="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-red-50 border border-red-200 px-3 py-2">
+                      <span class="text-[11px] font-bold text-red-900">Desbloqueo automático en:</span>
+                      <span class="font-mono text-sm font-black text-red-700 bg-white px-2.5 py-0.5 rounded border border-red-300 tabular-nums">
+                        {{ getPinLockoutRemainingFormatted(target.id) }}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      (click)="switchFromCompletionToIncident(target)"
+                      class="w-full min-h-[38px] rounded-lg border border-rose-300 bg-rose-600 px-3 py-2 text-xs font-bold text-white hover:bg-rose-700 transition cursor-pointer"
+                    >
+                      Reportar Incidencia / Cliente sin PIN válido
+                    </button>
+                  </div>
+                } @else {
+                  <input
+                    type="text"
+                    name="securityCode"
+                    [(ngModel)]="securityCode"
+                    (ngModelChange)="onSecurityCodeChange($event)"
+                    maxlength="4"
+                    pattern="[0-9]{4}"
+                    inputmode="numeric"
+                    autocomplete="off"
+                    required
+                    placeholder="PIN de 4 dígitos (Ej: 1234)"
+                    [class]="completionError() ? 'border-red-500 ring-2 ring-red-500/20' : 'border-orange-300'"
+                    class="w-full min-h-[46px] rounded-xl border bg-white px-3.5 py-2 text-center font-mono text-xl font-black tracking-widest text-gray-900 placeholder-gray-300 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none transition"
+                  />
+                  <div class="flex items-center justify-between gap-2 text-[10.5px] text-gray-600 leading-tight">
+                    <span>Pide al cliente el PIN de 4 dígitos que figura en su pantalla de seguimiento.</span>
+                    <span class="font-mono font-bold shrink-0 text-gray-500">Máx. {{ maxPinAttempts }} intentos</span>
+                  </div>
+                }
               </div>
 
               <div>
@@ -574,7 +749,9 @@ import { LiveDriverMapComponent } from '../../shared/components/live-driver-map/
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
                   </svg>
                   <div class="space-y-0.5">
-                    <div class="font-extrabold text-red-800">Código incorrecto o no válido</div>
+                    <div class="font-extrabold text-red-800">
+                      {{ isPinLockedOut(target.id) ? 'Entrega bloqueada por intentos fallidos' : 'Validación de seguridad rechazada' }}
+                    </div>
                     <div class="font-medium text-red-700 leading-snug">{{ completionError() }}</div>
                   </div>
                 </div>
@@ -584,16 +761,16 @@ import { LiveDriverMapComponent } from '../../shared/components/live-driver-map/
                 <button
                   type="button"
                   (click)="closeCompletionModal()"
-                  class="min-h-[44px] rounded-xl border border-gray-200 bg-white py-2.5 font-semibold text-gray-700 hover:bg-gray-50 transition"
+                  class="min-h-[44px] rounded-xl border border-gray-200 bg-white py-2.5 font-semibold text-gray-700 hover:bg-gray-50 transition cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  [disabled]="submittingProof() || !receiverName.trim() || !receiverDocument.trim() || (receiverDocument.trim().length !== 8 && receiverDocument.trim().length !== 11) || !securityCode || securityCode.trim().length !== 4" 
-                  class="min-h-[44px] rounded-xl bg-orange-600 py-2.5 font-semibold text-white shadow-xs hover:bg-orange-700 disabled:opacity-50 transition"
+                  [disabled]="!canSubmitDeliveryCompletion(target)"
+                  class="min-h-[44px] rounded-xl bg-orange-600 py-2.5 font-semibold text-white shadow-xs hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition cursor-pointer"
                 >
-                  {{ submittingProof() ? 'Guardando...' : 'Finalizar entrega' }}
+                  {{ isPinLockedOut(target.id) ? 'PIN Bloqueado' : submittingProof() ? 'Guardando...' : 'Finalizar entrega' }}
                 </button>
               </div>
             </form>
@@ -841,14 +1018,29 @@ export class DeliveryPageComponent implements OnInit, OnDestroy {
   deliveryNotes = 'Entregado conforme en dirección indicada.';
   securityCode = '';
   private pollSubscription?: Subscription;
+  private lockoutTickSubscription?: Subscription;
   private autoReturnTimeout?: any;
 
+  // Control de Máximos Intentos de PIN (Máximo 3 intentos antes de bloqueo antifraude)
+  private readonly PIN_ATTEMPTS_STORAGE_KEY = 'asuncion_driver_pin_attempts_v1';
+  readonly maxPinAttempts = 3;
+  private readonly pinLockoutDurationMs = 5 * 60 * 1000; // 5 minutos de bloqueo
+  readonly pinAttemptsMap = signal<Record<number, { failedAttempts: number; lockedUntil: number | null }>>({});
+  readonly nowTimestamp = signal<number>(Date.now());
+
   ngOnInit(): void {
+    this.hydratePinAttemptsFromStorage();
     this.walletConfig.set(this.paymentService.getStoreWalletConfig());
     this.paymentService.fetchStoreWalletConfig().subscribe({
       next: (cfg) => this.walletConfig.set(cfg),
     });
     this.loadDeliveryOrders();
+    // Reloj de 1 segundo para actualizar en vivo la cuenta regresiva si un pedido está bloqueado por PIN
+    this.lockoutTickSubscription = interval(1000).subscribe(() => {
+      const now = Date.now();
+      this.nowTimestamp.set(now);
+      this.reconcileExpiredPinLockouts(now);
+    });
     // Auto-sync polling every 12 seconds when tab is visible
     this.pollSubscription = interval(12000).subscribe(() => {
       if (typeof document !== 'undefined' && document.hidden) return;
@@ -1078,13 +1270,86 @@ export class DeliveryPageComponent implements OnInit, OnDestroy {
     this.clearPreview();
   }
 
+  // =========================================================================
+  // 1. RESTRICCIONES DE DNI DEL RECEPTOR EN LADO DEL REPARTIDOR
+  // =========================================================================
+
+  getOrderHolderDni(order: Order): string | null {
+    const raw = (order.customerTaxId || order.billingDocumentNumber || '').replace(/\D/g, '');
+    return raw.length === 8 ? raw : null;
+  }
+
+  useOrderHolderDni(order: Order): void {
+    const holderDni = this.getOrderHolderDni(order);
+    if (!holderDni) return;
+    this.receiverDocument = holderDni;
+    this.onReceiverDocChange(holderDni);
+  }
+
+  getReceiverDniValidationError(order: Order): string | null {
+    const doc = (this.receiverDocument || '').trim();
+    if (!doc) return null;
+
+    if (!/^\d+$/.test(doc)) {
+      return 'El DNI solo puede contener números (0-9).';
+    }
+    if (doc.length < 8) {
+      const missing = 8 - doc.length;
+      return `El DNI debe tener exactamente 8 dígitos (faltan ${missing} ${missing === 1 ? 'dígito' : 'dígitos'}).`;
+    }
+    if (doc.length > 8) {
+      return 'El DNI del receptor debe tener exactamente 8 dígitos.';
+    }
+
+    // Restricción 1: Prohibir secuencias ficticias o dígitos repetidos (00000000, 11111111, 12345678, etc.)
+    if (
+      /^(\d)\1{7}$/.test(doc) ||
+      doc === '12345678' ||
+      doc === '87654321' ||
+      doc === '01234567' ||
+      doc === '00000001'
+    ) {
+      return 'DNI inválido: no se permiten números repetidos ni secuencias de prueba (ej. 00000000 o 12345678). Ingresa el DNI real del cliente.';
+    }
+
+    // Restricción 2: Prohibir que el repartidor ingrese su propio DNI como receptor (Anti-autorecepción)
+    const driverOwnDni = (this.auth.currentUser()?.documentNumber || '').replace(/\D/g, '');
+    if ((driverOwnDni && doc === driverOwnDni) || doc === '45829103') {
+      return 'Restricción de seguridad: No puedes registrar tu propio DNI de repartidor como receptor de la entrega.';
+    }
+
+    return null;
+  }
+
+  getReceiverNameValidationError(): string | null {
+    const name = (this.receiverName || '').trim();
+    if (!name) return null;
+    if (/\d/.test(name)) {
+      return 'El nombre del receptor no puede contener números.';
+    }
+    const words = name.split(/\s+/).filter((w) => w.length >= 2);
+    if (words.length < 2) {
+      return 'Ingresa al menos un nombre y un apellido del receptor.';
+    }
+    return null;
+  }
+
+  onReceiverNameChange(rawValue: string): void {
+    if (this.receiverDocVerified()) return;
+    const cleaned = (rawValue || '').replace(/[0-9]/g, '');
+    if (cleaned !== rawValue) {
+      this.receiverName = cleaned;
+    }
+  }
+
   onReceiverDocChange(rawValue: string): void {
-    const digits = (rawValue || '').replace(/\D/g, '');
+    const digits = (rawValue || '').replace(/\D/g, '').slice(0, 8);
     if (digits !== rawValue) {
       this.receiverDocument = digits;
     }
 
-    if (digits.length !== 8 && digits.length !== 11) {
+    const currentOrder = this.completingOrder();
+    if (digits.length !== 8 || (currentOrder && this.getReceiverDniValidationError(currentOrder))) {
       this.receiverDocVerified.set(false);
       if (digits.length < 8) {
         this.lastLookedUpReceiverDoc = '';
@@ -1115,6 +1380,129 @@ export class DeliveryPageComponent implements OnInit, OnDestroy {
           this.receiverDocVerified.set(false);
         },
       });
+  }
+
+  // =========================================================================
+  // 2. CONTROL DE MÁXIMOS INTENTOS DE PIN (MÁX. 3 INTENTOS)
+  // =========================================================================
+
+  onSecurityCodeChange(rawValue: string): void {
+    const digits = (rawValue || '').replace(/\D/g, '').slice(0, 4);
+    if (digits !== rawValue) {
+      this.securityCode = digits;
+    }
+    this.completionError.set('');
+  }
+
+  getFailedPinAttempts(orderId: number): number {
+    const entry = this.pinAttemptsMap()[orderId];
+    return entry ? entry.failedAttempts : 0;
+  }
+
+  getRemainingPinAttempts(orderId: number): number {
+    if (this.isPinLockedOut(orderId)) return 0;
+    return Math.max(0, this.maxPinAttempts - this.getFailedPinAttempts(orderId));
+  }
+
+  isPinLockedOut(orderId: number): boolean {
+    const entry = this.pinAttemptsMap()[orderId];
+    if (!entry || !entry.lockedUntil) return false;
+    return this.nowTimestamp() < entry.lockedUntil;
+  }
+
+  getPinLockoutRemainingFormatted(orderId: number): string {
+    const entry = this.pinAttemptsMap()[orderId];
+    if (!entry || !entry.lockedUntil) return '00:00';
+    const remainingMs = Math.max(0, entry.lockedUntil - this.nowTimestamp());
+    const totalSecs = Math.ceil(remainingMs / 1000);
+    const mins = Math.floor(totalSecs / 60);
+    const secs = totalSecs % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  }
+
+  private recordFailedPinAttempt(orderId: number): { attempts: number; locked: boolean } {
+    const currentMap = { ...this.pinAttemptsMap() };
+    const current = currentMap[orderId] || { failedAttempts: 0, lockedUntil: null };
+    const nextAttempts = current.failedAttempts + 1;
+    const locked = nextAttempts >= this.maxPinAttempts;
+    currentMap[orderId] = {
+      failedAttempts: nextAttempts,
+      lockedUntil: locked ? Date.now() + this.pinLockoutDurationMs : null,
+    };
+    this.pinAttemptsMap.set(currentMap);
+    this.persistPinAttemptsToStorage(currentMap);
+    return { attempts: nextAttempts, locked };
+  }
+
+  private clearPinAttemptsForOrder(orderId: number): void {
+    const currentMap = { ...this.pinAttemptsMap() };
+    if (currentMap[orderId]) {
+      delete currentMap[orderId];
+      this.pinAttemptsMap.set(currentMap);
+      this.persistPinAttemptsToStorage(currentMap);
+    }
+  }
+
+  private reconcileExpiredPinLockouts(now: number): void {
+    const currentMap = this.pinAttemptsMap();
+    let changed = false;
+    const updated: Record<number, { failedAttempts: number; lockedUntil: number | null }> = {};
+    for (const [k, val] of Object.entries(currentMap)) {
+      const id = Number(k);
+      if (val.lockedUntil && now >= val.lockedUntil) {
+        changed = true;
+      } else {
+        updated[id] = val;
+      }
+    }
+    if (changed) {
+      this.pinAttemptsMap.set(updated);
+      this.persistPinAttemptsToStorage(updated);
+      if (this.completingOrder()) {
+        this.completionError.set('');
+      }
+    }
+  }
+
+  private hydratePinAttemptsFromStorage(): void {
+    if (typeof window === 'undefined') return;
+    try {
+      const raw = localStorage.getItem(this.PIN_ATTEMPTS_STORAGE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object') {
+        this.pinAttemptsMap.set(parsed);
+        this.reconcileExpiredPinLockouts(Date.now());
+      }
+    } catch {
+      // Ignore malformed storage
+    }
+  }
+
+  private persistPinAttemptsToStorage(map: Record<number, { failedAttempts: number; lockedUntil: number | null }>): void {
+    if (typeof window === 'undefined') return;
+    try {
+      localStorage.setItem(this.PIN_ATTEMPTS_STORAGE_KEY, JSON.stringify(map));
+    } catch {
+      // Ignore storage quota errors
+    }
+  }
+
+  switchFromCompletionToIncident(order: Order): void {
+    this.closeCompletionModal();
+    this.openIncidentModal(order);
+    this.incidentReason = 'Cliente rechazó el pedido en puerta';
+    this.incidentNotes = 'Receptor no contaba con el código PIN de seguridad tras agotar los 3 intentos permitidos.';
+  }
+
+  canSubmitDeliveryCompletion(order: Order): boolean {
+    if (this.submittingProof()) return false;
+    if (this.isPinLockedOut(order.id)) return false;
+    if (this.receiverDocument.trim().length !== 8) return false;
+    if (this.getReceiverDniValidationError(order) !== null) return false;
+    if (!this.receiverName.trim() || this.getReceiverNameValidationError() !== null) return false;
+    if (!/^\d{4}$/.test(this.securityCode.trim())) return false;
+    return true;
   }
 
   closeCompletionModal(): void {
@@ -1155,6 +1543,45 @@ export class DeliveryPageComponent implements OnInit, OnDestroy {
     if (!order) return;
     this.completionError.set('');
 
+    if (this.isPinLockedOut(order.id)) {
+      const msg = `Has superado el máximo de ${this.maxPinAttempts} intentos de PIN. Espera ${this.getPinLockoutRemainingFormatted(order.id)} o reporta la incidencia.`;
+      this.completionError.set(msg);
+      this.toast.error('Entrega bloqueada por seguridad', msg);
+      return;
+    }
+
+    const dniError = this.getReceiverDniValidationError(order);
+    if (dniError) {
+      this.completionError.set(dniError);
+      this.toast.error('DNI no válido', dniError);
+      return;
+    }
+
+    const nameError = this.getReceiverNameValidationError();
+    if (nameError) {
+      this.completionError.set(nameError);
+      this.toast.error('Nombre incompleto', nameError);
+      return;
+    }
+
+    // Validación anticipada en cliente si el pedido trae el código de seguridad para contabilizar el intento exacto
+    const enteredPin = this.securityCode.trim();
+    if (order.deliverySecurityCode && order.deliverySecurityCode.trim() !== enteredPin) {
+      const result = this.recordFailedPinAttempt(order.id);
+      this.securityCode = '';
+      if (result.locked) {
+        const lockMsg = `Has alcanzado el límite máximo de ${this.maxPinAttempts} intentos fallidos de PIN. Por seguridad antifraude, la confirmación de este pedido se ha bloqueado por 5 minutos.`;
+        this.completionError.set(lockMsg);
+        this.toast.error('Máximo de intentos de PIN superado', lockMsg);
+      } else {
+        const rem = this.maxPinAttempts - result.attempts;
+        const failMsg = `Código PIN incorrecto (Intento ${result.attempts} de ${this.maxPinAttempts}). Te ${rem === 1 ? 'queda 1 último intento' : `quedan ${rem} intentos disponibles`} antes del bloqueo de seguridad.`;
+        this.completionError.set(failMsg);
+        this.toast.error('Código PIN incorrecto', failMsg);
+      }
+      return;
+    }
+
     const finalizeSubmit = (fileToUpload: File) => {
       this.submittingProof.set(true);
       this.ordersService
@@ -1165,11 +1592,12 @@ export class DeliveryPageComponent implements OnInit, OnDestroy {
           deliveryNotes: this.deliveryNotes.trim(),
           capturedLatitude: this.capturedLat(),
           capturedLongitude: this.capturedLng(),
-          securityCode: this.securityCode.trim(),
+          securityCode: enteredPin,
         })
         .pipe(finalize(() => this.submittingProof.set(false)))
         .subscribe({
           next: (updated) => {
+            this.clearPinAttemptsForOrder(order.id);
             this.completionError.set('');
             this.orders.update((list) => list.map((o) => (o.id === updated.id ? updated : o)));
             this.myDriverStatus.set('RETORNANDO');
@@ -1183,14 +1611,25 @@ export class DeliveryPageComponent implements OnInit, OnDestroy {
             }, returnMins * 60 * 1000);
             this.toast.success(
               `Pedido ${updated.orderNumber} entregado con éxito`,
-              `Código PIN verificado conforme. Tu estado cambió a: Retornando a tienda (máx. ${returnMins} min).`
+              `DNI ${this.receiverDocument} y código PIN verificados conforme. Estado: Retornando a tienda (máx. ${returnMins} min).`
             );
             this.closeCompletionModal();
           },
           error: (err) => {
-            const msg = err?.error?.message || 'Código incorrecto o datos de entrega inválidos. Verifica con el cliente e intenta nuevamente.';
+            const backendMsg: string = err?.error?.message || '';
+            if (backendMsg.toLowerCase().includes('pin') || backendMsg.toLowerCase().includes('código')) {
+              const result = this.recordFailedPinAttempt(order.id);
+              this.securityCode = '';
+              if (result.locked) {
+                const lockMsg = `Has alcanzado el límite máximo de ${this.maxPinAttempts} intentos fallidos de PIN. Por seguridad antifraude, la confirmación se ha bloqueado por 5 minutos.`;
+                this.completionError.set(lockMsg);
+                this.toast.error('Máximo de intentos de PIN superado', lockMsg);
+                return;
+              }
+            }
+            const msg = backendMsg || 'Código incorrecto o datos de entrega inválidos. Verifica con el cliente e intenta nuevamente.';
             this.completionError.set(msg);
-            this.toast.error('Código de entrega incorrecto', msg);
+            this.toast.error('Validación de entrega rechazada', msg);
           },
         });
     };
@@ -1448,6 +1887,9 @@ export class DeliveryPageComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     if (this.pollSubscription) {
       this.pollSubscription.unsubscribe();
+    }
+    if (this.lockoutTickSubscription) {
+      this.lockoutTickSubscription.unsubscribe();
     }
     if (this.autoReturnTimeout) {
       clearTimeout(this.autoReturnTimeout);
