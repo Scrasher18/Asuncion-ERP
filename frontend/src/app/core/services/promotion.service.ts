@@ -54,7 +54,9 @@ export class PromotionService {
 
   readonly activeCombos = computed(() =>
     this.activePromotions().filter(
-      (p) => p.promoType === 'COMBO_SUGERIDO' && Boolean(p.comboComplementSku)
+      (p) =>
+        p.promoType === 'COMBO_SUGERIDO' &&
+        Boolean(p.comboComplementSku || (p.comboComplements && p.comboComplements.length > 0))
     )
   );
 
@@ -91,8 +93,30 @@ export class PromotionService {
       .subscribe({
         next: (list) => {
           if (Array.isArray(list)) {
-            this.promotions.set(list);
-            this.persist(list);
+            const currentBySku = new Map<string, PartPromotion>();
+            for (const existing of this.promotions()) {
+              if (existing.sku) {
+                currentBySku.set(existing.sku.trim().toUpperCase(), existing);
+              }
+            }
+            const mergedList = list.map((cloudItem) => {
+              const norm = (cloudItem.sku || '').trim().toUpperCase();
+              const localItem = currentBySku.get(norm);
+              if (
+                localItem &&
+                localItem.comboComplements &&
+                localItem.comboComplements.length > (cloudItem.comboComplements?.length || 0)
+              ) {
+                return {
+                  ...cloudItem,
+                  comboComplements: localItem.comboComplements,
+                  comboTotalPromoPrice: localItem.comboTotalPromoPrice ?? cloudItem.comboTotalPromoPrice,
+                };
+              }
+              return cloudItem;
+            });
+            this.promotions.set(mergedList);
+            this.persist(mergedList);
           }
         },
         error: () => {},
@@ -118,7 +142,11 @@ export class PromotionService {
     if (!sku) return undefined;
     const norm = sku.trim().toUpperCase();
     return this.activeCombos().find((c) => {
-      const singleMatch = (c.comboComplementSku || '').trim().toUpperCase() === norm;
+      const rawTokens = (c.comboComplementSku || '')
+        .split(',')
+        .map((t) => t.trim().toUpperCase())
+        .filter(Boolean);
+      const singleMatch = rawTokens.includes(norm);
       const multiMatch = (c.comboComplements || []).some(
         (comp) => (comp.sku || '').trim().toUpperCase() === norm
       );
@@ -163,25 +191,39 @@ export class PromotionService {
       .post<PartPromotion>(`${this.apiConfig.apiUrl}/admin/promotions`, promo)
       .subscribe({
         next: (saved) => {
+          const mergedSaved: PartPromotion = {
+            ...saved,
+            comboComplements:
+              promo.comboComplements && promo.comboComplements.length > 0
+                ? promo.comboComplements
+                : saved.comboComplements,
+            comboTotalPromoPrice: promo.comboTotalPromoPrice ?? saved.comboTotalPromoPrice,
+          };
           const synced = [
-            saved,
+            mergedSaved,
             ...this.promotions().filter((p) => p.sku.trim().toUpperCase() !== normSku),
           ];
           this.promotions.set(synced);
           this.persist(synced);
+          const totalKitItems = 1 + (mergedSaved.comboComplements?.length || 1);
           this.toast.success(
-            saved.promoType === 'COMBO_SUGERIDO'
-              ? '¡Combo Automotriz Publicado!'
+            mergedSaved.promoType === 'COMBO_SUGERIDO'
+              ? `¡Combo Automotriz de ${totalKitItems} Artículos Publicado!`
               : '¡Oferta Activada en la Web!',
-            saved.promoType === 'COMBO_SUGERIDO'
-              ? `Combo ${saved.partName} + ${saved.comboComplementName} disponible en Ofertas y Combos.`
-              : `Se activó ${saved.partName} a S/ ${saved.promoPrice.toFixed(2)} (-${saved.discountPercentage}%).`
+            mergedSaved.promoType === 'COMBO_SUGERIDO'
+              ? `Kit de ${totalKitItems} artículos (${mergedSaved.partName} + ${mergedSaved.comboComplements?.map((c) => c.name).join(' + ') || mergedSaved.comboComplementName}) activo en tienda.`
+              : `Se activó ${mergedSaved.partName} a S/ ${mergedSaved.promoPrice.toFixed(2)} (-${mergedSaved.discountPercentage}%).`
           );
         },
         error: () => {
+          const totalKitItems = 1 + (promo.comboComplements?.length || 1);
           this.toast.success(
-            '¡Promoción Activada!',
-            `Se aplicó la promoción en ${promo.partName} (-${promo.discountPercentage}%).`
+            promo.promoType === 'COMBO_SUGERIDO'
+              ? `¡Combo de ${totalKitItems} Artículos Activado!`
+              : '¡Promoción Activada!',
+            promo.promoType === 'COMBO_SUGERIDO'
+              ? `Kit de ${totalKitItems} repuestos disponible en la tienda web.`
+              : `Se aplicó la promoción en ${promo.partName} (-${promo.discountPercentage}%).`
           );
         },
       });

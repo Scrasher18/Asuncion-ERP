@@ -7406,18 +7406,33 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
         this.promoComboComplementName = existing.comboComplements[0].name;
         this.promoComboComplementPrice = existing.comboComplements[0].price;
       } else if (existing.comboComplementSku) {
-        this.promoComboComplementSku = existing.comboComplementSku;
-        this.promoComboComplementName = existing.comboComplementName || '';
-        this.promoComboComplementPrice = existing.comboComplementPrice || 0;
-        this.promoComboItems.set([
-          {
-            sku: existing.comboComplementSku,
-            name: existing.comboComplementName || '',
-            price: existing.comboComplementPrice || 0,
-            purchasePrice: Number(((existing.comboComplementPrice || 0) * 0.70).toFixed(2)),
+        const skus = existing.comboComplementSku
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean);
+        const names = (existing.comboComplementName || '')
+          .split(' + ')
+          .map((n) => n.trim());
+        const builtItems: ComboItem[] = skus.map((skuToken, idx) => {
+          const foundPart = this.adminParts().find(
+            (p: Part) => (p.sku || '').toUpperCase() === skuToken.toUpperCase()
+          );
+          const priceVal =
+            foundPart?.salePrice ??
+            (skus.length === 1 ? existing.comboComplementPrice || 50 : 50);
+          return {
+            sku: foundPart?.sku || skuToken,
+            name: foundPart?.name || names[idx] || existing.comboComplementName || skuToken,
+            price: priceVal,
+            purchasePrice: foundPart?.purchasePrice ?? Number((priceVal * 0.7).toFixed(2)),
             discountPercent: 15,
-          },
-        ]);
+            imageUrl: foundPart?.primaryImageUrl || '/images/categories/repuesto-default.png',
+          };
+        });
+        this.promoComboComplementSku = builtItems[0]?.sku || existing.comboComplementSku;
+        this.promoComboComplementName = builtItems[0]?.name || existing.comboComplementName || '';
+        this.promoComboComplementPrice = builtItems[0]?.price || existing.comboComplementPrice || 0;
+        this.promoComboItems.set(builtItems);
       } else {
         this.promoComboComplementSku = '';
         this.promoComboComplementName = '';
@@ -7529,9 +7544,24 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
       discountPercentage: this.promoDiscountPercent,
       badgeLabel: this.promoBadgeLabel,
       promoType: this.promoType,
-      comboComplementSku: this.promoType === 'COMBO_SUGERIDO' ? (firstComp?.sku ?? this.promoComboComplementSku) : undefined,
-      comboComplementName: this.promoType === 'COMBO_SUGERIDO' ? (firstComp?.name ?? this.promoComboComplementName) : undefined,
-      comboComplementPrice: this.promoType === 'COMBO_SUGERIDO' ? (firstComp?.price ?? this.promoComboComplementPrice) : undefined,
+      comboComplementSku:
+        this.promoType === 'COMBO_SUGERIDO'
+          ? (complements.length > 0
+              ? complements.map((c) => c.sku).join(',')
+              : this.promoComboComplementSku)
+          : undefined,
+      comboComplementName:
+        this.promoType === 'COMBO_SUGERIDO'
+          ? (complements.length > 0
+              ? complements.map((c) => c.name).join(' + ')
+              : this.promoComboComplementName)
+          : undefined,
+      comboComplementPrice:
+        this.promoType === 'COMBO_SUGERIDO'
+          ? (complements.length > 0
+              ? Number(complements.reduce((sum, c) => sum + c.price, 0).toFixed(2))
+              : this.promoComboComplementPrice)
+          : undefined,
       comboComplements:
         this.promoType === 'COMBO_SUGERIDO'
           ? complements.map((c) => ({

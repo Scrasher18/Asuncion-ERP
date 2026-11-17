@@ -236,17 +236,17 @@ import { PromotionService } from '../../core/services/promotion.service';
                 @if (comboPromo.promoType === 'COMBO_SUGERIDO') {
                   <div class="rounded-2xl border-2 border-orange-200 bg-orange-50/60 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div class="space-y-1">
-                      <div class="flex items-center gap-2">
+                      <div class="flex flex-wrap items-center gap-2">
                         <span class="inline-flex items-center gap-1 rounded-full bg-orange-600 px-2.5 py-0.5 text-[10px] font-black text-white uppercase">
                           <img src="/images/icons/combo-paquete.png" alt="Combo" class="h-3 w-3 object-contain inline-block" />
-                          <span>Combo Automotriz Activo</span>
+                          <span>Combo Automotriz Activo · Kit de {{ getComboTotalItemsCount(comboPromo) }} artículos</span>
                         </span>
                         <span class="text-xs font-extrabold text-emerald-700">
-                          Doble descuento al llevar el kit
+                          Descuento especial por paquete completo
                         </span>
                       </div>
                       <p class="text-xs font-bold text-gray-900">
-                        Llévalo junto con <span class="text-orange-700">{{ comboPromo.comboComplementName }}</span> por solo
+                        Llévalo en kit junto con <span class="text-orange-700">{{ getComboComplementsNames(comboPromo) }}</span> por solo
                         <strong class="text-sm font-black text-gray-950 tabular-nums">
                           S/ {{ (comboPromo.comboTotalPromoPrice || (comboPromo.promoPrice + (comboPromo.comboComplementPrice || 0) * 0.85)) | number: '1.2-2' }}
                         </strong>
@@ -257,7 +257,7 @@ import { PromotionService } from '../../core/services/promotion.service';
                       [queryParams]="{ sort: 'ONLY_COMBOS' }"
                       class="shrink-0 inline-flex items-center justify-center gap-1.5 rounded-xl bg-orange-600 px-4 py-2.5 text-xs font-extrabold text-white shadow-2xs hover:bg-orange-700 transition"
                     >
-                      <span>Ver Combo Completo</span>
+                      <span>Ver Combo ({{ getComboTotalItemsCount(comboPromo) }} artículos)</span>
                       <span>→</span>
                     </a>
                   </div>
@@ -715,5 +715,26 @@ export class PartDetailPageComponent implements OnInit, OnDestroy {
         img.src = fallback;
       }
     }
+  }
+
+  getComboTotalItemsCount(promo: any): number {
+    if (promo?.comboComplements && promo.comboComplements.length > 0) {
+      return 1 + promo.comboComplements.length;
+    }
+    if (promo?.comboComplementSku) {
+      const count = String(promo.comboComplementSku)
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean).length;
+      return 1 + Math.max(1, count);
+    }
+    return 2;
+  }
+
+  getComboComplementsNames(promo: any): string {
+    if (promo?.comboComplements && promo.comboComplements.length > 0) {
+      return promo.comboComplements.map((c: any) => c.name).join(' + ');
+    }
+    return promo?.comboComplementName || 'repuestos complementarios';
   }
 }

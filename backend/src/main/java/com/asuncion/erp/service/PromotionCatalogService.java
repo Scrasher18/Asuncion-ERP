@@ -31,6 +31,7 @@ public class PromotionCatalogService {
     private final PartRepository partRepository;
 
     private volatile List<PartPromotionDto> activeCache = null;
+    private final Map<String, List<PartPromotionDto.ComboComplementItemDto>> multiComplementsByMainSku = new java.util.concurrent.ConcurrentHashMap<>();
 
     public PromotionCatalogService(
             @Lazy PartPromotionRepository promotionRepository,
@@ -86,24 +87,100 @@ public class PromotionCatalogService {
         BigDecimal compRegularPrice = null;
         BigDecimal compPromoPrice = null;
         BigDecimal comboTotal = null;
+        List<PartPromotionDto.ComboComplementItemDto> resolvedComplements = new ArrayList<>();
 
-        if ("COMBO_SUGERIDO".equals(promoType) && req.comboComplementSku() != null && !req.comboComplementSku().isBlank()) {
-            compSku = req.comboComplementSku().trim().toUpperCase(Locale.ROOT);
-            Part compPart = partRepository.findBySkuIgnoreCase(compSku).orElse(null);
-            if (compPart != null) {
-                compSku = compPart.getSku();
-                compName = compPart.getName();
-                compRegularPrice = compPart.getSalePrice();
-                BigDecimal rawCompPromo = compRegularPrice.multiply(COMBO_COMPLEMENT_FACTOR).setScale(2, RoundingMode.HALF_UP);
-                compPromoPrice = rawCompPromo.compareTo(compPart.getPurchasePrice()) >= 0
-                        ? rawCompPromo
-                        : compPart.getPurchasePrice().setScale(2, RoundingMode.HALF_UP);
-            } else {
-                compName = req.comboComplementName() != null ? req.comboComplementName().trim() : compSku;
-                compRegularPrice = safeMoney(req.comboComplementPrice(), BigDecimal.valueOf(40));
-                compPromoPrice = compRegularPrice.multiply(COMBO_COMPLEMENT_FACTOR).setScale(2, RoundingMode.HALF_UP);
+        if ("COMBO_SUGERIDO".equals(promoType)) {
+            List<String> requestedCompSkus = new ArrayList<>();
+            if (req.comboComplements() != null && !req.comboComplements().isEmpty()) {
+                for (PartPromotionDto.ComboComplementItemDto item : req.comboComplements()) {
+                    if (item != null && item.sku() != null && !item.sku().isBlank()) {
+                        String s = item.sku().trim().toUpperCase(Locale.ROOT);
+                        if (!requestedCompSkus.contains(s)) {
+                            requestedCompSkus.add(s);
+                        }
+                    }
+                }
             }
-            comboTotal = calculatedPromo.add(compPromoPrice).setScale(2, RoundingMode.HALF_UP);
+            if (requestedCompSkus.isEmpty() && req.comboComplementSku() != null && !req.comboComplementSku().isBlank()) {
+                for (String token : req.comboComplementSku().split(",")) {
+                    String s = token.trim().toUpperCase(Locale.ROOT);
+                    if (!s.isEmpty() && !requestedCompSkus.contains(s)) {
+                        requestedCompSkus.add(s);
+                    }
+                }
+            }
+
+            if (!requestedCompSkus.isEmpty()) {
+                BigDecimal sumCompRegular = BigDecimal.ZERO;
+                BigDecimal sumCompPromo = BigDecimal.ZERO;
+                List<String> validSkus = new ArrayList<>();
+                List<String> validNames = new ArrayList<>();
+
+                for (String targetCompSku : requestedCompSkus) {
+                    Part compPart = partRepository.findBySkuIgnoreCase(targetCompSku).orElse(null);
+                    PartPromotionDto.ComboComplementItemDto reqItem = req.comboComplements() != null
+                            ? req.comboComplements().stream()
+                                    .filter(c -> c != null && c.sku() != null && c.sku().trim().equalsIgnoreCase(targetCompSku))
+                                    .findFirst()
+                                    .orElse(null)
+                            : null;
+
+                    if (compPart != null) {
+                        BigDecimal cReg = compPart.getSalePrice();
+                        BigDecimal rawPromo = cReg.multiply(COMBO_COMPLEMENT_FACTOR).setScale(2, RoundingMode.HALF_UP);
+                        BigDecimal cPromo = rawPromo.compareTo(compPart.getPurchasePrice()) >= 0
+                                ? rawPromo
+                                : compPart.getPurchasePrice().setScale(2, RoundingMode.HALF_UP);
+                        validSkus.add(compPart.getSku());
+                        validNames.add(compPart.getName());
+                        sumCompRegular = sumCompRegular.add(cReg);
+                        sumCompPromo = sumCompPromo.add(cPromo);
+                        resolvedComplements.add(new PartPromotionDto.ComboComplementItemDto(
+                                compPart.getSku(),
+                                compPart.getName(),
+                                cReg,
+                                cPromo,
+                                15,
+                                reqItem != null ? reqItem.imageUrl() : null
+                        ));
+                    } else {
+                        String cName = reqItem != null && reqItem.name() != null
+                                ? reqItem.name().trim()
+                                : (req.comboComplementName() != null ? req.comboComplementName().trim() : targetCompSku);
+                        BigDecimal cReg = reqItem != null && reqItem.price() != null
+                                ? safeMoney(reqItem.price(), BigDecimal.valueOf(40))
+                                : safeMoney(req.comboComplementPrice(), BigDecimal.valueOf(40));
+                        BigDecimal cPromo = cReg.multiply(COMBO_COMPLEMENT_FACTOR).setScale(2, RoundingMode.HALF_UP);
+                        validSkus.add(targetCompSku);
+                        validNames.add(cName);
+                        sumCompRegular = sumCompRegular.add(cReg);
+                        sumCompPromo = sumCompPromo.add(cPromo);
+                        resolvedComplements.add(new PartPromotionDto.ComboComplementItemDto(
+                                targetCompSku,
+                                cName,
+                                cReg,
+                                cPromo,
+                                15,
+                                reqItem != null ? reqItem.imageUrl() : null
+                        ));
+                    }
+                }
+
+                String joinedSkus = String.join(",", validSkus);
+                compSku = joinedSkus.length() <= 50 ? joinedSkus : validSkus.get(0);
+                String joinedNames = String.join(" + ", validNames);
+                compName = joinedNames.length() <= 200 ? joinedNames : joinedNames.substring(0, 197) + "...";
+                compRegularPrice = sumCompRegular.setScale(2, RoundingMode.HALF_UP);
+                compPromoPrice = sumCompPromo.setScale(2, RoundingMode.HALF_UP);
+                comboTotal = calculatedPromo.add(sumCompPromo).setScale(2, RoundingMode.HALF_UP);
+            }
+        }
+
+        String normalizedMainSku = (mainPart != null ? mainPart.getSku() : cleanSku).toUpperCase(Locale.ROOT);
+        if (!resolvedComplements.isEmpty()) {
+            multiComplementsByMainSku.put(normalizedMainSku, resolvedComplements);
+        } else {
+            multiComplementsByMainSku.remove(normalizedMainSku);
         }
 
         PartPromotionEntity entity = promotionRepository.findById(cleanSku).orElseGet(PartPromotionEntity::new);
@@ -200,21 +277,41 @@ public class PromotionCatalogService {
             if (mainPart == null) continue;
 
             if ("COMBO_SUGERIDO".equalsIgnoreCase(promo.getPromoType()) && promo.getComboComplementSku() != null) {
-                Part compPart = orderPartsBySku.get(promo.getComboComplementSku().toUpperCase(Locale.ROOT));
-                if (compPart != null) {
+                List<String> compSkus = new ArrayList<>();
+                List<PartPromotionDto.ComboComplementItemDto> cachedComps = multiComplementsByMainSku.get(mainSku);
+                if (cachedComps != null && !cachedComps.isEmpty()) {
+                    for (PartPromotionDto.ComboComplementItemDto c : cachedComps) {
+                        if (c.sku() != null) compSkus.add(c.sku().trim().toUpperCase(Locale.ROOT));
+                    }
+                } else {
+                    for (String token : promo.getComboComplementSku().split(",")) {
+                        String s = token.trim().toUpperCase(Locale.ROOT);
+                        if (!s.isEmpty()) compSkus.add(s);
+                    }
+                }
+
+                List<Part> matchedCompParts = compSkus.stream()
+                        .map(orderPartsBySku::get)
+                        .filter(Objects::nonNull)
+                        .toList();
+
+                if (!compSkus.isEmpty() && matchedCompParts.size() == compSkus.size()) {
                     BigDecimal currentMain = result.get(mainPart.getId());
                     if (promo.getPromoPrice() != null && promo.getPromoPrice().compareTo(currentMain) < 0) {
                         result.put(mainPart.getId(), promo.getPromoPrice());
                     }
-                    BigDecimal compPromo = promo.getComboComplementPromoPrice();
-                    if (compPromo != null && compPromo.compareTo(result.get(compPart.getId())) < 0) {
-                        result.put(compPart.getId(), compPromo);
+                    int comboSets = requestedQuantities.getOrDefault(mainPart.getId(), 1);
+                    for (Part compPart : matchedCompParts) {
+                        BigDecimal rawCompPromo = compPart.getSalePrice().multiply(COMBO_COMPLEMENT_FACTOR).setScale(2, RoundingMode.HALF_UP);
+                        BigDecimal compPromo = rawCompPromo.compareTo(compPart.getPurchasePrice()) >= 0
+                                ? rawCompPromo
+                                : compPart.getPurchasePrice().setScale(2, RoundingMode.HALF_UP);
+                        if (compPromo.compareTo(result.get(compPart.getId())) < 0) {
+                            result.put(compPart.getId(), compPromo);
+                        }
+                        comboSets = Math.min(comboSets, requestedQuantities.getOrDefault(compPart.getId(), 1));
                     }
-                    int comboPairs = Math.min(
-                            requestedQuantities.getOrDefault(mainPart.getId(), 1),
-                            requestedQuantities.getOrDefault(compPart.getId(), 1)
-                    );
-                    incrementSoldQuota(promo, comboPairs);
+                    incrementSoldQuota(promo, comboSets);
                     cacheDirty = true;
                 }
             } else {
@@ -356,6 +453,7 @@ public class PromotionCatalogService {
                 comp.getSalePrice(),
                 null,
                 null,
+                null,
                 Math.min(10, main.getStockQuantity()),
                 0,
                 true,
@@ -397,6 +495,7 @@ public class PromotionCatalogService {
                 null,
                 null,
                 null,
+                null,
                 Math.min(8, main.getStockQuantity()),
                 0,
                 true,
@@ -409,6 +508,51 @@ public class PromotionCatalogService {
     }
 
     private PartPromotionDto toDto(PartPromotionEntity e) {
+        List<PartPromotionDto.ComboComplementItemDto> comps = null;
+        if ("COMBO_SUGERIDO".equalsIgnoreCase(e.getPromoType())) {
+            String normMain = e.getSku() != null ? e.getSku().toUpperCase(Locale.ROOT) : "";
+            List<PartPromotionDto.ComboComplementItemDto> cached = multiComplementsByMainSku.get(normMain);
+            if (cached != null && !cached.isEmpty()) {
+                comps = cached;
+            } else if (e.getComboComplementSku() != null && !e.getComboComplementSku().isBlank()) {
+                List<PartPromotionDto.ComboComplementItemDto> built = new ArrayList<>();
+                String[] tokens = e.getComboComplementSku().split(",");
+                for (String rawToken : tokens) {
+                    String cleanToken = rawToken.trim();
+                    if (cleanToken.isEmpty()) continue;
+                    Part cp = partRepository.findBySkuIgnoreCase(cleanToken).orElse(null);
+                    if (cp != null) {
+                        BigDecimal cReg = cp.getSalePrice();
+                        BigDecimal rawPromo = cReg.multiply(COMBO_COMPLEMENT_FACTOR).setScale(2, RoundingMode.HALF_UP);
+                        BigDecimal cPromo = rawPromo.compareTo(cp.getPurchasePrice()) >= 0
+                                ? rawPromo
+                                : cp.getPurchasePrice().setScale(2, RoundingMode.HALF_UP);
+                        built.add(new PartPromotionDto.ComboComplementItemDto(
+                                cp.getSku(),
+                                cp.getName(),
+                                cReg,
+                                cPromo,
+                                15,
+                                null
+                        ));
+                    } else if (tokens.length == 1) {
+                        built.add(new PartPromotionDto.ComboComplementItemDto(
+                                cleanToken,
+                                e.getComboComplementName() != null ? e.getComboComplementName() : cleanToken,
+                                e.getComboComplementPrice() != null ? e.getComboComplementPrice() : BigDecimal.ZERO,
+                                e.getComboComplementPromoPrice() != null ? e.getComboComplementPromoPrice() : BigDecimal.ZERO,
+                                15,
+                                null
+                        ));
+                    }
+                }
+                if (!built.isEmpty()) {
+                    comps = built;
+                    multiComplementsByMainSku.put(normMain, built);
+                }
+            }
+        }
+
         return new PartPromotionDto(
                 e.getSku(),
                 e.getPartId(),
@@ -425,6 +569,7 @@ public class PromotionCatalogService {
                 e.getComboComplementPrice(),
                 e.getComboComplementPromoPrice(),
                 e.getComboTotalPromoPrice(),
+                comps,
                 e.getUnitsQuota(),
                 e.getUnitsSoldInPromo(),
                 e.isActive(),

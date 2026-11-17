@@ -546,84 +546,172 @@ interface CatalogLocalSnapshot {
                 <article class="flex flex-col justify-between rounded-2xl border-2 border-orange-200 bg-white p-4 sm:p-5 shadow-xs hover:border-orange-400 hover:shadow-md transition">
                   <div>
                     <div class="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-gray-100">
-                      <span class="inline-flex items-center gap-1.5 rounded-full bg-orange-600 px-3 py-1 text-[11px] font-black text-white uppercase tracking-wide">
-                        <img src="/images/icons/combo-paquete.png" alt="Combo" class="h-3.5 w-3.5 object-contain inline-block" />
-                        <span>Combo Automotriz · {{ combo.promo.badgeLabel }}</span>
-                      </span>
+                      <div class="flex flex-wrap items-center gap-1.5">
+                        <span class="inline-flex items-center gap-1.5 rounded-full bg-orange-600 px-3 py-1 text-[11px] font-black text-white uppercase tracking-wide">
+                          <img src="/images/icons/combo-paquete.png" alt="Combo" class="h-3.5 w-3.5 object-contain inline-block" />
+                          <span>Combo Automotriz · {{ combo.promo.badgeLabel }}</span>
+                        </span>
+                        <span class="inline-flex items-center gap-1 rounded-full border border-orange-300 bg-orange-50 px-2.5 py-0.5 text-[11px] font-extrabold text-orange-800">
+                          <span>Kit de {{ 1 + (combo.complements?.length || 1) }} artículos</span>
+                        </span>
+                      </div>
                       <span class="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-extrabold text-emerald-800 tabular-nums">
                         Cupo: {{ combo.promo.unitsQuota - combo.promo.unitsSoldInPromo }} disp.
                       </span>
                     </div>
 
-                    <div class="mt-4 grid grid-cols-1 sm:grid-cols-11 gap-3 items-center">
-                      <!-- Main Part -->
-                      <a
-                        [routerLink]="['/part', combo.mainPart.id]"
-                        class="sm:col-span-5 rounded-xl border border-gray-200 bg-gray-50/70 p-3 hover:border-orange-300 transition flex items-center gap-3"
-                      >
-                        <div class="h-16 w-16 shrink-0 rounded-lg bg-white border border-gray-200 p-1.5 flex items-center justify-center">
-                          <img
-                            [src]="resolveImage(combo.mainPart)"
-                            [alt]="combo.mainPart.name"
-                            (error)="onPartImageError($event, combo.mainPart)"
-                            class="max-h-full max-w-full object-contain"
-                          />
+                    @if ((combo.complements?.length || 1) >= 2) {
+                      <!-- Multi-Item Combo View (3 or more articles: shows ALL items with images) -->
+                      <div class="mt-3.5 space-y-2.5">
+                        <div class="flex items-center justify-between rounded-lg bg-amber-50/80 border border-amber-200 px-3 py-1.5 text-[11px] font-bold text-amber-900">
+                          <span>Incluye {{ 1 + (combo.complements?.length || 1) }} repuestos en este paquete promocional:</span>
+                          <span class="font-mono text-orange-700">1 Base + {{ combo.complements?.length }} Compl.</span>
                         </div>
-                        <div class="min-w-0">
-                          <span class="inline-block rounded bg-orange-100 px-1.5 py-0.5 text-[10px] font-extrabold text-orange-800">
-                            -{{ combo.promo.discountPercentage }}% EN COMBO
-                          </span>
-                          <p class="mt-0.5 text-xs font-extrabold text-gray-950 line-clamp-2 leading-snug">
-                            {{ combo.mainPart.name }}
-                          </p>
-                          <div class="mt-1 flex items-baseline gap-1.5">
-                            <span class="text-xs font-black text-gray-900 tabular-nums">
-                              S/ {{ combo.promo.promoPrice | number: '1.2-2' }}
-                            </span>
-                            <span class="text-[11px] text-gray-400 line-through tabular-nums">
-                              S/ {{ combo.mainPart.salePrice | number: '1.2-2' }}
-                            </span>
-                          </div>
-                        </div>
-                      </a>
 
-                      <div class="sm:col-span-1 flex items-center justify-center">
-                        <span class="flex h-7 w-7 items-center justify-center rounded-full bg-orange-100 text-orange-700 font-black text-sm">
-                          +
-                        </span>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                          <!-- 1. Main Base Part -->
+                          <a
+                            [routerLink]="['/part', combo.mainPart.id]"
+                            class="rounded-xl border-2 border-orange-200 bg-orange-50/30 p-2.5 hover:border-orange-400 transition flex items-center gap-2.5"
+                          >
+                            <div class="relative h-14 w-14 shrink-0 rounded-lg bg-white border border-gray-200 p-1 flex items-center justify-center">
+                              <span class="absolute -top-1.5 -left-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-orange-600 text-[10px] font-black text-white shadow-2xs">
+                                1
+                              </span>
+                              <img
+                                [src]="resolveImage(combo.mainPart)"
+                                [alt]="combo.mainPart.name"
+                                (error)="onPartImageError($event, combo.mainPart)"
+                                class="max-h-full max-w-full object-contain"
+                              />
+                            </div>
+                            <div class="min-w-0 flex-1">
+                              <span class="inline-block rounded bg-orange-100 px-1.5 py-0.5 text-[9.5px] font-extrabold text-orange-800">
+                                BASE · -{{ combo.promo.discountPercentage }}% EN COMBO
+                              </span>
+                              <p class="mt-0.5 text-xs font-extrabold text-gray-950 line-clamp-2 leading-snug">
+                                {{ combo.mainPart.name }}
+                              </p>
+                              <div class="mt-0.5 flex items-baseline gap-1.5">
+                                <span class="text-xs font-black text-gray-900 tabular-nums">
+                                  S/ {{ combo.promo.promoPrice | number: '1.2-2' }}
+                                </span>
+                                <span class="text-[10.5px] text-gray-400 line-through tabular-nums">
+                                  S/ {{ combo.mainPart.salePrice | number: '1.2-2' }}
+                                </span>
+                              </div>
+                            </div>
+                          </a>
+
+                          <!-- 2, 3, 4... All Complement Parts -->
+                          @for (compPart of combo.complements; track compPart.id; let idx = $index) {
+                            <a
+                              [routerLink]="['/part', compPart.id]"
+                              class="rounded-xl border border-gray-200 bg-gray-50/70 p-2.5 hover:border-orange-300 transition flex items-center gap-2.5"
+                            >
+                              <div class="relative h-14 w-14 shrink-0 rounded-lg bg-white border border-gray-200 p-1 flex items-center justify-center">
+                                <span class="absolute -top-1.5 -left-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-600 text-[10px] font-black text-white shadow-2xs">
+                                  {{ idx + 2 }}
+                                </span>
+                                <img
+                                  [src]="resolveImage(compPart)"
+                                  [alt]="compPart.name"
+                                  (error)="onPartImageError($event, compPart)"
+                                  class="max-h-full max-w-full object-contain"
+                                />
+                              </div>
+                              <div class="min-w-0 flex-1">
+                                <span class="inline-block rounded bg-emerald-100 px-1.5 py-0.5 text-[9.5px] font-extrabold text-emerald-800">
+                                  ART. #{{ idx + 2 }} · -15% ADICIONAL
+                                </span>
+                                <p class="mt-0.5 text-xs font-extrabold text-gray-950 line-clamp-2 leading-snug">
+                                  {{ compPart.name }}
+                                </p>
+                                <div class="mt-0.5 flex items-baseline gap-1.5">
+                                  <span class="text-xs font-black text-gray-900 tabular-nums">
+                                    S/ {{ getComplementUnitPromoPrice(combo.promo, compPart) | number: '1.2-2' }}
+                                  </span>
+                                  <span class="text-[10.5px] text-gray-400 line-through tabular-nums">
+                                    S/ {{ compPart.salePrice | number: '1.2-2' }}
+                                  </span>
+                                </div>
+                              </div>
+                            </a>
+                          }
+                        </div>
                       </div>
-
-                      <!-- Complement Part -->
-                      <a
-                        [routerLink]="['/part', combo.complementPart.id]"
-                        class="sm:col-span-5 rounded-xl border border-gray-200 bg-gray-50/70 p-3 hover:border-orange-300 transition flex items-center gap-3"
-                      >
-                        <div class="h-16 w-16 shrink-0 rounded-lg bg-white border border-gray-200 p-1.5 flex items-center justify-center">
-                          <img
-                            [src]="resolveImage(combo.complementPart)"
-                            [alt]="combo.complementPart.name"
-                            (error)="onPartImageError($event, combo.complementPart)"
-                            class="max-h-full max-w-full object-contain"
-                          />
-                        </div>
-                        <div class="min-w-0">
-                          <span class="inline-block rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-extrabold text-emerald-800">
-                            -15% ADICIONAL
-                          </span>
-                          <p class="mt-0.5 text-xs font-extrabold text-gray-950 line-clamp-2 leading-snug">
-                            {{ combo.complementPart.name }}
-                          </p>
-                          <div class="mt-1 flex items-baseline gap-1.5">
-                            <span class="text-xs font-black text-gray-900 tabular-nums">
-                              S/ {{ combo.complementComboPrice | number: '1.2-2' }}
-                            </span>
-                            <span class="text-[11px] text-gray-400 line-through tabular-nums">
-                              S/ {{ combo.complementPart.salePrice | number: '1.2-2' }}
-                            </span>
+                    } @else {
+                      <!-- Classic 2-Item Combo View -->
+                      <div class="mt-4 grid grid-cols-1 sm:grid-cols-11 gap-3 items-center">
+                        <!-- Main Part -->
+                        <a
+                          [routerLink]="['/part', combo.mainPart.id]"
+                          class="sm:col-span-5 rounded-xl border border-gray-200 bg-gray-50/70 p-3 hover:border-orange-300 transition flex items-center gap-3"
+                        >
+                          <div class="h-16 w-16 shrink-0 rounded-lg bg-white border border-gray-200 p-1.5 flex items-center justify-center">
+                            <img
+                              [src]="resolveImage(combo.mainPart)"
+                              [alt]="combo.mainPart.name"
+                              (error)="onPartImageError($event, combo.mainPart)"
+                              class="max-h-full max-w-full object-contain"
+                            />
                           </div>
+                          <div class="min-w-0">
+                            <span class="inline-block rounded bg-orange-100 px-1.5 py-0.5 text-[10px] font-extrabold text-orange-800">
+                              -{{ combo.promo.discountPercentage }}% EN COMBO
+                            </span>
+                            <p class="mt-0.5 text-xs font-extrabold text-gray-950 line-clamp-2 leading-snug">
+                              {{ combo.mainPart.name }}
+                            </p>
+                            <div class="mt-1 flex items-baseline gap-1.5">
+                              <span class="text-xs font-black text-gray-900 tabular-nums">
+                                S/ {{ combo.promo.promoPrice | number: '1.2-2' }}
+                              </span>
+                              <span class="text-[11px] text-gray-400 line-through tabular-nums">
+                                S/ {{ combo.mainPart.salePrice | number: '1.2-2' }}
+                              </span>
+                            </div>
+                          </div>
+                        </a>
+
+                        <div class="sm:col-span-1 flex items-center justify-center">
+                          <span class="flex h-7 w-7 items-center justify-center rounded-full bg-orange-100 text-orange-700 font-black text-sm">
+                            +
+                          </span>
                         </div>
-                      </a>
-                    </div>
+
+                        <!-- Complement Part -->
+                        <a
+                          [routerLink]="['/part', combo.complementPart.id]"
+                          class="sm:col-span-5 rounded-xl border border-gray-200 bg-gray-50/70 p-3 hover:border-orange-300 transition flex items-center gap-3"
+                        >
+                          <div class="h-16 w-16 shrink-0 rounded-lg bg-white border border-gray-200 p-1.5 flex items-center justify-center">
+                            <img
+                              [src]="resolveImage(combo.complementPart)"
+                              [alt]="combo.complementPart.name"
+                              (error)="onPartImageError($event, combo.complementPart)"
+                              class="max-h-full max-w-full object-contain"
+                            />
+                          </div>
+                          <div class="min-w-0">
+                            <span class="inline-block rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-extrabold text-emerald-800">
+                              -15% ADICIONAL
+                            </span>
+                            <p class="mt-0.5 text-xs font-extrabold text-gray-950 line-clamp-2 leading-snug">
+                              {{ combo.complementPart.name }}
+                            </p>
+                            <div class="mt-1 flex items-baseline gap-1.5">
+                              <span class="text-xs font-black text-gray-900 tabular-nums">
+                                S/ {{ combo.complementComboPrice | number: '1.2-2' }}
+                              </span>
+                              <span class="text-[11px] text-gray-400 line-through tabular-nums">
+                                S/ {{ combo.complementPart.salePrice | number: '1.2-2' }}
+                              </span>
+                            </div>
+                          </div>
+                        </a>
+                      </div>
+                    }
                   </div>
 
                   <div class="mt-4 pt-3.5 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3">
@@ -656,7 +744,13 @@ interface CatalogLocalSnapshot {
                         (click)="cart.addCombo(combo.mainPart, combo.complements && combo.complements.length > 0 ? combo.complements : combo.complementPart, true)"
                         class="min-h-[42px] inline-flex items-center justify-center gap-2 rounded-xl bg-orange-600 px-4 py-2.5 text-xs sm:text-sm font-extrabold text-white shadow-xs hover:bg-orange-700 active:scale-[0.98] disabled:bg-gray-200 disabled:text-gray-500 transition cursor-pointer"
                       >
-                        <span>{{ canAddCombo(combo) ? 'Llevar Combo Completo' : 'Combo sin stock disponible' }}</span>
+                        <span>
+                          {{
+                            canAddCombo(combo)
+                              ? 'Llevar Combo (' + (1 + (combo.complements?.length || 1)) + ' artículos)'
+                              : 'Combo sin stock disponible'
+                          }}
+                        </span>
                       </button>
                     }
                   </div>
@@ -741,7 +835,7 @@ interface CatalogLocalSnapshot {
                     } @else if (promotionService.getPromotion(part.sku); as comboPromo) {
                       <span class="inline-flex items-center rounded-full border border-orange-500 bg-orange-600 px-2.5 py-0.5 text-[11px] font-extrabold text-white shadow-xs">
                         <img src="/images/icons/combo-paquete.png" alt="Combo" class="h-3.5 w-3.5 object-contain inline-block mr-1 align-text-bottom" />
-                        <span>En Combo</span>
+                        <span>En Combo ({{ getComboTotalItemsCount(comboPromo) }} art.)</span>
                       </span>
                     }
                   </div>
@@ -853,7 +947,7 @@ interface CatalogLocalSnapshot {
                             class="inline-flex items-center gap-1.5 text-[11px] font-extrabold text-orange-700 hover:underline mt-0.5 cursor-pointer"
                           >
                             <img src="/images/icons/combo-paquete.png" alt="Combo" class="h-3.5 w-3.5 object-contain inline-block shrink-0" />
-                            <span>Disponible en Combo (-{{ comboPromo.discountPercentage }}%)</span>
+                            <span>Combo de {{ getComboTotalItemsCount(comboPromo) }} artículos (-{{ comboPromo.discountPercentage }}%)</span>
                             <span>→</span>
                           </button>
                         }
@@ -1033,6 +1127,30 @@ export class CatalogPageComponent implements OnInit, OnDestroy {
 
   getUnitsSold(part: Part): number {
     return part.totalSold ?? 0;
+  }
+
+  getComboTotalItemsCount(promo: PartPromotion): number {
+    if (promo.comboComplements && promo.comboComplements.length > 0) {
+      return 1 + promo.comboComplements.length;
+    }
+    if (promo.comboComplementSku) {
+      const count = promo.comboComplementSku
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean).length;
+      return 1 + Math.max(1, count);
+    }
+    return 2;
+  }
+
+  getComplementUnitPromoPrice(promo: PartPromotion, compPart: Part): number {
+    const itemPromo = (promo.comboComplements || []).find(
+      (ic) => (ic.sku || '').toUpperCase() === (compPart.sku || '').toUpperCase()
+    );
+    if (itemPromo?.promoPrice && itemPromo.promoPrice > 0) {
+      return itemPromo.promoPrice;
+    }
+    return Number(Math.max(compPart.purchasePrice ?? 0, compPart.salePrice * 0.85).toFixed(2));
   }
 
   // Reactive filter state signals for 0ms synchronous filtering
@@ -1215,8 +1333,10 @@ export class CatalogPageComponent implements OnInit, OnDestroy {
           .filter((p): p is Part => Boolean(p));
       }
       if (complements.length === 0 && promo.comboComplementSku) {
-        const singleComp = partsMap.get(promo.comboComplementSku);
-        if (singleComp) complements = [singleComp];
+        complements = promo.comboComplementSku
+          .split(',')
+          .map((s) => partsMap.get(s.trim()))
+          .filter((p): p is Part => Boolean(p));
       }
       if (complements.length === 0) continue;
       const complementPart = complements[0];
