@@ -264,9 +264,21 @@ public class OrderService {
 
         // Catalog and POS retail prices already include 18% IGV per SUNAT Peru rules.
         BigDecimal grossItemsTotal = subtotal.setScale(2, RoundingMode.HALF_UP);
-        // Promoción de reducción de costos: Envío GRATUITO para compras en repuestos >= S/ 200.00
-        if ("DELIVERY".equalsIgnoreCase(req.deliveryType()) && grossItemsTotal.compareTo(BigDecimal.valueOf(200.00)) >= 0) {
-            deliveryFee = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+        // Política de envío gratuito diferenciada por anillos geoespaciales PostGIS:
+        // - Zona 1 (Santa Anita, <= 2.5 km): Envío GRATIS desde S/ 200.00
+        // - Zona 2 (Zonas Aledañas: Ate, La Molina, El Agustino, > 2.5 km): Envío GRATIS desde S/ 450.00
+        if ("DELIVERY".equalsIgnoreCase(req.deliveryType())) {
+            String addrUpper = (order.getDeliveryAddress() != null ? order.getDeliveryAddress() : "").toUpperCase(Locale.ROOT);
+            boolean hasAdjacentKeyword = addrUpper.contains("ATE") || addrUpper.contains("VITARTE")
+                    || addrUpper.contains("CERES") || addrUpper.contains("PURUCHUCO")
+                    || addrUpper.contains("MOLINA") || addrUpper.contains("AGUSTINO")
+                    || addrUpper.contains("SAN LUIS") || addrUpper.contains("SALAMANCA");
+            boolean isSantaAnitaZone = !hasAdjacentKeyword
+                    && (addrUpper.contains("SANTA ANITA") || (calculatedDistance != null && calculatedDistance <= 2500.0));
+            BigDecimal freeThreshold = isSantaAnitaZone ? BigDecimal.valueOf(200.00) : BigDecimal.valueOf(450.00);
+            if (grossItemsTotal.compareTo(freeThreshold) >= 0) {
+                deliveryFee = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+            }
         }
         BigDecimal baseSubtotal = grossItemsTotal.divide(ONE_PLUS_IGV, 2, RoundingMode.HALF_UP);
         BigDecimal taxAmount = grossItemsTotal.subtract(baseSubtotal).setScale(2, RoundingMode.HALF_UP);

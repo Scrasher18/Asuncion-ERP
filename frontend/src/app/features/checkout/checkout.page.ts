@@ -258,10 +258,51 @@ export class CheckoutPageComponent implements OnInit, OnDestroy {
     return list.find((b) => b.id === Number(this.selectedBranchId)) ?? list[0] ?? null;
   });
 
+  /**
+   * Determina si el destino de entrega pertenece a la Zona Núcleo (Santa Anita)
+   * o a las Zonas Aledañas de Lima Este (Ate, La Molina, El Agustino, San Luis).
+   */
+  readonly isSantaAnitaZone = computed<boolean>(() => {
+    const cov = this.coverageState();
+    const addr = (this.deliveryAddress || '').toUpperCase();
+    const hasAdjacentDistrictKeyword =
+      addr.includes('ATE') ||
+      addr.includes('VITARTE') ||
+      addr.includes('CERES') ||
+      addr.includes('PURUCHUCO') ||
+      addr.includes('LA MOLINA') ||
+      addr.includes('MOLINA') ||
+      addr.includes('AGUSTINO') ||
+      addr.includes('SAN LUIS') ||
+      addr.includes('SALAMANCA');
+
+    if (hasAdjacentDistrictKeyword) {
+      return false;
+    }
+    if (addr.includes('SANTA ANITA')) {
+      return true;
+    }
+    const distMeters = cov?.distanceMeters ?? 1500;
+    return distMeters <= 2500;
+  });
+
+  /**
+   * Umbral de envío gratuito diferenciado por anillo geográfico:
+   * - Zona 1 (Santa Anita, <= 2.5 km): Envío GRATIS desde S/ 200.00
+   * - Zona 2 (Zonas Aledañas: Ate, La Molina, El Agustino, > 2.5 km): Envío GRATIS solo en compras mayores de taller >= S/ 450.00
+   */
+  readonly freeShippingThreshold = computed<number>(() =>
+    this.isSantaAnitaZone() ? 200 : 450
+  );
+
+  readonly qualifiesForFreeShipping = computed<boolean>(() => {
+    if (this.deliveryType() === 'PICKUP') return true;
+    return this.cart.subtotal() >= this.freeShippingThreshold();
+  });
+
   readonly shippingFee = computed<number>(() => {
     if (this.deliveryType() === 'PICKUP') return 0;
-    // Reducción de costo: Envío gratis en repuestos por compras >= S/ 200.00
-    if (this.cart.subtotal() >= 200) return 0;
+    if (this.qualifiesForFreeShipping()) return 0;
     const cov = this.coverageState();
     if (cov && cov.covered) {
       return cov.estimatedDeliveryFee ?? 0;
