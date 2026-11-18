@@ -66,16 +66,6 @@ export interface SelectedGeoPoint {
         </div>
 
         <div class="flex items-center gap-2">
-          <div class="hidden md:flex items-center gap-1.5 rounded-lg bg-emerald-50 border border-emerald-200 px-2 py-1 text-[11px] font-bold text-emerald-800">
-            <span class="h-2 w-2 rounded-full bg-emerald-600"></span>
-            <span>Anillo 1: 0–{{ (currentCoreRingMeters / 1000) | number: '1.1-1' }} km (Gratis ≥ S/ 200)</span>
-          </div>
-          @if (currentCoverageRadiusMeters > 2500) {
-            <div class="hidden sm:flex items-center gap-1.5 rounded-lg bg-orange-50 border border-orange-200 px-2 py-1 text-[11px] font-bold text-orange-800">
-              <span class="h-2 w-2 rounded-full bg-orange-600"></span>
-              <span>Anillo 2: 2.5–{{ (currentCoverageRadiusMeters / 1000) | number: '1.1-1' }} km (Gratis ≥ S/ 450)</span>
-            </div>
-          }
           <div class="rounded-lg bg-gray-50 border border-gray-200/80 px-2.5 py-1 text-xs font-bold tabular-nums text-gray-700">
             Radio: {{ (currentCoverageRadiusMeters / 1000) | number: '1.1-2' }} km
           </div>
@@ -183,13 +173,8 @@ export class CoverageMapComponent implements AfterViewInit, OnChanges, OnDestroy
   private map: L.Map | null = null;
   private branchMarker: L.Marker | null = null;
   private customerMarker: L.Marker | null = null;
-  private coreRingCircle: L.Circle | null = null;
   private coverageCircle: L.Circle | null = null;
   private routeLine: L.Polyline | null = null;
-
-  get currentCoreRingMeters(): number {
-    return Math.min(2500, this.currentCoverageRadiusMeters);
-  }
 
   get effectiveBranch(): Branch {
     if (this.branch) return this.branch;
@@ -326,7 +311,7 @@ export class CoverageMapComponent implements AfterViewInit, OnChanges, OnDestroy
       this.branchMarker.dragging?.disable();
     }
 
-    // 2. Outer Coverage Radius Circle (Anillo 2 / Radio Máximo)
+    // 2. Coverage Radius Circle
     if (!this.coverageCircle) {
       this.coverageCircle = L.circle([storeLat, storeLng], {
         radius,
@@ -334,27 +319,11 @@ export class CoverageMapComponent implements AfterViewInit, OnChanges, OnDestroy
         weight: 2,
         dashArray: '6, 6',
         fillColor: '#EA580C',
-        fillOpacity: 0.08,
+        fillOpacity: 0.1,
       }).addTo(this.map);
     } else {
       this.coverageCircle.setLatLng([storeLat, storeLng]);
       this.coverageCircle.setRadius(radius);
-    }
-
-    // 2b. Inner Core Ring Circle (Anillo 1: Santa Anita <= 2.5 km · Envío Gratis >= S/ 200)
-    const coreRadius = Math.min(2500, radius);
-    if (!this.coreRingCircle) {
-      this.coreRingCircle = L.circle([storeLat, storeLng], {
-        radius: coreRadius,
-        color: '#059669',
-        weight: 2,
-        dashArray: '4, 4',
-        fillColor: '#10B981',
-        fillOpacity: 0.12,
-      }).addTo(this.map);
-    } else {
-      this.coreRingCircle.setLatLng([storeLat, storeLng]);
-      this.coreRingCircle.setRadius(coreRadius);
     }
 
     // 3. Customer Destination Marker (Checkout/Client mode only)

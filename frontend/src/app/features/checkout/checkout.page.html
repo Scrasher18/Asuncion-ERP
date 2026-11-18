@@ -483,49 +483,28 @@
                 (coverageValidated)="onCoverageValidated($event)"
               />
 
-              <!-- Política de Tarifas por Anillos Geográficos (Santa Anita vs. Ate, La Molina, El Agustino) -->
-              <div class="rounded-xl border border-gray-200 bg-gray-50/80 p-3.5 space-y-2 text-xs">
-                <div class="flex flex-wrap items-center justify-between gap-2">
-                  <span class="font-extrabold text-gray-900 flex items-center gap-1.5">
-                    <img src="/images/icons/moto-delivery.png" alt="Tarifas" class="h-4 w-4 object-contain inline-block shrink-0" />
-                    <span>Tarifario de Despacho por Anillos PostGIS (Radio 5.0 km):</span>
-                  </span>
-                  <span
-                    [class]="
-                      isSantaAnitaZone()
-                        ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
-                        : 'bg-blue-100 text-blue-800 border-blue-300'
-                    "
-                    class="rounded-full border px-2.5 py-0.5 text-[11px] font-bold"
-                  >
-                    {{ isSantaAnitaZone() ? 'Detectado: Zona 1 · Santa Anita' : 'Detectado: Zona 2 · Distrito Aledaño' }}
+              <!-- Resumen Dinámico Corto de Tarifa y Envío Gratis -->
+              <div class="rounded-xl border border-gray-200 bg-gray-50/90 px-3.5 py-2.5 flex flex-wrap items-center justify-between gap-2 text-xs">
+                <div class="flex flex-wrap items-center gap-2 text-gray-700">
+                  <img src="/images/icons/moto-delivery.png" alt="Tarifa" class="h-4 w-4 object-contain shrink-0" />
+                  <span>
+                    <strong>Radio máx. {{ ((selectedBranch()?.coverageRadiusMeters || 6000) / 1000) | number: '1.1-1' }} km:</strong>
+                    Base S/ {{ (selectedBranch()?.baseDeliveryFee ?? 5) | number: '1.2-2' }} + S/ {{ (selectedBranch()?.perKmFee ?? 1.8) | number: '1.2-2' }}/km
                   </span>
                 </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-0.5 text-[11px]">
-                  <div
-                    [class]="isSantaAnitaZone() ? 'border-emerald-400 bg-emerald-50/70 ring-1 ring-emerald-400/30' : 'border-gray-200 bg-white'"
-                    class="rounded-lg border p-2.5 space-y-0.5"
+                <div class="flex flex-wrap items-center gap-1.5 text-[11px]">
+                  <span
+                    [class]="isSantaAnitaZone() ? 'bg-emerald-100 text-emerald-800 border-emerald-300 font-bold' : 'bg-white text-gray-600 border-gray-200'"
+                    class="rounded-lg border px-2 py-0.5"
                   >
-                    <div class="flex items-center justify-between font-bold text-gray-900">
-                      <span>Zona 1: Santa Anita (≤ 2.5 km)</span>
-                      <span class="text-emerald-700">Gratis ≥ S/ 200</span>
-                    </div>
-                    <p class="text-gray-600">
-                      Compras menores a S/ 200: tarifa local S/ 3.50 – S/ 5.50. <strong>Delivery GRATIS desde S/ 200.00.</strong>
-                    </p>
-                  </div>
-                  <div
-                    [class]="!isSantaAnitaZone() ? 'border-blue-400 bg-blue-50/70 ring-1 ring-blue-400/30' : 'border-gray-200 bg-white'"
-                    class="rounded-lg border p-2.5 space-y-0.5"
+                    Santa Anita: Gratis ≥ S/ 200
+                  </span>
+                  <span
+                    [class]="!isSantaAnitaZone() ? 'bg-blue-100 text-blue-800 border-blue-300 font-bold' : 'bg-white text-gray-600 border-gray-200'"
+                    class="rounded-lg border px-2 py-0.5"
                   >
-                    <div class="flex items-center justify-between font-bold text-gray-900">
-                      <span>Zona 2: Ate, La Molina, El Agustino</span>
-                      <span class="text-blue-700">Tarifa por km (Gratis ≥ S/ 450)</span>
-                    </div>
-                    <p class="text-gray-600">
-                      De 2.5 a 5.0 km: tarifa dinámica por distancia PostGIS. <strong>Delivery GRATIS en pedidos corporativos ≥ S/ 450.00.</strong>
-                    </p>
-                  </div>
+                    Zonas aledañas: Gratis ≥ S/ 450
+                  </span>
                 </div>
               </div>
 
@@ -954,11 +933,7 @@
             </div>
             @if (deliveryType() === 'DELIVERY' && coverageState()?.covered && !qualifiesForFreeShipping()) {
               <div class="rounded-lg bg-orange-50 border border-orange-200 px-2.5 py-1.5 text-[11px] text-orange-900">
-                @if (isSantaAnitaZone()) {
-                  Te faltan <strong>S/ {{ (200 - cart.subtotal()) | number: '1.2-2' }}</strong> para obtener <strong>Delivery GRATIS en Anillo 1 (≤ 2.5 km)</strong>.
-                } @else {
-                  Ubicación en <strong>Anillo 2 (&gt; 2.5 km)</strong>: aplica tarifa por distancia PostGIS (Delivery gratis desde <strong>S/ 450.00</strong> o elige <strong>Recojo en tienda gratis</strong>).
-                }
+                Te faltan <strong>S/ {{ (freeShippingThreshold() - cart.subtotal()) | number: '1.2-2' }}</strong> para <strong>Delivery GRATIS</strong> (mín. S/ {{ freeShippingThreshold() }} en tu zona) o elige <strong>Recojo en tienda gratis</strong>.
               </div>
             }
             <div class="flex justify-between items-baseline text-base font-bold text-gray-900 pt-2.5 border-t border-gray-200">
