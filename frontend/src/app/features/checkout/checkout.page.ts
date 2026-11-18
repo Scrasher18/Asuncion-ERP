@@ -270,11 +270,22 @@ export class CheckoutPageComponent implements OnInit, OnDestroy {
       addr.includes('VITARTE') ||
       addr.includes('CERES') ||
       addr.includes('PURUCHUCO') ||
+      addr.includes('HUACHIPA') ||
+      addr.includes('SANTA CLARA') ||
       addr.includes('LA MOLINA') ||
       addr.includes('MOLINA') ||
+      addr.includes('MONTERRICO') ||
       addr.includes('AGUSTINO') ||
       addr.includes('SAN LUIS') ||
-      addr.includes('SALAMANCA');
+      addr.includes('LA VICTORIA') ||
+      addr.includes('YERBATEROS') ||
+      addr.includes('SALAMANCA') ||
+      addr.includes('SAN JUAN DE LURIGANCHO') ||
+      addr.includes('SJL') ||
+      addr.includes('ZARATE') ||
+      addr.includes('ZÁRATE') ||
+      addr.includes('CAMPOY') ||
+      addr.includes('MANGOMARCA');
 
     if (hasAdjacentDistrictKeyword) {
       return false;

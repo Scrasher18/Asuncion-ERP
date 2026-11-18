@@ -143,9 +143,9 @@ export class CoverageMapComponent implements AfterViewInit, OnChanges, OnDestroy
     phone: '+51 922 779 157',
     latitude: -12.043004,
     longitude: -76.956621,
-    coverageRadiusMeters: 4500,
-    baseDeliveryFee: 3.5,
-    perKmFee: 0.8,
+    coverageRadiusMeters: 6000,
+    baseDeliveryFee: 5.0,
+    perKmFee: 1.8,
     active: true,
   };
 
@@ -444,12 +444,12 @@ export class CoverageMapComponent implements AfterViewInit, OnChanges, OnDestroy
     const covered = distMeters <= maxRadius;
     this.isCovered.set(covered);
 
-    const baseFee = (this.effectiveBranch.baseDeliveryFee != null && this.effectiveBranch.baseDeliveryFee <= 5.0)
+    const baseFee = (this.effectiveBranch.baseDeliveryFee != null && this.effectiveBranch.baseDeliveryFee >= 0)
       ? this.effectiveBranch.baseDeliveryFee
-      : 3.50;
-    const perKm = (this.effectiveBranch.perKmFee != null && this.effectiveBranch.perKmFee <= 1.0)
+      : 5.00;
+    const perKm = (this.effectiveBranch.perKmFee != null && this.effectiveBranch.perKmFee >= 0)
       ? this.effectiveBranch.perKmFee
-      : 0.80;
+      : 1.80;
     const distKm = distMeters / 1000.0;
     const calculatedFee = Number((baseFee + distKm * perKm).toFixed(2));
     this.estimatedFee.set(calculatedFee);

@@ -271,8 +271,13 @@ public class OrderService {
             String addrUpper = (order.getDeliveryAddress() != null ? order.getDeliveryAddress() : "").toUpperCase(Locale.ROOT);
             boolean hasAdjacentKeyword = addrUpper.contains("ATE") || addrUpper.contains("VITARTE")
                     || addrUpper.contains("CERES") || addrUpper.contains("PURUCHUCO")
-                    || addrUpper.contains("MOLINA") || addrUpper.contains("AGUSTINO")
-                    || addrUpper.contains("SAN LUIS") || addrUpper.contains("SALAMANCA");
+                    || addrUpper.contains("HUACHIPA") || addrUpper.contains("SANTA CLARA")
+                    || addrUpper.contains("MOLINA") || addrUpper.contains("MONTERRICO")
+                    || addrUpper.contains("AGUSTINO") || addrUpper.contains("SAN LUIS")
+                    || addrUpper.contains("LA VICTORIA") || addrUpper.contains("YERBATEROS")
+                    || addrUpper.contains("SALAMANCA") || addrUpper.contains("LURIGANCHO")
+                    || addrUpper.contains("ZARATE") || addrUpper.contains("ZÁRATE")
+                    || addrUpper.contains("CAMPOY") || addrUpper.contains("MANGOMARCA");
             boolean isSantaAnitaZone = !hasAdjacentKeyword
                     && (addrUpper.contains("SANTA ANITA") || (calculatedDistance != null && calculatedDistance <= 2500.0));
             BigDecimal freeThreshold = isSantaAnitaZone ? BigDecimal.valueOf(200.00) : BigDecimal.valueOf(450.00);
