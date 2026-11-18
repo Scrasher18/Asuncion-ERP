@@ -2001,32 +2001,70 @@ export interface ComboItem {
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
                   <!-- Ring 1: Core Zone (Santa Anita) -->
-                  <div class="rounded-xl border border-orange-200 bg-orange-50/50 p-3.5 space-y-1.5">
+                  <div class="rounded-xl border border-emerald-200 bg-emerald-50/50 p-3.5 space-y-1.5">
                     <div class="flex items-center justify-between gap-2">
-                      <span class="font-bold text-orange-950">Anillo 1 · Zona Núcleo (0 a 2.5 km)</span>
-                      <span class="rounded-md bg-orange-600 px-2 py-0.5 text-[10px] font-bold text-white">Gratis ≥ S/ 200</span>
+                      <span class="font-bold text-emerald-950">
+                        Anillo 1 · Zona Núcleo (0 a {{ Math.min(2.5, (branchDraft?.coverageRadiusMeters || 6000) / 1000) | number: '1.1-1' }} km)
+                      </span>
+                      <span class="rounded-md bg-emerald-600 px-2 py-0.5 text-[10px] font-bold text-white">Gratis ≥ S/ 200</span>
                     </div>
-                    <p class="text-[11px] text-orange-900 font-medium">
-                      Todo <strong>Santa Anita</strong> (Ov. Santa Anita, Mercado Productores, Los Chancas, Ruiseñores, Mall Aventura).
+                    <p class="text-[11px] text-emerald-900 font-medium">
+                      @if ((branchDraft?.coverageRadiusMeters || 6000) < 2000) {
+                        <strong>Santa Anita Centro</strong> (Óvalo Santa Anita, Mercado Productores, Av. Santa Ana y alrededores inmediatos).
+                      } @else {
+                        Todo <strong>Santa Anita</strong> (Óvalo Santa Anita, Mercado Productores, Los Chancas, Ruiseñores, Mall Aventura).
+                      }
                     </p>
                     <p class="text-[11px] text-gray-600">
-                      Compras &lt; S/ 200 pagan entre <strong>S/ 6.80 y S/ 9.50</strong>. Desde <strong>S/ 200.00</strong> el delivery es <strong>GRATIS</strong> por cercanía al almacén (~15-20 min).
+                      Compras &lt; S/ 200 pagan entre
+                      <strong>S/ {{ ((branchDraft?.baseDeliveryFee ?? 5) + 0.5 * (branchDraft?.perKmFee ?? 1.8)) | number: '1.2-2' }}</strong>
+                      y
+                      <strong>S/ {{ ((branchDraft?.baseDeliveryFee ?? 5) + Math.min(2.5, (branchDraft?.coverageRadiusMeters || 6000) / 1000) * (branchDraft?.perKmFee ?? 1.8)) | number: '1.2-2' }}</strong>.
+                      Desde <strong>S/ 200.00</strong> el delivery es <strong>GRATIS</strong> por cercanía al almacén (~15-20 min).
                     </p>
                   </div>
 
-                  <!-- Ring 2 & 3: Adjacent Lima Este Zones -->
-                  <div class="rounded-xl border border-blue-200 bg-blue-50/40 p-3.5 space-y-1.5">
-                    <div class="flex items-center justify-between gap-2">
-                      <span class="font-bold text-blue-950">Anillos 2 y 3 · Zonas Aledañas (2.5 a 6.0 km)</span>
-                      <span class="rounded-md bg-blue-600 px-2 py-0.5 text-[10px] font-bold text-white">Gratis ≥ S/ 450</span>
+                  <!-- Ring 2 & 3: Adjacent Lima Este Zones (Dynamic according to slider!) -->
+                  @if ((branchDraft?.coverageRadiusMeters || 6000) <= 2500) {
+                    <div class="rounded-xl border border-gray-200 bg-gray-50 p-3.5 space-y-1.5">
+                      <div class="flex items-center justify-between gap-2">
+                        <span class="font-bold text-gray-700">Anillo 2 · Zonas Aledañas (&gt; 2.5 km)</span>
+                        <span class="rounded-md bg-gray-500 px-2 py-0.5 text-[10px] font-bold text-white">Fuera del radio actual</span>
+                      </div>
+                      <p class="text-[11px] text-gray-600 font-medium">
+                        Con el radio fijado en <strong>{{ ((branchDraft?.coverageRadiusMeters || 2500) / 1000) | number: '1.1-1' }} km</strong>, el despacho motorizado solo cubre <strong>Santa Anita (Anillo 1)</strong>.
+                      </p>
+                      <p class="text-[11px] text-gray-500">
+                        Los pedidos de <strong>Ate, La Molina, El Agustino o SJL</strong> quedan fuera del círculo de reparto y solo pueden elegir <strong>Recojo en Tienda Gratis</strong>. Amplía el control deslizante a más de 2.5 km para habilitarlos.
+                      </p>
                     </div>
-                    <p class="text-[11px] text-blue-900 font-medium">
-                      <strong>Ate-Vitarte</strong> (Salamanca, Vulcano, Puruchuco, Ceres, Huachipa), <strong>La Molina</strong> (Constructores, Camacho, Monterrico), <strong>El Agustino / San Luis / Yerbateros</strong> y <strong>SJL Sur</strong> (Zárate, Campoy, Mangomarca).
-                    </p>
-                    <p class="text-[11px] text-gray-600">
-                      En compras de S/ 200 pagan tarifa PostGIS (<strong>S/ 9.50 a S/ 15.80</strong> según km) o eligen <strong>Recojo en Tienda Gratis</strong>. Envío gratis solo en pedidos corporativos/taller <strong>≥ S/ 450.00</strong>.
-                    </p>
-                  </div>
+                  } @else {
+                    <div class="rounded-xl border border-orange-200 bg-orange-50/40 p-3.5 space-y-1.5">
+                      <div class="flex items-center justify-between gap-2">
+                        <span class="font-bold text-orange-950">
+                          Anillo 2 · Zonas Aledañas (2.5 a {{ ((branchDraft?.coverageRadiusMeters || 6000) / 1000) | number: '1.1-1' }} km)
+                        </span>
+                        <span class="rounded-md bg-orange-600 px-2 py-0.5 text-[10px] font-bold text-white">Gratis ≥ S/ 450</span>
+                      </div>
+                      <p class="text-[11px] text-orange-900 font-medium">
+                        @if ((branchDraft?.coverageRadiusMeters || 6000) <= 3500) {
+                          Abarca el borde colindante: <strong>Ate Oeste</strong> (Salamanca, Vulcano, Evitamiento) y <strong>El Agustino Este</strong> (Puente Nuevo, Nocheto).
+                          <span class="text-gray-500 font-normal">(Zonas más alejadas como Ceres, Huachipa, Monterrico o SJL quedan fuera de estos {{ ((branchDraft?.coverageRadiusMeters || 3000) / 1000) | number: '1.1-1' }} km).</span>
+                        } @else if ((branchDraft?.coverageRadiusMeters || 6000) <= 5000) {
+                          Abarca: <strong>Ate Oeste y Centro</strong> (Salamanca, Vulcano, Puruchuco, Ceres Medio), <strong>La Molina Norte</strong> (Constructores, Javier Prado), <strong>El Agustino / San Luis (Yerbateros)</strong> y <strong>SJL Zárate</strong>.
+                        } @else {
+                          Abarca: <strong>Ate-Vitarte</strong> (Salamanca, Vulcano, Puruchuco, Ceres, Huachipa), <strong>La Molina</strong> (Constructores, Camacho, Monterrico), <strong>El Agustino / San Luis / Yerbateros</strong> y <strong>SJL Sur</strong> (Zárate, Campoy, Mangomarca).
+                        }
+                      </p>
+                      <p class="text-[11px] text-gray-600">
+                        En compras de S/ 200 pagan tarifa PostGIS (entre
+                        <strong>S/ {{ ((branchDraft?.baseDeliveryFee ?? 5) + 2.5 * (branchDraft?.perKmFee ?? 1.8)) | number: '1.2-2' }}</strong>
+                        y
+                        <strong>S/ {{ ((branchDraft?.baseDeliveryFee ?? 5) + ((branchDraft?.coverageRadiusMeters || 6000) / 1000) * (branchDraft?.perKmFee ?? 1.8)) | number: '1.2-2' }}</strong>
+                        según km) o eligen <strong>Recojo en Tienda Gratis</strong>. Envío gratis solo en pedidos de taller <strong>≥ S/ 450.00</strong>.
+                      </p>
+                    </div>
+                  }
                 </div>
               </div>
             </div>
