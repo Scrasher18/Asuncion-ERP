@@ -1983,85 +1983,74 @@ export interface ComboItem {
                 (branchLocationChanged)="onBranchLocationChanged($event)"
               />
 
-              <!-- Executive Breakdown of Covered Zones & Differentiated Pricing Rules -->
+              <!-- Executive Breakdown of Coverage Rings & Differentiated Pricing Rules -->
               <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-2xs space-y-4">
                 <div class="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 pb-3">
                   <div>
                     <h3 class="text-sm font-bold text-gray-900">
-                      Distritos Abarcados en el Radio de {{ ((branchDraft?.coverageRadiusMeters || 6000) / 1000) | number: '1.1-1' }} km y Regla de Rentabilidad
+                      Regla de Tarifas y Rentabilidad por Anillos (Radio: {{ ((branchDraft?.coverageRadiusMeters || 6000) / 1000) | number: '1.1-1' }} km)
                     </h3>
                     <p class="text-[11px] text-gray-500">
                       Fórmula PostGIS activa: Tarifa Base <strong>S/ {{ (branchDraft?.baseDeliveryFee ?? 5) | number: '1.2-2' }}</strong> + <strong>S/ {{ (branchDraft?.perKmFee ?? 1.8) | number: '1.2-2' }}/km</strong>
                     </p>
                   </div>
                   <span class="rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-700">
-                    Margen Protegido por Anillos
+                    Margen Protegido por Distancia
                   </span>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-                  <!-- Ring 1: Core Zone (Santa Anita) -->
+                  <!-- Ring 1: Local Radius (0 to 2.5 km) -->
                   <div class="rounded-xl border border-emerald-200 bg-emerald-50/50 p-3.5 space-y-1.5">
                     <div class="flex items-center justify-between gap-2">
                       <span class="font-bold text-emerald-950">
-                        Anillo 1 · Zona Núcleo (0 a {{ Math.min(2.5, (branchDraft?.coverageRadiusMeters || 6000) / 1000) | number: '1.1-1' }} km)
+                        Anillo 1 · Radio Local (0 a {{ Math.min(2.5, (branchDraft?.coverageRadiusMeters || 6000) / 1000) | number: '1.1-1' }} km)
                       </span>
                       <span class="rounded-md bg-emerald-600 px-2 py-0.5 text-[10px] font-bold text-white">Gratis ≥ S/ 200</span>
                     </div>
                     <p class="text-[11px] text-emerald-900 font-medium">
-                      @if ((branchDraft?.coverageRadiusMeters || 6000) < 2000) {
-                        <strong>Santa Anita Centro</strong> (Óvalo Santa Anita, Mercado Productores, Av. Santa Ana y alrededores inmediatos).
-                      } @else {
-                        Todo <strong>Santa Anita</strong> (Óvalo Santa Anita, Mercado Productores, Los Chancas, Ruiseñores, Mall Aventura).
-                      }
+                      Cobertura de proximidad inmediata alrededor del almacén central (círculo verde del mapa, despacho en ~15–20 min).
                     </p>
                     <p class="text-[11px] text-gray-600">
                       Compras &lt; S/ 200 pagan entre
                       <strong>S/ {{ ((branchDraft?.baseDeliveryFee ?? 5) + 0.5 * (branchDraft?.perKmFee ?? 1.8)) | number: '1.2-2' }}</strong>
                       y
                       <strong>S/ {{ ((branchDraft?.baseDeliveryFee ?? 5) + Math.min(2.5, (branchDraft?.coverageRadiusMeters || 6000) / 1000) * (branchDraft?.perKmFee ?? 1.8)) | number: '1.2-2' }}</strong>.
-                      Desde <strong>S/ 200.00</strong> el delivery es <strong>GRATIS</strong> por cercanía al almacén (~15-20 min).
+                      Desde <strong>S/ 200.00</strong> el delivery es <strong>GRATIS</strong> por cercanía al almacén.
                     </p>
                   </div>
 
-                  <!-- Ring 2 & 3: Adjacent Lima Este Zones (Dynamic according to slider!) -->
+                  <!-- Ring 2: Extended Radius (2.5 km up to configured max radius) -->
                   @if ((branchDraft?.coverageRadiusMeters || 6000) <= 2500) {
                     <div class="rounded-xl border border-gray-200 bg-gray-50 p-3.5 space-y-1.5">
                       <div class="flex items-center justify-between gap-2">
-                        <span class="font-bold text-gray-700">Anillo 2 · Zonas Aledañas (&gt; 2.5 km)</span>
-                        <span class="rounded-md bg-gray-500 px-2 py-0.5 text-[10px] font-bold text-white">Fuera del radio actual</span>
+                        <span class="font-bold text-gray-700">Anillo 2 · Radio Extendido (&gt; 2.5 km)</span>
+                        <span class="rounded-md bg-gray-500 px-2 py-0.5 text-[10px] font-bold text-white">Inactivo (≤ 2.5 km)</span>
                       </div>
                       <p class="text-[11px] text-gray-600 font-medium">
-                        Con el radio fijado en <strong>{{ ((branchDraft?.coverageRadiusMeters || 2500) / 1000) | number: '1.1-1' }} km</strong>, el despacho motorizado solo cubre <strong>Santa Anita (Anillo 1)</strong>.
+                        Con el radio fijado en <strong>{{ ((branchDraft?.coverageRadiusMeters || 2500) / 1000) | number: '1.1-1' }} km</strong>, solo está activo el <strong>Anillo 1 (Radio Local)</strong>.
                       </p>
                       <p class="text-[11px] text-gray-500">
-                        Los pedidos de <strong>Ate, La Molina, El Agustino o SJL</strong> quedan fuera del círculo de reparto y solo pueden elegir <strong>Recojo en Tienda Gratis</strong>. Amplía el control deslizante a más de 2.5 km para habilitarlos.
+                        Cualquier ubicación a más de {{ ((branchDraft?.coverageRadiusMeters || 2500) / 1000) | number: '1.1-1' }} km queda fuera del área de reparto motorizado y solo puede elegir <strong>Recojo en Tienda Gratis</strong>.
                       </p>
                     </div>
                   } @else {
                     <div class="rounded-xl border border-orange-200 bg-orange-50/40 p-3.5 space-y-1.5">
                       <div class="flex items-center justify-between gap-2">
                         <span class="font-bold text-orange-950">
-                          Anillo 2 · Zonas Aledañas (2.5 a {{ ((branchDraft?.coverageRadiusMeters || 6000) / 1000) | number: '1.1-1' }} km)
+                          Anillo 2 · Radio Extendido (2.5 a {{ ((branchDraft?.coverageRadiusMeters || 6000) / 1000) | number: '1.1-1' }} km)
                         </span>
                         <span class="rounded-md bg-orange-600 px-2 py-0.5 text-[10px] font-bold text-white">Gratis ≥ S/ 450</span>
                       </div>
                       <p class="text-[11px] text-orange-900 font-medium">
-                        @if ((branchDraft?.coverageRadiusMeters || 6000) <= 3500) {
-                          Abarca el borde colindante: <strong>Ate Oeste</strong> (Salamanca, Vulcano, Evitamiento) y <strong>El Agustino Este</strong> (Puente Nuevo, Nocheto).
-                          <span class="text-gray-500 font-normal">(Zonas más alejadas como Ceres, Huachipa, Monterrico o SJL quedan fuera de estos {{ ((branchDraft?.coverageRadiusMeters || 3000) / 1000) | number: '1.1-1' }} km).</span>
-                        } @else if ((branchDraft?.coverageRadiusMeters || 6000) <= 5000) {
-                          Abarca: <strong>Ate Oeste y Centro</strong> (Salamanca, Vulcano, Puruchuco, Ceres Medio), <strong>La Molina Norte</strong> (Constructores, Javier Prado), <strong>El Agustino / San Luis (Yerbateros)</strong> y <strong>SJL Zárate</strong>.
-                        } @else {
-                          Abarca: <strong>Ate-Vitarte</strong> (Salamanca, Vulcano, Puruchuco, Ceres, Huachipa), <strong>La Molina</strong> (Constructores, Camacho, Monterrico), <strong>El Agustino / San Luis / Yerbateros</strong> y <strong>SJL Sur</strong> (Zárate, Campoy, Mangomarca).
-                        }
+                        Cobertura periférica para cualquier dirección ubicada entre <strong>2.5 km y {{ ((branchDraft?.coverageRadiusMeters || 6000) / 1000) | number: '1.1-1' }} km</strong> dentro del círculo naranja del mapa.
                       </p>
                       <p class="text-[11px] text-gray-600">
-                        En compras de S/ 200 pagan tarifa PostGIS (entre
+                        En compras de S/ 200 pagan tarifa PostGIS por distancia (entre
                         <strong>S/ {{ ((branchDraft?.baseDeliveryFee ?? 5) + 2.5 * (branchDraft?.perKmFee ?? 1.8)) | number: '1.2-2' }}</strong>
                         y
                         <strong>S/ {{ ((branchDraft?.baseDeliveryFee ?? 5) + ((branchDraft?.coverageRadiusMeters || 6000) / 1000) * (branchDraft?.perKmFee ?? 1.8)) | number: '1.2-2' }}</strong>
-                        según km) o eligen <strong>Recojo en Tienda Gratis</strong>. Envío gratis solo en pedidos de taller <strong>≥ S/ 450.00</strong>.
+                        según km) o eligen <strong>Recojo en Tienda Gratis</strong>. Envío gratis desde <strong>S/ 450.00</strong>.
                       </p>
                     </div>
                   }

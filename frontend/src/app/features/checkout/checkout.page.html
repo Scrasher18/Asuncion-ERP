@@ -955,9 +955,9 @@
             @if (deliveryType() === 'DELIVERY' && coverageState()?.covered && !qualifiesForFreeShipping()) {
               <div class="rounded-lg bg-orange-50 border border-orange-200 px-2.5 py-1.5 text-[11px] text-orange-900">
                 @if (isSantaAnitaZone()) {
-                  Te faltan <strong>S/ {{ (200 - cart.subtotal()) | number: '1.2-2' }}</strong> para obtener <strong>Delivery GRATIS en Santa Anita</strong>.
+                  Te faltan <strong>S/ {{ (200 - cart.subtotal()) | number: '1.2-2' }}</strong> para obtener <strong>Delivery GRATIS en Anillo 1 (≤ 2.5 km)</strong>.
                 } @else {
-                  Destino en zona aledaña (Ate / La Molina / El Agustino): aplica tarifa por distancia PostGIS (Delivery gratis desde <strong>S/ 450.00</strong> o elige <strong>Recojo en tienda gratis</strong>).
+                  Ubicación en <strong>Anillo 2 (&gt; 2.5 km)</strong>: aplica tarifa por distancia PostGIS (Delivery gratis desde <strong>S/ 450.00</strong> o elige <strong>Recojo en tienda gratis</strong>).
                 }
               </div>
             }
