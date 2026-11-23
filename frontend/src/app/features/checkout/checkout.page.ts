@@ -326,7 +326,9 @@ export class CheckoutPageComponent implements OnInit, OnDestroy {
   );
 
   readonly requiresBoletaDni = computed<boolean>(
-    () => this.invoiceType() === 'BOLETA' && this.grandTotal() >= BOLETA_DNI_REQUIRED_THRESHOLD
+    () =>
+      this.invoiceType() === 'BOLETA' &&
+      (this.grandTotal() >= BOLETA_DNI_REQUIRED_THRESHOLD || this.deliveryType() === 'PICKUP')
   );
 
   ngOnInit(): void {
@@ -705,13 +707,15 @@ export class CheckoutPageComponent implements OnInit, OnDestroy {
       };
     }
 
-    if (this.grandTotal() >= BOLETA_DNI_REQUIRED_THRESHOLD) {
+    if (this.grandTotal() >= BOLETA_DNI_REQUIRED_THRESHOLD || this.deliveryType() === 'PICKUP') {
       const cleanDoc = this.customerDni.replace(/[^A-Za-z0-9]/g, '');
       if (cleanDoc.length < 8 || /^0+$/.test(cleanDoc)) {
         return {
-          title: 'DNI / C.E. obligatorio',
+          title: this.deliveryType() === 'PICKUP' ? 'DNI de quien recoge obligatorio' : 'DNI / C.E. obligatorio',
           message:
-            'Por el monto de tu compra, debes ingresar un número de DNI (8 dígitos) o C.E. válido para emitir tu boleta.',
+            this.deliveryType() === 'PICKUP'
+              ? 'Para Recojo en Tienda debes colocar en DNI el documento de la persona que irá a recoger el pedido en mostrador.'
+              : 'Por el monto de tu compra, debes ingresar un número de DNI (8 dígitos) o C.E. válido para emitir tu boleta.',
         };
       }
     }

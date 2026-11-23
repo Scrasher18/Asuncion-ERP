@@ -166,7 +166,14 @@
 
             @if (invoiceType() === 'BOLETA') {
               <div class="space-y-3">
-                @if (isBoletaDniMissing()) {
+                @if (deliveryType() === 'PICKUP') {
+                  <div class="rounded-xl border border-blue-300 bg-blue-50/90 px-3.5 py-2.5 text-[11.5px] text-blue-950 flex items-center gap-2">
+                    <img src="/images/icons/local.png" alt="Recojo" class="h-4 w-4 object-contain shrink-0" />
+                    <span>
+                      <strong>Recojo en tienda:</strong> Coloca en el campo <strong>DNI</strong> el número de DNI de la <strong>persona que irá a recoger el pedido</strong> en mostrador.
+                    </span>
+                  </div>
+                } @else if (isBoletaDniMissing()) {
                   <div class="rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-[11px] text-amber-900">
                     <strong>DNI / C.E. obligatorio:</strong> Por el monto de tu compra, no puedes dejar este campo en blanco.
                   </div>
@@ -175,7 +182,13 @@
                 <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
                   <div class="sm:col-span-4">
                     <label class="block text-xs font-medium text-gray-700 mb-1">
-                      {{ requiresBoletaDni() ? 'DNI / C.E. *' : 'DNI / C.E. (Opcional)' }}
+                      {{
+                        deliveryType() === 'PICKUP'
+                          ? 'DNI de quien recoge *'
+                          : requiresBoletaDni()
+                            ? 'DNI / C.E. *'
+                            : 'DNI / C.E. (Opcional)'
+                      }}
                     </label>
                     <div class="relative">
                       <input
@@ -540,6 +553,15 @@
                   </div>
                   <span class="rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 px-2.5 py-0.5 text-[11px] font-bold">
                     {{ scheduleInfo().pickupTimeLabel }}
+                  </span>
+                </div>
+
+                <div class="rounded-xl border border-blue-200 bg-white px-3.5 py-2.5 text-[11px] text-blue-950 flex items-center gap-2">
+                  <svg class="h-4 w-4 text-blue-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 9h3.75M15 12h3.75M15 15h3.75M4.5 19.5h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5zm6-10.125a1.875 1.875 0 11-3.75 0 1.875 1.875 0 013.75 0zm1.294 6.336a6.721 6.721 0 01-3.17.789 6.721 6.721 0 01-3.168-.789 3.376 3.376 0 016.338 0z" />
+                  </svg>
+                  <span>
+                    <strong>Requisito de retiro:</strong> Asegúrate de colocar arriba en <strong>DNI</strong> el documento de la persona que irá a recoger el pedido (se validará su DNI y el PIN de 4 dígitos en mostrador).
                   </span>
                 </div>
 
