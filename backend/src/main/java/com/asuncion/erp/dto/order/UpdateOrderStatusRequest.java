@@ -10,6 +10,7 @@ public record UpdateOrderStatusRequest(
         String paymentMethod,
         String receiverName,
         String receiverDocument,
-        String notes
+        String notes,
+        String securityCode
 ) {
 }

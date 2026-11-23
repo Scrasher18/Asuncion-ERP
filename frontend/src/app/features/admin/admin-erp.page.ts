@@ -6868,24 +6868,193 @@ export interface ComboItem {
                 </div>
               }
 
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div class="space-y-3">
                 <div>
-                  <label class="block font-bold text-gray-700 mb-1">Persona que retira</label>
+                  <div class="flex flex-wrap items-center justify-between gap-2 mb-1">
+                    <label class="block font-bold text-gray-800">DNI de quien retira (8 dígitos) *</label>
+                    @if (getPickupHolderDni(pickupOrd); as holderDni) {
+                      @if (pickupReceiverDoc !== holderDni) {
+                        <button
+                          type="button"
+                          (click)="usePickupHolderDni(pickupOrd)"
+                          class="inline-flex items-center gap-1 rounded-lg border border-blue-200 bg-blue-50 px-2 py-0.5 text-[10.5px] font-bold text-blue-700 hover:bg-blue-100 transition cursor-pointer"
+                        >
+                          <span>Usar DNI del titular ({{ holderDni }})</span>
+                        </button>
+                      }
+                    }
+                  </div>
+                  <div class="relative">
+                    <input
+                      type="text"
+                      [(ngModel)]="pickupReceiverDoc"
+                      (ngModelChange)="onPickupReceiverDocChange($event)"
+                      maxlength="8"
+                      inputmode="numeric"
+                      placeholder="Ingresa los 8 dígitos del DNI"
+                      [class]="
+                        getPickupDniValidationError(pickupOrd)
+                          ? 'border-red-400 bg-red-50/30 focus:border-red-600'
+                          : pickupReceiverDocVerified()
+                            ? 'border-emerald-400 bg-emerald-50/20 focus:border-emerald-600'
+                            : 'border-gray-300 bg-white focus:border-blue-500'
+                      "
+                      class="w-full rounded-xl border px-3 py-2 pr-24 text-xs text-gray-900 font-mono tracking-wider focus:outline-none transition"
+                    />
+                    <div class="absolute inset-y-0 right-2.5 flex items-center gap-1.5 pointer-events-none">
+                      <span
+                        [class]="pickupReceiverDoc.length === 8 && !getPickupDniValidationError(pickupOrd) ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : 'text-gray-500 bg-gray-100 border-gray-200'"
+                        class="rounded-md border px-1.5 py-0.5 font-mono text-[10px] font-bold"
+                      >
+                        {{ pickupReceiverDoc.length }}/8
+                      </span>
+                      @if (isLookingUpPickupReceiver()) {
+                        <svg class="h-4 w-4 animate-spin text-blue-600" fill="none" viewBox="0 0 24 24">
+                          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"></circle>
+                          <path class="opacity-90" fill="currentColor" d="M4 12a8 8 0 018-8v3a5 5 0 00-5 5H4z"></path>
+                        </svg>
+                      } @else if (pickupReceiverDocVerified()) {
+                        <span class="rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700">
+                          RENIEC ✓
+                        </span>
+                      }
+                    </div>
+                  </div>
+
+                  @if (getPickupDniValidationError(pickupOrd); as dniErr) {
+                    <p class="mt-1 text-[11px] font-semibold text-red-600">{{ dniErr }}</p>
+                  } @else if (pickupReceiverDoc.length === 8 && getPickupHolderDni(pickupOrd)) {
+                    @if (pickupReceiverDoc === getPickupHolderDni(pickupOrd)) {
+                      <p class="mt-1 text-[11px] font-semibold text-emerald-700">✓ DNI coincide con el titular de la compra</p>
+                    } @else {
+                      <p class="mt-1 text-[11px] font-medium text-amber-800">Receptor distinto al titular (Tercero autorizado): queda registrado su DNI en el acta.</p>
+                    }
+                  }
+                </div>
+
+                <div>
+                  <div class="flex items-center justify-between gap-2 mb-1">
+                    <label class="block font-bold text-gray-800">Persona que retira (Nombre y Apellido) *</label>
+                    @if (pickupReceiverDocVerified()) {
+                      <span class="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+                        Identidad RENIEC verificada
+                      </span>
+                    }
+                  </div>
                   <input
                     type="text"
                     [(ngModel)]="pickupReceiverName"
-                    placeholder="Nombre completo"
-                    class="w-full rounded-xl border border-gray-300 px-3 py-2 text-xs text-gray-900 focus:border-blue-500 focus:outline-none"
+                    (ngModelChange)="onPickupReceiverNameChange($event)"
+                    [readonly]="pickupReceiverDocVerified()"
+                    placeholder="Nombre y apellido completos"
+                    [class]="
+                      pickupReceiverDocVerified()
+                        ? 'border-emerald-300 bg-emerald-50/40 text-emerald-950 font-semibold cursor-not-allowed'
+                        : getPickupReceiverNameError()
+                          ? 'border-red-300 bg-red-50/20'
+                          : 'border-gray-300 bg-white'
+                    "
+                    class="w-full rounded-xl border px-3 py-2 text-xs text-gray-900 focus:border-blue-500 focus:outline-none"
                   />
+                  @if (pickupReceiverDocVerified()) {
+                    <p class="mt-1 text-[10.5px] text-emerald-700 font-medium">
+                      Nombre verificado y bloqueado según padrón RENIEC para el DNI {{ pickupReceiverDoc }}.
+                    </p>
+                  } @else if (getPickupReceiverNameError(); as nameErr) {
+                    <p class="mt-1 text-[11px] font-semibold text-red-600">{{ nameErr }}</p>
+                  }
                 </div>
-                <div>
-                  <label class="block font-bold text-gray-700 mb-1">DNI / Documento</label>
-                  <input
-                    type="text"
-                    [(ngModel)]="pickupReceiverDoc"
-                    placeholder="N.° DNI / CE"
-                    class="w-full rounded-xl border border-gray-300 px-3 py-2 text-xs text-gray-900 font-mono focus:border-blue-500 focus:outline-none"
-                  />
+
+                <!-- Security PIN Verification with Max 3 Attempts Control -->
+                <div
+                  class="rounded-xl border-2 p-3.5 space-y-2"
+                  [class]="
+                    isPickupPinLockedOut(pickupOrd.id)
+                      ? 'border-red-500 bg-red-50/70'
+                      : pickupModalError()
+                        ? 'border-red-400 bg-red-50/40'
+                        : 'border-orange-200 bg-orange-50/50'
+                  "
+                >
+                  <div class="flex flex-wrap items-center justify-between gap-1.5">
+                    <label class="font-bold text-gray-900 text-xs flex items-center gap-1.5">
+                      <svg class="h-4 w-4 text-orange-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+                      </svg>
+                      <span class="text-orange-900">Código PIN de Retiro (4 dígitos) *</span>
+                    </label>
+
+                    <div class="flex items-center gap-1.5">
+                      <div class="flex items-center gap-1">
+                        @for (attemptIdx of [1, 2, 3]; track attemptIdx) {
+                          <span
+                            class="h-2 w-2 rounded-full transition-colors"
+                            [class]="
+                              attemptIdx <= getRemainingPickupPinAttempts(pickupOrd.id)
+                                ? 'bg-emerald-500'
+                                : 'bg-red-400'
+                            "
+                          ></span>
+                        }
+                      </div>
+                      <span
+                        [class]="
+                          isPickupPinLockedOut(pickupOrd.id)
+                            ? 'bg-red-600 text-white border-red-700'
+                            : getFailedPickupPinAttempts(pickupOrd.id) === 2
+                              ? 'bg-red-100 text-red-800 border-red-300'
+                              : getFailedPickupPinAttempts(pickupOrd.id) === 1
+                                ? 'bg-amber-100 text-amber-900 border-amber-300'
+                                : 'bg-white text-orange-700 border-orange-200'
+                        "
+                        class="text-[10px] uppercase font-mono font-extrabold tracking-wider px-2 py-0.5 rounded border"
+                      >
+                        @if (isPickupPinLockedOut(pickupOrd.id)) {
+                          BLOQUEADO (0/{{ maxPickupPinAttempts }})
+                        } @else {
+                          Intentos: {{ getRemainingPickupPinAttempts(pickupOrd.id) }}/{{ maxPickupPinAttempts }}
+                        }
+                      </span>
+                    </div>
+                  </div>
+
+                  @if (isPickupPinLockedOut(pickupOrd.id)) {
+                    <div class="rounded-xl border-2 border-red-500 bg-white p-3 space-y-2 text-xs">
+                      <div class="flex items-start gap-2">
+                        <img src="/images/icons/bloquear.png" alt="Bloqueado" class="h-5 w-5 object-contain shrink-0 mt-0.5" />
+                        <div>
+                          <p class="font-extrabold text-red-800 text-xs uppercase">
+                            Máximo de {{ maxPickupPinAttempts }} intentos de PIN alcanzado
+                          </p>
+                          <p class="text-[11px] text-gray-700">
+                            Por protocolo antifraude, se bloqueó temporalmente el retiro tras 3 intentos fallidos.
+                          </p>
+                        </div>
+                      </div>
+                      <div class="flex items-center justify-between rounded-lg bg-red-50 border border-red-200 px-3 py-1.5">
+                        <span class="text-[11px] font-bold text-red-900">Desbloqueo automático en:</span>
+                        <span class="font-mono text-sm font-black text-red-700 bg-white px-2 py-0.5 rounded border border-red-300 tabular-nums">
+                          {{ getPickupPinLockoutRemainingFormatted(pickupOrd.id) }}
+                        </span>
+                      </div>
+                    </div>
+                  } @else {
+                    <input
+                      type="text"
+                      [(ngModel)]="pickupSecurityCode"
+                      (ngModelChange)="onPickupSecurityCodeChange($event)"
+                      maxlength="4"
+                      inputmode="numeric"
+                      autocomplete="off"
+                      placeholder="PIN de 4 dígitos del cliente"
+                      [class]="pickupModalError() ? 'border-red-500 ring-2 ring-red-500/20' : 'border-orange-300'"
+                      class="w-full min-h-[42px] rounded-xl border bg-white px-3 py-1.5 text-center font-mono text-lg font-black tracking-widest text-gray-900 placeholder-gray-300 focus:border-orange-600 focus:outline-none transition"
+                    />
+                    <div class="flex items-center justify-between gap-2 text-[10.5px] text-gray-600">
+                      <span>Solicita al cliente el PIN de 4 dígitos que aparece en Mis Pedidos / Seguimiento.</span>
+                      <span class="font-mono font-bold shrink-0 text-gray-500">Máx. {{ maxPickupPinAttempts }} intentos</span>
+                    </div>
+                  }
                 </div>
               </div>
 
@@ -6900,7 +7069,7 @@ export interface ComboItem {
               </div>
 
               @if (pickupModalError()) {
-                <div class="rounded-xl border border-red-200 bg-red-50 p-3 text-red-700 text-xs">
+                <div class="rounded-xl border border-red-200 bg-red-50 p-3 text-red-700 text-xs font-semibold">
                   {{ pickupModalError() }}
                 </div>
               }
@@ -6916,14 +7085,30 @@ export interface ComboItem {
               </button>
               <button
                 type="button"
-                [disabled]="isCompletingPickup()"
+                [disabled]="
+                  isCompletingPickup() ||
+                  isPickupPinLockedOut(pickupOrd.id) ||
+                  pickupSecurityCode.trim().length !== 4 ||
+                  pickupReceiverDoc.trim().length !== 8 ||
+                  !!getPickupDniValidationError(pickupOrd) ||
+                  !!getPickupReceiverNameError() ||
+                  !pickupReceiverName.trim()
+                "
                 (click)="confirmPickupDelivery()"
                 class="h-9.5 rounded-xl bg-emerald-600 px-5 text-xs font-bold text-white shadow-xs hover:bg-emerald-700 disabled:opacity-50 transition cursor-pointer inline-flex items-center gap-1.5"
               >
                 <svg class="h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                 </svg>
-                <span>{{ isCompletingPickup() ? 'Procesando...' : (!isPaidOnline(pickupOrd) ? 'Registrar Cobro y Entregar' : 'Confirmar Entrega en Tienda') }}</span>
+                <span>
+                  @if (isPickupPinLockedOut(pickupOrd.id)) {
+                    PIN Bloqueado ({{ getPickupPinLockoutRemainingFormatted(pickupOrd.id) }})
+                  } @else if (isCompletingPickup()) {
+                    Procesando...
+                  } @else {
+                    {{ !isPaidOnline(pickupOrd) ? 'Registrar Cobro y Entregar' : 'Confirmar Entrega en Tienda' }}
+                  }
+                </span>
               </button>
             </div>
           </div>
@@ -8011,9 +8196,18 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
   readonly pickupPaymentMethod = signal<string>('EFECTIVO');
   pickupReceiverName = '';
   pickupReceiverDoc = '';
+  pickupSecurityCode = '';
   pickupNotes = '';
   readonly isCompletingPickup = signal<boolean>(false);
   readonly pickupModalError = signal<string>('');
+  readonly pickupReceiverDocVerified = signal<boolean>(false);
+  readonly isLookingUpPickupReceiver = signal<boolean>(false);
+  private lastLookedUpPickupDoc = '';
+  readonly maxPickupPinAttempts = 3;
+  readonly pickupPinLockoutDurationMs = 5 * 60 * 1000;
+  readonly pickupPinAttemptsMap = signal<Record<number, { failedAttempts: number; lockedUntil: number | null }>>({});
+  readonly pickupNowTimestamp = signal<number>(Date.now());
+  private pickupPinTimer: ReturnType<typeof setInterval> | null = null;
 
   readonly pendingDispatchOrdersCount = computed(() =>
     this.globalOrders().filter(
@@ -10375,8 +10569,22 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
     this.pickupModalError.set('');
     this.isCompletingPickup.set(false);
     this.pickupReceiverName = order.recipientName || order.customerName || '';
-    this.pickupReceiverDoc = order.customerTaxId || order.billingDocumentNumber || '';
+    const initialDni = this.getPickupHolderDni(order) || '';
+    this.pickupReceiverDoc = initialDni;
+    this.pickupSecurityCode = '';
+    this.pickupReceiverDocVerified.set(false);
+    this.lastLookedUpPickupDoc = '';
     this.pickupNotes = '';
+
+    if (!this.pickupPinTimer && typeof window !== 'undefined') {
+      this.pickupPinTimer = setInterval(() => {
+        this.pickupNowTimestamp.set(Date.now());
+      }, 1000);
+    }
+
+    if (initialDni.length === 8) {
+      this.onPickupReceiverDocChange(initialDni);
+    }
 
     const pm = (order.paymentMethod || '').toUpperCase();
     if (pm.includes('YAPE')) {
@@ -10395,13 +10603,204 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
     this.pickupModalError.set('');
     this.pickupReceiverName = '';
     this.pickupReceiverDoc = '';
+    this.pickupSecurityCode = '';
+    this.pickupReceiverDocVerified.set(false);
+    this.lastLookedUpPickupDoc = '';
     this.pickupNotes = '';
     this.isCompletingPickup.set(false);
+  }
+
+  getPickupHolderDni(order: Order): string | null {
+    const raw = (order.customerTaxId || order.billingDocumentNumber || '').replace(/\D/g, '');
+    return raw.length === 8 ? raw : null;
+  }
+
+  usePickupHolderDni(order: Order): void {
+    const holderDni = this.getPickupHolderDni(order);
+    if (!holderDni) return;
+    this.pickupReceiverDoc = holderDni;
+    this.onPickupReceiverDocChange(holderDni);
+  }
+
+  getPickupDniValidationError(order: Order): string | null {
+    const doc = (this.pickupReceiverDoc || '').trim();
+    if (!doc) return null;
+    if (!/^\d+$/.test(doc)) {
+      return 'El DNI solo puede contener dígitos numéricos (0-9).';
+    }
+    if (doc.length < 8) {
+      const missing = 8 - doc.length;
+      return `El DNI debe tener exactamente 8 dígitos (faltan ${missing} ${missing === 1 ? 'dígito' : 'dígitos'}).`;
+    }
+    if (doc.length > 8) {
+      return 'El DNI debe tener exactamente 8 dígitos.';
+    }
+    if (
+      /^(\d)\1{7}$/.test(doc) ||
+      doc === '12345678' ||
+      doc === '87654321' ||
+      doc === '01234567' ||
+      doc === '00000001'
+    ) {
+      return 'DNI inválido: no se permiten números repetidos ni secuencias ficticias (ej. 00000000 o 12345678).';
+    }
+    const staffOwnDni = (this.auth.currentUser()?.documentNumber || '').replace(/\D/g, '');
+    if (staffOwnDni && doc === staffOwnDni) {
+      return 'Restricción de seguridad: No puedes registrar tu propio DNI de personal como receptor del retiro.';
+    }
+    return null;
+  }
+
+  getPickupReceiverNameError(): string | null {
+    const name = (this.pickupReceiverName || '').trim();
+    if (!name) return null;
+    if (/\d/.test(name)) {
+      return 'El nombre del receptor no puede contener números.';
+    }
+    const words = name.split(/\s+/).filter((w) => w.length >= 2);
+    if (words.length < 2) {
+      return 'Ingresa al menos un nombre y un apellido del receptor.';
+    }
+    return null;
+  }
+
+  onPickupReceiverNameChange(rawValue: string): void {
+    if (this.pickupReceiverDocVerified()) return;
+    const cleaned = (rawValue || '').replace(/[0-9]/g, '');
+    if (cleaned !== rawValue) {
+      this.pickupReceiverName = cleaned;
+    }
+  }
+
+  onPickupReceiverDocChange(rawValue: string): void {
+    const digits = (rawValue || '').replace(/\D/g, '').slice(0, 8);
+    if (digits !== rawValue) {
+      this.pickupReceiverDoc = digits;
+    }
+    const currentOrder = this.selectedOrderForPickupDelivery();
+    if (digits.length !== 8 || (currentOrder && this.getPickupDniValidationError(currentOrder))) {
+      this.pickupReceiverDocVerified.set(false);
+      if (digits.length < 8) {
+        this.lastLookedUpPickupDoc = '';
+      }
+      return;
+    }
+    if (digits === this.lastLookedUpPickupDoc) {
+      return;
+    }
+    this.lastLookedUpPickupDoc = digits;
+    this.isLookingUpPickupReceiver.set(true);
+
+    this.lookupService
+      .lookupDocument(digits)
+      .pipe(finalize(() => this.isLookingUpPickupReceiver.set(false)))
+      .subscribe({
+        next: (res) => {
+          const resolvedName = (res.fullName || res.businessName || '').trim();
+          if (res.found && resolvedName) {
+            this.pickupReceiverName = resolvedName;
+            this.pickupReceiverDocVerified.set(true);
+          } else {
+            this.pickupReceiverDocVerified.set(false);
+          }
+        },
+        error: () => {
+          this.pickupReceiverDocVerified.set(false);
+        },
+      });
+  }
+
+  onPickupSecurityCodeChange(rawValue: string): void {
+    const digits = (rawValue || '').replace(/\D/g, '').slice(0, 4);
+    if (digits !== rawValue) {
+      this.pickupSecurityCode = digits;
+    }
+    this.pickupModalError.set('');
+  }
+
+  getFailedPickupPinAttempts(orderId: number): number {
+    const entry = this.pickupPinAttemptsMap()[orderId];
+    return entry ? entry.failedAttempts : 0;
+  }
+
+  getRemainingPickupPinAttempts(orderId: number): number {
+    if (this.isPickupPinLockedOut(orderId)) return 0;
+    return Math.max(0, this.maxPickupPinAttempts - this.getFailedPickupPinAttempts(orderId));
+  }
+
+  isPickupPinLockedOut(orderId: number): boolean {
+    const entry = this.pickupPinAttemptsMap()[orderId];
+    if (!entry || !entry.lockedUntil) return false;
+    return this.pickupNowTimestamp() < entry.lockedUntil;
+  }
+
+  getPickupPinLockoutRemainingFormatted(orderId: number): string {
+    const entry = this.pickupPinAttemptsMap()[orderId];
+    if (!entry || !entry.lockedUntil) return '00:00';
+    const remainingMs = Math.max(0, entry.lockedUntil - this.pickupNowTimestamp());
+    const totalSecs = Math.ceil(remainingMs / 1000);
+    const mins = Math.floor(totalSecs / 60);
+    const secs = totalSecs % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  }
+
+  private recordFailedPickupPinAttempt(orderId: number): { attempts: number; locked: boolean } {
+    const currentMap = { ...this.pickupPinAttemptsMap() };
+    const current = currentMap[orderId] || { failedAttempts: 0, lockedUntil: null };
+    const nextAttempts = current.failedAttempts + 1;
+    const locked = nextAttempts >= this.maxPickupPinAttempts;
+    currentMap[orderId] = {
+      failedAttempts: nextAttempts,
+      lockedUntil: locked ? Date.now() + this.pickupPinLockoutDurationMs : null,
+    };
+    this.pickupPinAttemptsMap.set(currentMap);
+    return { attempts: nextAttempts, locked };
   }
 
   confirmPickupDelivery(): void {
     const ord = this.selectedOrderForPickupDelivery();
     if (!ord) return;
+
+    if (this.isPickupPinLockedOut(ord.id)) {
+      this.pickupModalError.set(
+        `Retiro bloqueado temporalmente tras superar los ${this.maxPickupPinAttempts} intentos de PIN. Espera ${this.getPickupPinLockoutRemainingFormatted(ord.id)}.`
+      );
+      return;
+    }
+
+    const dniErr = this.getPickupDniValidationError(ord);
+    if (this.pickupReceiverDoc.trim().length !== 8 || dniErr) {
+      this.pickupModalError.set(dniErr || 'El DNI de la persona que retira debe tener exactamente 8 dígitos válidos.');
+      return;
+    }
+
+    const nameErr = this.getPickupReceiverNameError();
+    if (!this.pickupReceiverName.trim() || nameErr) {
+      this.pickupModalError.set(nameErr || 'Ingresa el nombre y apellido completos de quien retira.');
+      return;
+    }
+
+    const submittedPin = this.pickupSecurityCode.trim();
+    if (submittedPin.length !== 4) {
+      this.pickupModalError.set('Ingresa el código PIN de retiro de 4 dígitos del cliente.');
+      return;
+    }
+
+    if (ord.deliverySecurityCode && ord.deliverySecurityCode.trim() !== submittedPin) {
+      const res = this.recordFailedPickupPinAttempt(ord.id);
+      this.pickupSecurityCode = '';
+      if (res.locked) {
+        this.pickupModalError.set(
+          `Has alcanzado el máximo de ${this.maxPickupPinAttempts} intentos fallidos de PIN. Por seguridad antifraude, el retiro de este pedido ha sido bloqueado por 5 minutos.`
+        );
+      } else {
+        const rem = this.maxPickupPinAttempts - res.attempts;
+        this.pickupModalError.set(
+          `Código PIN de retiro incorrecto (Intento ${res.attempts} de ${this.maxPickupPinAttempts}). Te ${rem === 1 ? 'queda 1 último intento' : `quedan ${rem} intentos`} antes del bloqueo.`
+        );
+      }
+      return;
+    }
 
     const wasPendingPayment = !this.isPaidOnline(ord);
     this.isCompletingPickup.set(true);
@@ -10413,22 +10812,31 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
       receiverName: this.pickupReceiverName.trim() || undefined,
       receiverDocument: this.pickupReceiverDoc.trim() || undefined,
       notes: this.pickupNotes.trim() || undefined,
+      securityCode: submittedPin,
     }).subscribe({
       next: (updated: Order) => {
         this.isCompletingPickup.set(false);
+        const currentMap = { ...this.pickupPinAttemptsMap() };
+        delete currentMap[ord.id];
+        this.pickupPinAttemptsMap.set(currentMap);
         const paidSuffix = wasPendingPayment
           ? ` y cobrado (${this.formatPaymentMethodLabel(updated.paymentMethod)})`
           : '';
         this.toast.success(
           'Recojo en tienda completado',
-          `Pedido #${updated.orderNumber} entregado en mostrador${paidSuffix}.`
+          `Pedido #${updated.orderNumber} entregado en mostrador con PIN verificado${paidSuffix}.`
         );
         this.closePickupDeliveryModal();
         this.loadGlobalOrders();
       },
       error: (err: any) => {
         this.isCompletingPickup.set(false);
-        this.pickupModalError.set(err?.error?.message || 'No se pudo completar el cobro y entrega en mostrador.');
+        const msg: string = err?.error?.message || 'No se pudo completar el cobro y entrega en mostrador.';
+        if (msg.toLowerCase().includes('pin')) {
+          this.recordFailedPickupPinAttempt(ord.id);
+          this.pickupSecurityCode = '';
+        }
+        this.pickupModalError.set(msg);
       },
     });
   }

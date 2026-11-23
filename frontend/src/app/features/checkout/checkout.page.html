@@ -483,13 +483,12 @@
                 (coverageValidated)="onCoverageValidated($event)"
               />
 
-              <!-- Resumen Dinámico Corto de Tarifa y Envío Gratis -->
+              <!-- Resumen Dinámico Corto de Cobertura y Envío Gratis (Sin mostrar tarifa por km interna) -->
               <div class="rounded-xl border border-gray-200 bg-gray-50/90 px-3.5 py-2.5 flex flex-wrap items-center justify-between gap-2 text-xs">
                 <div class="flex flex-wrap items-center gap-2 text-gray-700">
-                  <img src="/images/icons/moto-delivery.png" alt="Tarifa" class="h-4 w-4 object-contain shrink-0" />
+                  <img src="/images/icons/moto-delivery.png" alt="Cobertura" class="h-4 w-4 object-contain shrink-0" />
                   <span>
-                    <strong>Radio máx. {{ ((selectedBranch()?.coverageRadiusMeters || 6000) / 1000) | number: '1.1-1' }} km:</strong>
-                    Base S/ {{ (selectedBranch()?.baseDeliveryFee ?? 5) | number: '1.2-2' }} + S/ {{ (selectedBranch()?.perKmFee ?? 1.8) | number: '1.2-2' }}/km
+                    <strong>Cobertura de reparto:</strong> Radio máx. {{ ((selectedBranch()?.coverageRadiusMeters || 6000) / 1000) | number: '1.1-1' }} km
                   </span>
                 </div>
                 <div class="flex flex-wrap items-center gap-1.5 text-[11px]">

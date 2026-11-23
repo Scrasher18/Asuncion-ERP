@@ -285,20 +285,26 @@ import { SoundService } from '../../core/services/sound.service';
                         </div>
                       }
 
-                      <!-- Delivery Security PIN Pill (Only for Home Delivery) -->
-                      @if (ord.deliveryType === 'DELIVERY' && ord.status !== 'CANCELADO') {
+                      <!-- Delivery / Store Pickup Security PIN Pill -->
+                      @if ((ord.deliveryType === 'DELIVERY' || ord.deliveryType === 'PICKUP') && ord.status !== 'CANCELADO') {
                         <div class="mt-2.5 inline-flex flex-wrap items-center gap-2 rounded-xl border border-orange-200 bg-orange-50/80 px-3 py-1.5 text-xs text-orange-900">
                           <span class="font-bold flex items-center gap-1 text-orange-800">
                             <svg class="h-3.5 w-3.5 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                               <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
                             </svg>
-                            PIN de Entrega:
+                            {{ ord.deliveryType === 'PICKUP' ? 'PIN de Retiro:' : 'PIN de Entrega:' }}
                           </span>
                           <span class="font-mono text-sm font-black tracking-widest text-orange-700 bg-white px-2 py-0.5 rounded-lg border border-orange-300">
                             {{ ord.deliverySecurityCode || '----' }}
                           </span>
                           <span class="text-[11px] text-orange-800">
-                            {{ ord.status === 'ENTREGADO' ? '✓ Verificado conforme' : '(Díctalo al motorizado para recibir tu pedido)' }}
+                            {{
+                              ord.status === 'ENTREGADO'
+                                ? '✓ Verificado conforme'
+                                : ord.deliveryType === 'PICKUP'
+                                  ? '(Díctalo en mostrador junto con tu DNI para retirar)'
+                                  : '(Díctalo al motorizado para recibir tu pedido)'
+                            }}
                           </span>
                         </div>
                       }

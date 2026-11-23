@@ -213,8 +213,8 @@ const ORDER_STAGES = [
               </div>
             </div>
 
-            <!-- Delivery Security PIN Card for Client Protection -->
-            @if (ord.deliveryType === 'DELIVERY' && ord.status !== 'CANCELADO') {
+            <!-- Delivery & Store Pickup Security PIN Card for Client Protection -->
+            @if ((ord.deliveryType === 'DELIVERY' || ord.deliveryType === 'PICKUP') && ord.status !== 'CANCELADO') {
               <div class="rounded-2xl border-2 border-orange-500 bg-linear-to-r from-orange-50 via-amber-50 to-orange-50 p-4 sm:p-5 shadow-xs">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div class="space-y-1.5">
@@ -225,11 +225,13 @@ const ORDER_STAGES = [
                       <span>Medida de Protección Antifraude</span>
                     </div>
                     <h3 class="text-sm sm:text-base font-black text-gray-900">
-                      Código Único de Seguridad para la Entrega
+                      {{ ord.deliveryType === 'PICKUP' ? 'Código Único de Seguridad para Retiro en Tienda' : 'Código Único de Seguridad para la Entrega' }}
                     </h3>
                     <p class="text-xs text-gray-600 max-w-xl leading-relaxed">
                       @if (ord.status === 'ENTREGADO') {
                         Entrega finalizada y verificada conforme con tu código de seguridad.
+                      } @else if (ord.deliveryType === 'PICKUP') {
+                        Por tu seguridad, <strong>muestra o dicta este PIN de 4 dígitos en mostrador</strong> junto con tu DNI al momento de retirar tus repuestos en tienda.
                       } @else {
                         Por tu seguridad, <strong>muestra o dicta este PIN de 4 dígitos al repartidor</strong> al momento de recibir tus repuestos. El repartidor debe ingresarlo para finalizar la entrega.
                       }
@@ -238,7 +240,9 @@ const ORDER_STAGES = [
 
                   <div class="flex items-center gap-3 bg-white px-5 py-3 rounded-2xl border-2 border-orange-300 shadow-sm shrink-0 self-start sm:self-center">
                     <div class="text-center">
-                      <span class="block text-[10px] font-extrabold uppercase tracking-widest text-orange-600">PIN DE ENTREGA</span>
+                      <span class="block text-[10px] font-extrabold uppercase tracking-widest text-orange-600">
+                        {{ ord.deliveryType === 'PICKUP' ? 'PIN DE RETIRO' : 'PIN DE ENTREGA' }}
+                      </span>
                       <span class="font-mono text-3xl font-black text-gray-950 tracking-widest">{{ ord.deliverySecurityCode || '----' }}</span>
                     </div>
                   </div>

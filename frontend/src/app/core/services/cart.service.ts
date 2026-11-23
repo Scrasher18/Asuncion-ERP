@@ -1,6 +1,6 @@
 import { computed, effect, inject, Injectable, signal, untracked } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, of } from 'rxjs';
+import { Observable, of, Subscription } from 'rxjs';
 import { catchError, tap } from 'rxjs/operators';
 import { CartItem, CustomComboPair, Part, ReservationSyncResponse } from '../models/api.models';
 import { ApiConfigService } from './api-config.service';
@@ -54,6 +54,9 @@ export class CartService {
   readonly isSyncingReservation = signal<boolean>(false);
   readonly customCombos = signal<CustomComboPair[]>(this.loadCustomCombos());
   private lastProcessedUserId: number | null | undefined = undefined;
+  private syncSub?: Subscription;
+  private syncRequestId = 0;
+  private readonly lastGrantedQuantities = new Map<number, number>();
 
   readonly hasActiveReservation = computed(() =>
     this.items().length > 0 && this.reservationRemainingSeconds() > 0
@@ -683,7 +686,8 @@ export class CartService {
   }
 
   syncReservationWithServer(showAdjustToast = true): void {
-    this.syncReservationObservable(showAdjustToast).subscribe();
+    this.syncSub?.unsubscribe();
+    this.syncSub = this.syncReservationObservable(showAdjustToast).subscribe();
   }
 
   syncReservationObservable(showAdjustToast = true): Observable<ReservationSyncResponse | null> {
@@ -701,6 +705,7 @@ export class CartService {
       this.reservationRemainingSeconds.set(600);
     }
 
+    const reqId = ++this.syncRequestId;
     this.isSyncingReservation.set(true);
     const payload = {
       sessionId: this.reservationSessionId,
@@ -714,6 +719,9 @@ export class CartService {
       .post<ReservationSyncResponse>(`${this.apiConfig.apiUrl}/catalog/reservations/sync`, payload)
       .pipe(
         tap((res) => {
+          if (reqId !== this.syncRequestId) {
+            return;
+          }
           this.isSyncingReservation.set(false);
           if (!res) return;
 
@@ -732,41 +740,49 @@ export class CartService {
           this.setReservationExpiresAt(expMs);
           this.reservationRemainingSeconds.set(Math.max(0, Math.floor((expMs - Date.now()) / 1000)));
 
-          const currentMap = new Map(this.items().map((i) => [i.part.id, i.quantity]));
           const currentPartMap = new Map(this.items().map((i) => [i.part.id, i.part]));
           const othersMap: Record<number, number> = {};
-          let anyAdjusted = false;
+          let anyQuantityReduced = false;
           const adjustments: StockAdjustmentItem[] = [];
 
           for (const st of res.items || []) {
             othersMap[st.partId] = st.reservedByOthers;
-            const prevQty = currentMap.get(st.partId) ?? 0;
             const partInfo = currentPartMap.get(st.partId);
             const partName = st.name || partInfo?.name || 'Repuesto';
             const partSku = st.sku || partInfo?.sku || '';
+            const previouslyGranted = this.lastGrantedQuantities.get(st.partId) ?? 0;
 
-            if (st.reservedQuantity < prevQty) {
-              const diff = prevQty - st.reservedQuantity;
-              adjustments.push({
-                partId: st.partId,
-                partName,
-                partSku,
-                previousQuantity: prevQty,
-                newQuantity: st.reservedQuantity,
-                isFullyDepleted: st.reservedQuantity === 0,
-                reason: st.reservedQuantity === 0
-                  ? 'Se agotaron las unidades disponibles por una compra en mostrador de tienda física / ajuste de almacén.'
-                  : `Se redujo en ${diff} und. debido a una venta presencial prioritaria en mostrador de tienda física. Las ${st.reservedQuantity} und. restantes quedan aseguradas para ti.`,
-              });
-            }
-
-            if (st.status === 'AJUSTADO_POR_RESERVA' || st.status === 'AGOTADO_EN_RESERVA' || st.status === 'AGOTADO') {
-              anyAdjusted = true;
-              if (showAdjustToast) {
-                this.toast.warning('Ajuste de inventario', st.message);
+            if (st.reservedQuantity < st.requestedQuantity) {
+              anyQuantityReduced = true;
+              // Solo mostrar modal de alerta de mostrador si el cliente YA tenía reservadas más unidades
+              // y el stock físico bajó o fue tomado en Caja POS mientras compraba.
+              const posHold = this.posActiveHolds()[st.partId] ?? 0;
+              if (previouslyGranted > st.reservedQuantity && (posHold > 0 || st.physicalStock < previouslyGranted)) {
+                const diff = previouslyGranted - st.reservedQuantity;
+                adjustments.push({
+                  partId: st.partId,
+                  partName,
+                  partSku,
+                  previousQuantity: previouslyGranted,
+                  newQuantity: st.reservedQuantity,
+                  isFullyDepleted: st.reservedQuantity === 0,
+                  reason: st.reservedQuantity === 0
+                    ? 'Se agotaron las unidades disponibles por una compra en mostrador de tienda física / ajuste de almacén.'
+                    : `Se redujo en ${diff} und. debido a una venta presencial prioritaria en mostrador de tienda física. Las ${st.reservedQuantity} und. restantes quedan aseguradas para ti.`,
+                });
+              } else if (showAdjustToast) {
+                this.toast.warning(
+                  'Máximo stock disponible',
+                  st.reservedQuantity > 0
+                    ? `Solo contamos con ${st.reservedQuantity} und. disponibles de ${partName} en almacén.`
+                    : `No quedan unidades disponibles de ${partName}.`
+                );
               }
             }
+
+            this.lastGrantedQuantities.set(st.partId, st.reservedQuantity);
           }
+
           this.reservedByOthersMap.set(othersMap);
           this.syncBus.notifyReservationsUpdated(res.items ? res.items.map((it) => it.partId) : []);
           this.syncBus.notifyCatalogRefresh();
@@ -780,28 +796,26 @@ export class CartService {
             });
           }
 
-          if (anyAdjusted) {
-            const statusByPart = new Map(res.items.map((it) => [it.partId, it]));
-            this.items.update((list) =>
-              list
-                .map((cartItem) => {
-                  const st = statusByPart.get(cartItem.part.id);
-                  if (!st) return cartItem;
-                  return {
-                    ...cartItem,
-                    part: {
-                      ...cartItem.part,
-                      stockQuantity: st.physicalStock,
-                      reservedQuantity: st.reservedByOthers + st.reservedQuantity,
-                      availableStock: st.availableForYou,
-                    },
-                    quantity: st.reservedQuantity,
-                  };
-                })
-                .filter((cartItem) => cartItem.quantity > 0)
-            );
-            this.persist();
-          }
+          const statusByPart = new Map((res.items || []).map((it) => [it.partId, it]));
+          this.items.update((list) =>
+            list
+              .map((cartItem) => {
+                const st = statusByPart.get(cartItem.part.id);
+                if (!st) return cartItem;
+                return {
+                  ...cartItem,
+                  part: {
+                    ...cartItem.part,
+                    stockQuantity: st.physicalStock,
+                    reservedQuantity: st.reservedByOthers + st.reservedQuantity,
+                    availableStock: st.availableForYou,
+                  },
+                  quantity: anyQuantityReduced ? st.reservedQuantity : cartItem.quantity,
+                };
+              })
+              .filter((cartItem) => cartItem.quantity > 0)
+          );
+          this.persist();
         }),
         catchError(() => {
           this.isSyncingReservation.set(false);

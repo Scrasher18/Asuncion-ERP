@@ -152,7 +152,7 @@ import { ToastService } from '../../../core/services/toast.service';
                           </span>
                           <button
                             type="button"
-                            [disabled]="item.quantity >= item.part.stockQuantity"
+                            [disabled]="item.quantity >= cart.getAvailableStockForPart(item.part)"
                             (click)="cart.updateQuantity(item.part.id, item.quantity + 1)"
                             class="h-7 w-7 flex items-center justify-center text-sm font-bold text-gray-600 hover:bg-white hover:text-gray-900 disabled:opacity-40 rounded-r-xl cursor-pointer"
                           >

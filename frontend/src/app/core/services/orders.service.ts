@@ -17,6 +17,7 @@ export interface UpdateOrderStatusPayload {
   receiverName?: string;
   receiverDocument?: string;
   notes?: string;
+  securityCode?: string;
 }
 
 export interface CompleteDeliveryPayload {

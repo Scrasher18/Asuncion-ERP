@@ -638,6 +638,77 @@ public class OrderService {
                 yield res;
             }
             case ENTREGADO -> {
+                if (isPickup && req.securityCode() != null) {
+                    String cleanDni = req.receiverDocument() != null ? req.receiverDocument().replaceAll("\\D", "") : "";
+                    if (cleanDni.length() != 8) {
+                        throw new BadRequestException("El DNI de la persona que retira es obligatorio y debe contener exactamente 8 dígitos numéricos.");
+                    }
+                    if (cleanDni.matches("^(\\d)\\1{7}$")
+                            || "12345678".equals(cleanDni)
+                            || "87654321".equals(cleanDni)
+                            || "01234567".equals(cleanDni)
+                            || "00000001".equals(cleanDni)) {
+                        throw new BadRequestException("DNI inválido: no se permiten dígitos repetidos ni secuencias ficticias (ej. 00000000 o 12345678).");
+                    }
+                    String staffDoc = currentUser.getDocumentNumber() != null
+                            ? currentUser.getDocumentNumber().replaceAll("\\D", "")
+                            : "";
+                    if (!staffDoc.isEmpty() && staffDoc.equals(cleanDni)) {
+                        throw new BadRequestException("Restricción de seguridad: El personal de tienda no puede registrar su propio DNI como receptor del retiro.");
+                    }
+                    String cleanName = req.receiverName() != null ? req.receiverName().trim() : "";
+                    if (cleanName.length() < 4 || cleanName.split("\\s+").length < 2) {
+                        throw new BadRequestException("Debes ingresar el nombre y apellido completos de la persona que retira el pedido.");
+                    }
+
+                    Instant now = Instant.now();
+                    PinAttemptTracker tracker = pinAttemptTrackers.computeIfAbsent(orderId, k -> new PinAttemptTracker());
+                    synchronized (tracker) {
+                        if (tracker.lockedUntil != null) {
+                            if (now.isBefore(tracker.lockedUntil)) {
+                                long remainingSec = Math.max(1L, ChronoUnit.SECONDS.between(now, tracker.lockedUntil));
+                                long mins = remainingSec / 60;
+                                long secs = remainingSec % 60;
+                                throw new BadRequestException(String.format(
+                                        "Retiro bloqueado por seguridad tras superar el máximo de %d intentos fallidos de PIN. Intenta nuevamente en %02d:%02d.",
+                                        MAX_PIN_ATTEMPTS, mins, secs
+                                ));
+                            } else {
+                                tracker.failedAttempts = 0;
+                                tracker.lockedUntil = null;
+                            }
+                        }
+
+                        String expectedCode = order.getDeliverySecurityCode();
+                        if (expectedCode == null || expectedCode.isBlank()) {
+                            expectedCode = String.format(Locale.US, "%04d", Math.abs((order.getId() != null ? order.getId() : 1L) * 37L + 1000L) % 9000L + 1000L);
+                            order.setDeliverySecurityCode(expectedCode);
+                        }
+
+                        String submittedPin = req.securityCode().replaceAll("\\D", "");
+                        if (submittedPin.length() != 4 || !expectedCode.trim().equalsIgnoreCase(submittedPin)) {
+                            tracker.failedAttempts += 1;
+                            if (tracker.failedAttempts >= MAX_PIN_ATTEMPTS) {
+                                tracker.lockedUntil = now.plusSeconds(PIN_LOCKOUT_SECONDS);
+                                throw new BadRequestException(String.format(
+                                        "Has alcanzado el límite máximo de %d intentos fallidos de PIN. Por seguridad antifraude, el retiro de este pedido ha sido bloqueado por 5 minutos.",
+                                        MAX_PIN_ATTEMPTS
+                                ));
+                            }
+                            int remaining = MAX_PIN_ATTEMPTS - tracker.failedAttempts;
+                            throw new BadRequestException(String.format(
+                                    "Código PIN de retiro incorrecto (Intento %d de %d). Te %s %d %s antes del bloqueo de seguridad.",
+                                    tracker.failedAttempts,
+                                    MAX_PIN_ATTEMPTS,
+                                    remaining == 1 ? "queda" : "quedan",
+                                    remaining,
+                                    remaining == 1 ? "último intento" : "intentos disponibles"
+                            ));
+                        }
+                        pinAttemptTrackers.remove(orderId);
+                    }
+                }
+
                 order.getItems().forEach(item -> item.setPicked(true));
                 if (req.paymentMethod() != null && !req.paymentMethod().isBlank()) {
                     order.setPaymentMethod(req.paymentMethod().trim().toUpperCase());
