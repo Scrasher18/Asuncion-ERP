@@ -6869,9 +6869,53 @@ export interface ComboItem {
               }
 
               <div class="space-y-3">
+                <!-- Selector: Titular Registrado vs. Otra Persona Encargada (Tercero con PIN) -->
+                <div class="space-y-1.5">
+                  <label class="block font-bold text-gray-800">¿Quién se presenta en mostrador a recoger?</label>
+                  <div class="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      (click)="usePickupHolderDni(pickupOrd)"
+                      [class]="
+                        !isThirdPartyPickupMode()
+                          ? 'border-blue-500 bg-blue-50 text-blue-900 font-extrabold ring-2 ring-blue-400/20'
+                          : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50 font-semibold'
+                      "
+                      class="rounded-xl border px-3 py-2 text-left text-[11px] transition cursor-pointer"
+                    >
+                      <span class="block">Titular registrado</span>
+                      <span class="block text-[10px] font-normal text-gray-500 truncate">
+                        {{ pickupOrd.recipientName || pickupOrd.customerName }}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      (click)="enableThirdPartyPickup()"
+                      [class]="
+                        isThirdPartyPickupMode()
+                          ? 'border-amber-500 bg-amber-50 text-amber-950 font-extrabold ring-2 ring-amber-400/20'
+                          : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50 font-semibold'
+                      "
+                      class="rounded-xl border px-3 py-2 text-left text-[11px] transition cursor-pointer"
+                    >
+                      <span class="block">Encargó a otra persona</span>
+                      <span class="block text-[10px] font-normal text-gray-500 truncate">
+                        Con su DNI + PIN de 4 dígitos
+                      </span>
+                    </button>
+                  </div>
+                  @if (isThirdPartyPickupMode()) {
+                    <div class="rounded-lg border border-amber-200 bg-amber-50/80 px-2.5 py-1.5 text-[11px] text-amber-950">
+                      <strong>Tercero encargado:</strong> Ingresa el <strong>DNI de la persona presente en mostrador</strong>. Para autorizar la entrega deberá dictar obligatoriamente el <strong>Código PIN de 4 dígitos</strong> del pedido.
+                    </div>
+                  }
+                </div>
+
                 <div>
                   <div class="flex flex-wrap items-center justify-between gap-2 mb-1">
-                    <label class="block font-bold text-gray-800">DNI de quien retira (8 dígitos) *</label>
+                    <label class="block font-bold text-gray-800">
+                      {{ isThirdPartyPickupMode() ? 'DNI de la persona encargada (8 dígitos) *' : 'DNI de quien retira (8 dígitos) *' }}
+                    </label>
                     @if (getPickupHolderDni(pickupOrd); as holderDni) {
                       @if (pickupReceiverDoc !== holderDni) {
                         <button
@@ -6879,7 +6923,7 @@ export interface ComboItem {
                           (click)="usePickupHolderDni(pickupOrd)"
                           class="inline-flex items-center gap-1 rounded-lg border border-blue-200 bg-blue-50 px-2 py-0.5 text-[10.5px] font-bold text-blue-700 hover:bg-blue-100 transition cursor-pointer"
                         >
-                          <span>Usar DNI del titular ({{ holderDni }})</span>
+                          <span>Restaurar DNI titular ({{ holderDni }})</span>
                         </button>
                       }
                     }
@@ -8202,6 +8246,7 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
   readonly pickupModalError = signal<string>('');
   readonly pickupReceiverDocVerified = signal<boolean>(false);
   readonly isLookingUpPickupReceiver = signal<boolean>(false);
+  readonly isThirdPartyPickupMode = signal<boolean>(false);
   private lastLookedUpPickupDoc = '';
   readonly maxPickupPinAttempts = 3;
   readonly pickupPinLockoutDurationMs = 5 * 60 * 1000;
@@ -10573,6 +10618,7 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
     this.pickupReceiverDoc = initialDni;
     this.pickupSecurityCode = '';
     this.pickupReceiverDocVerified.set(false);
+    this.isThirdPartyPickupMode.set(false);
     this.lastLookedUpPickupDoc = '';
     this.pickupNotes = '';
 
@@ -10605,6 +10651,7 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
     this.pickupReceiverDoc = '';
     this.pickupSecurityCode = '';
     this.pickupReceiverDocVerified.set(false);
+    this.isThirdPartyPickupMode.set(false);
     this.lastLookedUpPickupDoc = '';
     this.pickupNotes = '';
     this.isCompletingPickup.set(false);
@@ -10616,10 +10663,26 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
   }
 
   usePickupHolderDni(order: Order): void {
-    const holderDni = this.getPickupHolderDni(order);
-    if (!holderDni) return;
+    this.isThirdPartyPickupMode.set(false);
+    this.pickupModalError.set('');
+    const holderDni = this.getPickupHolderDni(order) || '';
+    this.pickupReceiverName = order.recipientName || order.customerName || '';
     this.pickupReceiverDoc = holderDni;
-    this.onPickupReceiverDocChange(holderDni);
+    this.lastLookedUpPickupDoc = '';
+    if (holderDni.length === 8) {
+      this.onPickupReceiverDocChange(holderDni);
+    } else {
+      this.pickupReceiverDocVerified.set(false);
+    }
+  }
+
+  enableThirdPartyPickup(): void {
+    this.isThirdPartyPickupMode.set(true);
+    this.pickupModalError.set('');
+    this.pickupReceiverDoc = '';
+    this.pickupReceiverName = '';
+    this.pickupReceiverDocVerified.set(false);
+    this.lastLookedUpPickupDoc = '';
   }
 
   getPickupDniValidationError(order: Order): string | null {
@@ -10678,6 +10741,17 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
       this.pickupReceiverDoc = digits;
     }
     const currentOrder = this.selectedOrderForPickupDelivery();
+    const holderDni = currentOrder ? this.getPickupHolderDni(currentOrder) : null;
+    if (holderDni && digits.length > 0 && digits !== holderDni) {
+      this.isThirdPartyPickupMode.set(true);
+      const holderName = (currentOrder?.recipientName || currentOrder?.customerName || '').trim();
+      if (this.pickupReceiverName.trim() === holderName) {
+        this.pickupReceiverName = '';
+      }
+    } else if (holderDni && digits === holderDni) {
+      this.isThirdPartyPickupMode.set(false);
+    }
+
     if (digits.length !== 8 || (currentOrder && this.getPickupDniValidationError(currentOrder))) {
       this.pickupReceiverDocVerified.set(false);
       if (digits.length < 8) {

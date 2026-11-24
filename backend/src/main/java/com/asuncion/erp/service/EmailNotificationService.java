@@ -464,7 +464,46 @@ public class EmailNotificationService {
             String fiscalAddressLine = isFactura
                     ? firstNonBlank(order.billingAddress(), order.deliveryAddress(), order.branchAddress())
                     : ("DELIVERY".equalsIgnoreCase(order.deliveryType()) ? firstNonBlank(order.deliveryAddress(), order.branchAddress()) : "Opcional en Boleta — Recojo en Tienda");
-            String customerSubject = voucherTitle + " " + voucherSeries + " (#" + order.orderNumber() + ") — Repuestos Asunción (R.U.C. 10414686867)";
+            boolean isPickupOrder = "PICKUP".equalsIgnoreCase(order.deliveryType());
+            String secPin = (order.deliverySecurityCode() != null && !order.deliverySecurityCode().isBlank())
+                    ? escapeHtml(order.deliverySecurityCode())
+                    : "1234";
+            String securityAndPickupBlock = isPickupOrder
+                    ? """
+                      <div style="background:#FFF7ED;border:2px solid #EA580C;border-radius:12px;padding:16px;margin:16px 0;">
+                        <div style="text-align:center;background:#FFFFFF;border:2px dashed #EA580C;border-radius:10px;padding:12px;margin-bottom:12px;">
+                          <span style="font-size:11px;font-weight:800;color:#EA580C;text-transform:uppercase;letter-spacing:1px;display:block;">Código PIN de Seguridad para Retiro en Tienda (4 dígitos)</span>
+                          <span style="font-family:monospace;font-size:30px;font-weight:900;color:#111827;letter-spacing:6px;display:block;margin:6px 0;">%s</span>
+                          <span style="font-size:11px;color:#475569;display:block;">Obligatorio dictar o mostrar este PIN de 4 dígitos en mostrador junto con el DNI físico de quien retira.</span>
+                        </div>
+                        <p style="margin:4px 0;font-size:13px;color:#1E293B;"><strong>Sede de Retiro:</strong> %s — %s</p>
+                        <p style="margin:4px 0;font-size:13px;color:#1E293B;"><strong>Horario de Atención:</strong> Lunes a Sábado de 08:00 a.m. a 08:00 p.m.</p>
+                        <p style="margin:4px 0;font-size:13px;color:#1E293B;"><strong>Persona / DNI Registrado:</strong> %s (Doc: %s)</p>
+                        <p style="margin:4px 0;font-size:13px;color:#1E293B;"><strong>Plazo Límite de Reserva:</strong> 48 horas hábiles para recoger tus repuestos.</p>
+                        <div style="margin-top:10px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;padding:10px 12px;font-size:12px;color:#1E3A8A;line-height:1.5;">
+                          <strong>¿No podrás ir tú y encargarás a otra persona?</strong><br/>
+                          Si la persona registrada no puede acercarse a recoger el pedido, puedes enviar a un tercero de tu confianza. Solo <strong>compártele este Código PIN de 4 dígitos (%s)</strong>; en mostrador registraremos <strong>el DNI de 8 dígitos de esa persona (verificado en RENIEC)</strong> pero <strong>sí o sí deberá dictar este Código PIN</strong> para autorizar la entrega.
+                        </div>
+                      </div>
+                      """.formatted(
+                            secPin,
+                            escapeHtml(order.branchName()),
+                            escapeHtml(order.branchAddress() != null ? order.branchAddress() : "Av. Sta. Ana 441, Santa Anita - Lima"),
+                            escapeHtml(order.recipientName() != null ? order.recipientName() : billingPartyName),
+                            docNumLabel,
+                            secPin
+                    )
+                    : """
+                      <div style="background:#FFF7ED;border:2px solid #EA580C;border-radius:12px;padding:16px;margin:16px 0;">
+                        <div style="text-align:center;background:#FFFFFF;border:2px dashed #EA580C;border-radius:10px;padding:12px;margin-bottom:10px;">
+                          <span style="font-size:11px;font-weight:800;color:#EA580C;text-transform:uppercase;letter-spacing:1px;display:block;">Código PIN de Seguridad para Entrega (4 dígitos)</span>
+                          <span style="font-family:monospace;font-size:30px;font-weight:900;color:#111827;letter-spacing:6px;display:block;margin:6px 0;">%s</span>
+                          <span style="font-size:11px;color:#475569;display:block;">Díctale este PIN de 4 dígitos al motorizado al recibir tu pedido. Si otra persona en tu taller o domicilio lo recibe por ti, deberá presentar su DNI de 8 dígitos y dictar obligatoriamente este PIN.</span>
+                        </div>
+                      </div>
+                      """.formatted(secPin);
+
+            String customerSubject = voucherTitle + " " + voucherSeries + " (#" + order.orderNumber() + ") — PIN: " + secPin + " — Repuestos Asunción";
             String customerContent = """
                     <div style="border:2px solid #EA580C;border-radius:10px;padding:16px;margin:0 0 16px;background:#FFFBF8;text-align:center;">
                       <h2 style="margin:0 0 4px;color:#9A3412;font-size:16px;font-weight:800;letter-spacing:0.5px;">REPUESTOS AUTOMOTRICES ASUNCIÓN</h2>
@@ -476,8 +515,10 @@ public class EmailNotificationService {
                     </div>
 
                     <p style="margin:0 0 14px;color:#334155;font-size:14px;line-height:1.6;">
-                      Estimado(a) <strong>%s</strong>, adjuntamos el detalle de tu comprobante emitido por tu compra. Nuestro equipo ya cuenta con tu orden para su atención.
+                      Estimado(a) <strong>%s</strong>, adjuntamos el detalle de tu comprobante emitido por tu compra y tu código PIN de seguridad.
                     </p>
+
+                    %s
 
                     <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:14px;margin:14px 0;">
                       <table width="100%%" style="border-collapse:collapse;font-size:13px;color:#1E293B;">
@@ -500,11 +541,12 @@ public class EmailNotificationService {
                     voucherSeries,
                     escapeHtml(order.orderNumber()),
                     escapeHtml(billingPartyName),
+                    securityAndPickupBlock,
                     isFactura ? "Señor(es):" : "Cliente:",
                     escapeHtml(billingPartyName),
                     isFactura ? "R.U.C.:" : "D.N.I. / C.E.:",
                     docNumLabel,
-                    "DELIVERY".equalsIgnoreCase(order.deliveryType()) ? "Envío a Domicilio / Taller" : "Recojo en Tienda",
+                    isPickupOrder ? "Recojo Presencial en Tienda" : "Envío a Domicilio / Taller",
                     isFactura ? "Dirección Fiscal:" : "Dirección:",
                     escapeHtml(fiscalAddressLine),
                     escapeHtml(order.paymentMethod()),
@@ -611,41 +653,64 @@ public class EmailNotificationService {
                 return;
             }
             boolean isPickup = "PICKUP".equalsIgnoreCase(order.deliveryType());
+            String secPin = (order.deliverySecurityCode() != null && !order.deliverySecurityCode().isBlank())
+                    ? escapeHtml(order.deliverySecurityCode())
+                    : "1234";
             String subject = isPickup
-                    ? "¡Tu pedido #" + order.orderNumber() + " está listo para recojo en tienda!"
-                    : "Tu pedido #" + order.orderNumber() + " está embalado y listo para despacho";
+                    ? "¡Tu pedido #" + order.orderNumber() + " está listo para recojo en tienda! (PIN: " + secPin + ")"
+                    : "Tu pedido #" + order.orderNumber() + " está embalado y listo para despacho (PIN: " + secPin + ")";
 
             String dispatchDetail = isPickup
-                    ? "Puedes acercarte a nuestro mostrador en <strong>" + escapeHtml(order.branchAddress()) + "</strong> indicando tu código de orden."
+                    ? "Puedes acercarte a nuestro mostrador en <strong>" + escapeHtml(order.branchAddress()) + "</strong> (Lun - Sáb 8:00 a.m. a 8:00 p.m.) indicando tu código de orden y tu PIN de 4 dígitos."
                     : (order.assignedDriverName() != null
                         ? "Unidad motorizada asignada: <strong>" + escapeHtml(order.assignedDriverName()) + "</strong>."
                         : "En zona de despacho listo para salida con nuestra flota motorizada.");
+
+            String pickupDelegationBox = isPickup
+                    ? """
+                      <div style="margin-top:12px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;padding:10px 12px;font-size:12px;color:#1E3A8A;line-height:1.5;">
+                        <strong>¿Encargarás el recojo a otra persona?</strong> Si no puedes acercarte personalmente, puedes reenviar este correo o darle tu <strong>Código PIN (%s)</strong> a un tercero de confianza. En mostrador validaremos su propio DNI en RENIEC y deberá dictar obligatoriamente este PIN de 4 dígitos.
+                      </div>
+                      """.formatted(secPin)
+                    : "";
 
             String content = """
                     <p style="margin:0 0 14px;color:#334155;font-size:15px;line-height:1.6;">
                       Hola <strong>%s</strong>, todos los repuestos de tu pedido <strong>%s</strong> han sido verificados y embalados al 100%%.
                     </p>
-                    <div style="background:#FFF7ED;border:1px solid #FED7AA;border-radius:10px;padding:15px;margin:14px 0;">
-                      <p style="margin:4px 0;font-size:14px;color:#1E293B;"><strong>Estado Actual:</strong> LISTO PARA DESPACHO</p>
+                    <div style="background:#FFF7ED;border:2px solid #EA580C;border-radius:10px;padding:15px;margin:14px 0;">
+                      <div style="text-align:center;background:#FFFFFF;border:2px dashed #EA580C;border-radius:10px;padding:10px;margin-bottom:12px;">
+                        <span style="font-size:11px;font-weight:800;color:#EA580C;text-transform:uppercase;letter-spacing:1px;display:block;">%s</span>
+                        <span style="font-family:monospace;font-size:28px;font-weight:900;color:#111827;letter-spacing:6px;display:block;margin:4px 0;">%s</span>
+                      </div>
+                      <p style="margin:4px 0;font-size:14px;color:#1E293B;"><strong>Estado Actual:</strong> %s</p>
                       <p style="margin:4px 0;font-size:14px;color:#1E293B;"><strong>Sucursal:</strong> %s</p>
+                      <p style="margin:4px 0;font-size:14px;color:#1E293B;"><strong>Importe Total:</strong> S/ %s (%s)</p>
                       <p style="margin:4px 0;font-size:14px;color:#1E293B;"><strong>Detalle Logístico:</strong> %s</p>
+                      %s
                       %s
                     </div>
                     """.formatted(
                     escapeHtml(order.customerName()),
                     escapeHtml(order.orderNumber()),
+                    isPickup ? "Tu Código PIN de Retiro en Tienda" : "Tu Código PIN de Entrega",
+                    secPin,
+                    isPickup ? "LISTO PARA RECOJO EN MOSTRADOR" : "LISTO PARA DESPACHO",
                     escapeHtml(order.branchName()),
+                    formatMoney(order.totalAmount()),
+                    escapeHtml(order.paymentMethod()),
                     dispatchDetail,
                     order.warehouseNotes() != null && !order.warehouseNotes().isBlank()
                             ? "<p style=\"margin:4px 0;font-size:14px;color:#1E293B;\"><strong>Nota de Almacén:</strong> " + escapeHtml(order.warehouseNotes()) + "</p>"
-                            : ""
+                            : "",
+                    pickupDelegationBox
             );
 
             String html = wrapCorporateTemplate(
-                    "LISTO PARA DESPACHO",
-                    "Pedido " + order.orderNumber() + " Embalado al 100%",
+                    isPickup ? "LISTO PARA RECOJO EN TIENDA" : "LISTO PARA DESPACHO",
+                    "Pedido " + order.orderNumber() + " Listo",
                     content,
-                    "Seguir mi Pedido",
+                    "Ver Pedido y PIN de Seguridad",
                     frontendBaseUrl + "/track?code=" + order.orderNumber()
             );
             dispatchOrSimulate("PEDIDO_LISTO_DESPACHO", order.customerEmail(), subject, html, order.orderNumber());
@@ -759,6 +824,7 @@ public class EmailNotificationService {
             if (order == null || order.customerEmail() == null || order.customerEmail().isBlank()) {
                 return;
             }
+            boolean isPickup = "PICKUP".equalsIgnoreCase(order.deliveryType());
             DeliveryProofDto proof = order.deliveryProof();
             String receiverName = proof != null && proof.receiverName() != null
                     ? proof.receiverName()
@@ -770,34 +836,63 @@ public class EmailNotificationService {
                     ? proof.deliveredAt()
                     : (order.deliveredAt() != null ? order.deliveredAt() : Instant.now());
 
-            String subject = "Pedido #" + order.orderNumber() + " Entregado con Conformidad — Repuestos Asunción";
+            String holderDoc = order.billingDocumentNumber() != null ? order.billingDocumentNumber().replaceAll("\\D", "") : "";
+            String cleanRecDoc = receiverDoc != null ? receiverDoc.replaceAll("\\D", "") : "";
+            boolean isThirdParty = !holderDoc.isEmpty() && holderDoc.length() == 8 && !cleanRecDoc.isEmpty() && !holderDoc.equals(cleanRecDoc);
+            String receiverRoleLabel = isThirdParty
+                    ? "Tercero Autorizado por el Cliente (Validado con DNI RENIEC + Código PIN de 4 dígitos)"
+                    : "Titular Registrado (Validado con DNI RENIEC + Código PIN de 4 dígitos)";
+            String itemsTable = buildOrderItemsHtmlTable(order);
+
+            String subject = isPickup
+                    ? "Constancia de Retiro en Tienda — Pedido #" + order.orderNumber() + " — Repuestos Asunción"
+                    : "Pedido #" + order.orderNumber() + " Entregado con Conformidad — Repuestos Asunción";
             String content = """
                     <p style="margin:0 0 14px;color:#334155;font-size:15px;line-height:1.6;">
-                      Hola <strong>%s</strong>, te confirmamos que tu pedido <strong>%s</strong> fue entregado satisfactoriamente. ¡Gracias por confiar en <strong>Repuestos Asunción</strong>!
+                      Hola <strong>%s</strong>, te confirmamos que tu pedido <strong>%s</strong> fue %s satisfactoriamente tras validar el DNI del receptor y tu código PIN de seguridad de 4 dígitos.
                     </p>
                     <div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:10px;padding:16px;margin:14px 0;">
-                      <p style="margin:0 0 6px;font-size:12px;color:#166534;font-weight:700;text-transform:uppercase;">Constancia Digital de Entrega</p>
-                      <p style="margin:4px 0;font-size:14px;color:#1E293B;"><strong>Recibido por:</strong> %s</p>
-                      <p style="margin:4px 0;font-size:14px;color:#1E293B;"><strong>DNI / Documento Receptor:</strong> %s</p>
-                      <p style="margin:4px 0;font-size:14px;color:#1E293B;"><strong>Fecha y Hora de Entrega:</strong> %s</p>
+                      <p style="margin:0 0 8px;font-size:12px;color:#166534;font-weight:700;text-transform:uppercase;">%s</p>
+                      <p style="margin:4px 0;font-size:14px;color:#1E293B;"><strong>N° de Pedido:</strong> %s</p>
+                      <p style="margin:4px 0;font-size:14px;color:#1E293B;"><strong>Modalidad:</strong> %s</p>
+                      <p style="margin:4px 0;font-size:14px;color:#1E293B;"><strong>Sede / Punto de Atención:</strong> %s (%s)</p>
+                      <p style="margin:4px 0;font-size:14px;color:#1E293B;"><strong>Titular de la Compra:</strong> %s</p>
+                      <p style="margin:4px 0;font-size:14px;color:#1E293B;"><strong>Retirado / Recibido por:</strong> %s</p>
+                      <p style="margin:4px 0;font-size:14px;color:#1E293B;"><strong>DNI Verificado (RENIEC):</strong> %s</p>
+                      <p style="margin:4px 0;font-size:14px;color:#1E293B;"><strong>Condición del Receptor:</strong> %s</p>
+                      <p style="margin:4px 0;font-size:14px;color:#1E293B;"><strong>Importe y Medio de Pago:</strong> S/ %s (%s)</p>
+                      <p style="margin:4px 0;font-size:14px;color:#1E293B;"><strong>Fecha y Hora Exacta:</strong> %s</p>
                       %s
                     </div>
+                    <h3 style="margin:16px 0 8px;font-size:14px;color:#0F172A;font-weight:700;">Detalle de Repuestos Entregados:</h3>
+                    %s
                     """.formatted(
                     escapeHtml(order.customerName()),
                     escapeHtml(order.orderNumber()),
+                    isPickup ? "retirado en nuestro mostrador de tienda" : "entregado en tu dirección",
+                    isPickup ? "Acta Digital de Retiro Presencial en Tienda" : "Constancia Digital de Entrega a Domicilio",
+                    escapeHtml(order.orderNumber()),
+                    isPickup ? "Recojo Presencial en Mostrador" : "Envío a Domicilio con Motorizado",
+                    escapeHtml(order.branchName()),
+                    escapeHtml(order.branchAddress() != null ? order.branchAddress() : "Av. Sta. Ana 441, Santa Anita"),
+                    escapeHtml(order.customerName()),
                     escapeHtml(receiverName),
                     escapeHtml(receiverDoc),
+                    escapeHtml(receiverRoleLabel),
+                    formatMoney(order.totalAmount()),
+                    escapeHtml(order.paymentMethod()),
                     PERU_DATETIME_FMT.format(delivTime),
                     proof != null && proof.deliveryNotes() != null && !proof.deliveryNotes().isBlank()
                             ? "<p style=\"margin:4px 0;font-size:14px;color:#1E293B;\"><strong>Observaciones:</strong> " + escapeHtml(proof.deliveryNotes()) + "</p>"
-                            : ""
+                            : "",
+                    itemsTable
             );
 
             String html = wrapCorporateTemplate(
-                    "ENTREGA COMPLETADA",
-                    "¡Pedido " + order.orderNumber() + " Entregado!",
+                    isPickup ? "RETIRO EN TIENDA COMPLETADO" : "ENTREGA COMPLETADA",
+                    isPickup ? "¡Pedido " + order.orderNumber() + " Retirado en Tienda!" : "¡Pedido " + order.orderNumber() + " Entregado!",
                     content,
-                    "Ver Comprobante de Entrega",
+                    "Ver Acta y Comprobante del Pedido",
                     frontendBaseUrl + "/track?code=" + order.orderNumber()
             );
             dispatchOrSimulate("PEDIDO_ENTREGADO", order.customerEmail(), subject, html, order.orderNumber());
