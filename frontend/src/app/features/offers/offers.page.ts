@@ -172,11 +172,14 @@ export interface HydratedDirectOfferView {
                     </span>
                   </div>
 
-                  <!-- 2-Part Combined Visual Display -->
-                  <div class="p-4 sm:p-5 grid grid-cols-2 gap-3 relative items-stretch">
+                  <!-- Multi-Part Combined Visual Display (Supports 2, 3, or more items) -->
+                  <div
+                    class="p-4 sm:p-5 grid gap-3 relative items-stretch"
+                    [class]="(combo.additionalComplements && combo.additionalComplements.length >= 2) ? 'grid-cols-3' : 'grid-cols-2'"
+                  >
                     <!-- Main Part Preview -->
                     <div class="flex flex-col items-center text-center space-y-2">
-                      <a [routerLink]="['/part', combo.mainPart.id]" class="h-32 w-full flex items-center justify-center bg-white rounded-lg p-2 border border-gray-100">
+                      <a [routerLink]="['/part', combo.mainPart.id]" class="h-28 w-full flex items-center justify-center bg-white rounded-lg p-2 border border-gray-100">
                         <img
                           [src]="resolveImage(combo.mainPart)"
                           [alt]="combo.mainPart.name"
@@ -189,30 +192,36 @@ export interface HydratedDirectOfferView {
                         {{ combo.mainPart.name }}
                       </a>
                       <div class="text-xs font-mono">
-                        <span class="text-gray-400 line-through mr-1.5">S/ {{ combo.mainPart.salePrice | number: '1.2-2' }}</span>
+                        <span class="text-gray-400 line-through mr-1">S/ {{ combo.mainPart.salePrice | number: '1.2-2' }}</span>
                         <strong class="text-gray-950 font-black">S/ {{ combo.promo.promoPrice | number: '1.2-2' }}</strong>
                       </div>
                     </div>
 
-                    <!-- Complement Part Preview -->
-                    <div class="flex flex-col items-center text-center space-y-2">
-                      <a [routerLink]="['/part', combo.complementPart.id]" class="h-32 w-full flex items-center justify-center bg-white rounded-lg p-2 border border-gray-100">
-                        <img
-                          [src]="resolveImage(combo.complementPart)"
-                          [alt]="combo.complementPart.name"
-                          (error)="onPartImageError($event, combo.complementPart)"
-                          class="max-h-full max-w-full object-contain"
-                        />
-                      </a>
-                      <span class="text-[10px] font-extrabold uppercase text-emerald-600">Complemento</span>
-                      <a [routerLink]="['/part', combo.complementPart.id]" class="text-xs font-bold text-gray-900 line-clamp-2 hover:text-orange-600 transition">
-                        {{ combo.complementPart.name }}
-                      </a>
-                      <div class="text-xs font-mono">
-                        <span class="text-gray-400 line-through mr-1.5">S/ {{ combo.complementPart.salePrice | number: '1.2-2' }}</span>
-                        <strong class="text-emerald-800 font-black">S/ {{ combo.complementComboPrice | number: '1.2-2' }}</strong>
+                    <!-- Complement Parts Preview (1, 2 or more complements) -->
+                    @for (compItem of (combo.additionalComplements && combo.additionalComplements.length > 0 ? combo.additionalComplements : [combo.complementPart]); track compItem.id; let idx = $index) {
+                      <div class="flex flex-col items-center text-center space-y-2">
+                        <a [routerLink]="['/part', compItem.id]" class="h-28 w-full flex items-center justify-center bg-white rounded-lg p-2 border border-gray-100">
+                          <img
+                            [src]="resolveImage(compItem)"
+                            [alt]="compItem.name"
+                            (error)="onPartImageError($event, compItem)"
+                            class="max-h-full max-w-full object-contain"
+                          />
+                        </a>
+                        <span class="text-[10px] font-extrabold uppercase text-emerald-600">
+                          Complemento {{ (combo.additionalComplements?.length || 1) > 1 ? (idx + 1) : '' }}
+                        </span>
+                        <a [routerLink]="['/part', compItem.id]" class="text-xs font-bold text-gray-900 line-clamp-2 hover:text-orange-600 transition">
+                          {{ compItem.name }}
+                        </a>
+                        <div class="text-xs font-mono">
+                          <span class="text-gray-400 line-through mr-1">S/ {{ compItem.salePrice | number: '1.2-2' }}</span>
+                          <strong class="text-emerald-800 font-black">
+                            S/ {{ promotionService.getComplementComboPrice(combo.promo, compItem.salePrice, compItem.sku) | number: '1.2-2' }}
+                          </strong>
+                        </div>
                       </div>
-                    </div>
+                    }
                   </div>
 
                   <!-- Combo Price & CTA Footer -->
@@ -225,7 +234,9 @@ export interface HydratedDirectOfferView {
                         <span class="text-2xl font-black tracking-tight text-orange-600 tabular-nums">
                           S/ {{ combo.comboTotalPrice | number: '1.2-2' }}
                         </span>
-                        <span class="text-xs font-bold text-gray-600">por ambos</span>
+                        <span class="text-xs font-bold text-gray-600">
+                          por {{ 1 + (combo.additionalComplements?.length || 1) }} art.
+                        </span>
                       </div>
                     </div>
 
@@ -373,17 +384,11 @@ export class OffersPageComponent implements OnInit {
       const mainPart = map.get((promo.sku || '').trim().toUpperCase());
       if (!mainPart) continue;
 
-      let comps: Part[] = [];
-      if (promo.comboComplements && promo.comboComplements.length > 0) {
-        comps = promo.comboComplements
-          .map((c) => map.get((c.sku || '').trim().toUpperCase()))
-          .filter((p): p is Part => Boolean(p));
-      }
-      if (comps.length === 0 && promo.comboComplementSku) {
-        const singleComp = map.get(promo.comboComplementSku.trim().toUpperCase());
-        if (singleComp) comps = [singleComp];
-      }
-      if (comps.length === 0) continue;
+      const reqSkus = this.promotionService.getRequiredComplementSkus(promo);
+      const comps: Part[] = reqSkus
+        .map((s) => map.get(s))
+        .filter((p): p is Part => Boolean(p));
+      if (comps.length === 0 || comps.length < reqSkus.length) continue;
       const compPart = comps[0];
 
       const compComboPrice = this.promotionService.getComplementComboPrice(

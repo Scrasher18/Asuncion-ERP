@@ -167,9 +167,9 @@ public class PromotionCatalogService {
                 }
 
                 String joinedSkus = String.join(",", validSkus);
-                compSku = joinedSkus.length() <= 50 ? joinedSkus : validSkus.get(0);
+                compSku = joinedSkus.length() <= 250 ? joinedSkus : joinedSkus.substring(0, 250);
                 String joinedNames = String.join(" + ", validNames);
-                compName = joinedNames.length() <= 200 ? joinedNames : joinedNames.substring(0, 197) + "...";
+                compName = joinedNames.length() <= 500 ? joinedNames : joinedNames.substring(0, 497) + "...";
                 compRegularPrice = sumCompRegular.setScale(2, RoundingMode.HALF_UP);
                 compPromoPrice = sumCompPromo.setScale(2, RoundingMode.HALF_UP);
                 comboTotal = calculatedPromo.add(sumCompPromo).setScale(2, RoundingMode.HALF_UP);
@@ -270,61 +270,104 @@ public class PromotionCatalogService {
         List<PartPromotionEntity> activePromos = promotionRepository.findByActiveTrueOrderByUpdatedAtDesc();
         boolean cacheDirty = false;
 
+        // 1. Primera pasada: aplicar ofertas directas individuales (DESCUENTO_DIRECTO) sobre el precio base/mayorista
         for (PartPromotionEntity promo : activePromos) {
             if (!promo.isActive()) continue;
+            if ("COMBO_SUGERIDO".equalsIgnoreCase(promo.getPromoType())) continue;
             String mainSku = promo.getSku() != null ? promo.getSku().toUpperCase(Locale.ROOT) : "";
             Part mainPart = orderPartsBySku.get(mainSku);
             if (mainPart == null) continue;
 
-            if ("COMBO_SUGERIDO".equalsIgnoreCase(promo.getPromoType()) && promo.getComboComplementSku() != null) {
-                List<String> compSkus = new ArrayList<>();
-                List<PartPromotionDto.ComboComplementItemDto> cachedComps = multiComplementsByMainSku.get(mainSku);
-                if (cachedComps != null && !cachedComps.isEmpty()) {
-                    for (PartPromotionDto.ComboComplementItemDto c : cachedComps) {
-                        if (c.sku() != null) compSkus.add(c.sku().trim().toUpperCase(Locale.ROOT));
-                    }
-                } else {
-                    for (String token : promo.getComboComplementSku().split(",")) {
-                        String s = token.trim().toUpperCase(Locale.ROOT);
-                        if (!s.isEmpty()) compSkus.add(s);
+            BigDecimal currentMain = result.get(mainPart.getId());
+            if (promo.getPromoPrice() != null && promo.getPromoPrice().compareTo(currentMain) < 0) {
+                result.put(mainPart.getId(), promo.getPromoPrice());
+                incrementSoldQuota(promo, requestedQuantities.getOrDefault(mainPart.getId(), 1));
+                cacheDirty = true;
+            }
+        }
+
+        // Snapshot del precio unitario sin combo (regular, oferta directa o mayorista 4+)
+        Map<Long, BigDecimal> nonComboBaseline = new HashMap<>(result);
+
+        // 2. Segunda pasada: evaluar COMBO_SUGERIDO (de 2, 3 o más artículos).
+        // Regla estricta:
+        // - El 100% de los artículos del combo deben estar en el pedido (matchedCompParts.size() == compSkus.size()).
+        //   Si el cliente quitó 1 artículo del combo en el carrito, ninguno conserva el precio de combo.
+        // - Solo 'comboSets' unidades (el mínimo común entre los artículos del kit) reciben precio de combo;
+        //   las unidades excedentes sueltas se cobran a su precio normal/mayorista (nonComboBaseline).
+        for (PartPromotionEntity promo : activePromos) {
+            if (!promo.isActive()) continue;
+            if (!"COMBO_SUGERIDO".equalsIgnoreCase(promo.getPromoType()) || promo.getComboComplementSku() == null) continue;
+
+            String mainSku = promo.getSku() != null ? promo.getSku().toUpperCase(Locale.ROOT) : "";
+            Part mainPart = orderPartsBySku.get(mainSku);
+            if (mainPart == null) continue;
+
+            List<String> compSkus = new ArrayList<>();
+            List<PartPromotionDto.ComboComplementItemDto> cachedComps = multiComplementsByMainSku.get(mainSku);
+            if (cachedComps != null && !cachedComps.isEmpty()) {
+                for (PartPromotionDto.ComboComplementItemDto c : cachedComps) {
+                    if (c.sku() != null) {
+                        String s = c.sku().trim().toUpperCase(Locale.ROOT);
+                        if (!s.isEmpty() && !compSkus.contains(s)) compSkus.add(s);
                     }
                 }
+            } else {
+                for (String token : promo.getComboComplementSku().split(",")) {
+                    String s = token.trim().toUpperCase(Locale.ROOT);
+                    if (!s.isEmpty() && !compSkus.contains(s)) compSkus.add(s);
+                }
+            }
 
-                List<Part> matchedCompParts = compSkus.stream()
-                        .map(orderPartsBySku::get)
-                        .filter(Objects::nonNull)
-                        .toList();
+            List<Part> matchedCompParts = compSkus.stream()
+                    .map(orderPartsBySku::get)
+                    .filter(Objects::nonNull)
+                    .toList();
 
-                if (!compSkus.isEmpty() && matchedCompParts.size() == compSkus.size()) {
-                    BigDecimal currentMain = result.get(mainPart.getId());
-                    if (promo.getPromoPrice() != null && promo.getPromoPrice().compareTo(currentMain) < 0) {
-                        result.put(mainPart.getId(), promo.getPromoPrice());
+            if (!compSkus.isEmpty() && matchedCompParts.size() == compSkus.size()) {
+                int mainQty = Math.max(1, requestedQuantities.getOrDefault(mainPart.getId(), 1));
+                int comboSets = mainQty;
+                for (Part compPart : matchedCompParts) {
+                    int compQty = Math.max(1, requestedQuantities.getOrDefault(compPart.getId(), 1));
+                    comboSets = Math.min(comboSets, compQty);
+                }
+
+                if (comboSets > 0) {
+                    BigDecimal baseMain = nonComboBaseline.getOrDefault(mainPart.getId(), mainPart.getSalePrice());
+                    if (promo.getPromoPrice() != null && promo.getPromoPrice().compareTo(baseMain) < 0) {
+                        int extraMain = Math.max(0, mainQty - comboSets);
+                        BigDecimal totalMainLine = promo.getPromoPrice().multiply(BigDecimal.valueOf(comboSets))
+                                .add(baseMain.multiply(BigDecimal.valueOf(extraMain)));
+                        BigDecimal blendedMain = totalMainLine.divide(BigDecimal.valueOf(mainQty), 2, RoundingMode.HALF_UP);
+                        if (blendedMain.compareTo(result.get(mainPart.getId())) < 0) {
+                            result.put(mainPart.getId(), blendedMain);
+                        }
                     }
-                    int comboSets = requestedQuantities.getOrDefault(mainPart.getId(), 1);
+
                     for (Part compPart : matchedCompParts) {
+                        int compQty = Math.max(1, requestedQuantities.getOrDefault(compPart.getId(), 1));
+                        BigDecimal baseComp = nonComboBaseline.getOrDefault(compPart.getId(), compPart.getSalePrice());
                         BigDecimal rawCompPromo = compPart.getSalePrice().multiply(COMBO_COMPLEMENT_FACTOR).setScale(2, RoundingMode.HALF_UP);
                         BigDecimal compPromo = rawCompPromo.compareTo(compPart.getPurchasePrice()) >= 0
                                 ? rawCompPromo
                                 : compPart.getPurchasePrice().setScale(2, RoundingMode.HALF_UP);
-                        if (compPromo.compareTo(result.get(compPart.getId())) < 0) {
-                            result.put(compPart.getId(), compPromo);
+                        if (compPromo.compareTo(baseComp) < 0) {
+                            int extraComp = Math.max(0, compQty - comboSets);
+                            BigDecimal totalCompLine = compPromo.multiply(BigDecimal.valueOf(comboSets))
+                                    .add(baseComp.multiply(BigDecimal.valueOf(extraComp)));
+                            BigDecimal blendedComp = totalCompLine.divide(BigDecimal.valueOf(compQty), 2, RoundingMode.HALF_UP);
+                            if (blendedComp.compareTo(result.get(compPart.getId())) < 0) {
+                                result.put(compPart.getId(), blendedComp);
+                            }
                         }
-                        comboSets = Math.min(comboSets, requestedQuantities.getOrDefault(compPart.getId(), 1));
                     }
                     incrementSoldQuota(promo, comboSets);
-                    cacheDirty = true;
-                }
-            } else {
-                BigDecimal currentMain = result.get(mainPart.getId());
-                if (promo.getPromoPrice() != null && promo.getPromoPrice().compareTo(currentMain) < 0) {
-                    result.put(mainPart.getId(), promo.getPromoPrice());
-                    incrementSoldQuota(promo, requestedQuantities.getOrDefault(mainPart.getId(), 1));
                     cacheDirty = true;
                 }
             }
         }
 
-        // 3. Combos armados manualmente por el cliente (10% de descuento en el conjunto)
+        // 3. Combos armados manualmente por el cliente (10% de descuento en el conjunto, solo por pares completos)
         if (customCombos != null && !customCombos.isEmpty()) {
             for (com.asuncion.erp.dto.order.CustomComboPairRequest pair : customCombos) {
                 if (pair == null || pair.mainPartId() == null || pair.complementPartId() == null) continue;
@@ -334,17 +377,33 @@ public class PromotionCatalogService {
                 Part compPart = lockedPartsById.get(pair.complementPartId());
 
                 if (mainPart != null && compPart != null) {
+                    int mainQty = Math.max(1, requestedQuantities.getOrDefault(mainPart.getId(), 1));
+                    int compQty = Math.max(1, requestedQuantities.getOrDefault(compPart.getId(), 1));
+                    int customSets = Math.min(mainQty, compQty);
+                    if (customSets <= 0) continue;
+
                     BigDecimal customFactor = BigDecimal.valueOf(0.90);
                     BigDecimal discountedMain = mainPart.getSalePrice().multiply(customFactor).setScale(2, RoundingMode.HALF_UP);
                     BigDecimal discountedComp = compPart.getSalePrice().multiply(customFactor).setScale(2, RoundingMode.HALF_UP);
 
+                    BigDecimal baseMain = nonComboBaseline.getOrDefault(mainPart.getId(), mainPart.getSalePrice());
+                    BigDecimal totalMainLine = discountedMain.multiply(BigDecimal.valueOf(customSets))
+                            .add(baseMain.multiply(BigDecimal.valueOf(Math.max(0, mainQty - customSets))));
+                    BigDecimal blendedMain = totalMainLine.divide(BigDecimal.valueOf(mainQty), 2, RoundingMode.HALF_UP);
+
                     BigDecimal currentMain = result.get(mainPart.getId());
-                    if (currentMain == null || discountedMain.compareTo(currentMain) < 0) {
-                        result.put(mainPart.getId(), discountedMain);
+                    if (currentMain == null || blendedMain.compareTo(currentMain) < 0) {
+                        result.put(mainPart.getId(), blendedMain);
                     }
+
+                    BigDecimal baseComp = nonComboBaseline.getOrDefault(compPart.getId(), compPart.getSalePrice());
+                    BigDecimal totalCompLine = discountedComp.multiply(BigDecimal.valueOf(customSets))
+                            .add(baseComp.multiply(BigDecimal.valueOf(Math.max(0, compQty - customSets))));
+                    BigDecimal blendedComp = totalCompLine.divide(BigDecimal.valueOf(compQty), 2, RoundingMode.HALF_UP);
+
                     BigDecimal currentComp = result.get(compPart.getId());
-                    if (currentComp == null || discountedComp.compareTo(currentComp) < 0) {
-                        result.put(compPart.getId(), discountedComp);
+                    if (currentComp == null || blendedComp.compareTo(currentComp) < 0) {
+                        result.put(compPart.getId(), blendedComp);
                     }
                 }
             }

@@ -161,17 +161,38 @@ import { ToastService } from '../../../core/services/toast.service';
                         </div>
 
                         <div class="text-right">
-                          <span class="block font-mono text-sm font-extrabold tracking-tight text-gray-900">
-                            S/ {{ (cart.effectiveUnitPrice(item) * item.quantity) | number: '1.2-2' }}
-                          </span>
-                          @if (cart.effectiveUnitPrice(item) < item.part.salePrice) {
-                            @if (cart.isComboPriceActiveOnItem(item)) {
+                          @let comboInfo = cart.getComboBreakdownForItem(item);
+                          <div class="flex items-baseline justify-end gap-1.5">
+                            @if (comboInfo.lineSubtotal < item.part.salePrice * item.quantity) {
+                              <span class="font-mono text-[11px] font-semibold text-gray-400 line-through">
+                                S/ {{ (item.part.salePrice * item.quantity) | number: '1.2-2' }}
+                              </span>
+                            }
+                            <span class="font-mono text-sm font-extrabold tracking-tight text-gray-900">
+                              S/ {{ comboInfo.lineSubtotal | number: '1.2-2' }}
+                            </span>
+                          </div>
+                          @if (comboInfo.isComboActive) {
+                            @if (comboInfo.extraRegularUnits > 0) {
                               <span class="inline-flex items-center gap-1 rounded bg-orange-50 border border-orange-200 px-1.5 py-0.5 text-[10px] font-extrabold text-orange-800">
                                 <img src="/images/icons/combo-paquete.png" alt="Combo" class="h-3 w-3 object-contain inline-block" />
-                                <span>Precio Combo Activo</span>
+                                <span>{{ comboInfo.activeSets }} en Combo + {{ comboInfo.extraRegularUnits }} reg.</span>
                               </span>
-
-                            } @else if (cart.promotionService.getDirectOffer(item.part.sku); as promo) {
+                            } @else {
+                              <span class="inline-flex items-center gap-1 rounded bg-orange-50 border border-orange-200 px-1.5 py-0.5 text-[10px] font-extrabold text-orange-800">
+                                <img src="/images/icons/combo-paquete.png" alt="Combo" class="h-3 w-3 object-contain inline-block" />
+                                <span>Precio Combo Activo (Kit {{ comboInfo.totalComboItemsCount }} art.)</span>
+                              </span>
+                            }
+                          } @else if (cart.getIncompleteComboNoticeForItem(item); as brokenCombo) {
+                            <span
+                              class="inline-block rounded bg-amber-50 border border-amber-200 px-1.5 py-0.5 text-[10px] font-bold text-amber-800"
+                              [title]="'Falta agregar: ' + brokenCombo.missingNames.join(', ')"
+                            >
+                              Combo de {{ brokenCombo.totalItems }} art. incompleto · Precio regular
+                            </span>
+                          } @else if (comboInfo.lineSubtotal < item.part.salePrice * item.quantity) {
+                            @if (cart.promotionService.getDirectOffer(item.part.sku); as promo) {
                               <span class="inline-block rounded bg-red-50 border border-red-200 px-1.5 py-0.5 text-[10px] font-bold text-red-700">
                                 {{ promo.badgeLabel || 'OFERTA' }} -{{ promo.discountPercentage }}%
                               </span>
@@ -183,6 +204,11 @@ import { ToastService } from '../../../core/services/toast.service';
                           }
                         </div>
                       </div>
+                      @if (cart.getIncompleteComboNoticeForItem(item); as brokenCombo) {
+                        <p class="mt-2 rounded-lg border border-amber-200 bg-amber-50/70 px-2.5 py-1.5 text-[10px] font-semibold text-amber-900 leading-snug">
+                          El descuento de combo requiere los {{ brokenCombo.totalItems }} repuestos del kit. Falta: <strong>{{ brokenCombo.missingNames.join(', ') }}</strong>.
+                        </p>
+                      }
                     </div>
                   </div>
                 }

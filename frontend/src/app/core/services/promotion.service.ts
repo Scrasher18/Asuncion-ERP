@@ -138,22 +138,118 @@ export class PromotionService {
     return Boolean(this.getPromotion(sku));
   }
 
-  findComboWhereComplementIs(sku?: string | null, activeMainSkusInCart?: Set<string>): PartPromotion | undefined {
+  /**
+   * Devuelve todos los SKUs complementarios requeridos por un combo (soporta 2, 3, 4+ productos).
+   */
+  getRequiredComplementSkus(promo?: PartPromotion | null): string[] {
+    if (!promo || promo.promoType !== 'COMBO_SUGERIDO') return [];
+    const skus: string[] = [];
+    if (promo.comboComplements && promo.comboComplements.length > 0) {
+      for (const comp of promo.comboComplements) {
+        const s = (comp.sku || '').trim().toUpperCase();
+        if (s && !skus.includes(s)) {
+          skus.push(s);
+        }
+      }
+    }
+    if (promo.comboComplementSku) {
+      for (const token of promo.comboComplementSku.split(',')) {
+        const s = token.trim().toUpperCase();
+        if (s && !skus.includes(s)) {
+          skus.push(s);
+        }
+      }
+    }
+    return skus;
+  }
+
+  /**
+   * Devuelve todos los SKUs que integran el kit completo (1 Principal + N Complementos).
+   */
+  getAllComboSkus(promo?: PartPromotion | null): string[] {
+    if (!promo || promo.promoType !== 'COMBO_SUGERIDO') return [];
+    const mainSku = (promo.sku || '').trim().toUpperCase();
+    const comps = this.getRequiredComplementSkus(promo);
+    return mainSku ? [mainSku, ...comps.filter((s) => s !== mainSku)] : comps;
+  }
+
+  /**
+   * Verifica que el 100% de los productos del combo (sean 2, 3 o más) estén presentes en el carrito.
+   * Si falta aunque sea 1 producto del combo, devuelve false y ninguno conserva el precio promocional de combo.
+   */
+  isComboCompleteInCart(promo?: PartPromotion | null, cartSkus?: Set<string>): boolean {
+    if (!promo || !promo.active || promo.promoType !== 'COMBO_SUGERIDO' || !cartSkus) return false;
+    const mainSku = (promo.sku || '').trim().toUpperCase();
+    const reqComps = this.getRequiredComplementSkus(promo);
+    if (!mainSku || reqComps.length === 0) return false;
+    if (!cartSkus.has(mainSku)) return false;
+    return reqComps.every((compSku) => cartSkus.has(compSku));
+  }
+
+  /**
+   * Calcula cuántos kits completos del combo se forman en el carrito según las cantidades de cada ítem.
+   * Ejemplo: si un combo de 3 productos (A + B + C) tiene en el carrito A=3, B=1, C=1, solo se forma 1 kit completo.
+   */
+  getCompleteComboSetsInCart(promo?: PartPromotion | null, qtyBySku?: Map<string, number>): number {
+    if (!promo || !promo.active || promo.promoType !== 'COMBO_SUGERIDO' || !qtyBySku) return 0;
+    const allSkus = this.getAllComboSkus(promo);
+    if (allSkus.length < 2) return 0;
+    let minSets = Number.MAX_SAFE_INTEGER;
+    for (const s of allSkus) {
+      const q = qtyBySku.get(s) ?? 0;
+      if (q <= 0) return 0;
+      if (q < minSets) minSets = q;
+    }
+    return minSets === Number.MAX_SAFE_INTEGER ? 0 : minSets;
+  }
+
+  findComboWhereComplementIs(sku?: string | null, activeCartSkus?: Set<string>): PartPromotion | undefined {
     if (!sku) return undefined;
     const norm = sku.trim().toUpperCase();
     return this.activeCombos().find((c) => {
-      const rawTokens = (c.comboComplementSku || '')
-        .split(',')
-        .map((t) => t.trim().toUpperCase())
-        .filter(Boolean);
-      const singleMatch = rawTokens.includes(norm);
-      const multiMatch = (c.comboComplements || []).some(
-        (comp) => (comp.sku || '').trim().toUpperCase() === norm
-      );
-      if (!singleMatch && !multiMatch) return false;
-      if (!activeMainSkusInCart) return true;
-      return activeMainSkusInCart.has((c.sku || '').trim().toUpperCase());
+      const reqComps = this.getRequiredComplementSkus(c);
+      if (!reqComps.includes(norm)) return false;
+      if (!activeCartSkus) return true;
+      return this.isComboCompleteInCart(c, activeCartSkus);
     });
+  }
+
+  /**
+   * Detecta si un SKU en el carrito pertenece a un combo oficial que quedó INCOMPLETO
+   * (por ejemplo, un combo de 3 productos donde el cliente quitó 1 o 2 del carrito).
+   */
+  findIncompleteComboForCartSku(
+    sku?: string | null,
+    cartSkus?: Set<string>
+  ): { promo: PartPromotion; missingSkus: string[]; missingNames: string[]; totalItems: number } | null {
+    if (!sku || !cartSkus) return null;
+    const norm = sku.trim().toUpperCase();
+    for (const combo of this.activeCombos()) {
+      const allSkus = this.getAllComboSkus(combo);
+      if (!allSkus.includes(norm)) continue;
+      if (this.isComboCompleteInCart(combo, cartSkus)) continue;
+
+      const missingSkus = allSkus.filter((s) => !cartSkus.has(s));
+      if (missingSkus.length > 0 && missingSkus.length < allSkus.length) {
+        const mainSku = (combo.sku || '').trim().toUpperCase();
+        const rawNames = (combo.comboComplementName || '').split('+').map((n) => n.trim()).filter(Boolean);
+        const reqComps = this.getRequiredComplementSkus(combo);
+        const missingNames = missingSkus.map((mSku) => {
+          if (mSku === mainSku) return combo.partName || mSku;
+          const compObj = (combo.comboComplements || []).find((cc) => (cc.sku || '').trim().toUpperCase() === mSku);
+          if (compObj?.name) return compObj.name;
+          const idx = reqComps.indexOf(mSku);
+          return (idx >= 0 && rawNames[idx]) ? rawNames[idx] : mSku;
+        });
+        return {
+          promo: combo,
+          missingSkus,
+          missingNames,
+          totalItems: allSkus.length,
+        };
+      }
+    }
+    return null;
   }
 
   getComplementComboPrice(promo: PartPromotion, regularFallbackPrice = 0, itemSku?: string): number {

@@ -315,77 +315,197 @@ export class CartService {
   );
 
   readonly subtotal = computed(() =>
-    this.items().reduce((acc, item) => acc + this.effectiveUnitPrice(item) * item.quantity, 0)
+    this.items().reduce((acc, item) => acc + this.getLineSubtotal(item), 0)
   );
 
   // Prices in Peru retail/B2B: calculate net & IGV (18%) breakdown cleanly
   readonly netBaseAmount = computed(() => Number((this.subtotal() / 1.18).toFixed(2)));
   readonly igvAmount = computed(() => Number((this.subtotal() - this.netBaseAmount()).toFixed(2)));
 
-  effectiveUnitPrice(item: CartItem): number {
-    const cartSkus = new Set(
-      this.items().map((i) => (i.part.sku || '').trim().toUpperCase())
-    );
+  /**
+   * Precio unitario sin combo (precio regular, oferta directa individual o tarifa mayorista 4+).
+   */
+  getNonComboUnitPrice(item: CartItem): number {
     const itemSku = (item.part.sku || '').trim().toUpperCase();
-    let basePrice = item.part.salePrice;
-
-    const promo = this.promotionService.getPromotion(itemSku);
-    if (promo && promo.active) {
-      if (promo.promoType === 'COMBO_SUGERIDO') {
-        const hasComplement =
-          (promo.comboComplementSku && cartSkus.has(promo.comboComplementSku.trim().toUpperCase())) ||
-          (promo.comboComplements && promo.comboComplements.some((c) => cartSkus.has(c.sku.trim().toUpperCase())));
-        if (hasComplement) {
-          basePrice = Math.min(basePrice, promo.promoPrice);
-        }
-      } else {
-        basePrice = Math.min(basePrice, promo.promoPrice);
-      }
+    let price = item.part.salePrice;
+    const directPromo = this.promotionService.getDirectOffer(itemSku);
+    if (directPromo && directPromo.active) {
+      price = Math.min(price, directPromo.promoPrice);
     }
-
-    const pairedCombo = this.promotionService.findComboWhereComplementIs(itemSku, cartSkus);
-    if (pairedCombo) {
-      const compPrice = this.promotionService.getComplementComboPrice(
-        pairedCombo,
-        item.part.salePrice,
-        itemSku
-      );
-      basePrice = Math.min(basePrice, compPrice);
-    }
-
-    // Custom Combo Armado por el Cliente (10% de ahorro en el conjunto)
-    if (this.isCustomComboActiveOnItem(item)) {
-      const customComboDiscounted = Number((item.part.salePrice * 0.90).toFixed(2));
-      basePrice = Math.min(basePrice, customComboDiscounted);
-    }
-
     if (
       item.part.wholesalePrice &&
       item.part.wholesalePrice > 0 &&
       item.quantity >= 4
     ) {
-      return Math.min(item.part.wholesalePrice, basePrice);
+      price = Math.min(price, item.part.wholesalePrice);
     }
-    return basePrice;
+    return price;
+  }
+
+  /**
+   * Evalúa cuántos sets completos de combo (de 2, 3 o más artículos) cubre este ítem en el carrito.
+   * Si el combo es de 3 artículos y falta aunque sea 1 en el carrito, activeSets = 0 y nadie recibe descuento de combo.
+   * Si hay 1 kit completo (1xA + 1xB + 1xC) pero el usuario subió A a 3 und., solo 1 und. de A lleva precio combo y 2 und. llevan precio regular.
+   */
+  getComboBreakdownForItem(item: CartItem): {
+    isComboActive: boolean;
+    activeSets: number;
+    extraRegularUnits: number;
+    totalComboItemsCount: number;
+    comboUnitPrice: number;
+    nonComboUnitPrice: number;
+    lineSubtotal: number;
+    effectiveAverageUnitPrice: number;
+  } {
+    const currentItems = this.items();
+    const cartSkus = new Set<string>();
+    const qtyBySku = new Map<string, number>();
+    const qtyByPartId = new Map<number, number>();
+
+    for (const ci of currentItems) {
+      if (ci.quantity <= 0) continue;
+      const s = (ci.part.sku || '').trim().toUpperCase();
+      if (s) {
+        cartSkus.add(s);
+        qtyBySku.set(s, (qtyBySku.get(s) ?? 0) + ci.quantity);
+      }
+      qtyByPartId.set(ci.part.id, (qtyByPartId.get(ci.part.id) ?? 0) + ci.quantity);
+    }
+
+    const itemSku = (item.part.sku || '').trim().toUpperCase();
+    const qty = Math.max(1, item.quantity);
+    const nonComboPrice = this.getNonComboUnitPrice(item);
+
+    let bestComboUnitPrice = nonComboPrice;
+    let matchedSets = 0;
+    let kitItemsCount = 0;
+
+    // 1. Verificar si este ítem es el repuesto principal de un COMBO_SUGERIDO completo
+    const promo = this.promotionService.getPromotion(itemSku);
+    if (
+      promo &&
+      promo.active &&
+      promo.promoType === 'COMBO_SUGERIDO' &&
+      this.promotionService.isComboCompleteInCart(promo, cartSkus)
+    ) {
+      const sets = this.promotionService.getCompleteComboSetsInCart(promo, qtyBySku);
+      if (sets > 0 && promo.promoPrice < bestComboUnitPrice) {
+        bestComboUnitPrice = promo.promoPrice;
+        matchedSets = Math.min(qty, sets);
+        kitItemsCount = this.promotionService.getAllComboSkus(promo).length;
+      }
+    }
+
+    // 2. Verificar si este ítem es complemento de un COMBO_SUGERIDO completo (todos los artículos presentes)
+    const pairedCombo = this.promotionService.findComboWhereComplementIs(itemSku, cartSkus);
+    if (pairedCombo) {
+      const sets = this.promotionService.getCompleteComboSetsInCart(pairedCombo, qtyBySku);
+      const compPrice = this.promotionService.getComplementComboPrice(
+        pairedCombo,
+        item.part.salePrice,
+        itemSku
+      );
+      if (sets > 0 && compPrice < bestComboUnitPrice) {
+        bestComboUnitPrice = compPrice;
+        matchedSets = Math.min(qty, sets);
+        kitItemsCount = this.promotionService.getAllComboSkus(pairedCombo).length;
+      }
+    }
+
+    // 3. Verificar Combo Personalizado armado por el cliente (requiere ambos repuestos presentes)
+    if (this.isCustomComboActiveOnItem(item)) {
+      const customPair = this.customCombos().find(
+        (c) =>
+          (c.mainPartId === item.part.id || c.complementPartId === item.part.id) &&
+          (qtyByPartId.get(c.mainPartId) ?? 0) > 0 &&
+          (qtyByPartId.get(c.complementPartId) ?? 0) > 0
+      );
+      if (customPair) {
+        const sets = Math.min(
+          qtyByPartId.get(customPair.mainPartId) ?? 0,
+          qtyByPartId.get(customPair.complementPartId) ?? 0
+        );
+        const customComboDiscounted = Number((item.part.salePrice * 0.90).toFixed(2));
+        if (sets > 0 && customComboDiscounted < bestComboUnitPrice) {
+          bestComboUnitPrice = customComboDiscounted;
+          matchedSets = Math.min(qty, sets);
+          kitItemsCount = 2;
+        }
+      }
+    }
+
+    if (matchedSets > 0 && bestComboUnitPrice < nonComboPrice) {
+      const extraUnits = Math.max(0, qty - matchedSets);
+      const lineTotal = Number(
+        (matchedSets * bestComboUnitPrice + extraUnits * nonComboPrice).toFixed(2)
+      );
+      const avgUnit = Number((lineTotal / qty).toFixed(2));
+      return {
+        isComboActive: true,
+        activeSets: matchedSets,
+        extraRegularUnits: extraUnits,
+        totalComboItemsCount: kitItemsCount,
+        comboUnitPrice: bestComboUnitPrice,
+        nonComboUnitPrice: nonComboPrice,
+        lineSubtotal: lineTotal,
+        effectiveAverageUnitPrice: avgUnit,
+      };
+    }
+
+    const regularLineTotal = Number((nonComboPrice * qty).toFixed(2));
+    return {
+      isComboActive: false,
+      activeSets: 0,
+      extraRegularUnits: qty,
+      totalComboItemsCount: 0,
+      comboUnitPrice: nonComboPrice,
+      nonComboUnitPrice: nonComboPrice,
+      lineSubtotal: regularLineTotal,
+      effectiveAverageUnitPrice: nonComboPrice,
+    };
+  }
+
+  getLineSubtotal(item: CartItem): number {
+    return this.getComboBreakdownForItem(item).lineSubtotal;
+  }
+
+  effectiveUnitPrice(item: CartItem): number {
+    return this.getComboBreakdownForItem(item).effectiveAverageUnitPrice;
   }
 
   isComboPriceActiveOnItem(item: CartItem): boolean {
+    return this.getComboBreakdownForItem(item).isComboActive;
+  }
+
+  /**
+   * Si el cliente tenía un combo de 2 o 3+ productos y quitó uno del carrito,
+   * devuelve la información del combo incompleto para avisarle en la tarjeta del carrito.
+   */
+  getIncompleteComboNoticeForItem(
+    item: CartItem
+  ): { missingSkus: string[]; missingNames: string[]; totalItems: number } | null {
+    if (this.isComboPriceActiveOnItem(item)) return null;
     const cartSkus = new Set(
-      this.items().map((i) => (i.part.sku || '').trim().toUpperCase())
+      this.items()
+        .filter((i) => i.quantity > 0)
+        .map((i) => (i.part.sku || '').trim().toUpperCase())
     );
     const itemSku = (item.part.sku || '').trim().toUpperCase();
-    const mainCombo = this.promotionService.getPromotion(itemSku);
-    if (mainCombo && mainCombo.promoType === 'COMBO_SUGERIDO') {
-      const hasComplement =
-        (mainCombo.comboComplementSku && cartSkus.has(mainCombo.comboComplementSku.trim().toUpperCase())) ||
-        (mainCombo.comboComplements && mainCombo.comboComplements.some((c) => cartSkus.has(c.sku.trim().toUpperCase())));
-      if (hasComplement) return true;
-    }
-    return Boolean(this.promotionService.findComboWhereComplementIs(itemSku, cartSkus));
+    const broken = this.promotionService.findIncompleteComboForCartSku(itemSku, cartSkus);
+    if (!broken) return null;
+    return {
+      missingSkus: broken.missingSkus,
+      missingNames: broken.missingNames,
+      totalItems: broken.totalItems,
+    };
   }
 
   isCustomComboActiveOnItem(item: CartItem): boolean {
-    const currentPartIds = new Set(this.items().map((i) => i.part.id));
+    const currentPartIds = new Set(
+      this.items()
+        .filter((i) => i.quantity > 0)
+        .map((i) => i.part.id)
+    );
     return this.customCombos().some(
       (c) =>
         (c.mainPartId === item.part.id || c.complementPartId === item.part.id) &&
@@ -641,6 +761,10 @@ export class CartService {
   }
 
   removePart(partId: number): void {
+    const targetItem = this.items().find((i) => i.part.id === partId);
+    const wasInActiveCombo = targetItem ? this.isComboPriceActiveOnItem(targetItem) : false;
+    const comboKitSize = targetItem ? this.getComboBreakdownForItem(targetItem).totalComboItemsCount : 0;
+
     this.items.update((current) => current.filter((i) => i.part.id !== partId));
     this.customCombos.update((list) =>
       list.filter((c) => c.mainPartId !== partId && c.complementPartId !== partId)
@@ -652,6 +776,14 @@ export class CartService {
       return next;
     });
     this.persist();
+
+    if (wasInActiveCombo && targetItem && this.items().length > 0) {
+      this.toast.warning(
+        'Promoción de Combo desactivada',
+        `Al retirar "${targetItem.part.name}", el combo de ${comboKitSize || 2} artículos quedó incompleto y los repuestos restantes volvieron a su precio regular.`
+      );
+    }
+
     if (this.items().length === 0) {
       this.clear();
     } else {

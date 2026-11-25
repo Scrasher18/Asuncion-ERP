@@ -920,14 +920,33 @@
 
           <div class="max-h-64 overflow-y-auto divide-y divide-gray-100 pr-1">
             @for (item of cart.items(); track item.part.id) {
+              @let comboInfo = cart.getComboBreakdownForItem(item);
               <div class="py-2.5 flex items-center justify-between gap-2 text-xs">
                 <div class="min-w-0">
                   <p class="font-semibold text-gray-900 truncate">{{ item.part.name }}</p>
-                  <p class="text-[11px] text-gray-500">{{ item.quantity }} unid.</p>
+                  <div class="flex flex-wrap items-center gap-1.5 mt-0.5">
+                    <span class="text-[11px] text-gray-500">{{ item.quantity }} unid.</span>
+                    @if (comboInfo.isComboActive) {
+                      <span class="rounded bg-orange-50 border border-orange-200 px-1.5 py-0.5 text-[10px] font-bold text-orange-800">
+                        {{ comboInfo.extraRegularUnits > 0 ? (comboInfo.activeSets + ' en Combo + ' + comboInfo.extraRegularUnits + ' reg.') : ('Combo Kit ' + comboInfo.totalComboItemsCount + ' art.') }}
+                      </span>
+                    } @else if (cart.getIncompleteComboNoticeForItem(item); as brokenCombo) {
+                      <span class="rounded bg-amber-50 border border-amber-200 px-1.5 py-0.5 text-[10px] font-bold text-amber-800">
+                        Combo incompleto (Precio regular)
+                      </span>
+                    }
+                  </div>
                 </div>
-                <span class="font-semibold text-gray-900 shrink-0">
-                  S/ {{ (cart.effectiveUnitPrice(item) * item.quantity) | number: '1.2-2' }}
-                </span>
+                <div class="text-right shrink-0">
+                  @if (comboInfo.lineSubtotal < item.part.salePrice * item.quantity) {
+                    <span class="block text-[10px] text-gray-400 line-through font-mono">
+                      S/ {{ (item.part.salePrice * item.quantity) | number: '1.2-2' }}
+                    </span>
+                  }
+                  <span class="font-semibold text-gray-900 font-mono">
+                    S/ {{ comboInfo.lineSubtotal | number: '1.2-2' }}
+                  </span>
+                </div>
               </div>
             }
           </div>

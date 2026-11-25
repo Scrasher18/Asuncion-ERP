@@ -75,6 +75,14 @@ public class DatabaseSchemaPatcher implements CommandLineRunner {
             log.debug("Verificación nullable en delivery_proofs.driver_id completada ({})", e.getMessage());
         }
 
+        // Expand part_promotions complement columns to support multi-item combos (3, 4, 5+ items)
+        try {
+            jdbcTemplate.execute("ALTER TABLE part_promotions ALTER COLUMN combo_complement_sku TYPE VARCHAR(250)");
+            jdbcTemplate.execute("ALTER TABLE part_promotions ALTER COLUMN combo_complement_name TYPE VARCHAR(500)");
+        } catch (Exception e) {
+            log.debug("Verificación de longitud en part_promotions completada ({})", e.getMessage());
+        }
+
         // Ensure orders table has payment status, reference columns, and delivery security code if not present
         try {
             jdbcTemplate.execute("ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_status VARCHAR(30) DEFAULT 'PENDIENTE'");

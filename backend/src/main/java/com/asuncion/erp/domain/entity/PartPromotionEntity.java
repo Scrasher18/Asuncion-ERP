@@ -43,10 +43,10 @@ public class PartPromotionEntity {
     @Column(name = "promo_type", length = 30, nullable = false)
     private String promoType;
 
-    @Column(name = "combo_complement_sku", length = 50)
+    @Column(name = "combo_complement_sku", length = 250)
     private String comboComplementSku;
 
-    @Column(name = "combo_complement_name", length = 200)
+    @Column(name = "combo_complement_name", length = 500)
     private String comboComplementName;
 
     @Column(name = "combo_complement_price", precision = 12, scale = 2)
