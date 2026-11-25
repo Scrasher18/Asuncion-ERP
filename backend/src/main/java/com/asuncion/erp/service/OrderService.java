@@ -264,9 +264,9 @@ public class OrderService {
 
         // Catalog and POS retail prices already include 18% IGV per SUNAT Peru rules.
         BigDecimal grossItemsTotal = subtotal.setScale(2, RoundingMode.HALF_UP);
-        // Política de envío gratuito diferenciada por anillos geoespaciales PostGIS:
-        // - Zona 1 (Santa Anita, <= 2.5 km): Envío GRATIS desde S/ 200.00
-        // - Zona 2 (Zonas Aledañas: Ate, La Molina, El Agustino, > 2.5 km): Envío GRATIS desde S/ 450.00
+        // Política de tarifas fijas y envío gratuito diferenciada por zona:
+        // - Zona Cercana (Santa Anita, <= 2.5 km): Tarifa fija S/ 8.00 | Envío GRATIS desde S/ 200.00
+        // - Zona Lejana (Zonas Aledañas, > 2.5 km): Tarifa fija S/ 15.00 | Envío GRATIS desde S/ 450.00
         if ("DELIVERY".equalsIgnoreCase(req.deliveryType())) {
             String addrUpper = (order.getDeliveryAddress() != null ? order.getDeliveryAddress() : "").toUpperCase(Locale.ROOT);
             boolean hasAdjacentKeyword = addrUpper.contains("ATE") || addrUpper.contains("VITARTE")
@@ -283,6 +283,15 @@ public class OrderService {
             BigDecimal freeThreshold = isSantaAnitaZone ? BigDecimal.valueOf(200.00) : BigDecimal.valueOf(450.00);
             if (grossItemsTotal.compareTo(freeThreshold) >= 0) {
                 deliveryFee = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+            } else {
+                boolean hasCustomFixed = branch.getBaseDeliveryFee() != null && branch.getPerKmFee() != null
+                        && branch.getBaseDeliveryFee().compareTo(BigDecimal.valueOf(6.00)) >= 0
+                        && branch.getPerKmFee().compareTo(BigDecimal.valueOf(6.00)) >= 0;
+                BigDecimal nearFixed = hasCustomFixed ? branch.getBaseDeliveryFee() : BigDecimal.valueOf(8.00);
+                BigDecimal farFixed = (branch.getPerKmFee() != null && branch.getPerKmFee().compareTo(BigDecimal.valueOf(6.00)) >= 0)
+                        ? branch.getPerKmFee()
+                        : BigDecimal.valueOf(15.00);
+                deliveryFee = (isSantaAnitaZone ? nearFixed : farFixed).setScale(2, RoundingMode.HALF_UP);
             }
         }
         BigDecimal baseSubtotal = grossItemsTotal.divide(ONE_PLUS_IGV, 2, RoundingMode.HALF_UP);

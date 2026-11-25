@@ -212,15 +212,16 @@ public class GeospatialCoverageService {
     }
 
     private BigDecimal calculateDeliveryFee(BigDecimal baseFee, BigDecimal perKmFee, double distanceMeters) {
-        // Tarifa geodésica PostGIS: Tarifa base (S/ 5.00) + Recargo por kilómetro (S/ 1.80/km)
-        BigDecimal safeBase = (baseFee != null && baseFee.compareTo(BigDecimal.ZERO) >= 0)
-                ? baseFee
-                : BigDecimal.valueOf(5.00);
-        BigDecimal safePerKm = (perKmFee != null && perKmFee.compareTo(BigDecimal.ZERO) >= 0)
+        // Tarifas fijas de delivery por zona (Cerca <= 2.5 km: S/ 8.00 | Lejos > 2.5 km: S/ 15.00)
+        boolean hasCustomFixedTariffs = baseFee != null && perKmFee != null
+                && baseFee.compareTo(BigDecimal.valueOf(6.00)) >= 0
+                && perKmFee.compareTo(BigDecimal.valueOf(6.00)) >= 0;
+        BigDecimal nearFixedFee = hasCustomFixedTariffs ? baseFee : BigDecimal.valueOf(8.00);
+        BigDecimal farFixedFee = (perKmFee != null && perKmFee.compareTo(BigDecimal.valueOf(6.00)) >= 0)
                 ? perKmFee
-                : BigDecimal.valueOf(1.80);
-        BigDecimal km = BigDecimal.valueOf(distanceMeters / 1000.0);
-        return safeBase.add(safePerKm.multiply(km)).setScale(2, RoundingMode.HALF_UP);
+                : BigDecimal.valueOf(15.00);
+        BigDecimal selectedFixed = distanceMeters <= 2500.0 ? nearFixedFee : farFixedFee;
+        return selectedFixed.setScale(2, RoundingMode.HALF_UP);
     }
 
     private String buildMessage(boolean covered, String branchName, double distanceMeters, double allowedRadiusMeters) {

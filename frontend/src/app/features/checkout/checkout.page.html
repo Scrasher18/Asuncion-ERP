@@ -496,12 +496,13 @@
                 (coverageValidated)="onCoverageValidated($event)"
               />
 
-              <!-- Resumen Dinámico Corto de Cobertura y Envío Gratis (Sin mostrar tarifa por km interna) -->
+              <!-- Resumen Dinámico Corto de Tarifas Fijas por Zona (Cerca vs. Lejos) -->
               <div class="rounded-xl border border-gray-200 bg-gray-50/90 px-3.5 py-2.5 flex flex-wrap items-center justify-between gap-2 text-xs">
                 <div class="flex flex-wrap items-center gap-2 text-gray-700">
                   <img src="/images/icons/moto-delivery.png" alt="Cobertura" class="h-4 w-4 object-contain shrink-0" />
                   <span>
-                    <strong>Cobertura de reparto:</strong> Radio máx. {{ ((selectedBranch()?.coverageRadiusMeters || 6000) / 1000) | number: '1.1-1' }} km
+                    <strong>Tarifa fija de delivery:</strong>
+                    {{ isSantaAnitaZone() ? ('Zona Cercana S/ ' + (nearZoneFixedFee() | number: '1.2-2')) : ('Zona Lejana S/ ' + (farZoneFixedFee() | number: '1.2-2')) }}
                   </span>
                 </div>
                 <div class="flex flex-wrap items-center gap-1.5 text-[11px]">
@@ -509,13 +510,13 @@
                     [class]="isSantaAnitaZone() ? 'bg-emerald-100 text-emerald-800 border-emerald-300 font-bold' : 'bg-white text-gray-600 border-gray-200'"
                     class="rounded-lg border px-2 py-0.5"
                   >
-                    Santa Anita: Gratis ≥ S/ 200
+                    Cerca (Santa Anita): S/ {{ nearZoneFixedFee() | number: '1.2-2' }} · Gratis ≥ S/ 200
                   </span>
                   <span
                     [class]="!isSantaAnitaZone() ? 'bg-blue-100 text-blue-800 border-blue-300 font-bold' : 'bg-white text-gray-600 border-gray-200'"
                     class="rounded-lg border px-2 py-0.5"
                   >
-                    Zonas aledañas: Gratis ≥ S/ 450
+                    Lejos (Zonas aledañas): S/ {{ farZoneFixedFee() | number: '1.2-2' }} · Gratis ≥ S/ 450
                   </span>
                 </div>
               </div>

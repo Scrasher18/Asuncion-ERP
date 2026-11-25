@@ -1941,19 +1941,19 @@ export interface ComboItem {
 
                   <div class="grid grid-cols-2 gap-3">
                     <div>
-                      <label class="block text-xs font-medium text-gray-700 mb-1.5">Tarifa base (S/)</label>
+                      <label class="block text-xs font-medium text-gray-700 mb-1.5">Tarifa fija cercana ≤ 2.5 km (S/)</label>
                       <input
                         type="number"
-                        step="0.5"
+                        step="1"
                         [(ngModel)]="branchDraft.baseDeliveryFee"
                         class="min-h-[42px] w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-base sm:text-sm tabular-nums text-gray-900 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
                       />
                     </div>
                     <div>
-                      <label class="block text-xs font-medium text-gray-700 mb-1.5">Recargo por km (S/)</label>
+                      <label class="block text-xs font-medium text-gray-700 mb-1.5">Tarifa fija lejana &gt; 2.5 km (S/)</label>
                       <input
                         type="number"
-                        step="0.1"
+                        step="1"
                         [(ngModel)]="branchDraft.perKmFee"
                         class="min-h-[42px] w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-base sm:text-sm tabular-nums text-gray-900 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
                       />
@@ -1983,14 +1983,13 @@ export interface ComboItem {
                 (branchLocationChanged)="onBranchLocationChanged($event)"
               />
 
-              <!-- Compact Dynamic Tariff Summary Bar -->
+              <!-- Compact Dynamic Fixed Tariff Summary Bar -->
               <div class="rounded-2xl border border-gray-200 bg-white px-4 py-3 shadow-2xs flex flex-wrap items-center justify-between gap-3 text-xs">
                 <div class="flex flex-wrap items-center gap-2 text-gray-700">
-                  <span class="font-bold text-gray-900">Tarifa activa ({{ ((branchDraft?.coverageRadiusMeters || 6000) / 1000) | number: '1.1-1' }} km):</span>
+                  <span class="font-bold text-gray-900">Tarifas fijas de delivery ({{ ((branchDraft?.coverageRadiusMeters || 6000) / 1000) | number: '1.1-1' }} km):</span>
                   <span>
-                    Base <strong>S/ {{ (branchDraft?.baseDeliveryFee ?? 5) | number: '1.2-2' }}</strong>
-                    + <strong>S/ {{ (branchDraft?.perKmFee ?? 1.8) | number: '1.2-2' }}/km</strong>
-                    (máx. S/ {{ ((branchDraft?.baseDeliveryFee ?? 5) + ((branchDraft?.coverageRadiusMeters || 6000) / 1000) * (branchDraft?.perKmFee ?? 1.8)) | number: '1.2-2' }})
+                    Cerca (≤ 2.5 km): <strong>S/ {{ ((branchDraft?.baseDeliveryFee ?? 8) >= 6 && (branchDraft?.perKmFee ?? 15) >= 6 ? (branchDraft?.baseDeliveryFee ?? 8) : 8) | number: '1.2-2' }}</strong>
+                    · Lejos (&gt; 2.5 km): <strong>S/ {{ ((branchDraft?.perKmFee ?? 15) >= 6 ? (branchDraft?.perKmFee ?? 15) : 15) | number: '1.2-2' }}</strong>
                   </span>
                 </div>
                 <div class="flex flex-wrap items-center gap-2 text-[11px]">
@@ -10347,10 +10346,15 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
   private loadBranches(): void {
     this.logisticsService.getBranches().subscribe({
       next: (list) => {
-        this.branches.set(list);
-        if (list.length > 0) {
-          this.selectedBranchId = list[0].id;
-          this.branchDraft = { ...list[0] };
+        const normalized = list.map((b) => ({
+          ...b,
+          baseDeliveryFee: b.baseDeliveryFee != null && b.baseDeliveryFee >= 6 && (b.perKmFee == null || b.perKmFee >= 6) ? b.baseDeliveryFee : 8,
+          perKmFee: b.perKmFee != null && b.perKmFee >= 6 ? b.perKmFee : 15,
+        }));
+        this.branches.set(normalized);
+        if (normalized.length > 0) {
+          this.selectedBranchId = normalized[0].id;
+          this.branchDraft = { ...normalized[0] };
         }
       },
       error: () => {},

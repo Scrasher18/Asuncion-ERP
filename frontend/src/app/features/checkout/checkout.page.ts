@@ -311,14 +311,30 @@ export class CheckoutPageComponent implements OnInit, OnDestroy {
     return this.cart.subtotal() >= this.freeShippingThreshold();
   });
 
+  readonly nearZoneFixedFee = computed<number>(() => {
+    const b = this.selectedBranch();
+    if (b?.baseDeliveryFee != null && b.baseDeliveryFee >= 6 && (b.perKmFee == null || b.perKmFee >= 6)) {
+      return Number(b.baseDeliveryFee);
+    }
+    return 8.00;
+  });
+
+  readonly farZoneFixedFee = computed<number>(() => {
+    const b = this.selectedBranch();
+    if (b?.perKmFee != null && b.perKmFee >= 6) {
+      return Number(b.perKmFee);
+    }
+    return 15.00;
+  });
+
   readonly shippingFee = computed<number>(() => {
     if (this.deliveryType() === 'PICKUP') return 0;
     if (this.qualifiesForFreeShipping()) return 0;
     const cov = this.coverageState();
-    if (cov && cov.covered) {
-      return cov.estimatedDeliveryFee ?? 0;
+    if (cov && !cov.covered) {
+      return 0;
     }
-    return 0;
+    return this.isSantaAnitaZone() ? this.nearZoneFixedFee() : this.farZoneFixedFee();
   });
 
   readonly grandTotal = computed<number>(() =>

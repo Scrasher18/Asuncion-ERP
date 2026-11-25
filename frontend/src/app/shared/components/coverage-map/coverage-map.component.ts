@@ -99,7 +99,7 @@ export interface SelectedGeoPoint {
           </div>
           <div class="flex items-center gap-3 text-[11px] text-gray-500 font-medium">
             <span>Coordenadas: {{ currentStoreLat | number: '1.4-4' }}, {{ currentStoreLng | number: '1.4-4' }}</span>
-            <span>Tarifa base: S/ {{ effectiveBranch.baseDeliveryFee | number: '1.2-2' }}</span>
+            <span>Tarifa fija cercana: S/ {{ nearZoneFixedFee | number: '1.2-2' }} · Lejana: S/ {{ farZoneFixedFee | number: '1.2-2' }}</span>
           </div>
         } @else {
           <div class="flex items-center gap-4 min-w-0">
@@ -144,8 +144,8 @@ export class CoverageMapComponent implements AfterViewInit, OnChanges, OnDestroy
     latitude: -12.043004,
     longitude: -76.956621,
     coverageRadiusMeters: 6000,
-    baseDeliveryFee: 5.0,
-    perKmFee: 1.8,
+    baseDeliveryFee: 8.0,
+    perKmFee: 15.0,
     active: true,
   };
 
@@ -431,6 +431,22 @@ export class CoverageMapComponent implements AfterViewInit, OnChanges, OnDestroy
     this.recalculateDeliveryCoverage(address, userInteracted);
   }
 
+  get nearZoneFixedFee(): number {
+    const b = this.effectiveBranch;
+    if (b.baseDeliveryFee != null && b.baseDeliveryFee >= 6 && (b.perKmFee == null || b.perKmFee >= 6)) {
+      return Number(b.baseDeliveryFee);
+    }
+    return 8.00;
+  }
+
+  get farZoneFixedFee(): number {
+    const b = this.effectiveBranch;
+    if (b.perKmFee != null && b.perKmFee >= 6) {
+      return Number(b.perKmFee);
+    }
+    return 15.00;
+  }
+
   private recalculateDeliveryCoverage(suggestedAddress?: string, userInteracted = false): void {
     const storeLat = this.currentStoreLat;
     const storeLng = this.currentStoreLng;
@@ -444,14 +460,9 @@ export class CoverageMapComponent implements AfterViewInit, OnChanges, OnDestroy
     const covered = distMeters <= maxRadius;
     this.isCovered.set(covered);
 
-    const baseFee = (this.effectiveBranch.baseDeliveryFee != null && this.effectiveBranch.baseDeliveryFee >= 0)
-      ? this.effectiveBranch.baseDeliveryFee
-      : 5.00;
-    const perKm = (this.effectiveBranch.perKmFee != null && this.effectiveBranch.perKmFee >= 0)
-      ? this.effectiveBranch.perKmFee
-      : 1.80;
-    const distKm = distMeters / 1000.0;
-    const calculatedFee = Number((baseFee + distKm * perKm).toFixed(2));
+    const calculatedFee = distMeters <= 2500
+      ? Number(this.nearZoneFixedFee.toFixed(2))
+      : Number(this.farZoneFixedFee.toFixed(2));
     this.estimatedFee.set(calculatedFee);
 
     const point: SelectedGeoPoint = {

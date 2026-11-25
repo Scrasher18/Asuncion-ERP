@@ -232,9 +232,15 @@ public class ChatbotService {
         }
 
         // 1.1 Anti-Jailbreak / Prompt Injection Detection
-        if (containsAny(normalized, "ignora tus", "olvida tus", "actua como", "dame la clave", "dame la contrasena", "password", "system prompt", "bypass", "hackear")) {
-            String secureReply = "Como asesor técnico oficial de **Repuestos Automotrices Asunción**, opero bajo estrictos protocolos de seguridad y protección de datos. Estoy a tu disposición para asesorarte en la búsqueda de repuestos mecánicamente compatibles y disponibilidad en catálogo.";
+        if (containsAny(normalized, "ignora tus", "olvida tus", "actua como", "dame la clave", "dame la contrasena", "password", "system prompt", "bypass", "hackear", "sql injection", "drop table")) {
+            String secureReply = "Como asesor técnico oficial de Repuestos Automotrices Asunción, opero bajo estrictos protocolos de seguridad y protección de datos. Estoy a tu disposición para asesorarte en la búsqueda de repuestos mecánicamente compatibles y disponibilidad en catálogo.";
             return enrichAndBuild(sessionId, rawMessage, secureReply, "SECURITY_GUARDRAIL", null, List.of());
+        }
+
+        // 1.2 Pre-Filter for Trick Questions (Preguntas Trampa) & Business/Project Policy Queries
+        ChatbotResponse trapOrPolicyResponse = detectTrickQuestionsAndPolicies(sessionId, rawMessage, normalized);
+        if (trapOrPolicyResponse != null) {
+            return trapOrPolicyResponse;
         }
 
         // 2. Live Vehicle Compatibility & Spare Part Stock Detection
@@ -260,47 +266,203 @@ public class ChatbotService {
             }
         }
 
-        // 3. FAQ Detection (Coverage, Invoicing/B2B, Warranty, Branches/Hours, Tracking Help)
-
-
-        if (containsAny(normalized, "cobertura", "radio", "delivery", "envio", "despacho", "distrito", "llegan")) {
+        // 3. FAQ Detection (Coverage, Invoicing/B2B, Warranty, Branches/Hours, PIN Security, Combos/Wholesale)
+        if (containsAny(normalized, "cobertura", "radio", "delivery", "envio", "despacho", "distrito", "llegan", "tarifa", "todo lima", "lima este", "santa anita", "ate", "molina", "agustino")) {
             List<BranchDto> branches = geospatialCoverageService.getActiveBranches();
-            StringBuilder sb = new StringBuilder("Contamos con cobertura de reparto express para delivery desde nuestras sedes en Lima:\n");
-            for (BranchDto b : branches) {
-                sb.append(String.format("• **%s** (%s): radio de cobertura de **%.1f km**, tarifa base S/ %.2f + S/ %.2f/km.\n",
-                        b.name(), b.address(), b.coverageRadiusMeters() / 1000.0, b.baseDeliveryFee(), b.perKmFee()));
-            }
-            sb.append("En el checkout puedes seleccionar tu ubicación exacta en el mapa interactivo para validar cobertura inmediata o elegir **Recojo en Tienda** sin costo.");
-            return enrichAndBuild(sessionId, rawMessage, sb.toString(), "FAQ_COVERAGE", null, List.of());
+            BranchDto b = branches.isEmpty() ? null : branches.get(0);
+            double radKm = b != null ? (b.coverageRadiusMeters() / 1000.0) : 6.0;
+            double nearFee = (b != null && b.baseDeliveryFee() != null && b.baseDeliveryFee().doubleValue() >= 6.0 && (b.perKmFee() == null || b.perKmFee().doubleValue() >= 6.0))
+                    ? b.baseDeliveryFee().doubleValue() : 8.00;
+            double farFee = (b != null && b.perKmFee() != null && b.perKmFee().doubleValue() >= 6.0)
+                    ? b.perKmFee().doubleValue() : 15.00;
+            String reply = String.format(
+                    "Operamos desde nuestra sede central en Av. Santa Ana 441, Santa Anita con un radio de cobertura de %.1f km en Lima Este (Santa Anita, Ate-Vitarte, La Molina, El Agustino, San Luis y SJL Sur) para garantizar entregas express en 20 a 45 minutos con flota motorizada propia.\n\n"
+                    + "Manejamos tarifas fijas de delivery por zona:\n"
+                    + "• Zona Cercana (Santa Anita, hasta 2.5 km): Tarifa fija S/ %.2f (y Delivery GRATIS en compras desde S/ 200.00).\n"
+                    + "• Zona Lejana / Aledaña (de 2.5 a %.1f km): Tarifa fija S/ %.2f (y Delivery GRATIS en compras mayores o de taller desde S/ 450.00).\n"
+                    + "• Recojo en Tienda: 100%% Gratis (listo en 30 min, con reserva de stock por 48 horas).",
+                    radKm, nearFee, radKm, farFee
+            );
+            return enrichAndBuild(sessionId, rawMessage, reply, "FAQ_COVERAGE", null, List.of());
         }
 
-        if (containsAny(normalized, "factura", "ruc", "boleta", "comprobante", "sunat", "tributario", "igv", "mayorista", "empresa")) {
-            String reply = "Con nuestro R.U.C. 10414686867 emitimos **Boleta de Venta** (con DNI/CE o Clientes Varios en compras menores a S/ 700, y DNI/CE obligatorio desde S/ 700) y para empresas con **RUC (11 dígitos)** generamos una **Proforma inmediata** y enviamos tu **Factura Electrónica oficial de SUNAT por WhatsApp** (no usamos correo automático). Todos los precios publicados ya incluyen IGV (18%).";
+        if (containsAny(normalized, "factura", "ruc", "boleta", "comprobante", "sunat", "tributario", "igv", "mayorista", "empresa", "pago", "culqi", "yape", "plin", "efectivo")) {
+            String reply = "Con nuestro R.U.C. 10414686867 emitimos Boleta de Venta en PDF (con DNI opcional en compras menores a S/ 700, y DNI obligatorio desde S/ 700 o en Recojo en Tienda) y para empresas con RUC de 11 dígitos generamos Proforma en PDF con desglose de IGV (18%) y enviamos la Factura Electrónica oficial de SUNAT por WhatsApp. Además, enviamos la confirmación y tu código PIN de seguridad de 4 dígitos a tu correo electrónico. Aceptamos tarjetas en línea vía Culqi, Yape, Plin, Efectivo y POS, y aplicamos Tarifa Mayorista automática llevando 4 o más unidades del mismo repuesto.";
             return enrichAndBuild(sessionId, rawMessage, reply, "FAQ_INVOICING", null, List.of());
         }
 
-        if (containsAny(normalized, "garantia", "devolucion", "original", "oem", "calidad", "cambio")) {
-            String reply = "Todos nuestros repuestos OEM y Aftermarket certificados (Brembo, Bosch, Denso, KYB, NGK, Gates, Aisin) cuentan con **garantía directa de 6 a 12 meses** contra defectos de fabricación y trazabilidad por código de parte OEM.";
+        if (containsAny(normalized, "garantia", "devolucion", "original", "oem", "calidad", "cambio", "reclamo")) {
+            String reply = "Todos nuestros repuestos OEM y Aftermarket certificados (Brembo, Bosch, Denso, KYB, NGK, Gates, Aisin, Mann Filter, Castrol, Mobil) cuentan con garantía directa de 6 a 12 meses contra defectos de fabricación, validación previa de compatibilidad vehicular y Libro de Reclamaciones virtual conforme a INDECOPI.";
             return enrichAndBuild(sessionId, rawMessage, reply, "FAQ_WARRANTY", null, List.of());
         }
 
-        if (containsAny(normalized, "horario", "direccion", "sucursal", "sede", "tienda", "telefono", "ubicacion")) {
+        if (containsAny(normalized, "horario", "direccion", "sucursal", "sede", "tienda", "telefono", "ubicacion", "domingo", "sabado")) {
             List<BranchDto> branches = geospatialCoverageService.getActiveBranches();
-            StringBuilder sb = new StringBuilder("Nuestras tiendas y almacenes atienden de **Lunes a Domingo de 8:00 a.m. a 8:00 p.m.** (pedidos para delivery el mismo día hasta las 6:30 p.m., recojo en tienda vigente por 48 horas):\n");
+            StringBuilder sb = new StringBuilder("Nuestra sede central y almacén atiende de Lunes a Sábado de 8:00 a.m. a 8:00 p.m. (los pedidos de delivery confirmados hasta las 6:30 p.m. se despachan el mismo día; después de las 6:30 p.m. o los domingos se programan para el siguiente día hábil desde las 8:30 a.m., y el recojo en tienda mantiene reserva por 48 horas):\n");
             for (BranchDto b : branches) {
-                sb.append(String.format("• **%s**: %s (Tel: %s)\n", b.name(), b.address(), b.phone()));
+                sb.append(String.format("• %s: %s (Tel: %s)\n", b.name(), b.address(), b.phone()));
             }
             return enrichAndBuild(sessionId, rawMessage, sb.toString(), "FAQ_BRANCHES", null, List.of());
         }
 
-        // 4. Greeting or Unconfigured/Unknown Query
+        // 4. Greeting
         if (isGreetingOnly(normalized)) {
-            String greeting = "¡Hola! Bienvenido a Repuestos Automotrices Asunción. ¿En qué repuesto te puedo orientar hoy? Puedes indicarme la marca, modelo y año de tu vehículo (por ejemplo: 'pastillas de freno para Toyota Hilux 2020') o el código OEM/SKU que buscas.";
+            String greeting = "¡Hola! Bienvenido a Autopartes Asunción. ¿En qué repuesto o consulta técnica te puedo ayudar hoy? Puedes indicarme la marca, modelo y año de tu vehículo (por ejemplo: 'pastillas de freno para Toyota Hilux 2020'), consultar sobre mantenimiento mecánico, o preguntar por nuestras tarifas fijas de delivery y recojo en tienda.";
             return enrichAndBuild(sessionId, rawMessage, greeting, "GREETING", null, List.of());
         }
 
-        String unconfigured = "Actualmente no tengo configurada esa información en mi base de datos técnica. Como Asistente de Autopartes Asunción, estoy especializado únicamente en consultas de nuestro catálogo de repuestos automotrices, compatibilidad vehicular (marca, modelo y año), stock en almacén, precios y horarios de atención. Por favor, indícame la marca, modelo y repuesto que necesitas (por ejemplo: 'pastillas de freno para Toyota Hilux 2020' o 'filtro de aceite para Nissan Frontier').";
-        return enrichAndBuild(sessionId, rawMessage, unconfigured, "UNCONFIGURED_OR_UNKNOWN", null, List.of());
+        // 5. Intelligent General & Automotive Fallback (Backed by Gemini 3.1 Flash Lite with Full Store Knowledge)
+        String storeKnowledgeContext = "CONOCIMIENTO OFICIAL DE AUTOPARTES ASUNCIÓN: "
+                + "Sede única: Av. Santa Ana 441, Santa Anita, Lima (RUC 10414686867). Horario: Lunes a Sábado 8:00 a.m. a 8:00 p.m. "
+                + "Marcas de vehículos en catálogo: Toyota (Hilux, Yaris, Corolla, Probox), Nissan (Frontier, Sentra, Tiida, Versa), Hyundai (Accent, Elantra, H-100), Kia (Rio, Picanto, Cerato), Mitsubishi (L200), Isuzu (NPR, Forward), Hino (Dutro), Volvo (FH) y Scania (Serie R). "
+                + "Tarifas fijas de delivery en radio de 6.0 km (Lima Este): Zona Cercana Santa Anita (<= 2.5 km) tarifa fija S/ 8.00 y Gratis desde S/ 200.00; Zona Lejana / Aledañas (> 2.5 a 6.0 km: Ate, La Molina, El Agustino, San Luis, SJL Sur) tarifa fija S/ 15.00 y Gratis desde S/ 450.00; Recojo en Tienda Gratis con reserva de 48 horas. "
+                + "Seguridad de entrega y retiro: Código PIN de 4 dígitos (enviado al correo y panel del cliente, con bloqueo antifraude de 5 minutos al 3.er intento fallido) + validación de DNI de 8 dígitos en RENIEC (si el titular no puede ir a recoger en tienda, puede encargar a otra persona dándole el PIN de 4 dígitos y esa persona presenta su propio DNI en mostrador). "
+                + "Beneficios comerciales: Tarifa mayorista automática desde 4 unidades del mismo repuesto, combos de 2, 3 o más artículos con descuento conjunto, y reserva temporal en vivo (estado RESERVADO por 10 min en carrito y bloqueo ACID SELECT FOR UPDATE en PostgreSQL).";
+        String defaultFallbackReply = "En Autopartes Asunción estamos listos para ayudarte con repuestos certificados para Toyota, Nissan, Hyundai, Kia, Mitsubishi, Isuzu, Hino, Volvo y Scania, diagnóstico mecánico, tarifas fijas de delivery (S/ 8.00 en Santa Anita / S/ 15.00 en zonas aledañas) y recojo en tienda con PIN de seguridad. Indícame la marca, modelo y año de tu vehículo o tu consulta técnica.";
+        if (!geminiApiKey.isEmpty()) {
+            String aiReply = callGeminiWithContext(rawMessage, storeKnowledgeContext);
+            if (aiReply != null && !aiReply.isBlank()) {
+                return new ChatbotResponse(
+                        sessionId,
+                        aiReply.trim(),
+                        "GENERAL_AUTOMOTIVE_ADVISORY",
+                        "HYBRID_DB_PLUS_GEMINI",
+                        Instant.now(),
+                        null,
+                        List.of(),
+                        DEFAULT_QUICK_REPLIES
+                );
+            }
+        }
+        return enrichAndBuild(sessionId, rawMessage, defaultFallbackReply, "UNCONFIGURED_OR_UNKNOWN", null, List.of());
+    }
+
+    private ChatbotResponse detectTrickQuestionsAndPolicies(String sessionId, String rawMessage, String normalized) {
+        // TRAMPA 1: Vehículos o artículos fuera del rubro automotriz (motos, bicicletas, aviones, barcos, electrodomésticos, comida, etc.)
+        if (containsAny(normalized, "bicicleta", "moto lineal", "motocicleta", "mototaxi", "bajaj", "torito", "scooter",
+                "avion", "helicoptero", "barco", "lancha", "submarino", "tren", "licuadora", "refrigeradora", "lavadora",
+                "microondas", "televisor", "pizza", "hamburguesa", "ropa", "zapatilla")) {
+            String reply = "Aclaración de alcance comercial: En Autopartes Asunción nos especializamos exclusivamente en repuestos para vehículos automotores de 4 ruedas y transporte pesado (autos, camionetas Pick-Up, SUVs y camiones de marcas como Toyota, Nissan, Hyundai, Kia, Mitsubishi, Isuzu, Hino, Volvo y Scania). No comercializamos piezas para bicicletas, motocicletas, embarcaciones ni artículos ajenos al sector automotriz.";
+            return enrichAndBuild(sessionId, rawMessage, reply, "DOMAIN_BOUNDARY_TRAP", null, List.of());
+        }
+
+        // TRAMPA 2: Año de vehículo imposible o futuro (ej. 2028, 2030, 2050, o 1890, 1930)
+        Matcher futureOrAncientYear = Pattern.compile("\\b(1[0-8]\\d{2}|19[0-7]\\d|202[89]|20[3-9]\\d|2[1-9]\\d{2})\\b").matcher(normalized);
+        if (futureOrAncientYear.find() && !containsAny(normalized, "oem", "sku", "iso", "3779", "7519", "6455")) {
+            int badYear = Integer.parseInt(futureOrAncientYear.group(1));
+            if (badYear > 2027 || badYear < 1980) {
+                String reply = String.format(
+                        "Aclaración técnica automotriz: El año modelo %d no existe en el parque automotor comercial actual (nuestro catálogo técnico abarca vehículos fabricados entre 1990 y 2026). Por favor, indícame el año real de fabricación de tu vehículo (por ejemplo, Toyota Hilux 2021 o Nissan Frontier 2020) para validar la pieza exacta.",
+                        badYear
+                );
+                return enrichAndBuild(sessionId, rawMessage, reply, "IMPOSSIBLE_YEAR_TRAP", null, List.of());
+            }
+        }
+
+        // TRAMPA 3: Cruce falso de Marca y Modelo (ej. "Hyundai Hilux", "Toyota Civic", "Nissan Yaris", "Kia Corolla", "Toyota Frontier", "Volvo Yaris")
+        Map<String, String> modelTrueMake = Map.ofEntries(
+                Map.entry("hilux", "Toyota"),
+                Map.entry("yaris", "Toyota"),
+                Map.entry("corolla", "Toyota"),
+                Map.entry("probox", "Toyota"),
+                Map.entry("caldina", "Toyota"),
+                Map.entry("frontier", "Nissan"),
+                Map.entry("sentra", "Nissan"),
+                Map.entry("tiida", "Nissan"),
+                Map.entry("versa", "Nissan"),
+                Map.entry("accent", "Hyundai"),
+                Map.entry("elantra", "Hyundai"),
+                Map.entry("h-100", "Hyundai"),
+                Map.entry("h100", "Hyundai"),
+                Map.entry("rio", "Kia"),
+                Map.entry("picanto", "Kia"),
+                Map.entry("cerato", "Kia"),
+                Map.entry("l200", "Mitsubishi"),
+                Map.entry("npr", "Isuzu"),
+                Map.entry("dutro", "Hino"),
+                Map.entry("civic", "Honda"),
+                Map.entry("cr-v", "Honda"),
+                Map.entry("crv", "Honda"),
+                Map.entry("swift", "Suzuki"),
+                Map.entry("spark", "Chevrolet"),
+                Map.entry("aveo", "Chevrolet"),
+                Map.entry("cruze", "Chevrolet"),
+                Map.entry("duster", "Renault"),
+                Map.entry("golf", "Volkswagen"),
+                Map.entry("jetta", "Volkswagen"),
+                Map.entry("tico", "Daewoo"),
+                Map.entry("model 3", "Tesla"),
+                Map.entry("model y", "Tesla")
+        );
+        List<String> allKnownMakes = List.of(
+                "toyota", "nissan", "hyundai", "kia", "mitsubishi", "isuzu", "hino", "volvo", "scania",
+                "honda", "suzuki", "chevrolet", "ford", "mazda", "renault", "volkswagen", "daewoo", "tesla", "byd", "peugeot", "chery", "jac", "bmw", "audi", "mercedes"
+        );
+        for (Map.Entry<String, String> mm : modelTrueMake.entrySet()) {
+            if (containsWord(normalized, mm.getKey())) {
+                String trueMake = mm.getValue();
+                for (String mentionedMake : allKnownMakes) {
+                    if (containsWord(normalized, mentionedMake) && !mentionedMake.equalsIgnoreCase(trueMake)) {
+                        String wrongMakeCap = mentionedMake.substring(0, 1).toUpperCase() + mentionedMake.substring(1);
+                        String modelCap = mm.getKey().substring(0, 1).toUpperCase() + mm.getKey().substring(1);
+                        String reply = String.format(
+                                "Aclaración técnica automotriz: Detecté una combinación incorrecta de marca y modelo. El modelo %s no es fabricado por %s, sino por %s. Si deseas consultar repuestos compatibles para %s %s, indícame qué pieza y año necesitas.",
+                                modelCap, wrongMakeCap, trueMake, trueMake, modelCap
+                        );
+                        return enrichAndBuild(sessionId, rawMessage, reply, "BRAND_MODEL_MISMATCH_TRAP", null, List.of());
+                    }
+                }
+            }
+        }
+
+        // TRAMPA 4: Bujías de chispa / Bobinas de encendido / Carburador para motores Diésel (incluyendo camionetas diésel o camiones)
+        boolean mentionsDiesel = containsAny(normalized, "diesel", "petroleo", "petrolero", "petrolera", "d-4d", "d4d", "2gd", "1gd", "common rail", "tdi", "scania", "volvo", "hino", "isuzu", "dutro", "npr");
+        boolean mentionsSparkIgnition = containsAny(normalized, "bujia", "bujias", "bobina", "bobinas", "cables de bujia", "delco", "distribuidor", "chispa", "spark plug")
+                && !containsAny(normalized, "precalentamiento", "incandescente");
+        if (mentionsDiesel && mentionsSparkIgnition) {
+            String reply = "Aclaración técnica automotriz: Un motor Diésel (petrolero) funciona por autoencendido mediante compresión de aire a alta presión y temperatura (ciclo Diésel), por lo que NO utiliza bujías de chispa, bobinas de ignición ni cables de bujía (únicamente emplea inyectores Common-Rail y bujías incandescentes de precalentamiento para arranque en frío). Para motores diésel disponemos de aceite Mobil Delvac 15W-40, filtros de petróleo y separadores de agua.";
+            return enrichAndBuild(sessionId, rawMessage, reply, "MECHANICAL_INCOMPATIBILITY_TRAP", null, List.of());
+        }
+
+        // TRAMPA 5: Repuestos de combustión o transmisión manual para vehículos 100% eléctricos (Tesla, BYD, Leaf, auto eléctrico)
+        boolean mentionsElectric = containsAny(normalized, "tesla", "model 3", "model y", "model s", "model x", "auto electrico", "carro electrico", "vehiculo electrico", "100% electrico", "nissan leaf", "taycan", "e-tron");
+        boolean mentionsIcePart = containsAny(normalized, "aceite de motor", "filtro de aceite", "filtro aceite", "filtro de combustible", "filtro de gasolina", "filtro de petroleo", "bujia", "bujias", "bobina", "bobinas", "carburador", "embrague", "correa de distribucion", "faja de distribucion", "kit de distribucion", "alternador", "arrancador", "tubo de escape", "catalizador", "inyector", "inyectores", "bomba de gasolina");
+        if (mentionsElectric && mentionsIcePart) {
+            String reply = "Aclaración técnica automotriz: Un vehículo 100% eléctrico (BEV) funciona con motores eléctricos y baterías de iones de litio, sin motor de combustión interna ni caja manual. Por ello, NO utiliza aceite de motor, filtros de aceite o combustible, bujías, bobinas, kit de embrague, correa de distribución ni sistema de escape. Solo requiere consumibles de chasis y seguridad como líquido de frenos DOT 4, pastillas de freno, filtro de cabina antipolen, amortiguadores y plumillas.";
+            return enrichAndBuild(sessionId, rawMessage, reply, "ELECTRIC_VEHICLE_TRAP", null, List.of());
+        }
+
+        // TRAMPA 6: Prácticas mecánicas dañinas (agua de caño en radiador, gasolina en motor diésel, aceite en frenos, aceite 20W-50 en motor moderno VVT-i)
+        if (containsAny(normalized, "agua de cano", "agua del cano", "agua potable", "agua normal") && containsAny(normalized, "radiador", "motor", "refrigerante")) {
+            String reply = "Advertencia técnica: Nunca debes usar agua de caño en el radiador. El agua común hierve a 100°C y sus minerales (calcio y cloro) provocan corrosión galvánica, picaduras en la culata de aluminio, sarro en el radiador y falla prematura de la bomba de agua. Siempre debes usar Refrigerante Anticongelante 50/50 (como Prestone 50/50 que tenemos en stock a S/ 48.00), que eleva el punto de ebullición a 129°C y protege todo el sistema.";
+            return enrichAndBuild(sessionId, rawMessage, reply, "MAINTENANCE_FLUID_TRAP", null, List.of());
+        }
+        if ((containsAny(normalized, "gasolina") && containsAny(normalized, "motor diesel", "carro diesel", "camioneta diesel", "petrolero"))
+                || (containsAny(normalized, "petroleo", "diesel") && containsAny(normalized, "motor gasolinero", "motor a gasolina", "carro a gasolina"))) {
+            String reply = "Advertencia técnica crítica: Nunca se debe mezclar ni cruzar gasolina con diésel. Si pones gasolina en un motor diésel Common-Rail, destruyes la lubricación de la bomba de alta presión y los inyectores; y si pones diésel en un motor a gasolina, no encenderá por baja volatilidad y contaminará las bujías y el catalizador. Si ocurrió por error, no arranques el motor y drena el tanque y el filtro de combustible.";
+            return enrichAndBuild(sessionId, rawMessage, reply, "FUEL_MISMATCH_TRAP", null, List.of());
+        }
+
+        // POLÍTICAS DEL SISTEMA: PIN de 4 dígitos, 3 intentos, DNI RENIEC y qué pasa si encargo a otra persona
+        if (containsAny(normalized, "pin", "codigo de 4 digitos", "4 digitos", "3 intentos", "tres intentos", "otra persona", "encargar", "tercero", "quien recoge")) {
+            String reply = "Nuestro protocolo antifraude de entrega y retiro en tienda funciona así:\n"
+                    + "1. Al confirmar tu compra, el sistema genera un Código PIN de seguridad único de 4 dígitos (visible en Mis Pedidos, Seguimiento y enviado a tu correo electrónico).\n"
+                    + "2. Para entregar el pedido (ya sea por motorizado o en mostrador de tienda), se valida el DNI de 8 dígitos del receptor con RENIEC (bloqueando DNIs ficticios o el propio DNI del repartidor/vendedor) y se solicita el PIN de 4 dígitos.\n"
+                    + "3. Si fallan el PIN 3 veces seguidas, el pedido se bloquea temporalmente por 5 minutos.\n"
+                    + "4. Si elegiste Recojo en Tienda y no puedes ir personalmente, puedes encargar a otra persona de tu confianza: solo compártele tu PIN de 4 dígitos; en mostrador registraremos su propio DNI verificado con RENIEC y validaremos el PIN.";
+            return enrichAndBuild(sessionId, rawMessage, reply, "FAQ_SECURITY_PIN", null, List.of());
+        }
+
+        // POLÍTICAS DEL SISTEMA: Reserva de stock, sobreventas, combos y precios mayoristas
+        if (containsAny(normalized, "reserva", "reservado", "sobreventa", "mayorista", "4 unidades", "combo", "combos", "kit")) {
+            String reply = "En Autopartes Asunción contamos con tres ventajas clave:\n"
+                    + "• Reserva Temporal en Vivo: Al agregar al carrito e ir al checkout, tu stock pasa a estado RESERVADO por 10 minutos (y 48 horas en Recojo en Tienda), con bloqueo transaccional ACID en PostgreSQL para evitar sobreventas.\n"
+                    + "• Tarifa Mayorista Automática: Al llevar 4 o más unidades del mismo repuesto, el sistema aplica automáticamente el precio por mayor para talleres.\n"
+                    + "• Combos Automotrices Multi-Artículo: En nuestro catálogo web puedes adquirir kits de 2, 3 o más repuestos complementarios con descuento conjunto automático.";
+            return enrichAndBuild(sessionId, rawMessage, reply, "FAQ_COMMERCIAL_BENEFITS", null, List.of());
+        }
+
+        return null;
     }
 
     private boolean isGreetingOnly(String normalized) {
@@ -949,18 +1111,23 @@ public class ChatbotService {
                     Tu objetivo es responder de forma concisa, profesional y directa a la consulta del cliente.
 
                     DIRECTRICES OBLIGATORIAS:
-                    1. BREVEDAD: Responde en MÁXIMO 40 a 50 palabras. Ve al grano sin introducciones largas ni rodeos.
-                    2. RECOMENDACIÓN PUNTUAL: Si el cliente pide recomendación o pide un repuesto específico (por ejemplo "¿qué filtro de aceite me recomiendas?"), recomienda ÚNICAMENTE el repuesto exacto que tenemos disponible en almacén indicado en los datos. No agregues piezas que no pidió (si pide filtro de aceite, no menciones aceites líquidos ni filtros de aire).
-                    3. JUSTIFICACIÓN Y CONOCIMIENTO AUTOMOTRIZ: Responde con autoridad técnica sobre cualquier consulta mecánica, de mantenimiento preventivo, viscosidades de aceite, frenos, distribución, suspensión, fallas comunes y especificaciones OEM (SAE, API, DOT).
-                    4. FORMATO: TOTALMENTE PROHIBIDO USAR ASTERISCOS (**) O MARCAS MARKDOWN. Escribe en texto limpio y legible.
+                    1. BREVEDAD Y PRECISIÓN: Responde en MÁXIMO 50 a 70 palabras. Ve al grano con claridad técnica y comercial.
+                    2. RECOMENDACIÓN PUNTUAL: Si el cliente pide un repuesto específico de los DATOS OFICIALES DE ALMACÉN, recomienda exactamente el repuesto disponible con su marca, código OEM, precio en Soles y stock.
+                    3. CONOCIMIENTO AUTOMOTRIZ Y DIAGNÓSTICO: Responde con autoridad técnica cualquier pregunta sobre mecánica automotriz, mantenimiento preventivo, viscosidades SAE/API, líquido de frenos DOT, diagnóstico de fallas (ruidos, humo, temperatura, vibraciones, frenos, suspensión, embrague) y diferencias de componentes.
+                    4. FORMATO: TOTALMENTE PROHIBIDO USAR ASTERISCOS (**) O MARCAS MARKDOWN. Escribe en texto limpio.
                     5. PROHIBIDO USAR EMOJIS.
-                    6. CONSULTAS TRAMPA:
-                       - Si preguntan por bujías en camiones pesados diésel (Scania, Volvo, Hino): Aclara técnicamente que los motores diésel encienden por compresión y no usan bujías de chispa.
-                       - Si preguntan por repuestos de combustión para autos 100% eléctricos: Aclara que no llevan motor a combustión ni aceite de motor.
-                    7. AMPLITUD TEMÁTICA AUTOMOTRIZ: Si el cliente consulta sobre diagnóstico de fallas (ruidos, vibraciones, frenado esponjoso, sobrecalentamiento, chirridos), intervalos de cambio de fajas o fluidos, o diferencias de materiales (cerámico vs semimetálico), responde con fundamento técnico automotriz claro y sugiere la solución con las piezas OEM y Aftermarket de Repuestos Asunción.
-                    8. HONESTIDAD ESTRICTA Y CERO ALUCINACIONES (REGLA MANDATORIA): Si el cliente pregunta por información que NO está en los DATOS OFICIALES DE ALMACÉN, o por temas que no tenemos configurados, repuestos de marcas que no vendemos, o preguntas no automotrices o fuera de catálogo: DI LA VERDAD con total transparencia. NUNCA inventes repuestos, compatibilidades ni afirmes cosas que no están configuradas. Responde con claridad: "Actualmente no tengo configurada esa información en mi base de datos técnica. Como Asistente de Autopartes Asunción, estoy especializado únicamente en consultas de repuestos de nuestro catálogo, compatibilidad vehicular por marca y modelo, stock en almacén y horarios de atención."
-                    9. SEGUIMIENTO DE PEDIDOS: El seguimiento de pedidos ya NO se realiza en este chat. Si el usuario pregunta por rastreo de pedidos o escribe un código ASN-2026-XXXX, indícale claramente que debe consultar en la sección "Seguimiento" (/track) del menú superior para ver el monitoreo GPS satelital en vivo.
-                    10. COMPROBANTES DE PAGO: En Repuestos Asunción (R.U.C. 10414686867) no usamos envío automático por correo. Para personas entregamos Boleta de Venta (con DNI/CE o Clientes Varios si es menor a S/ 700, y DNI/CE obligatorio desde S/ 700). Para empresas con RUC de 11 dígitos emitimos una Proforma inmediata con el desglose de Op. Gravada e IGV y enviamos la Factura Electrónica oficial de SUNAT por WhatsApp. Los precios publicados ya incluyen IGV (18%).
+                    6. DETECCIÓN DE PREGUNTAS TRAMPA:
+                       - Si preguntan por bujías de chispa, bobinas o carburador para motores diésel (Scania, Volvo, Hino, Isuzu o camionetas diésel): Aclara que los motores diésel encienden por compresión de aire y no usan bujías de chispa ni bobinas.
+                       - Si preguntan por aceite de motor, filtros de combustible, bujías, embrague o escape para autos 100% eléctricos (Tesla, BYD, Leaf): Aclara que un vehículo eléctrico no tiene motor de combustión interna.
+                       - Si cruzan una marca con el modelo de otra marca (ej. Hyundai Hilux o Toyota Civic): Corrige amablemente indicando qué fabricante produce realmente ese modelo.
+                       - Si preguntan por años imposibles (ej. 2030 o 1920) o vehículos fuera del rubro (motos, bicicletas, aviones): Acláralo con precisión técnica.
+                    7. REGLAS OFICIALES DE AUTOPARTES ASUNCIÓN:
+                       - Sede única: Av. Santa Ana 441, Santa Anita, Lima (R.U.C. 10414686867). Horario: Lunes a Sábado de 8:00 a.m. a 8:00 p.m.
+                       - Cobertura de delivery: Radio de 6.0 km en Lima Este (Santa Anita, Ate-Vitarte, La Molina, El Agustino, San Luis y SJL Sur) con flota motorizada propia para entregas express en 20 a 45 minutos.
+                       - Tarifas Fijas de Delivery: Zona Cercana (Santa Anita, hasta 2.5 km) tiene tarifa fija de S/ 8.00 y Delivery GRATIS en compras desde S/ 200.00. Zona Lejana / Aledañas (2.5 a 6.0 km) tiene tarifa fija de S/ 15.00 y Delivery GRATIS en compras mayores desde S/ 450.00. Recojo en Tienda es 100% Gratis (reserva por 48 horas).
+                       - Seguridad Antifraude: Código PIN de 4 dígitos (enviado al correo y panel del cliente, con bloqueo de 5 minutos tras 3 intentos fallidos) y validación de DNI de 8 dígitos en RENIEC. Si en Recojo en Tienda el titular no puede ir, puede encargar a otra persona dándole el PIN de 4 dígitos y esa persona presenta su propio DNI en mostrador.
+                       - Beneficios y Pagos: Tarifa mayorista automática desde 4 unidades, combos de 2, 3 o más artículos, reserva temporal en vivo por 10 min (estado RESERVADO y bloqueo ACID en PostgreSQL), pagos con Culqi, Yape, Plin, Efectivo y POS. Boleta PDF y Proforma PDF + Factura SUNAT por WhatsApp (precios incluyen 18% IGV).
+                    8. SEGUIMIENTO DE PEDIDOS: Si preguntan por rastreo GPS en vivo de un pedido ASN-2026-XXXX, indícales consultar la sección "Seguimiento" (/track) del menú superior.
 
 
 
