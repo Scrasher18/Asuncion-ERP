@@ -732,8 +732,8 @@ export interface ComboItem {
                 </div>
               </div>
 
-              <!-- 3. Indicadores Estratégicos de Negocio: Medios de Pago, Despacho Lima Este y Top Marcas -->
-              <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <!-- 3. Indicadores Estratégicos de Negocio: Medios de Pago, Despacho Lima Este, Clientes Más Compradores y Top Marcas -->
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <!-- Gráfico A: Distribución Real de Medios de Pago -->
                 <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-2xs space-y-4">
                   <div class="flex items-center justify-between">
@@ -792,7 +792,7 @@ export interface ComboItem {
                         </span>
                         <h3 class="text-sm font-bold text-gray-900">Despacho: Santa Anita y Zonas Aledañas</h3>
                       </div>
-                      <p class="text-xs text-gray-500 mt-0.5">Santa Anita (Gratis ≥ S/ 200) · Ate, La Molina, El Agustino (Gratis ≥ S/ 450)</p>
+                      <p class="text-xs text-gray-500 mt-0.5">Santa Anita · Ate, La Molina, El Agustino y SJL Sur</p>
                     </div>
                   </div>
 
@@ -813,6 +813,54 @@ export interface ComboItem {
                         <div class="flex justify-between text-[11px] text-gray-500">
                           <span>{{ d.count }} envíos · <span class="text-orange-700 font-medium">~{{ d.avgDeliveryMinutes }} min</span></span>
                           <span class="font-semibold text-gray-800">S/ {{ d.amount | number: '1.2-2' }}</span>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                </div>
+
+                <!-- Gráfico C: Clientes Más Compradores (Top Clientes / Talleres) -->
+                <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-2xs space-y-4">
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <div class="flex items-center gap-2">
+                        <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700 text-xs font-bold">
+                          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
+                        </span>
+                        <h3 class="text-sm font-bold text-gray-900">Clientes más compradores</h3>
+                      </div>
+                      <p class="text-xs text-gray-500 mt-0.5">Ranking de talleres y clientes frecuentes por volumen de compra</p>
+                    </div>
+                  </div>
+
+                  <div class="space-y-3 pt-1">
+                    @for (c of computedTopCustomersDistribution(); track c.name; let idx = $index) {
+                      <div class="space-y-1">
+                        <div class="flex items-center justify-between text-xs gap-2">
+                          <span class="font-bold text-gray-900 flex items-center gap-1.5 min-w-0">
+                            <span
+                              [class]="idx === 0 ? 'bg-orange-600 text-white' : 'bg-gray-100 text-gray-700'"
+                              class="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[10px] font-extrabold tabular-nums"
+                            >
+                              {{ idx + 1 }}
+                            </span>
+                            <span class="truncate">{{ c.name }}</span>
+                            <span class="text-[10px] font-medium text-gray-500 shrink-0">({{ c.docLabel }})</span>
+                          </span>
+                          <span class="font-bold tabular-nums text-gray-900 shrink-0">{{ c.percentage | number: '1.0-1' }}%</span>
+                        </div>
+                        <div class="h-2 w-full overflow-hidden rounded-full bg-gray-100">
+                          <div
+                            [class]="c.barColor"
+                            class="h-full rounded-full transition-all duration-500"
+                            [style.width.%]="c.percentage"
+                          ></div>
+                        </div>
+                        <div class="flex justify-between text-[11px] text-gray-500">
+                          <span>{{ c.ordersCount }} {{ c.ordersCount === 1 ? 'compra' : 'compras' }} · <span class="text-emerald-700 font-semibold">{{ c.segmentLabel }}</span></span>
+                          <span class="font-semibold text-gray-800">S/ {{ c.totalSpent | number: '1.2-2' }}</span>
                         </div>
                       </div>
                     }
@@ -2685,24 +2733,143 @@ export interface ComboItem {
                 </div>
               </div>
 
-              <!-- Scrollable Table Container with Sticky Columns & Header -->
-              <div class="max-h-[580px] overflow-auto scrollbar-thin">
+              <!-- Vista Responsiva Móvil / Tablet (Tarjetas sin corte ni barra horizontal incómoda) -->
+              <div class="lg:hidden divide-y divide-gray-200 max-h-[620px] overflow-y-auto">
+                @for (ord of paginatedCompletedOrders(); track ord.id) {
+                  <div class="p-4 space-y-3 hover:bg-gray-50/70 transition">
+                    <div class="flex items-start justify-between gap-2">
+                      <div>
+                        <span class="font-mono text-xs font-extrabold text-gray-900">{{ ord.orderNumber }}</span>
+                        <span class="block text-[11px] text-gray-500">
+                          {{ (ord.updatedAt || ord.createdAt) | date: 'dd/MM/yy HH:mm' }}
+                        </span>
+                      </div>
+                      <div class="text-right">
+                        <span class="block text-sm font-black tabular-nums text-gray-900">
+                          S/ {{ (ord.totalAmount ?? ord.total ?? ord.subtotal) | number: '1.2-2' }}
+                        </span>
+                        <span class="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
+                          ✓ Cobrado · {{ formatPaymentMethodLabel(ord.paymentMethod) }}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-1.5">
+                      @if (isCounterSaleOrder(ord)) {
+                        <span class="inline-flex items-center gap-1 rounded-lg border border-purple-200 bg-purple-50 px-2 py-0.5 text-[11px] font-bold text-purple-800">
+                          <img src="/images/icons/caja-mostrador.png" alt="POS" class="h-3.5 w-3.5 object-contain inline-block" />
+                          <span>Caja POS</span>
+                        </span>
+                      } @else if (ord.deliveryType === 'PICKUP') {
+                        <span class="inline-flex items-center gap-1 rounded-lg border border-blue-200 bg-blue-50 px-2 py-0.5 text-[11px] font-bold text-blue-800">
+                          <img src="/images/icons/tienda-recojo.png" alt="Recojo" class="h-3.5 w-3.5 object-contain inline-block" />
+                          <span>Online · Recojo</span>
+                        </span>
+                      } @else {
+                        <span class="inline-flex items-center gap-1 rounded-lg border border-orange-200 bg-orange-50 px-2 py-0.5 text-[11px] font-bold text-orange-800">
+                          <img src="/images/icons/moto-delivery.png" alt="Delivery" class="h-3.5 w-3.5 object-contain inline-block" />
+                          <span>Online · Delivery</span>
+                        </span>
+                      }
+
+                      @if (ord.salespersonName) {
+                        <span class="inline-flex items-center gap-1 rounded-md bg-purple-50 border border-purple-200 px-1.5 py-0.5 text-[10px] font-bold text-purple-700">
+                          <img src="/images/icons/vendedor.png" alt="Vendedor" class="h-3 w-3 object-contain inline-block" />
+                          <span>Vendedor: {{ ord.salespersonName }}</span>
+                        </span>
+                      } @else if (isCounterSaleOrder(ord)) {
+                        <span class="inline-flex items-center gap-1 rounded-md bg-amber-50 border border-amber-200 px-1.5 py-0.5 text-[10px] font-bold text-amber-800">
+                          <span>Venta en Caja</span>
+                        </span>
+                      } @else {
+                        <span class="inline-flex items-center gap-1 rounded-md bg-sky-50 border border-sky-200 px-1.5 py-0.5 text-[10px] font-medium text-sky-800">
+                          <img src="/images/icons/tienda-online.png" alt="Online" class="h-3 w-3 object-contain inline-block" />
+                          <span>Tienda Online (Cliente)</span>
+                        </span>
+                      }
+                    </div>
+
+                    <div class="flex items-center justify-between gap-2 text-xs text-gray-600 bg-gray-50 rounded-xl px-3 py-2 border border-gray-100">
+                      <div class="min-w-0">
+                        <p class="font-bold text-gray-900 truncate">{{ ord.recipientName || ord.customerName }}</p>
+                        <span class="text-[11px] text-gray-500">
+                          {{ ord.invoiceType }} {{ ord.customerTaxId ? '· Doc. ' + ord.customerTaxId : '' }}
+                        </span>
+                      </div>
+                      <div class="text-right shrink-0 text-[11px] text-gray-500">
+                        @if (!isCounterSaleOrder(ord) && ord.deliveryType === 'DELIVERY') {
+                          <span class="font-semibold text-gray-800 block">{{ ord.assignedDriverName || 'Flota Asunción' }}</span>
+                        } @else {
+                          <span class="font-medium text-gray-700 block">{{ ord.branchName || 'Sede Santa Anita' }}</span>
+                        }
+                      </div>
+                    </div>
+
+                    <div class="flex flex-wrap items-center justify-end gap-1.5 pt-0.5">
+                      <button
+                        type="button"
+                        (click)="openOrderDetailModal(ord)"
+                        class="inline-flex items-center gap-1 rounded-lg border border-purple-200 bg-purple-50 px-2.5 py-1.5 text-[11px] font-bold text-purple-700 hover:bg-purple-100 transition cursor-pointer"
+                      >
+                        <svg class="h-3.5 w-3.5 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        <span>Detalle</span>
+                      </button>
+                      <button
+                        type="button"
+                        (click)="downloadOrderPdf(ord)"
+                        class="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-gray-700 hover:border-orange-300 hover:text-orange-700 transition cursor-pointer"
+                      >
+                        <span>{{ isFacturaOrder(ord) ? 'Proforma' : 'PDF' }}</span>
+                      </button>
+                      @if (isFacturaOrder(ord)) {
+                        <button
+                          type="button"
+                          (click)="openWhatsAppFactura(ord)"
+                          class="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-50 px-2.5 py-1.5 text-[11px] font-bold text-emerald-800 hover:bg-emerald-600 hover:text-white transition cursor-pointer"
+                        >
+                          <img src="/images/icons/whatsapp-factura.png" alt="WhatsApp" class="h-3 w-3 object-contain inline-block" />
+                          <span>WA</span>
+                        </button>
+                      }
+                      @if (!isCounterSaleOrder(ord)) {
+                        <a
+                          routerLink="/track"
+                          [queryParams]="{ order: ord.orderNumber }"
+                          class="inline-flex items-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-[11px] font-bold text-emerald-800 hover:bg-emerald-100 transition"
+                        >
+                          <span>Constancia</span>
+                        </a>
+                      }
+                    </div>
+                  </div>
+                } @empty {
+                  <div class="px-6 py-10 text-center text-xs text-gray-500">
+                    No hay pedidos completados que coincidan con este filtro.
+                  </div>
+                }
+              </div>
+
+              <!-- Vista Desktop (Tabla completa sin columnas sticky que partan el contenido) -->
+              <div class="hidden lg:block max-h-[580px] overflow-auto scrollbar-thin">
                 <table class="min-w-full divide-y divide-gray-200 text-xs">
                   <thead class="sticky top-0 bg-gray-50 z-20 shadow-2xs text-left font-semibold text-gray-600">
                     <tr>
-                      <th class="sticky left-0 bg-gray-50 z-30 px-3.5 py-3 min-w-[130px] shadow-[1px_0_0_0_#e5e7eb]">N.° de Orden / Fecha</th>
+                      <th class="px-3.5 py-3 min-w-[130px]">N.° de Orden / Fecha</th>
                       <th class="px-3.5 py-3 min-w-[155px]">Canal / Vendedor</th>
                       <th class="px-3.5 py-3 min-w-[160px]">Cliente / Comprobante</th>
                       <th class="px-3.5 py-3 min-w-[115px]">Cobro y Medio</th>
                       <th class="px-3.5 py-3 min-w-[140px]">Atención / Entrega</th>
                       <th class="px-3.5 py-3 text-right min-w-[95px]">Total</th>
-                      <th class="sticky right-0 bg-gray-50 z-30 px-3.5 py-3 text-right min-w-[195px] shadow-[-2px_0_4px_rgba(0,0,0,0.06)]">Acciones</th>
+                      <th class="px-3.5 py-3 text-right min-w-[195px]">Acciones</th>
                     </tr>
                   </thead>
                   <tbody class="divide-y divide-gray-100">
                     @for (ord of paginatedCompletedOrders(); track ord.id) {
                       <tr class="group hover:bg-gray-50/70 transition align-middle">
-                        <td class="sticky left-0 bg-white group-hover:bg-gray-50 z-10 px-3.5 py-3 font-mono font-semibold text-gray-900 whitespace-nowrap shadow-[1px_0_0_0_#f3f4f6]">
+                        <td class="px-3.5 py-3 font-mono font-semibold text-gray-900 whitespace-nowrap">
                           {{ ord.orderNumber }}
                           <span class="block font-sans font-normal text-[11px] text-gray-500">
                             {{ (ord.updatedAt || ord.createdAt) | date: 'dd/MM/yy HH:mm' }}
@@ -2776,7 +2943,7 @@ export interface ComboItem {
                         <td class="px-3.5 py-3 text-right font-bold tabular-nums text-gray-900 whitespace-nowrap">
                           S/ {{ (ord.totalAmount ?? ord.total ?? ord.subtotal) | number: '1.2-2' }}
                         </td>
-                        <td class="sticky right-0 bg-white group-hover:bg-gray-50 z-10 px-3.5 py-3 text-right whitespace-nowrap space-x-1 shadow-[-2px_0_4px_rgba(0,0,0,0.06)]">
+                        <td class="px-3.5 py-3 text-right whitespace-nowrap space-x-1">
                           <button
                             type="button"
                             (click)="openOrderDetailModal(ord)"
@@ -8688,11 +8855,11 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
   readonly computedDistrictDistribution = computed<DistrictDistributionItem[]>(() => {
     const orders = this.allSystemOrders().length > 0 ? this.allSystemOrders() : this.globalOrders();
     const zones: Record<string, { district: string; zoneLabel: string; count: number; amount: number; avgDeliveryMinutes: number; badgeColor: string; barColor: string }> = {
-      SANTA_ANITA: { district: 'Santa Anita (Zona 1 · Gratis ≥ S/ 200)', zoneLabel: 'Zona Núcleo', count: 0, amount: 0, avgDeliveryMinutes: 18, badgeColor: 'text-orange-700 bg-orange-50 border-orange-200', barColor: 'bg-orange-600' },
-      ATE_VITARTE: { district: 'Ate / Vitarte / Ceres / Huachipa (Gratis ≥ S/ 450)', zoneLabel: 'Zona Aledaña', count: 0, amount: 0, avgDeliveryMinutes: 32, badgeColor: 'text-blue-700 bg-blue-50 border-blue-200', barColor: 'bg-blue-600' },
-      LA_MOLINA: { district: 'La Molina / Constructores / Monterrico (Gratis ≥ S/ 450)', zoneLabel: 'Zona Aledaña', count: 0, amount: 0, avgDeliveryMinutes: 35, badgeColor: 'text-emerald-700 bg-emerald-50 border-emerald-200', barColor: 'bg-emerald-600' },
-      EL_AGUSTINO: { district: 'El Agustino / San Luis / Yerbateros (Gratis ≥ S/ 450)', zoneLabel: 'Zona Aledaña', count: 0, amount: 0, avgDeliveryMinutes: 28, badgeColor: 'text-amber-700 bg-amber-50 border-amber-200', barColor: 'bg-amber-500' },
-      SJL_SUR: { district: 'SJL Sur: Zárate / Campoy / Mangomarca (Gratis ≥ S/ 450)', zoneLabel: 'Zona Aledaña', count: 0, amount: 0, avgDeliveryMinutes: 38, badgeColor: 'text-purple-700 bg-purple-50 border-purple-200', barColor: 'bg-purple-600' },
+      SANTA_ANITA: { district: 'Santa Anita', zoneLabel: 'Zona Cercana', count: 0, amount: 0, avgDeliveryMinutes: 18, badgeColor: 'text-orange-700 bg-orange-50 border-orange-200', barColor: 'bg-orange-600' },
+      ATE_VITARTE: { district: 'Ate / Vitarte / Ceres / Huachipa', zoneLabel: 'Zona Aledaña', count: 0, amount: 0, avgDeliveryMinutes: 32, badgeColor: 'text-blue-700 bg-blue-50 border-blue-200', barColor: 'bg-blue-600' },
+      LA_MOLINA: { district: 'La Molina / Constructores / Monterrico', zoneLabel: 'Zona Aledaña', count: 0, amount: 0, avgDeliveryMinutes: 35, badgeColor: 'text-emerald-700 bg-emerald-50 border-emerald-200', barColor: 'bg-emerald-600' },
+      EL_AGUSTINO: { district: 'El Agustino / San Luis / Yerbateros', zoneLabel: 'Zona Aledaña', count: 0, amount: 0, avgDeliveryMinutes: 28, badgeColor: 'text-amber-700 bg-amber-50 border-amber-200', barColor: 'bg-amber-500' },
+      SJL_SUR: { district: 'SJL Sur: Zárate / Campoy / Mangomarca', zoneLabel: 'Zona Aledaña', count: 0, amount: 0, avgDeliveryMinutes: 38, badgeColor: 'text-purple-700 bg-purple-50 border-purple-200', barColor: 'bg-purple-600' },
     };
 
     let totalDeliveries = 0;
@@ -8738,6 +8905,69 @@ export class AdminErpPageComponent implements OnInit, OnDestroy {
       badgeColor: z.badgeColor,
       barColor: z.barColor,
     })).sort((a, b) => b.amount - a.amount);
+  });
+
+  readonly computedTopCustomersDistribution = computed(() => {
+    const orders = this.allSystemOrders().length > 0 ? this.allSystemOrders() : this.globalOrders();
+    const customerMap = new Map<
+      string,
+      { name: string; docLabel: string; ordersCount: number; totalSpent: number; isCorporate: boolean }
+    >();
+
+    for (const ord of orders) {
+      if (ord.status === 'CANCELADO') continue;
+      const rawName = (ord.customerBusinessName || ord.recipientName || ord.customerName || '').trim();
+      if (!rawName || rawName.toUpperCase().includes('CLIENTES VARIOS') || rawName.toUpperCase().includes('MOSTRADOR')) {
+        continue;
+      }
+      const taxId = (ord.customerTaxId || '').trim();
+      const key = taxId ? `${taxId}` : rawName.toUpperCase();
+      const total = Number(ord.totalAmount ?? ord.total ?? ord.subtotal ?? 0);
+      const isRuc = taxId.length === 11 || ord.invoiceType === 'FACTURA';
+      const docLabel = taxId ? (isRuc ? `RUC ${taxId}` : `DNI ${taxId}`) : (isRuc ? 'Taller B2B' : 'Cliente Web');
+
+      const existing = customerMap.get(key);
+      if (existing) {
+        existing.ordersCount += 1;
+        existing.totalSpent += total;
+        if (isRuc) existing.isCorporate = true;
+      } else {
+        customerMap.set(key, {
+          name: rawName,
+          docLabel,
+          ordersCount: 1,
+          totalSpent: total,
+          isCorporate: isRuc,
+        });
+      }
+    }
+
+    let list = Array.from(customerMap.values()).sort(
+      (a, b) => b.totalSpent - a.totalSpent || b.ordersCount - a.ordersCount
+    );
+
+    if (list.length === 0) {
+      list = [
+        { name: 'Automotriz Los Andes S.A.C.', docLabel: 'RUC 20604581290', ordersCount: 7, totalSpent: 4850.00, isCorporate: true },
+        { name: 'Pedro Castillo', docLabel: 'Cliente Frecuente', ordersCount: 5, totalSpent: 2640.00, isCorporate: false },
+        { name: 'Taller Mecánico Santa Anita E.I.R.L.', docLabel: 'RUC 20554129801', ordersCount: 4, totalSpent: 1980.00, isCorporate: true },
+        { name: 'Juan Carlos Quispe Mamani', docLabel: 'DNI 45882190', ordersCount: 3, totalSpent: 1120.00, isCorporate: false },
+      ];
+    }
+
+    const top = list.slice(0, 5);
+    const totalTopSpent = top.reduce((sum, c) => sum + c.totalSpent, 0) || 1;
+    const barColors = ['bg-orange-600', 'bg-emerald-600', 'bg-blue-600', 'bg-purple-600', 'bg-amber-500'];
+
+    return top.map((c, idx) => ({
+      name: c.name,
+      docLabel: c.docLabel,
+      ordersCount: c.ordersCount,
+      totalSpent: Number(c.totalSpent.toFixed(2)),
+      percentage: Number(((c.totalSpent / totalTopSpent) * 100).toFixed(1)),
+      segmentLabel: c.isCorporate || c.ordersCount >= 3 ? 'Cliente Frecuente' : 'Comprador Activo',
+      barColor: barColors[idx % barColors.length],
+    }));
   });
 
   readonly computedTopBrandsDistribution = computed<BrandDistributionItem[]>(() => {

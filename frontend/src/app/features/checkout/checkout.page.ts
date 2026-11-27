@@ -635,7 +635,14 @@ export class CheckoutPageComponent implements OnInit, OnDestroy {
       this.deliveryAddress = point.suggestedAddress;
       return;
     }
-    this.reverseGeocodePinToAddress(point.latitude, point.longitude, point.suggestedAddress);
+    // Asignación inmediata por coordenadas para que el campo nunca quede vacío al arrastrar la casita,
+    // seguida de refinamiento exacto con calle y numeración vía Nominatim.
+    const instantFallback = this.lookupService.resolveLimaEsteFallbackAddress(
+      point.latitude,
+      point.longitude
+    );
+    this.deliveryAddress = instantFallback.displayName;
+    this.reverseGeocodePinToAddress(point.latitude, point.longitude, instantFallback.displayName);
   }
 
   private reverseGeocodePinToAddress(lat: number, lng: number, fallbackLabel?: string): void {

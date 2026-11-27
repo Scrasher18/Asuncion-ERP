@@ -79,6 +79,7 @@ public class DatabaseSchemaPatcher implements CommandLineRunner {
         try {
             jdbcTemplate.execute("ALTER TABLE part_promotions ALTER COLUMN combo_complement_sku TYPE VARCHAR(250)");
             jdbcTemplate.execute("ALTER TABLE part_promotions ALTER COLUMN combo_complement_name TYPE VARCHAR(500)");
+            jdbcTemplate.execute("UPDATE branches SET coverage_radius_meters = 6000 WHERE coverage_radius_meters = 5000");
         } catch (Exception e) {
             log.debug("Verificación de longitud en part_promotions completada ({})", e.getMessage());
         }

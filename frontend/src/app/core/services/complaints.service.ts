@@ -2,6 +2,7 @@ import { inject, Injectable, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { jsPDF } from 'jspdf';
 import { ApiConfigService } from './api-config.service';
+import { AuthService } from './auth.service';
 import { ToastService } from './toast.service';
 
 export interface ComplaintRecord {
@@ -74,6 +75,7 @@ const DEFAULT_COMPLAINTS: ComplaintRecord[] = [
 export class ComplaintsService {
   private readonly http = inject(HttpClient);
   private readonly apiConfig = inject(ApiConfigService);
+  private readonly authService = inject(AuthService);
   private readonly toast = inject(ToastService);
   readonly complaints = signal<ComplaintRecord[]>(DEFAULT_COMPLAINTS);
 
@@ -101,6 +103,12 @@ export class ComplaintsService {
         console.warn('Error loading complaints from localStorage:', e);
         this.complaints.set(DEFAULT_COMPLAINTS);
       }
+    }
+
+    // Solo sincronizar listado completo del Libro de Reclamaciones si el usuario tiene rol ADMIN
+    // (evita error 403 Forbidden en consola cuando navega un CLIENTE).
+    if (!this.authService.hasAnyRole(['ADMIN'])) {
+      return;
     }
 
     // Sincronizar en tiempo real con el backend PostgreSQL (/api/v1/complaints)

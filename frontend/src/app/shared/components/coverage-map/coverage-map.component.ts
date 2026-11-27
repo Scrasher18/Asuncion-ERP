@@ -199,7 +199,8 @@ export class CoverageMapComponent implements AfterViewInit, OnChanges, OnDestroy
     if (this.radiusOverrideMeters !== null && this.radiusOverrideMeters > 0) {
       return this.radiusOverrideMeters;
     }
-    return this.effectiveBranch.coverageRadiusMeters || 8500;
+    const r = this.effectiveBranch.coverageRadiusMeters || 6000;
+    return r === 5000 ? 6000 : r;
   }
 
   ngAfterViewInit(): void {
